@@ -1,35 +1,30 @@
 // API Configuration
-// Backend runs on https://localhost:7093 (HTTPS) or http://localhost:5259 (HTTP)
-// For physical devices, replace 'localhost' with your computer's local IP address
+// Backend runs on http://localhost:5259 (HTTP) or https://localhost:7093 (HTTPS - avoid in RN: dev cert causes cancelled requests)
+// For physical devices, set LOCAL_IP below to your computer's local IP
 // Find your IP: Windows: ipconfig | findstr IPv4 | Mac/Linux: ifconfig | grep inet
-// Example: 'https://192.168.1.100:7093/api'
 
 // Set this to your computer's local IP when testing on physical device
 // Leave empty to use localhost (works for web/simulator only)
-// To find your IP: Windows: ipconfig | findstr IPv4
 const LOCAL_IP = ''; // Example: '10.67.144.35' or leave empty for localhost
 
 const getApiBaseUrl = () => {
   // Check for production API URL from environment variable
-  // Set this in Azure Static Web Apps or deployment environment
   if (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
 
   // Production fallback (if not in dev mode)
   if (!__DEV__) {
-    // Default production URL - update this with your Azure App Service URL
     return 'https://moneyshop20260107220205-adbnf8c7a2fec4d4.azurewebsites.net/api';
   }
 
   // If LOCAL_IP is set, use it (for physical devices)
-  // Use HTTP instead of HTTPS for local IP to avoid SSL certificate issues
   if (LOCAL_IP) {
     return `http://${LOCAL_IP}:5259/api`;
   }
 
-  // Default to localhost (works for web browser and simulators)
-  return 'https://localhost:7093/api';
+  // Local dev: use HTTP so React Native doesn't cancel requests (HTTPS dev cert is untrusted)
+  return 'http://localhost:5259/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

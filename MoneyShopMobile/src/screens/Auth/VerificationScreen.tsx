@@ -5,30 +5,33 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableOpacity,
+  Text,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
-import {TextInput, Button, Text, Snackbar, ActivityIndicator} from 'react-native-paper';
+import {Snackbar} from 'react-native-paper';
 import {authApi} from '../../services/api/authApi';
+import {useAuthStore} from '../../store/authStore';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {AuthStackParamList} from '../../navigation/AuthNavigator';
-
-type VerificationScreenNavigationProp = NativeStackNavigationProp<
-  AuthStackParamList,
-  'Verification'
->;
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 
 interface Props {
-  navigation: VerificationScreenNavigationProp;
+  navigation: NativeStackNavigationProp<any>;
   route: {
     params: {
       type: 'email' | 'phone';
       email?: string;
       phone?: string;
+      onComplete?: 'phone_verification' | 'dashboard';
     };
   };
 }
 
 const VerificationScreen: React.FC<Props> = ({navigation, route}) => {
-  const {type, email, phone} = route.params;
+  const {type, email, phone, onComplete} = route.params;
+  const {setUser} = useAuthStore();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -40,7 +43,6 @@ const VerificationScreen: React.FC<Props> = ({navigation, route}) => {
   const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
-    // Auto-send verification code on mount
     sendVerificationCode();
   }, []);
 
@@ -55,16 +57,16 @@ const VerificationScreen: React.FC<Props> = ({navigation, route}) => {
     try {
       setSending(true);
       setError(null);
-      
+
       let result;
       if (type === 'email') {
         result = await authApi.sendEmailVerification(email);
       } else {
         result = await authApi.sendPhoneVerification(phone);
       }
-      
+
       setOtpId(result.otpId);
-      setCountdown(Math.floor(result.expiresInSeconds / 60)); // Convert to minutes
+      setCountdown(Math.floor(result.expiresInSeconds / 60));
       setSuccess('Codul de verificare a fost trimis');
       setShowSuccess(true);
     } catch (err: any) {
@@ -77,13 +79,13 @@ const VerificationScreen: React.FC<Props> = ({navigation, route}) => {
 
   const handleVerify = async () => {
     if (!code || code.length !== 6) {
-      setError('Te rugăm să introduci codul de 6 cifre');
+      setError('Te rugam sa introduci codul de 6 cifre');
       setShowError(true);
       return;
     }
 
     if (!otpId) {
-      setError('Te rugăm să trimiți mai întâi codul de verificare');
+      setError('Te rugam sa trimiti mai intai codul de verificare');
       setShowError(true);
       return;
     }
@@ -91,20 +93,42 @@ const VerificationScreen: React.FC<Props> = ({navigation, route}) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       let result;
       if (type === 'email') {
         result = await authApi.verifyEmail(otpId, code, email);
       } else {
         result = await authApi.verifyPhone(otpId, code, phone);
       }
-      
+
+      // Refresh user in auth store to reflect verified status
+      let refreshedPhone = phone;
+      try {
+        const updatedUser = await authApi.getCurrentUser();
+        setUser(updatedUser);
+        refreshedPhone = updatedUser?.phone || phone;
+      } catch (_) {
+        // Non-critical — store will refresh on next app launch
+      }
+
       setSuccess(result.message);
       setShowSuccess(true);
-      
-      // Navigate back after 1 second
+
       setTimeout(() => {
-        navigation.goBack();
+        if (onComplete === 'phone_verification') {
+          // Navigate to phone verification (replace to avoid back-stack buildup)
+          navigation.replace('Verification', {
+            type: 'phone',
+            phone: refreshedPhone,
+            onComplete: 'dashboard',
+          });
+        } else if (onComplete === 'dashboard') {
+          // Go back to Dashboard — it will re-check status (KYC, etc.)
+          navigation.goBack();
+        } else {
+          // Default: go back (used from Profile stack or Auth stack)
+          navigation.goBack();
+        }
       }, 1000);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Cod invalid');
@@ -120,67 +144,109 @@ const VerificationScreen: React.FC<Props> = ({navigation, route}) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
-          <Text variant="headlineLarge" style={styles.title}>
+          {/* Back button */}
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            activeOpacity={0.7}>
+            <Icon name="arrow-left" size={22} color={colors.light[100]} />
+          </TouchableOpacity>
+
+          {/* Icon */}
+          <View style={styles.iconContainer}>
+            <Icon
+              name={type === 'email' ? 'email-check-outline' : 'phone-check-outline'}
+              size={48}
+              color={colors.brand.primary}
+            />
+          </View>
+
+          <Text style={styles.title}>
             Verificare {type === 'email' ? 'Email' : 'Telefon'}
           </Text>
-          
-          <Text variant="bodyMedium" style={styles.subtitle}>
+
+          <Text style={styles.subtitle}>
             {type === 'email'
               ? `Am trimis un cod de verificare la ${email}`
               : `Am trimis un cod de verificare la ${phone}`}
           </Text>
 
-          <TextInput
-            label="Cod de verificare (6 cifre)"
-            value={code}
-            onChangeText={setCode}
-            mode="outlined"
-            keyboardType="number-pad"
-            maxLength={6}
-            style={styles.input}
-            disabled={loading || sending}
-          />
+          {/* Code Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>COD DE VERIFICARE</Text>
+            <View style={styles.inputWrapper}>
+              <Icon name="lock-outline" size={20} color={colors.light[60]} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={code}
+                onChangeText={setCode}
+                placeholder="000000"
+                placeholderTextColor={colors.light[50]}
+                keyboardType="number-pad"
+                maxLength={6}
+                editable={!loading && !sending}
+              />
+            </View>
+          </View>
 
-          <Button
-            mode="contained"
+          {/* Verify Button */}
+          <TouchableOpacity
             onPress={handleVerify}
-            loading={loading}
             disabled={loading || sending || !code || code.length !== 6}
-            style={styles.button}>
-            Verifică
-          </Button>
+            activeOpacity={0.8}
+            style={[
+              styles.verifyButton,
+              (loading || sending || !code || code.length !== 6) && styles.buttonDisabled,
+            ]}>
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.verifyButtonText}>Verifica</Text>
+            )}
+          </TouchableOpacity>
 
-          <Button
-            mode="text"
+          {/* Resend */}
+          <TouchableOpacity
             onPress={sendVerificationCode}
-            loading={sending}
             disabled={sending || countdown > 0}
+            activeOpacity={0.7}
             style={styles.resendButton}>
-            {countdown > 0
-              ? `Retrimite codul (${countdown} min)`
-              : 'Retrimite codul'}
-          </Button>
-
-          <Snackbar
-            visible={showError}
-            onDismiss={() => setShowError(false)}
-            duration={3000}
-            action={{
-              label: 'OK',
-              onPress: () => setShowError(false),
-            }}>
-            {error}
-          </Snackbar>
-
-          <Snackbar
-            visible={showSuccess}
-            onDismiss={() => setShowSuccess(false)}
-            duration={2000}
-            style={styles.successSnackbar}>
-            {success}
-          </Snackbar>
+            {sending ? (
+              <ActivityIndicator color={colors.brand.primary} size="small" />
+            ) : (
+              <Text style={[
+                styles.resendText,
+                (sending || countdown > 0) && styles.resendTextDisabled,
+              ]}>
+                {countdown > 0
+                  ? `Retrimite codul (${countdown} min)`
+                  : 'Retrimite codul'}
+              </Text>
+            )}
+          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <Snackbar
+        visible={showError}
+        onDismiss={() => setShowError(false)}
+        duration={3000}
+        style={styles.errorSnackbar}
+        action={{
+          label: 'OK',
+          onPress: () => setShowError(false),
+          textColor: '#FFFFFF',
+        }}>
+        {error}
+      </Snackbar>
+
+      <Snackbar
+        visible={showSuccess}
+        onDismiss={() => setShowSuccess(false)}
+        duration={2000}
+        style={styles.successSnackbar}>
+        {success}
+      </Snackbar>
     </KeyboardAvoidingView>
   );
 };
@@ -188,40 +254,113 @@ const VerificationScreen: React.FC<Props> = ({navigation, route}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.dark[800],
   },
   scrollContent: {
     flexGrow: 1,
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: spacing.lg,
     justifyContent: 'center',
   },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 20,
+    left: spacing.lg,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.dark[600],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.info[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: spacing.xl,
+  },
   title: {
-    marginBottom: 10,
+    ...typography.h2,
+    color: colors.light[100],
     textAlign: 'center',
-    fontWeight: 'bold',
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    marginBottom: 30,
+    ...typography.bodyMedium,
+    color: colors.light[60],
     textAlign: 'center',
-    color: '#666',
+    marginBottom: spacing.xxl,
+  },
+  inputContainer: {
+    marginBottom: spacing.xl,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: colors.light[60],
+    marginBottom: spacing.sm,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dark[600],
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    paddingHorizontal: spacing.md,
+    minHeight: 56,
+  },
+  inputIcon: {
+    marginRight: spacing.sm,
   },
   input: {
-    marginBottom: 20,
+    flex: 1,
+    ...typography.h3,
+    color: colors.light[100],
+    paddingVertical: spacing.md,
+    letterSpacing: 8,
+    textAlign: 'center',
   },
-  button: {
-    marginTop: 10,
-    paddingVertical: 5,
+  verifyButton: {
+    backgroundColor: colors.brand.primary,
+    minHeight: 56,
+    borderRadius: borderRadius.pill,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  buttonDisabled: {
+    opacity: 0.4,
+  },
+  verifyButtonText: {
+    ...typography.labelLarge,
+    color: '#FFFFFF',
   },
   resendButton: {
-    marginTop: 10,
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  resendText: {
+    ...typography.labelLarge,
+    color: colors.brand.primary,
+  },
+  resendTextDisabled: {
+    color: colors.light[50],
+  },
+  errorSnackbar: {
+    backgroundColor: colors.error[500],
   },
   successSnackbar: {
-    backgroundColor: '#4caf50',
+    backgroundColor: colors.success[500],
   },
 });
 
 export default VerificationScreen;
-

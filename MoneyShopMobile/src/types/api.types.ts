@@ -27,6 +27,9 @@ export interface AuthResponse {
     email: string;
     name: string;
     role: string;
+    emailVerified: boolean;
+    phoneVerified: boolean;
+    phone?: string;
   };
 }
 
@@ -35,5 +38,8 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  phone?: string;
 }
 

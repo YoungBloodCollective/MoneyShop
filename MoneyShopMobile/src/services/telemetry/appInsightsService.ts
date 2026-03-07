@@ -36,8 +36,8 @@ class AppInsightsService {
 
     try {
       // For web platform, use Application Insights JavaScript SDK
-      if (typeof window !== 'undefined' && (window as any).appInsights) {
-        (window as any).appInsights.trackEvent({
+      if (typeof globalThis !== 'undefined' && (globalThis as any).appInsights) {
+        (globalThis as any).appInsights.trackEvent({
           name: eventName,
           properties: properties || {},
         });
@@ -101,8 +101,8 @@ class AppInsightsService {
     }
 
     try {
-      if (typeof window !== 'undefined' && (window as any).appInsights) {
-        (window as any).appInsights.trackException({
+      if (typeof globalThis !== 'undefined' && (globalThis as any).appInsights) {
+        (globalThis as any).appInsights.trackException({
           exception: error,
           properties: properties || {},
         });

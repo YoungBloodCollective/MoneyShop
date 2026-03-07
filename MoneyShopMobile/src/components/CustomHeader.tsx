@@ -1,7 +1,8 @@
 import React from 'react';
-import {View, StyleSheet, Platform, StatusBar} from 'react-native';
-import {Appbar} from 'react-native-paper';
-import Logo from './Logo';
+import {View, StyleSheet, Platform, StatusBar, TouchableOpacity, Text} from 'react-native';
+
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {colors, spacing, typography} from '../theme/designSystem';
 
 interface CustomHeaderProps {
   title?: string;
@@ -20,52 +21,54 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
 }) => {
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      <Appbar.Header
+      <StatusBar barStyle="light-content" backgroundColor={colors.dark[800]} />
+      <View
         style={[
           styles.header,
           transparent && styles.transparentHeader,
-        ]}
-        elevated={false}
-        mode="small">
-        {showLogo && (
+        ]}>
+        {onBack && (
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.backButton}
+            activeOpacity={0.7}>
+            <Icon name="arrow-left" size={22} color={colors.light[100]} />
+          </TouchableOpacity>
+        )}
+        {showLogo && !onBack && (
           <View style={styles.logoContainer}>
-            <Logo size="small" />
+            <Text style={styles.logoText}>
+              MoneyShop<Text style={styles.logoReg}>®</Text>
+            </Text>
           </View>
         )}
-        {onBack && (
-          <Appbar.BackAction
-            onPress={onBack}
-            color="#333"
-            style={styles.backButton}
-          />
-        )}
-        {title && !showLogo && (
-          <Appbar.Content
-            title={title}
-            titleStyle={styles.title}
-            style={styles.titleContainer}
-          />
+        {title && (!showLogo || onBack) && (
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>{title}</Text>
+          </View>
         )}
         {rightActions && (
           <View style={styles.rightActions}>{rightActions}</View>
         )}
-      </Appbar.Header>
+      </View>
     </>
   );
 };
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#FFFFFF',
-    elevation: 0,
-    shadowOpacity: 0,
-    borderBottomWidth: 0,
-    height: 60,
-    paddingHorizontal: 16,
+    backgroundColor: colors.dark[800],
+    height: Platform.OS === 'ios' ? 96 : 64,
+    paddingTop: Platform.OS === 'ios' ? 48 : 16,
+    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.dark[400],
   },
   transparentHeader: {
     backgroundColor: 'transparent',
+    borderBottomWidth: 0,
     position: 'absolute',
     top: 0,
     left: 0,
@@ -74,18 +77,25 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     flex: 1,
-    alignItems: 'flex-start',
     justifyContent: 'center',
-    marginLeft: -8,
+  },
+  logoText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.light[100],
+    letterSpacing: -0.5,
+  },
+  logoReg: {
+    fontSize: 10,
+    fontWeight: '400',
+    color: colors.light[60],
   },
   titleContainer: {
     flex: 1,
   },
   title: {
-    fontWeight: '700',
-    fontSize: 18,
-    color: '#1A1A1A',
-    letterSpacing: 0.3,
+    ...typography.h4,
+    color: colors.light[100],
   },
   rightActions: {
     flexDirection: 'row',
@@ -93,9 +103,14 @@ const styles = StyleSheet.create({
     marginRight: -8,
   },
   backButton: {
-    marginLeft: -8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.dark[600],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
   },
 });
 
 export default CustomHeader;
-

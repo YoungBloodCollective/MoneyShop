@@ -9,7 +9,7 @@ import {BigButton, StatusBadge} from '../../components/ui';
 
 /**
  * ConsentManagementScreen - Gestionare Consimțământ Redesign
- * 
+ *
  * Principii UX conform SRS:
  * - Consimțământuri clare și vizibile
  * - Opțional vs Obligatoriu clar marcat
@@ -117,7 +117,7 @@ const ConsentManagementScreen = ({navigation}: any) => {
   const consentCategories = [
     {
       category: 'obligatoriu',
-      title: 'Consimțământuri Obligatorii',
+      title: 'CONSIMȚĂMÂNTURI OBLIGATORII',
       subtitle: 'Necesare pentru utilizarea serviciului',
       consents: [
         {
@@ -127,8 +127,8 @@ const ConsentManagementScreen = ({navigation}: any) => {
           title: 'Termeni și Condiții',
           description: 'Acceptarea termenilor și condițiilor de utilizare a platformei MoneyShop.',
           icon: 'file-document-outline',
-          iconBg: colors.primary[100],
-          iconColor: colors.primary[600],
+          iconBg: colors.info[100],
+          iconColor: colors.info[400],
         },
         {
           type: 'GDPR_ACCEPT',
@@ -137,8 +137,8 @@ const ConsentManagementScreen = ({navigation}: any) => {
           title: 'Politica de Confidențialitate',
           description: 'Consimțământ pentru prelucrarea datelor personale conform GDPR.',
           icon: 'shield-lock-outline',
-          iconBg: colors.primary[100],
-          iconColor: colors.primary[600],
+          iconBg: colors.info[100],
+          iconColor: colors.info[400],
         },
         {
           type: 'COSTS_ACCEPT',
@@ -148,13 +148,13 @@ const ConsentManagementScreen = ({navigation}: any) => {
           description: 'Confirm că am fost informat despre costurile serviciilor.',
           icon: 'cash-check',
           iconBg: colors.warning[100],
-          iconColor: colors.warning[600],
+          iconColor: colors.warning[400],
         },
       ],
     },
     {
       category: 'mandate',
-      title: 'Mandate de Acces',
+      title: 'MANDATE DE ACCES',
       subtitle: 'Pentru analiza eligibilității tale',
       consents: [
         {
@@ -165,13 +165,13 @@ const ConsentManagementScreen = ({navigation}: any) => {
           description: 'Autorizez accesul la datele mele din ANAF și Biroul de Credit pentru analiza de credit.',
           icon: 'file-sign',
           iconBg: colors.success[100],
-          iconColor: colors.success[600],
+          iconColor: colors.success[400],
         },
       ],
     },
     {
       category: 'optional',
-      title: 'Consimțământuri Opționale',
+      title: 'CONSIMȚĂMÂNTURI OPȚIONALE',
       subtitle: 'Nu sunt obligatorii pentru serviciu',
       consents: [
         {
@@ -181,8 +181,8 @@ const ConsentManagementScreen = ({navigation}: any) => {
           title: 'Transmitere Date către Brokeri',
           description: 'Accept ca datele mele să fie transmise către brokerii parteneri pentru oferte personalizate.',
           icon: 'share-variant-outline',
-          iconBg: colors.neutral[100],
-          iconColor: colors.neutral[600],
+          iconBg: 'rgba(110, 76, 229, 0.15)',
+          iconColor: '#6E4CE5',
           optional: true,
         },
       ],
@@ -192,7 +192,7 @@ const ConsentManagementScreen = ({navigation}: any) => {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary[500]} />
+        <ActivityIndicator size="large" color={colors.brand.primary} />
         <Text style={styles.loadingText}>Se încarcă...</Text>
       </View>
     );
@@ -200,11 +200,11 @@ const ConsentManagementScreen = ({navigation}: any) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
-        
+
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Consimțământuri</Text>
@@ -215,7 +215,7 @@ const ConsentManagementScreen = ({navigation}: any) => {
 
         {/* Info Box */}
         <View style={styles.infoBox}>
-          <Icon name="information-outline" size={22} color={colors.primary[500]} />
+          <Icon name="information-outline" size={22} color={colors.brand.primary} />
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>Drepturile tale</Text>
             <Text style={styles.infoText}>
@@ -239,13 +239,13 @@ const ConsentManagementScreen = ({navigation}: any) => {
               );
 
               return (
-                <View 
-                  key={index} 
+                <View
+                  key={index}
                   style={[
                     styles.consentCard,
                     isGranted && styles.consentCardGranted,
                   ]}>
-                  
+
                   {/* Optional Badge */}
                   {(consent as any).optional && (
                     <View style={styles.optionalBadge}>
@@ -281,8 +281,8 @@ const ConsentManagementScreen = ({navigation}: any) => {
                         icon="check"
                         variant="primary"
                         onPress={() => handleGrantConsent(
-                          consent.type, 
-                          consent.docType, 
+                          consent.type,
+                          consent.docType,
                           consent.docVersion,
                           consent.title
                         )}
@@ -296,7 +296,7 @@ const ConsentManagementScreen = ({navigation}: any) => {
                         )}
                         disabled={revokeMutation.isPending}
                         style={styles.revokeButton}>
-                        <Icon name="close-circle-outline" size={20} color={colors.error[500]} />
+                        <Icon name="close-circle-outline" size={20} color={colors.error[400]} />
                         <Text style={styles.revokeButtonText}>Revocă Consimțământ</Text>
                       </TouchableOpacity>
                     )}
@@ -309,7 +309,7 @@ const ConsentManagementScreen = ({navigation}: any) => {
 
         {/* Footer Info */}
         <View style={styles.footer}>
-          <Icon name="shield-check" size={20} color={colors.success[500]} />
+          <Icon name="shield-check" size={20} color={colors.success[400]} />
           <Text style={styles.footerText}>
             Toate consimțământurile sunt înregistrate cu dată, oră și adresă IP conform cerințelor GDPR.
           </Text>
@@ -322,7 +322,7 @@ const ConsentManagementScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[50],
+    backgroundColor: colors.dark[800],
   },
   scrollView: {
     flex: 1,
@@ -335,11 +335,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.neutral[50],
+    backgroundColor: colors.dark[800],
   },
   loadingText: {
     ...typography.bodyMedium,
-    color: colors.neutral[600],
+    color: colors.light[60],
     marginTop: spacing.md,
   },
 
@@ -349,24 +349,24 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...typography.h2,
-    color: colors.neutral[900],
+    color: colors.light[100],
     marginBottom: spacing.sm,
   },
   headerSubtitle: {
     ...typography.bodyMedium,
-    color: colors.neutral[600],
+    color: colors.light[70],
     lineHeight: 24,
   },
 
   // Info Box
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: colors.primary[50],
+    backgroundColor: colors.info[50],
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     marginBottom: spacing.xl,
     borderWidth: 1,
-    borderColor: colors.primary[100],
+    borderColor: colors.info[100],
   },
   infoContent: {
     flex: 1,
@@ -374,12 +374,12 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     ...typography.labelLarge,
-    color: colors.primary[700],
+    color: colors.info[400],
     marginBottom: spacing.xs,
   },
   infoText: {
     ...typography.bodySmall,
-    color: colors.primary[600],
+    color: colors.light[70],
     lineHeight: 20,
   },
 
@@ -391,43 +391,42 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   categoryTitle: {
-    ...typography.h4,
-    color: colors.neutral[800],
+    ...typography.labelUppercase,
+    color: colors.light[50],
     marginBottom: 4,
   },
   categorySubtitle: {
     ...typography.bodySmall,
-    color: colors.neutral[500],
+    color: colors.light[60],
   },
 
   // Consent Card
   consentCard: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.dark[700],
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    ...shadows.sm,
+    borderColor: colors.dark[400],
     position: 'relative',
     overflow: 'hidden',
   },
   consentCardGranted: {
-    borderColor: colors.success[200],
-    backgroundColor: colors.success[50],
+    borderColor: colors.success[500],
+    backgroundColor: colors.dark[600],
   },
   optionalBadge: {
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: colors.neutral[200],
+    backgroundColor: colors.dark[500],
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderBottomLeftRadius: borderRadius.md,
   },
   optionalBadgeText: {
     ...typography.caption,
-    color: colors.neutral[600],
+    color: colors.light[60],
     fontWeight: '600',
   },
   consentHeader: {
@@ -449,12 +448,12 @@ const styles = StyleSheet.create({
   },
   consentTitle: {
     ...typography.labelLarge,
-    color: colors.neutral[900],
+    color: colors.light[100],
     marginBottom: spacing.xs,
   },
   consentDescription: {
     ...typography.bodySmall,
-    color: colors.neutral[600],
+    color: colors.light[70],
     lineHeight: 20,
   },
 
@@ -466,12 +465,12 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.success[100],
+    borderTopColor: colors.dark[400],
     marginBottom: spacing.sm,
   },
   dateText: {
     ...typography.caption,
-    color: colors.neutral[500],
+    color: colors.light[60],
   },
 
   // Actions
@@ -484,14 +483,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.pill,
     borderWidth: 1,
-    borderColor: colors.error[200],
+    borderColor: colors.error[100],
     backgroundColor: colors.error[50],
+    minHeight: 56,
   },
   revokeButtonText: {
     ...typography.labelMedium,
-    color: colors.error[600],
+    color: colors.error[400],
     marginLeft: spacing.sm,
   },
 
@@ -499,14 +499,16 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: colors.neutral[100],
+    backgroundColor: colors.dark[700],
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     marginTop: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
   footerText: {
     ...typography.bodySmall,
-    color: colors.neutral[600],
+    color: colors.light[60],
     flex: 1,
     marginLeft: spacing.md,
     lineHeight: 20,

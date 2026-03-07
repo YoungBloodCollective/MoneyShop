@@ -19,7 +19,7 @@ import {banksApi} from '../../services/api/banksApi';
 import {ScoringRequest, CardCreditData, OverdraftData, CodebitorData} from '../../types/application.types';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 import {BigButton, ProgressSteps} from '../../components/ui';
 
 type SimulatorFormScreenNavigationProp = NativeStackNavigationProp<any>;
@@ -30,9 +30,9 @@ interface Props {
 
 /**
  * SimulatorFormScreen - Simulator Credit Redesign
- * 
+ *
  * Principii UX (conform SRS):
- * - 1 ecran = 1 decizie 
+ * - 1 ecran = 1 decizie
  * - Text mare și clar
  * - Butoane mari pentru toate vârstele
  * - Fără tehnicisme
@@ -144,7 +144,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
     subtitle,
     selected,
     onPress,
-    color = colors.primary[500],
+    color = colors.brand.primary,
   }: {
     icon: string;
     title: string;
@@ -162,9 +162,9 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
       ]}>
       <View style={[
         styles.optionIcon,
-        {backgroundColor: selected ? color : colors.neutral[100]},
+        {backgroundColor: selected ? color : colors.dark[500]},
       ]}>
-        <Icon name={icon} size={24} color={selected ? '#FFFFFF' : colors.neutral[500]} />
+        <Icon name={icon} size={24} color={selected ? colors.light[100] : colors.light[60]} />
       </View>
       <View style={styles.optionText}>
         <Text style={[styles.optionTitle, selected && {color}]}>{title}</Text>
@@ -233,7 +233,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
     max?: number;
   }) => {
     const numValue = parseInt(value) || 0;
-    
+
     return (
       <View style={styles.stepperContainer}>
         <Text style={styles.stepperLabel}>{label}</Text>
@@ -242,7 +242,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
             onPress={() => onChange(Math.max(min, numValue - 1).toString())}
             style={styles.stepperButton}
             disabled={numValue <= min}>
-            <Icon name="minus" size={24} color={numValue <= min ? colors.neutral[300] : colors.primary[500]} />
+            <Icon name="minus" size={24} color={numValue <= min ? colors.dark[400] : colors.brand.primary} />
           </TouchableOpacity>
           <View style={styles.stepperValue}>
             <Text style={styles.stepperValueText}>{numValue}</Text>
@@ -251,7 +251,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
             onPress={() => onChange(Math.min(max, numValue + 1).toString())}
             style={styles.stepperButton}
             disabled={numValue >= max}>
-            <Icon name="plus" size={24} color={numValue >= max ? colors.neutral[300] : colors.primary[500]} />
+            <Icon name="plus" size={24} color={numValue >= max ? colors.dark[400] : colors.brand.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -264,7 +264,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
         return (
           <Animated.View style={[styles.stepContent, {opacity: fadeAnim}]}>
             <View style={styles.stepHeader}>
-              <Icon name="wallet" size={48} color={colors.primary[500]} />
+              <Icon name="wallet" size={48} color={colors.brand.primary} />
               <Text style={styles.stepTitle}>Care este venitul tău?</Text>
               <Text style={styles.stepSubtitle}>
                 Introdu salariul net lunar (suma primită în mână)
@@ -280,7 +280,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
                   onChangeText={setSalariuNet}
                   keyboardType="numeric"
                   placeholder="0"
-                  placeholderTextColor={colors.neutral[400]}
+                  placeholderTextColor={colors.light[50]}
                   mode="flat"
                   underlineColor="transparent"
                   activeUnderlineColor="transparent"
@@ -305,7 +305,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
                     onChangeText={setSumaBonuriMasa}
                     keyboardType="numeric"
                     placeholder="0"
-                    placeholderTextColor={colors.neutral[400]}
+                    placeholderTextColor={colors.light[50]}
                     mode="flat"
                     underlineColor="transparent"
                     activeUnderlineColor="transparent"
@@ -324,7 +324,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
                   onChangeText={setVechimeLuni}
                   keyboardType="numeric"
                   placeholder="0"
-                  placeholderTextColor={colors.neutral[400]}
+                  placeholderTextColor={colors.light[50]}
                   mode="flat"
                   underlineColor="transparent"
                   activeUnderlineColor="transparent"
@@ -369,7 +369,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
                     onChangeText={setSoldTotal}
                     keyboardType="numeric"
                     placeholder="0"
-                    placeholderTextColor={colors.neutral[400]}
+                    placeholderTextColor={colors.light[50]}
                     mode="flat"
                     underlineColor="transparent"
                     activeUnderlineColor="transparent"
@@ -404,15 +404,15 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
               </Text>
             </View>
 
-            <Text style={styles.sectionLabel}>Tip credit</Text>
-            
+            <Text style={styles.sectionLabel}>TIP CREDIT</Text>
+
             <OptionCard
               icon="home"
               title="Credit Ipotecar"
               subtitle="Pentru achiziția unei locuințe"
               selected={typeCredit === 'ipotecar'}
               onPress={() => setTypeCredit('ipotecar')}
-              color={colors.primary[600]}
+              color={colors.brand.primary}
             />
 
             <OptionCard
@@ -421,10 +421,10 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
               subtitle="Pentru orice ai nevoie"
               selected={typeCredit === 'nevoi_personale'}
               onPress={() => setTypeCredit('nevoi_personale')}
-              color={colors.success[600]}
+              color={colors.success[500]}
             />
 
-            <Text style={[styles.sectionLabel, {marginTop: spacing.xl}]}>Operațiune</Text>
+            <Text style={[styles.sectionLabel, {marginTop: spacing.xl}]}>OPERATIUNE</Text>
 
             <OptionCard
               icon="plus-circle"
@@ -448,7 +448,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
         return (
           <Animated.View style={[styles.stepContent, {opacity: fadeAnim}]}>
             <View style={styles.stepHeader}>
-              <Icon name="history" size={48} color={colors.neutral[600]} />
+              <Icon name="history" size={48} color={colors.light[60]} />
               <Text style={styles.stepTitle}>Istoricul tău financiar</Text>
               <Text style={styles.stepSubtitle}>
                 Aceste informații ne ajută să evaluăm șansele de aprobare
@@ -472,7 +472,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
                     onChangeText={setIntarzieriNumar}
                     keyboardType="numeric"
                     placeholder="0"
-                    placeholderTextColor={colors.neutral[400]}
+                    placeholderTextColor={colors.light[50]}
                     mode="flat"
                     underlineColor="transparent"
                     activeUnderlineColor="transparent"
@@ -554,7 +554,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
                 {intarzieri && (
                   <View style={styles.summaryRow}>
                     <Icon name="alert-circle" size={16} color={colors.warning[500]} />
-                    <Text style={[styles.summaryLabel, {marginLeft: 4, color: colors.warning[600]}]}>
+                    <Text style={[styles.summaryLabel, {marginLeft: 4, color: colors.warning[400]}]}>
                       {intarzieriNumar} întârzieri raportate
                     </Text>
                   </View>
@@ -562,7 +562,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
                 {poprire && (
                   <View style={styles.summaryRow}>
                     <Icon name="alert-circle" size={16} color={colors.error[500]} />
-                    <Text style={[styles.summaryLabel, {marginLeft: 4, color: colors.error[600]}]}>
+                    <Text style={[styles.summaryLabel, {marginLeft: 4, color: colors.error[400]}]}>
                       Poprire în ultimii 5 ani
                     </Text>
                   </View>
@@ -571,7 +571,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
             </Card>
 
             <View style={styles.disclaimerBox}>
-              <Icon name="information-outline" size={20} color={colors.primary[500]} />
+              <Icon name="information-outline" size={20} color={colors.brand.primary} />
               <Text style={styles.disclaimerText}>
                 Rezultatul este orientativ. Pentru o analiză completă, vei primi oferte personalizate de la băncile partenere.
               </Text>
@@ -588,19 +588,19 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
-        
+
         <ProgressSteps
           currentStep={currentStep}
           totalSteps={totalSteps}
           stepTitles={STEP_TITLES}
         />
-        
+
         {renderStep()}
-        
+
       </ScrollView>
 
       {/* Bottom Navigation */}
@@ -615,7 +615,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
             fullWidth={false}
           />
         )}
-        
+
         {currentStep < totalSteps ? (
           <BigButton
             title="Continuă"
@@ -644,7 +644,7 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[50],
+    backgroundColor: colors.dark[800], // #111214 main dark bg
   },
   scrollView: {
     flex: 1,
@@ -662,71 +662,69 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     ...typography.h3,
-    color: colors.neutral[900],
+    color: colors.light[100], // #FFFFFF primary text
     textAlign: 'center',
     marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
   stepSubtitle: {
     ...typography.bodyMedium,
-    color: colors.neutral[600],
+    color: colors.light[60], // #8A8D91 secondary text
     textAlign: 'center',
     lineHeight: 24,
     maxWidth: 300,
   },
   sectionLabel: {
-    ...typography.labelLarge,
-    color: colors.neutral[700],
+    ...typography.labelUppercase, // uppercase with letterSpacing: 1.2
+    color: colors.light[60], // #8A8D91 secondary text
     marginBottom: spacing.md,
   },
-  
+
   // Input Styles
   inputContainer: {
     marginBottom: spacing.lg,
   },
   inputLabel: {
     ...typography.labelMedium,
-    color: colors.neutral[700],
+    color: colors.light[60], // #8A8D91 secondary text
     marginBottom: spacing.sm,
   },
   currencyInput: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    borderWidth: 2,
-    borderColor: colors.neutral[200],
+    backgroundColor: colors.dark[600], // #1F2226 input bg
+    borderRadius: borderRadius.xl, // 20
+    borderWidth: 1,
+    borderColor: colors.dark[400], // #3A3D41 border
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    ...shadows.sm,
   },
   largeInput: {
     flex: 1,
     ...typography.h3,
-    color: colors.neutral[900],
+    color: colors.light[100], // #FFFFFF primary text
     backgroundColor: 'transparent',
     paddingHorizontal: 0,
   },
   currencyLabel: {
     ...typography.labelLarge,
-    color: colors.neutral[500],
+    color: colors.light[50], // #6B7280 muted text
     marginLeft: spacing.sm,
   },
-  
+
   // Option Card
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.dark[700], // #191C1F card bg
+    borderRadius: borderRadius.xl, // 20
     padding: spacing.lg,
     marginBottom: spacing.md,
-    borderWidth: 2,
-    borderColor: colors.neutral[200],
-    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.dark[400], // #3A3D41 card border
   },
   optionCardSelected: {
-    backgroundColor: colors.primary[50],
+    backgroundColor: colors.dark[600], // #1F2226 elevated surface
     borderWidth: 2,
   },
   optionIcon: {
@@ -742,24 +740,25 @@ const styles = StyleSheet.create({
   },
   optionTitle: {
     ...typography.labelLarge,
-    color: colors.neutral[800],
+    color: colors.light[100], // #FFFFFF primary text
     marginBottom: 2,
   },
   optionSubtitle: {
     ...typography.bodySmall,
-    color: colors.neutral[500],
+    color: colors.light[50], // #6B7280 muted text
   },
-  
+
   // Toggle
   toggleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.dark[700], // #191C1F card bg
+    borderRadius: borderRadius.xl, // 20
     padding: spacing.lg,
     marginBottom: spacing.md,
-    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.dark[400], // #3A3D41 card border
   },
   toggleLabel: {
     flex: 1,
@@ -767,16 +766,16 @@ const styles = StyleSheet.create({
   },
   toggleTitle: {
     ...typography.labelLarge,
-    color: colors.neutral[800],
+    color: colors.light[100], // #FFFFFF primary text
   },
   toggleDescription: {
     ...typography.caption,
-    color: colors.neutral[500],
+    color: colors.light[50], // #6B7280 muted text
     marginTop: 2,
   },
   toggleButtons: {
     flexDirection: 'row',
-    backgroundColor: colors.neutral[100],
+    backgroundColor: colors.dark[500], // #2A2D31 secondary surface
     borderRadius: borderRadius.lg,
     padding: 4,
   },
@@ -786,32 +785,32 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   toggleButtonActive: {
-    backgroundColor: colors.neutral[0],
-    ...shadows.sm,
+    backgroundColor: colors.dark[700], // #191C1F contrast against toggle bg
   },
   toggleButtonActiveYes: {
     backgroundColor: colors.success[500],
   },
   toggleButtonText: {
     ...typography.labelMedium,
-    color: colors.neutral[600],
+    color: colors.light[60], // #8A8D91 secondary text
   },
   toggleButtonTextActive: {
-    color: colors.neutral[0],
+    color: colors.light[100], // #FFFFFF
     fontWeight: '700',
   },
-  
+
   // Stepper
   stepperContainer: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.dark[700], // #191C1F card bg
+    borderRadius: borderRadius.xl, // 20
     padding: spacing.lg,
     marginBottom: spacing.md,
-    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.dark[400], // #3A3D41 card border
   },
   stepperLabel: {
     ...typography.labelLarge,
-    color: colors.neutral[800],
+    color: colors.light[100], // #FFFFFF primary text
     marginBottom: spacing.md,
   },
   stepperRow: {
@@ -823,7 +822,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: colors.dark[500], // #2A2D31 secondary surface
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -834,15 +833,16 @@ const styles = StyleSheet.create({
   },
   stepperValueText: {
     ...typography.h2,
-    color: colors.primary[600],
+    color: colors.brand.primary, // #0075EB Revolut blue
   },
-  
+
   // Summary
   summaryCard: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.dark[700], // #191C1F card bg
+    borderRadius: borderRadius.xl, // 20
     marginBottom: spacing.lg,
-    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.dark[400], // #3A3D41 card border
   },
   summaryRow: {
     flexDirection: 'row',
@@ -852,35 +852,35 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     ...typography.bodyMedium,
-    color: colors.neutral[600],
+    color: colors.light[60], // #8A8D91 secondary text
   },
   summaryValue: {
     ...typography.labelLarge,
-    color: colors.neutral[900],
+    color: colors.light[100], // #FFFFFF primary text
   },
   summaryDivider: {
     height: 1,
-    backgroundColor: colors.neutral[200],
+    backgroundColor: colors.dark[400], // #3A3D41 divider
     marginVertical: spacing.md,
   },
-  
+
   // Disclaimer
   disclaimerBox: {
     flexDirection: 'row',
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.info[50], // rgba(0, 117, 235, 0.1)
+    borderRadius: borderRadius.xl, // 20
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.primary[100],
+    borderColor: colors.info[100], // rgba(0, 117, 235, 0.15)
   },
   disclaimerText: {
     ...typography.bodySmall,
-    color: colors.primary[700],
+    color: colors.light[80], // #D1D5DB readable on dark bg
     flex: 1,
     marginLeft: spacing.sm,
     lineHeight: 20,
   },
-  
+
   // Bottom Navigation
   bottomNav: {
     position: 'absolute',
@@ -890,11 +890,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: spacing.lg,
     paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg,
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.dark[700], // #191C1F card bg
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: colors.dark[400], // #3A3D41 border
     gap: spacing.md,
-    ...shadows.lg,
   },
   backButton: {
     flex: 0.4,

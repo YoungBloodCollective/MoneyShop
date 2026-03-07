@@ -64,6 +64,10 @@ class ApiClient {
           });
           throw new Error('Received HTML response instead of JSON. User may not be authenticated.');
         }
+        // Unwrap ApiResponse envelope from backend BaseController
+        if (response.data && typeof response.data === 'object' && 'statusCode' in response.data && 'data' in response.data) {
+          response.data = response.data.data;
+        }
         return response;
       },
       async (error: AxiosError) => {

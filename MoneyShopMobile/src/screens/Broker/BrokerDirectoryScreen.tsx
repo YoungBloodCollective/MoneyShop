@@ -1,18 +1,20 @@
 import React, {useState, useEffect, useMemo} from 'react';
-import {View, StyleSheet, FlatList, Alert} from 'react-native';
 import {
-  Card,
-  Button,
+  View,
   Text,
+  StyleSheet,
+  FlatList,
+  Alert,
+  TextInput,
+  TouchableOpacity,
   ActivityIndicator,
-  Chip,
-  Searchbar,
-} from 'react-native-paper';
+} from 'react-native';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {brokerApi, BrokerInfo} from '../../services/api/brokerApi';
 import {useAuthStore} from '../../store/authStore';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import * as DocumentPicker from 'expo-document-picker';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 
 // Custom hook for debouncing
 const useDebounce = (value: string, delay: number) => {
@@ -78,10 +80,10 @@ const BrokerDirectoryScreen = ({navigation}: any) => {
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['brokerDirectory']});
       queryClient.invalidateQueries({queryKey: ['brokers']});
-      Alert.alert('Succes', 'Fișierul Excel a fost încărcat cu succes');
+      Alert.alert('Succes', 'Fisierul Excel a fost incarcat cu succes');
     },
     onError: (error: any) => {
-      Alert.alert('Eroare', error.message || 'Nu s-a putut încărca fișierul');
+      Alert.alert('Eroare', error.message || 'Nu s-a putut incarca fisierul');
     },
   });
 
@@ -111,101 +113,131 @@ const BrokerDirectoryScreen = ({navigation}: any) => {
 
       uploadMutation.mutate({file: fileObj});
     } catch (error: any) {
-      Alert.alert('Eroare', error.message || 'Nu s-a putut selecta fișierul');
+      Alert.alert('Eroare', error.message || 'Nu s-a putut selecta fisierul');
+    }
+  };
+
+  const getStatusBadgeStyles = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return {bg: colors.success[50], text: colors.success[400], label: 'Verificat'};
+      case 'suspended':
+        return {bg: colors.error[50], text: colors.error[400], label: 'Suspendat'};
+      default:
+        return {bg: colors.warning[50], text: colors.warning[400], label: 'Pending'};
     }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-          <Text variant="headlineSmall" style={styles.title}>
+          <Text style={styles.title}>
             Director Brokeri
           </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Încarcă un fișier Excel cu brokeri și caută în listă
+          <Text style={styles.subtitle}>
+            Incarca un fisier Excel cu brokeri si cauta in lista
           </Text>
 
           {/* Upload Section - Only for Admin */}
           {isAdmin && (
-            <Card style={styles.card}>
-              <Card.Content>
-                <View style={styles.uploadSection}>
-                  <Icon name="file-excel" size={48} color="#217346" />
-                  <Text variant="titleMedium" style={styles.uploadTitle}>
-                    Încarcă Excel
+            <View style={styles.card}>
+              <View style={styles.uploadSection}>
+                <Icon name="file-excel" size={48} color={colors.success[400]} />
+                <Text style={styles.uploadTitle}>
+                  Incarca Excel
+                </Text>
+                <Text style={styles.uploadDescription}>
+                  {directoryData
+                    ? `Ultimul fisier: ${directoryData.fileName}`
+                    : 'Nu exista fisier incarcat'}
+                </Text>
+                {directoryData && (
+                  <Text style={styles.uploadDate}>
+                    Incarcat: {new Date(directoryData.uploadedAt).toLocaleDateString('ro-RO')}
                   </Text>
-                  <Text variant="bodySmall" style={styles.uploadDescription}>
-                    {directoryData
-                      ? `Ultimul fișier: ${directoryData.fileName}`
-                      : 'Nu există fișier încărcat'}
-                  </Text>
-                  {directoryData && (
-                    <Text variant="bodySmall" style={styles.uploadDate}>
-                      Încărcat: {new Date(directoryData.uploadedAt).toLocaleDateString('ro-RO')}
-                    </Text>
+                )}
+                <TouchableOpacity
+                  style={[
+                    styles.uploadButton,
+                    uploadMutation.isPending && styles.buttonDisabled,
+                  ]}
+                  onPress={handleUploadExcel}
+                  disabled={uploadMutation.isPending}
+                  activeOpacity={0.8}>
+                  {uploadMutation.isPending ? (
+                    <View style={styles.buttonRow}>
+                      <ActivityIndicator size="small" color={colors.light[100]} />
+                      <Text style={styles.uploadButtonLabel}>Se incarca...</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.buttonRow}>
+                      <Icon name="upload" size={20} color={colors.light[100]} />
+                      <Text style={styles.uploadButtonLabel}>
+                        {directoryData ? 'Actualizeaza Excel' : 'Incarca Excel'}
+                      </Text>
+                    </View>
                   )}
-                  <Button
-                    mode="contained"
-                    onPress={handleUploadExcel}
-                    loading={uploadMutation.isPending}
-                    disabled={uploadMutation.isPending}
-                    style={styles.uploadButton}
-                    icon="upload">
-                    {directoryData ? 'Actualizează Excel' : 'Încarcă Excel'}
-                  </Button>
-                </View>
-              </Card.Content>
-            </Card>
+                </TouchableOpacity>
+              </View>
+            </View>
           )}
 
           {/* Info Card for non-admin users */}
           {!isAdmin && directoryData && (
-            <Card style={styles.infoCard}>
-              <Card.Content>
-                <View style={styles.infoRow}>
-                  <Icon name="information" size={24} color="#1976D2" />
-                  <View style={styles.infoTextContainer}>
-                    <Text variant="bodySmall" style={styles.infoTitle}>
-                      Director Brokeri
-                    </Text>
-                    <Text variant="bodySmall" style={styles.infoText}>
-                      Ultimul fișier: {directoryData.fileName}
-                    </Text>
-                    <Text variant="bodySmall" style={styles.infoText}>
-                      Încărcat: {new Date(directoryData.uploadedAt).toLocaleDateString('ro-RO')}
-                    </Text>
-                  </View>
+            <View style={styles.infoCard}>
+              <View style={styles.infoRow}>
+                <Icon name="information" size={24} color={colors.brand.primary} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={styles.infoTitle}>
+                    Director Brokeri
+                  </Text>
+                  <Text style={styles.infoText}>
+                    Ultimul fisier: {directoryData.fileName}
+                  </Text>
+                  <Text style={styles.infoText}>
+                    Incarcat: {new Date(directoryData.uploadedAt).toLocaleDateString('ro-RO')}
+                  </Text>
                 </View>
-              </Card.Content>
-            </Card>
+              </View>
+            </View>
           )}
 
           {/* Search Section */}
           {directoryData && (
-            <Card style={styles.card}>
-              <Card.Content>
-                <Searchbar
-                  placeholder="Caută broker (nume, firmă, CUI, email, telefon)..."
+            <View style={styles.searchCard}>
+              <View style={styles.searchInputContainer}>
+                <Icon name="magnify" size={22} color={colors.light[60]} style={styles.searchIcon} />
+                <TextInput
+                  placeholder="Cauta broker (nume, firma, CUI, email, telefon)..."
                   onChangeText={setSearchQuery}
                   value={searchQuery}
-                  style={styles.searchbar}
+                  style={styles.searchInput}
+                  placeholderTextColor={colors.light[50]}
                 />
-              </Card.Content>
-            </Card>
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchQuery('')}
+                    style={styles.searchClear}
+                    activeOpacity={0.7}>
+                    <Icon name="close" size={20} color={colors.light[60]} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
           )}
 
           {/* Brokers List with Pagination */}
           {isLoadingBrokers ? (
             <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color="#1976D2" />
+              <ActivityIndicator size="large" color={colors.brand.primary} />
             </View>
           ) : directoryData && brokers.length > 0 ? (
             <>
               <View style={styles.listHeader}>
-                <Text variant="titleMedium" style={styles.listTitle}>
-                  Brokeri ({brokers.length})
+                <Text style={styles.listTitle}>
+                  BROKERI ({brokers.length})
                   {debouncedSearchQuery && (
-                    <Text variant="bodySmall" style={styles.searchInfo}>
+                    <Text style={styles.searchInfo}>
                       {' '}pentru "{debouncedSearchQuery}"
                     </Text>
                   )}
@@ -214,128 +246,124 @@ const BrokerDirectoryScreen = ({navigation}: any) => {
               <FlatList
                 data={paginatedBrokers}
                 keyExtractor={(item) => item.brokerId}
-                renderItem={({item: broker}) => (
-                  <Card style={styles.brokerCard}>
-                  <Card.Content>
-                    <View style={styles.brokerHeader}>
-                      <View style={styles.brokerInfo}>
-                        <Text variant="titleMedium" style={styles.brokerName}>
-                          {broker.fullName}
-                        </Text>
-                        {broker.firmName && (
-                          <Text variant="bodyMedium" style={styles.brokerFirm}>
-                            {broker.firmName}
+                renderItem={({item: broker}) => {
+                  const statusStyle = getStatusBadgeStyles(broker.status);
+                  return (
+                    <View style={styles.brokerCard}>
+                      <View style={styles.brokerHeader}>
+                        <View style={styles.brokerInfo}>
+                          <Text style={styles.brokerName}>
+                            {broker.fullName}
                           </Text>
+                          {broker.firmName && (
+                            <Text style={styles.brokerFirm}>
+                              {broker.firmName}
+                            </Text>
+                          )}
+                        </View>
+                        <View style={[styles.statusChip, {backgroundColor: statusStyle.bg}]}>
+                          <Text style={[styles.statusChipText, {color: statusStyle.text}]}>
+                            {statusStyle.label}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.brokerDetails}>
+                        {broker.firmCui && (
+                          <View style={styles.detailRow}>
+                            <Icon name="identifier" size={16} color={colors.light[60]} />
+                            <Text style={styles.detailText}>
+                              CUI: {broker.firmCui}
+                            </Text>
+                          </View>
+                        )}
+                        {broker.publicEmail && (
+                          <View style={styles.detailRow}>
+                            <Icon name="email" size={16} color={colors.light[60]} />
+                            <Text style={styles.detailText}>
+                              {broker.publicEmail}
+                            </Text>
+                          </View>
+                        )}
+                        {broker.publicPhone && (
+                          <View style={styles.detailRow}>
+                            <Icon name="phone" size={16} color={colors.light[60]} />
+                            <Text style={styles.detailText}>
+                              {broker.publicPhone}
+                            </Text>
+                          </View>
                         )}
                       </View>
-                      <Chip
-                        style={[
-                          styles.statusChip,
-                          {
-                            backgroundColor:
-                              broker.status === 'verified'
-                                ? '#E8F5E9'
-                                : broker.status === 'suspended'
-                                ? '#FFEBEE'
-                                : '#FFF9E6',
-                          },
-                        ]}
-                        textStyle={{
-                          color:
-                            broker.status === 'verified'
-                              ? '#4CAF50'
-                              : broker.status === 'suspended'
-                              ? '#D32F2F'
-                              : '#FF9800',
-                        }}>
-                        {broker.status === 'verified'
-                          ? 'Verificat'
-                          : broker.status === 'suspended'
-                          ? 'Suspendat'
-                          : 'Pending'}
-                      </Chip>
                     </View>
-
-                    <View style={styles.brokerDetails}>
-                      {broker.firmCui && (
-                        <View style={styles.detailRow}>
-                          <Icon name="identifier" size={16} color="#666" />
-                          <Text variant="bodySmall" style={styles.detailText}>
-                            CUI: {broker.firmCui}
-                          </Text>
-                        </View>
-                      )}
-                      {broker.publicEmail && (
-                        <View style={styles.detailRow}>
-                          <Icon name="email" size={16} color="#666" />
-                          <Text variant="bodySmall" style={styles.detailText}>
-                            {broker.publicEmail}
-                          </Text>
-                        </View>
-                      )}
-                      {broker.publicPhone && (
-                        <View style={styles.detailRow}>
-                          <Icon name="phone" size={16} color="#666" />
-                          <Text variant="bodySmall" style={styles.detailText}>
-                            {broker.publicPhone}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </Card.Content>
-                </Card>
-                )}
+                  );
+                }}
                 ListFooterComponent={
                   totalPages > 1 ? (
                     <View style={styles.paginationContainer}>
-                      <Button
-                        mode="outlined"
+                      <TouchableOpacity
+                        style={[
+                          styles.paginationButton,
+                          currentPage === 1 && styles.paginationButtonDisabled,
+                        ]}
                         onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                         disabled={currentPage === 1}
-                        style={styles.paginationButton}
-                        icon="chevron-left">
-                        Anterior
-                      </Button>
-                      <Text variant="bodyMedium" style={styles.paginationText}>
+                        activeOpacity={0.8}>
+                        <Icon
+                          name="chevron-left"
+                          size={18}
+                          color={currentPage === 1 ? colors.light[40] : colors.light[70]}
+                        />
+                        <Text style={[
+                          styles.paginationButtonLabel,
+                          currentPage === 1 && styles.paginationButtonLabelDisabled,
+                        ]}>Anterior</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.paginationText}>
                         Pagina {currentPage} din {totalPages}
                       </Text>
-                      <Button
-                        mode="outlined"
+                      <TouchableOpacity
+                        style={[
+                          styles.paginationButton,
+                          currentPage === totalPages && styles.paginationButtonDisabled,
+                        ]}
                         onPress={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                         disabled={currentPage === totalPages}
-                        style={styles.paginationButton}
-                        icon="chevron-right">
-                        Următor
-                      </Button>
+                        activeOpacity={0.8}>
+                        <Text style={[
+                          styles.paginationButtonLabel,
+                          currentPage === totalPages && styles.paginationButtonLabelDisabled,
+                        ]}>Urmator</Text>
+                        <Icon
+                          name="chevron-right"
+                          size={18}
+                          color={currentPage === totalPages ? colors.light[40] : colors.light[70]}
+                        />
+                      </TouchableOpacity>
                     </View>
                   ) : null
                 }
               />
             </>
           ) : directoryData && brokers.length === 0 ? (
-            <Card style={styles.card}>
-              <Card.Content>
-                <View style={styles.centerContainer}>
-                  <Icon name="magnify" size={48} color="#999" />
-                  <Text variant="bodyMedium" style={styles.emptyText}>
-                    {debouncedSearchQuery
-                      ? `Nu s-au găsit brokeri pentru "${debouncedSearchQuery}"`
-                      : 'Nu există brokeri în fișierul Excel'}
-                  </Text>
-                </View>
-              </Card.Content>
-            </Card>
+            <View style={styles.emptyCard}>
+              <View style={styles.centerContainer}>
+                <Icon name="magnify" size={48} color={colors.dark[400]} />
+                <Text style={styles.emptyText}>
+                  {debouncedSearchQuery
+                    ? `Nu s-au gasit brokeri pentru "${debouncedSearchQuery}"`
+                    : 'Nu exista brokeri in fisierul Excel'}
+                </Text>
+              </View>
+            </View>
           ) : !directoryData ? (
-            <Card style={styles.card}>
-              <Card.Content>
-                <View style={styles.centerContainer}>
-                  <Icon name="file-upload-outline" size={48} color="#999" />
-                  <Text variant="bodyMedium" style={styles.emptyText}>
-                    Încarcă un fișier Excel pentru a începe
-                  </Text>
-                </View>
-              </Card.Content>
-            </Card>
+            <View style={styles.emptyCard}>
+              <View style={styles.centerContainer}>
+                <Icon name="file-upload-outline" size={48} color={colors.dark[400]} />
+                <Text style={styles.emptyText}>
+                  Incarca un fisier Excel pentru a incepe
+                </Text>
+              </View>
+            </View>
           ) : null}
       </View>
     </View>
@@ -345,157 +373,239 @@ const BrokerDirectoryScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.dark[800],
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: spacing.md,
   },
   listHeader: {
-    marginBottom: 16,
-    marginTop: 8,
+    marginBottom: spacing.md,
+    marginTop: spacing.sm,
   },
   searchInfo: {
-    color: '#64748B',
+    color: colors.light[60],
     fontWeight: '400',
   },
   title: {
-    marginBottom: 8,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.h2,
+    color: colors.light[100],
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    marginBottom: 24,
-    color: '#666',
+    ...typography.bodyMedium,
+    color: colors.light[70],
+    marginBottom: spacing.lg,
   },
   card: {
-    marginBottom: 16,
-    borderRadius: 16,
-    elevation: 0,
-    shadowOpacity: 0,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.dark[700],
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    padding: spacing.lg,
   },
   uploadSection: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: spacing.md,
   },
   uploadTitle: {
-    marginTop: 12,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.h4,
+    color: colors.light[100],
+    marginTop: spacing.md,
   },
   uploadDescription: {
-    marginTop: 8,
-    color: '#666',
+    ...typography.bodySmall,
+    marginTop: spacing.sm,
+    color: colors.light[70],
     textAlign: 'center',
   },
   uploadDate: {
-    marginTop: 4,
-    color: '#999',
-    fontSize: 12,
+    ...typography.caption,
+    marginTop: spacing.xs,
+    color: colors.light[60],
   },
   uploadButton: {
-    marginTop: 16,
+    marginTop: spacing.md,
+    borderRadius: borderRadius.pill,
+    minHeight: 56,
+    backgroundColor: colors.brand.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
   },
-  searchbar: {
-    marginBottom: 0,
+  uploadButtonLabel: {
+    ...typography.labelLarge,
+    color: colors.light[100],
+    marginLeft: spacing.sm,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  searchCard: {
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.dark[700],
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    padding: spacing.md,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dark[600],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
+  },
+  searchIcon: {
+    marginRight: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.light[100],
+    fontSize: 16,
+    paddingVertical: spacing.md,
+  },
+  searchClear: {
+    padding: spacing.xs,
+    marginLeft: spacing.sm,
   },
   centerContainer: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: spacing.xl,
   },
   brokersList: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   listTitle: {
-    marginBottom: 16,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.labelUppercase,
+    color: colors.light[50],
   },
   brokerCard: {
-    marginBottom: 12,
-    borderRadius: 12,
-    elevation: 0,
-    shadowOpacity: 0,
-    backgroundColor: '#FFFFFF',
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.dark[700],
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: colors.dark[400],
+    padding: spacing.lg,
   },
   brokerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   brokerInfo: {
     flex: 1,
-    marginRight: 8,
+    marginRight: spacing.sm,
   },
   brokerName: {
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    ...typography.labelLarge,
+    color: colors.light[100],
+    marginBottom: spacing.xs,
   },
   brokerFirm: {
-    color: '#666',
+    ...typography.bodySmall,
+    color: colors.light[70],
   },
   statusChip: {
-    marginLeft: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.pill,
+  },
+  statusChipText: {
+    ...typography.labelSmall,
   },
   brokerDetails: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   detailText: {
-    marginLeft: 8,
-    color: '#666',
+    ...typography.bodySmall,
+    marginLeft: spacing.sm,
+    color: colors.light[70],
   },
   emptyText: {
-    marginTop: 16,
-    color: '#999',
+    ...typography.bodyMedium,
+    marginTop: spacing.md,
+    color: colors.light[60],
     textAlign: 'center',
   },
+  emptyCard: {
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.dark[700],
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    padding: spacing.lg,
+  },
   infoCard: {
-    marginBottom: 16,
-    borderRadius: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.dark[700],
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    padding: spacing.lg,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
   infoTextContainer: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: spacing.md,
   },
   infoTitle: {
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 6,
-    fontSize: 14,
+    ...typography.labelLarge,
+    color: colors.light[100],
+    marginBottom: spacing.xs,
+  },
+  infoText: {
+    ...typography.bodySmall,
+    color: colors.light[70],
+    marginTop: 2,
   },
   paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
-    gap: 16,
+    paddingVertical: spacing.lg,
+    gap: spacing.md,
   },
   paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     minWidth: 100,
+    borderColor: colors.dark[400],
+    borderWidth: 1,
+    borderRadius: borderRadius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  paginationButtonDisabled: {
+    opacity: 0.5,
+  },
+  paginationButtonLabel: {
+    ...typography.labelSmall,
+    color: colors.light[70],
+  },
+  paginationButtonLabelDisabled: {
+    color: colors.light[40],
   },
   paginationText: {
-    color: '#64748B',
-    fontWeight: '500',
+    ...typography.labelMedium,
+    color: colors.light[60],
   },
 });
 
 export default BrokerDirectoryScreen;
-

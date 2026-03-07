@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, ViewStyle} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 
 interface InfoCardProps {
   title: string;
@@ -16,12 +16,6 @@ interface InfoCardProps {
   large?: boolean;
 }
 
-/**
- * InfoCard - Card informativ clar și vizibil
- * 
- * Folosit pentru afișarea metricilor și informațiilor importante
- * într-un format ușor de înțeles pentru toate vârstele.
- */
 const InfoCard: React.FC<InfoCardProps> = ({
   title,
   value,
@@ -38,43 +32,43 @@ const InfoCard: React.FC<InfoCardProps> = ({
     switch (variant) {
       case 'success':
         return {
-          borderColor: colors.success[200],
-          backgroundColor: colors.success[50],
-          valueColor: colors.success[700],
-          defaultIconBg: colors.success[100],
-          defaultIconColor: colors.success[600],
+          borderColor: `${colors.success[500]}30`,
+          backgroundColor: colors.dark[700],
+          valueColor: colors.success[400],
+          defaultIconBg: colors.success[50],
+          defaultIconColor: colors.success[500],
         };
       case 'warning':
         return {
-          borderColor: colors.warning[200],
-          backgroundColor: colors.warning[50],
-          valueColor: colors.warning[700],
-          defaultIconBg: colors.warning[100],
-          defaultIconColor: colors.warning[600],
+          borderColor: `${colors.warning[500]}30`,
+          backgroundColor: colors.dark[700],
+          valueColor: colors.warning[400],
+          defaultIconBg: colors.warning[50],
+          defaultIconColor: colors.warning[500],
         };
       case 'error':
         return {
-          borderColor: colors.error[200],
-          backgroundColor: colors.error[50],
-          valueColor: colors.error[700],
-          defaultIconBg: colors.error[100],
-          defaultIconColor: colors.error[600],
+          borderColor: `${colors.error[500]}30`,
+          backgroundColor: colors.dark[700],
+          valueColor: colors.error[400],
+          defaultIconBg: colors.error[50],
+          defaultIconColor: colors.error[500],
         };
       case 'primary':
         return {
-          borderColor: colors.primary[200],
-          backgroundColor: colors.primary[50],
-          valueColor: colors.primary[700],
-          defaultIconBg: colors.primary[100],
-          defaultIconColor: colors.primary[600],
+          borderColor: `${colors.brand.primary}30`,
+          backgroundColor: colors.dark[700],
+          valueColor: colors.brand.primary,
+          defaultIconBg: colors.info[50],
+          defaultIconColor: colors.brand.primary,
         };
       default:
         return {
-          borderColor: colors.neutral[200],
-          backgroundColor: colors.neutral[0],
-          valueColor: colors.neutral[900],
-          defaultIconBg: colors.neutral[100],
-          defaultIconColor: colors.neutral[600],
+          borderColor: colors.dark[400],
+          backgroundColor: colors.dark[700],
+          valueColor: colors.light[100],
+          defaultIconBg: colors.dark[500],
+          defaultIconColor: colors.light[80],
         };
     }
   };
@@ -128,7 +122,7 @@ const InfoCard: React.FC<InfoCardProps> = ({
         <Icon
           name="chevron-right"
           size={24}
-          color={colors.neutral[400]}
+          color={colors.dark[300]}
           style={styles.chevron}
         />
       )}
@@ -153,7 +147,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
-    ...shadows.sm,
   },
   containerLarge: {
     padding: spacing.xl,
@@ -177,7 +170,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.labelMedium,
-    color: colors.neutral[600],
+    color: colors.light[60],
     marginBottom: 4,
   },
   titleLarge: {
@@ -192,7 +185,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     ...typography.caption,
-    color: colors.neutral[500],
+    color: colors.light[50],
     marginTop: 4,
   },
   subtitleLarge: {
@@ -205,4 +198,3 @@ const styles = StyleSheet.create({
 });
 
 export default InfoCard;
-

@@ -1,6 +1,5 @@
-import React, {useEffect, useState} from 'react';
-import {View, StyleSheet, ScrollView, RefreshControl} from 'react-native';
-import {Card, Text, Button, ActivityIndicator} from 'react-native-paper';
+import React, {useEffect, useState, useCallback} from 'react';
+import {View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Text, ActivityIndicator, InteractionManager} from 'react-native';
 import {useQuery} from '@tanstack/react-query';
 import {applicationsApi} from '../../services/api/applicationsApi';
 import {userFinancialDataApi} from '../../services/api/userFinancialDataApi';
@@ -8,6 +7,7 @@ import {kycApi} from '../../services/api/kycApi';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useAuthStore} from '../../store/authStore';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
 
 type DashboardScreenNavigationProp = NativeStackNavigationProp<any, 'DashboardHome'>;
 
@@ -18,7 +18,7 @@ interface Props {
 const DashboardScreen: React.FC<Props> = ({navigation}) => {
   const {user} = useAuthStore();
   const [kycChecked, setKycChecked] = useState(false);
-  
+
   const {
     data: applications,
     isLoading,
@@ -33,68 +33,68 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
     queryKey: ['userFinancialData'],
     queryFn: userFinancialDataApi.getMyData,
     retry: false,
-    enabled: !!user, // Only fetch if user is authenticated
+    enabled: !!user,
   });
 
-  // Check KYC status on mount and focus
-  useEffect(() => {
-    const checkKycStatus = async () => {
-      // Don't check KYC for administrators
-      if (!user) {
-        setKycChecked(true);
-        return;
-      }
+  // Onboarding chain: Email verification → Phone verification → KYC
+  const runOnboardingChecks = useCallback(async () => {
+    if (!user || user.role === 'Administrator') return;
 
-      // Skip KYC check for administrators
-      if (user.role === 'Administrator') {
-        setKycChecked(true);
-        return;
-      }
+    // 1. Check email verification
+    if (!user.emailVerified) {
+      navigation.navigate('Verification', {
+        type: 'email',
+        email: user.email,
+        onComplete: 'phone_verification',
+      });
+      return;
+    }
 
-      try {
-        const kycStatus = await kycApi.getStatus();
-        // If KYC doesn't exist or is not verified, redirect to KYC form
-        if (!kycStatus || kycStatus.status !== 'verified') {
-          // Small delay to allow screen to render first
-          setTimeout(() => {
-            navigation.navigate('KycForm');
-          }, 500);
-        }
-      } catch (error: any) {
-        // If 404, no KYC exists - redirect to form
-        if (error.response?.status === 404) {
-          setTimeout(() => {
-            navigation.navigate('KycForm');
-          }, 500);
-        }
-      } finally {
-        setKycChecked(true);
-      }
-    };
+    // 2. Check phone verification
+    if (!user.phoneVerified) {
+      navigation.navigate('Verification', {
+        type: 'phone',
+        phone: user.phone,
+        onComplete: 'dashboard',
+      });
+      return;
+    }
 
-    // Only check if user is loaded (not null or undefined)
-    if (user != null) {
-      checkKycStatus();
-    } else {
-      // If user is not loaded yet, mark as checked to prevent navigation
-      setKycChecked(true);
+    // 3. Check KYC status
+    try {
+      const kycStatus = await kycApi.getStatus();
+      if (!kycStatus || kycStatus.status !== 'verified') {
+        navigation.navigate('KycForm');
+      }
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        navigation.navigate('KycForm');
+      }
     }
   }, [user, navigation]);
+
+  // Run onboarding checks after navigator transition completes
+  useEffect(() => {
+    if (user != null) {
+      const task = InteractionManager.runAfterInteractions(() => {
+        runOnboardingChecks().finally(() => setKycChecked(true));
+      });
+      return () => task.cancel();
+    } else {
+      setKycChecked(true);
+    }
+  }, [user, runOnboardingChecks]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       refetch();
-      // Re-check KYC status when screen comes into focus
       if (user && user.role !== 'Administrator') {
-        kycApi.getStatus().catch(() => {
-          // Ignore errors on focus check
-        });
+        runOnboardingChecks();
       }
     });
     return unsubscribe;
-  }, [navigation, refetch, user]);
+  }, [navigation, refetch, user, runOnboardingChecks]);
 
-  // Ensure applications is always an array
   const applicationsList = Array.isArray(applications) ? applications : [];
   const activeApplications = applicationsList.filter(
     app => app.status !== 'RESPINS' && app.status !== 'DISBURSAT',
@@ -102,25 +102,19 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'INREGISTRAT':
-        return '#2196F3';
-      case 'IN_ANALIZA':
-        return '#FF9800';
-      case 'PREAPROBAT':
-        return '#4CAF50';
-      case 'RESPINS':
-        return '#F44336';
-      case 'DISBURSAT':
-        return '#9C27B0';
-      default:
-        return '#757575';
+      case 'INREGISTRAT': return colors.brand.primary;
+      case 'IN_ANALIZA': return colors.warning[500];
+      case 'PREAPROBAT': return colors.success[500];
+      case 'RESPINS': return colors.error[500];
+      case 'DISBURSAT': return colors.brand.purple;
+      default: return colors.light[60];
     }
   };
 
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.brand.primary} />
       </View>
     );
   }
@@ -129,173 +123,152 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
     <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={colors.brand.primary}
+          />
         }>
         <View style={styles.content}>
+          {/* Welcome */}
           <View style={styles.headerSection}>
-            <Text variant="headlineSmall" style={styles.welcomeText}>
-              Bine ai venit, {user?.name?.split(' ')[0]}! 👋
+            <Text style={styles.greeting}>
+              Bine ai venit, {user?.name?.split(' ')[0]}!
             </Text>
-            <Text variant="bodyMedium" style={styles.subtitleText}>
-              Iată un rezumat al activității tale
+            <Text style={styles.subtitle}>
+              Iata un rezumat al activitatii tale
             </Text>
           </View>
 
-          {/* Simulator Card - Prominent and Large */}
-          <Card 
+          {/* Simulator Card - Gradient accent */}
+          <TouchableOpacity
             style={styles.simulatorCard}
+            activeOpacity={0.85}
             onPress={() => navigation.getParent()?.navigate('Simulator')}>
-            <Card.Content style={styles.simulatorCardContent}>
-              <View style={styles.simulatorHeader}>
-                <View style={styles.simulatorIconContainer}>
-                  <Icon name="calculator-variant" size={40} color="#FFFFFF" />
-                </View>
-                <View style={styles.simulatorTextContainer}>
-                  <Text variant="headlineSmall" style={styles.simulatorTitle}>
-                    Simulator Credit
-                  </Text>
-                  <Text variant="bodyMedium" style={styles.simulatorDescription}>
-                    Calculează rata ta lunară și vezi ofertele disponibile
-                  </Text>
-                </View>
+            <View style={styles.simulatorGradientBar} />
+            <View style={styles.simulatorContent}>
+              <View style={styles.simulatorIconContainer}>
+                <Icon name="calculator-variant" size={32} color="#FFFFFF" />
               </View>
-              <View style={styles.simulatorFooter}>
-                <Text variant="bodySmall" style={styles.simulatorActionText}>
-                  Începe simularea →
+              <View style={styles.simulatorTextContainer}>
+                <Text style={styles.simulatorTitle}>Simulator Credit</Text>
+                <Text style={styles.simulatorDescription}>
+                  Calculeaza rata ta lunara si vezi ofertele disponibile
                 </Text>
               </View>
-            </Card.Content>
-          </Card>
+              <Icon name="chevron-right" size={24} color={colors.light[60]} />
+            </View>
+          </TouchableOpacity>
 
           {/* Stats Grid */}
           <View style={styles.statsGrid}>
-            <Card style={styles.statCardSmall}>
-              <Card.Content style={styles.statCardSmallContent}>
-                <View style={[styles.statIconContainerSmall, {backgroundColor: '#E3F2FD'}]}>
-                  <Icon name="file-document" size={24} color="#1976D2" />
-                </View>
-                <Text variant="headlineMedium" style={styles.statNumberSmall}>
-                  {activeApplications.length}
-                </Text>
-                <Text variant="bodySmall" style={styles.statLabelSmall}>
-                  Cereri active
-                </Text>
-              </Card.Content>
-            </Card>
+            <View style={styles.statCard}>
+              <View style={[styles.statIconContainer, {backgroundColor: colors.info[50]}]}>
+                <Icon name="file-document" size={22} color={colors.brand.primary} />
+              </View>
+              <Text style={styles.statNumber}>{activeApplications.length}</Text>
+              <Text style={styles.statLabel}>Cereri active</Text>
+            </View>
 
-            <Card style={styles.statCardSmall}>
-              <Card.Content style={styles.statCardSmallContent}>
-                <View style={[styles.statIconContainerSmall, {backgroundColor: '#FFF3E0'}]}>
-                  <Icon name="check-circle" size={24} color="#FF9800" />
-                </View>
-                <Text variant="headlineMedium" style={styles.statNumberSmall}>
-                  {applicationsList.filter(app => app.status === 'PREAPROBAT').length}
-                </Text>
-                <Text variant="bodySmall" style={styles.statLabelSmall}>
-                  Preaprobate
-                </Text>
-              </Card.Content>
-            </Card>
+            <View style={styles.statCard}>
+              <View style={[styles.statIconContainer, {backgroundColor: colors.success[50]}]}>
+                <Icon name="check-circle" size={22} color={colors.success[500]} />
+              </View>
+              <Text style={styles.statNumber}>
+                {applicationsList.filter(app => app.status === 'PREAPROBAT').length}
+              </Text>
+              <Text style={styles.statLabel}>Preaprobate</Text>
+            </View>
           </View>
 
           {/* Quick Actions */}
           <View style={styles.quickActionsSection}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              Acțiuni rapide
-            </Text>
+            <Text style={styles.sectionTitle}>Actiuni rapide</Text>
             <View style={styles.quickActionsGrid}>
-              <Card 
+              <TouchableOpacity
                 style={styles.quickActionCard}
+                activeOpacity={0.7}
                 onPress={() => navigation.navigate('ApplicationWizard')}>
-                <Card.Content style={styles.quickActionContent}>
-                  <View style={[styles.quickActionIcon, {backgroundColor: '#E8F5E9'}]}>
-                    <Icon name="plus-circle" size={28} color="#4CAF50" />
-                  </View>
-                  <Text variant="bodySmall" style={styles.quickActionText}>
-                    Cerere nouă
-                  </Text>
-                </Card.Content>
-              </Card>
+                <View style={[styles.quickActionIcon, {backgroundColor: colors.success[50]}]}>
+                  <Icon name="plus-circle" size={26} color={colors.success[500]} />
+                </View>
+                <Text style={styles.quickActionText}>Cerere noua</Text>
+              </TouchableOpacity>
 
-              <Card 
+              <TouchableOpacity
                 style={styles.quickActionCard}
+                activeOpacity={0.7}
                 onPress={() => navigation.navigate('ApplicationList')}>
-                <Card.Content style={styles.quickActionContent}>
-                  <View style={[styles.quickActionIcon, {backgroundColor: '#E3F2FD'}]}>
-                    <Icon name="file-document-multiple" size={28} color="#1976D2" />
-                  </View>
-                  <Text variant="bodySmall" style={styles.quickActionText}>
-                    Toate cererile
-                  </Text>
-                </Card.Content>
-              </Card>
+                <View style={[styles.quickActionIcon, {backgroundColor: colors.info[50]}]}>
+                  <Icon name="file-document-multiple" size={26} color={colors.brand.primary} />
+                </View>
+                <Text style={styles.quickActionText}>Toate cererile</Text>
+              </TouchableOpacity>
 
-              <Card 
+              <TouchableOpacity
                 style={styles.quickActionCard}
+                activeOpacity={0.7}
                 onPress={() => navigation.getParent()?.navigate('Profile')}>
-                <Card.Content style={styles.quickActionContent}>
-                  <View style={[styles.quickActionIcon, {backgroundColor: '#F3E5F5'}]}>
-                    <Icon name="account" size={28} color="#9C27B0" />
-                  </View>
-                  <Text variant="bodySmall" style={styles.quickActionText}>
-                    Profil
-                  </Text>
-                </Card.Content>
-              </Card>
+                <View style={[styles.quickActionIcon, {backgroundColor: 'rgba(110, 76, 229, 0.1)'}]}>
+                  <Icon name="account" size={26} color={colors.brand.purple} />
+                </View>
+                <Text style={styles.quickActionText}>Profil</Text>
+              </TouchableOpacity>
 
               {user?.role === 'Administrator' && (
-                <Card 
+                <TouchableOpacity
                   style={styles.quickActionCard}
+                  activeOpacity={0.7}
                   onPress={() => navigation.navigate('KycAdmin')}>
-                  <Card.Content style={styles.quickActionContent}>
-                    <View style={[styles.quickActionIcon, {backgroundColor: '#FFEBEE'}]}>
-                      <Icon name="shield-check" size={28} color="#F44336" />
-                    </View>
-                    <Text variant="bodySmall" style={styles.quickActionText}>
-                      KYC Admin
-                    </Text>
-                  </Card.Content>
-                </Card>
+                  <View style={[styles.quickActionIcon, {backgroundColor: colors.error[50]}]}>
+                    <Icon name="shield-check" size={26} color={colors.error[500]} />
+                  </View>
+                  <Text style={styles.quickActionText}>KYC Admin</Text>
+                </TouchableOpacity>
               )}
             </View>
           </View>
 
-        {activeApplications.length > 0 && (
-          <View style={styles.section}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              Cereri recente
-            </Text>
-            {activeApplications.slice(0, 3).map(app => (
-              <Card
-                key={app.id}
-                style={styles.applicationCard}
-                onPress={() =>
-                  navigation.navigate('ApplicationList', {applicationId: app.id})
-                }>
-                <Card.Content>
+          {/* Recent Applications */}
+          {activeApplications.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Cereri recente</Text>
+              {activeApplications.slice(0, 3).map(app => (
+                <TouchableOpacity
+                  key={app.id}
+                  style={styles.applicationCard}
+                  activeOpacity={0.7}
+                  onPress={() =>
+                    navigation.navigate('ApplicationList', {applicationId: app.id})
+                  }>
                   <View style={styles.applicationHeader}>
-                    <Text variant="titleMedium">
-                      {app.typeCredit === 'ipotecar'
-                        ? 'Credit Ipotecar'
-                        : 'Credit Nevoi Personale'}
-                    </Text>
+                    <View style={styles.applicationInfo}>
+                      <Text style={styles.applicationType}>
+                        {app.typeCredit === 'ipotecar'
+                          ? 'Credit Ipotecar'
+                          : 'Credit Nevoi Personale'}
+                      </Text>
+                      <Text style={styles.dateText}>
+                        {new Date(app.createdAt).toLocaleDateString('ro-RO')}
+                      </Text>
+                    </View>
                     <View
                       style={[
                         styles.statusBadge,
-                        {backgroundColor: getStatusColor(app.status)},
+                        {backgroundColor: `${getStatusColor(app.status)}20`},
                       ]}>
-                      <Text style={styles.statusText}>{app.status}</Text>
+                      <View style={[styles.statusDot, {backgroundColor: getStatusColor(app.status)}]} />
+                      <Text style={[styles.statusText, {color: getStatusColor(app.status)}]}>
+                        {app.status}
+                      </Text>
                     </View>
                   </View>
-                  <Text variant="bodySmall" style={styles.dateText}>
-                    {new Date(app.createdAt).toLocaleDateString('ro-RO')}
-                  </Text>
-                </Card.Content>
-              </Card>
-            ))}
-          </View>
-        )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -305,302 +278,197 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.dark[800],
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 16,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxxl,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.dark[800],
   },
   headerSection: {
-    marginBottom: 20,
-    paddingTop: 8,
+    marginBottom: spacing.lg,
+    paddingTop: spacing.sm,
   },
-  welcomeText: {
-    fontWeight: '700',
-    color: '#212121',
-    fontSize: 28,
-    letterSpacing: -0.5,
-    marginBottom: 6,
+  greeting: {
+    ...typography.h2,
+    color: colors.light[100],
+    marginBottom: spacing.xs,
   },
-  subtitleText: {
-    color: '#757575',
-    fontSize: 15,
-    fontWeight: '400',
+  subtitle: {
+    ...typography.bodyMedium,
+    color: colors.light[60],
   },
-  // Simulator Card - Large and Prominent
+
+  // Simulator Card
   simulatorCard: {
-    marginBottom: 20,
-    borderRadius: 24,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+    marginBottom: spacing.lg,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    ...shadows.md,
   },
-  simulatorCardContent: {
-    padding: 24,
+  simulatorGradientBar: {
+    height: 3,
+    backgroundColor: colors.brand.primary,
   },
-  simulatorHeader: {
+  simulatorContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    padding: spacing.lg,
   },
   simulatorIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: '#1976D2',
+    width: 56,
+    height: 56,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.brand.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: spacing.md,
   },
   simulatorTextContainer: {
     flex: 1,
   },
   simulatorTitle: {
-    fontWeight: '700',
-    color: '#212121',
-    fontSize: 22,
+    ...typography.h4,
+    color: colors.light[100],
     marginBottom: 4,
   },
   simulatorDescription: {
-    color: '#757575',
-    fontSize: 14,
-    lineHeight: 20,
+    ...typography.bodySmall,
+    color: colors.light[60],
   },
-  simulatorFooter: {
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-    paddingTop: 16,
-    marginTop: 8,
-  },
-  simulatorActionText: {
-    color: '#1976D2',
-    fontWeight: '600',
-    fontSize: 14,
-  },
+
   // Stats Grid
   statsGrid: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
+    gap: spacing.md,
+    marginBottom: spacing.lg,
   },
-  statCardSmall: {
+  statCard: {
     flex: 1,
-    borderRadius: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
-  },
-  statCardSmallContent: {
-    padding: 16,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
-  statIconContainerSmall: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+  statIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.sm,
   },
-  statNumberSmall: {
-    fontWeight: '700',
-    color: '#212121',
-    fontSize: 24,
-    marginBottom: 4,
+  statNumber: {
+    ...typography.h2,
+    color: colors.light[100],
+    marginBottom: 2,
   },
-  statLabelSmall: {
-    color: '#757575',
-    fontSize: 12,
+  statLabel: {
+    ...typography.caption,
+    color: colors.light[60],
     textAlign: 'center',
   },
+
   // Quick Actions
   quickActionsSection: {
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
   quickActionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: spacing.md,
   },
   quickActionCard: {
     width: '47%',
-    borderRadius: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
-  },
-  quickActionContent: {
-    padding: 20,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
   quickActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 52,
+    height: 52,
+    borderRadius: borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.sm,
   },
   quickActionText: {
-    color: '#212121',
-    fontWeight: '600',
-    fontSize: 13,
+    ...typography.labelMedium,
+    color: colors.light[90],
     textAlign: 'center',
   },
+
+  // Sections
   section: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   sectionTitle: {
-    marginBottom: 16,
-    fontWeight: '600',
-    color: '#212121',
-    fontSize: 18,
+    ...typography.labelUppercase,
+    color: colors.light[60],
+    marginBottom: spacing.md,
   },
+
+  // Application Cards
   applicationCard: {
-    marginBottom: 12,
-    borderRadius: 16,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
   applicationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+  },
+  applicationInfo: {
+    flex: 1,
+  },
+  applicationType: {
+    ...typography.labelLarge,
+    color: colors.light[100],
+    marginBottom: 4,
+  },
+  dateText: {
+    ...typography.caption,
+    color: colors.light[50],
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.pill,
+    gap: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   statusText: {
-    color: '#fff',
     fontSize: 11,
     fontWeight: '600',
     textTransform: 'uppercase',
-  },
-  dateText: {
-    color: '#999',
-    fontSize: 12,
-  },
-  featuresSection: {
-    marginTop: 24,
-  },
-  featureCard: {
-    marginBottom: 12,
-    borderRadius: 16,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  featureIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  featureContent: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  featureTitle: {
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  featureDescription: {
-    color: '#666',
-  },
-  featureBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: '#E8F5E9',
-  },
-  featureBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#4CAF50',
-  },
-  financialSection: {
-    marginBottom: 32,
-  },
-  financialGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  financialCard: {
-    width: '48%',
-    marginBottom: 12,
-    borderRadius: 16,
-    elevation: 0,
-    shadowOpacity: 0,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  financialCardContent: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  financialLabel: {
-    marginTop: 8,
-    color: '#666',
-    textAlign: 'center',
-    fontSize: 12,
-  },
-  financialValue: {
-    marginTop: 4,
-    fontWeight: '700',
-    color: '#333',
-    textAlign: 'center',
-    fontSize: 18,
-  },
-  viewDetailsButton: {
-    marginTop: 8,
-    borderRadius: 12,
-  },
-  adminButton: {
-    backgroundColor: '#1A237E',
+    letterSpacing: 0.5,
   },
 });
 
 export default DashboardScreen;
-

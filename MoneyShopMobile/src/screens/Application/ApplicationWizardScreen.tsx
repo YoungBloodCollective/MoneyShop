@@ -1,16 +1,16 @@
 import React, {useState} from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import {
-  Text,
-  TextInput,
-  Button,
-  Card,
   RadioButton,
   ProgressBar,
 } from 'react-native-paper';
@@ -19,6 +19,7 @@ import {applicationsApi} from '../../services/api/applicationsApi';
 import {Application} from '../../types/application.types';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {appInsightsService} from '../../services/telemetry/appInsightsService';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 
 type ApplicationWizardScreenNavigationProp = NativeStackNavigationProp<any>;
 
@@ -53,10 +54,10 @@ const ApplicationWizardScreen: React.FC<Props> = ({navigation}) => {
   const [sumaDorita, setSumaDorita] = useState('');
   const [perioada, setPerioada] = useState('');
 
-  // Step 5: Upload documente (placeholder - fără upload real)
+  // Step 5: Upload documente (placeholder - fara upload real)
   const [documenteUploadate, setDocumenteUploadate] = useState<string[]>([]);
 
-  // Step 6: Acorduri (fără OCR și semnătură)
+  // Step 6: Acorduri (fara OCR si semnatura)
   const [acordMarketing, setAcordMarketing] = useState(false);
   const [acordGdpr, setAcordGdpr] = useState(false);
   const [acordIntermediere, setAcordIntermediere] = useState(false);
@@ -122,186 +123,241 @@ const ApplicationWizardScreen: React.FC<Props> = ({navigation}) => {
       case 1:
         return (
           <View>
-            <Text variant="titleLarge" style={styles.stepTitle}>
+            <Text style={styles.stepTitle}>
               Pas 1: Date personale
             </Text>
-            <TextInput
-              label="Nume"
-              value={nume}
-              onChangeText={setNume}
-              mode="outlined"
-              style={styles.input}
-            />
-            <TextInput
-              label="Prenume"
-              value={prenume}
-              onChangeText={setPrenume}
-              mode="outlined"
-              style={styles.input}
-            />
-            <TextInput
-              label="CNP"
-              value={cnp}
-              onChangeText={setCnp}
-              keyboardType="numeric"
-              mode="outlined"
-              style={styles.input}
-            />
-            <TextInput
-              label="Adresă"
-              value={adresa}
-              onChangeText={setAdresa}
-              mode="outlined"
-              multiline
-              numberOfLines={3}
-              style={styles.input}
-            />
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>Nume</Text>
+              <TextInput
+                value={nume}
+                onChangeText={setNume}
+                style={styles.input}
+                placeholderTextColor={colors.light[50]}
+                placeholder="Introduceti numele"
+              />
+            </View>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>Prenume</Text>
+              <TextInput
+                value={prenume}
+                onChangeText={setPrenume}
+                style={styles.input}
+                placeholderTextColor={colors.light[50]}
+                placeholder="Introduceti prenumele"
+              />
+            </View>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>CNP</Text>
+              <TextInput
+                value={cnp}
+                onChangeText={setCnp}
+                keyboardType="numeric"
+                style={styles.input}
+                placeholderTextColor={colors.light[50]}
+                placeholder="Introduceti CNP-ul"
+              />
+            </View>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>Adresa</Text>
+              <TextInput
+                value={adresa}
+                onChangeText={setAdresa}
+                multiline
+                numberOfLines={3}
+                style={[styles.input, styles.inputMultiline]}
+                placeholderTextColor={colors.light[50]}
+                placeholder="Introduceti adresa"
+                textAlignVertical="top"
+              />
+            </View>
           </View>
         );
 
       case 2:
         return (
           <View>
-            <Text variant="titleLarge" style={styles.stepTitle}>
+            <Text style={styles.stepTitle}>
               Pas 2: Venituri
             </Text>
-            <TextInput
-              label="Salariu net (lei)"
-              value={salariuNet}
-              onChangeText={setSalariuNet}
-              keyboardType="numeric"
-              mode="outlined"
-              style={styles.input}
-            />
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>Salariu net (lei)</Text>
+              <TextInput
+                value={salariuNet}
+                onChangeText={setSalariuNet}
+                keyboardType="numeric"
+                style={styles.input}
+                placeholderTextColor={colors.light[50]}
+                placeholder="Introduceti salariul net"
+              />
+            </View>
             <View style={styles.checkboxRow}>
               <RadioButton
                 value="da"
                 status={bonuriMasa ? 'checked' : 'unchecked'}
                 onPress={() => setBonuriMasa(!bonuriMasa)}
+                color={colors.brand.primary}
+                uncheckedColor={colors.light[50]}
               />
-              <Text>Am bonuri de masă</Text>
+              <Text style={styles.checkboxLabel}>Am bonuri de masa</Text>
             </View>
             {bonuriMasa && (
-              <TextInput
-                label="Suma bonuri de masă (lei/lună)"
-                value={sumaBonuriMasa}
-                onChangeText={setSumaBonuriMasa}
-                keyboardType="numeric"
-                mode="outlined"
-                style={styles.input}
-              />
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>Suma bonuri de masa (lei/luna)</Text>
+                <TextInput
+                  value={sumaBonuriMasa}
+                  onChangeText={setSumaBonuriMasa}
+                  keyboardType="numeric"
+                  style={styles.input}
+                  placeholderTextColor={colors.light[50]}
+                  placeholder="Introduceti suma"
+                />
+              </View>
             )}
-            <TextInput
-              label="Alte venituri (lei/lună) - opțional"
-              value={venituriAlte}
-              onChangeText={setVenituriAlte}
-              keyboardType="numeric"
-              mode="outlined"
-              style={styles.input}
-            />
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>Alte venituri (lei/luna) - optional</Text>
+              <TextInput
+                value={venituriAlte}
+                onChangeText={setVenituriAlte}
+                keyboardType="numeric"
+                style={styles.input}
+                placeholderTextColor={colors.light[50]}
+                placeholder="Introduceti alte venituri"
+              />
+            </View>
           </View>
         );
 
       case 3:
         return (
           <View>
-            <Text variant="titleLarge" style={styles.stepTitle}>
+            <Text style={styles.stepTitle}>
               Pas 3: Credite existente
             </Text>
-            <TextInput
-              label="Număr credite bancare active"
-              value={nrCrediteBanci}
-              onChangeText={setNrCrediteBanci}
-              keyboardType="numeric"
-              mode="outlined"
-              style={styles.input}
-            />
-            <TextInput
-              label="Sold total rămas (lei)"
-              value={soldTotal}
-              onChangeText={setSoldTotal}
-              keyboardType="numeric"
-              mode="outlined"
-              style={styles.input}
-            />
-            <TextInput
-              label="Rată lunară totală (lei)"
-              value={rataLunara}
-              onChangeText={setRataLunara}
-              keyboardType="numeric"
-              mode="outlined"
-              style={styles.input}
-            />
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>Numar credite bancare active</Text>
+              <TextInput
+                value={nrCrediteBanci}
+                onChangeText={setNrCrediteBanci}
+                keyboardType="numeric"
+                style={styles.input}
+                placeholderTextColor={colors.light[50]}
+                placeholder="Introduceti numarul"
+              />
+            </View>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>Sold total ramas (lei)</Text>
+              <TextInput
+                value={soldTotal}
+                onChangeText={setSoldTotal}
+                keyboardType="numeric"
+                style={styles.input}
+                placeholderTextColor={colors.light[50]}
+                placeholder="Introduceti soldul total"
+              />
+            </View>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>Rata lunara totala (lei)</Text>
+              <TextInput
+                value={rataLunara}
+                onChangeText={setRataLunara}
+                keyboardType="numeric"
+                style={styles.input}
+                placeholderTextColor={colors.light[50]}
+                placeholder="Introduceti rata lunara"
+              />
+            </View>
           </View>
         );
 
       case 4:
         return (
           <View>
-            <Text variant="titleLarge" style={styles.stepTitle}>
+            <Text style={styles.stepTitle}>
               Pas 4: Tip credit
             </Text>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              Tip credit dorit:
+            <Text style={styles.sectionTitle}>
+              TIP CREDIT DORIT
             </Text>
             <RadioButton.Group
               onValueChange={setTypeCredit}
               value={typeCredit}>
               <View style={styles.radioRow}>
-                <RadioButton value="ipotecar" />
-                <Text>Ipotecar</Text>
+                <RadioButton
+                  value="ipotecar"
+                  color={colors.brand.primary}
+                  uncheckedColor={colors.light[50]}
+                />
+                <Text style={styles.radioLabel}>Ipotecar</Text>
               </View>
               <View style={styles.radioRow}>
-                <RadioButton value="nevoi_personale" />
-                <Text>Nevoi personale</Text>
+                <RadioButton
+                  value="nevoi_personale"
+                  color={colors.brand.primary}
+                  uncheckedColor={colors.light[50]}
+                />
+                <Text style={styles.radioLabel}>Nevoi personale</Text>
               </View>
             </RadioButton.Group>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              Tip operațiune:
+            <Text style={styles.sectionTitle}>
+              TIP OPERATIUNE
             </Text>
             <RadioButton.Group
               onValueChange={setTipOperatiune}
               value={tipOperatiune}>
               <View style={styles.radioRow}>
-                <RadioButton value="nou" />
-                <Text>Nou</Text>
+                <RadioButton
+                  value="nou"
+                  color={colors.brand.primary}
+                  uncheckedColor={colors.light[50]}
+                />
+                <Text style={styles.radioLabel}>Nou</Text>
               </View>
               <View style={styles.radioRow}>
-                <RadioButton value="refinantare" />
-                <Text>Refinanțare</Text>
+                <RadioButton
+                  value="refinantare"
+                  color={colors.brand.primary}
+                  uncheckedColor={colors.light[50]}
+                />
+                <Text style={styles.radioLabel}>Refinantare</Text>
               </View>
             </RadioButton.Group>
-            <TextInput
-              label="Suma dorită (lei)"
-              value={sumaDorita}
-              onChangeText={setSumaDorita}
-              keyboardType="numeric"
-              mode="outlined"
-              style={styles.input}
-            />
-            <TextInput
-              label="Perioadă (luni)"
-              value={perioada}
-              onChangeText={setPerioada}
-              keyboardType="numeric"
-              mode="outlined"
-              style={styles.input}
-            />
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>Suma dorita (lei)</Text>
+              <TextInput
+                value={sumaDorita}
+                onChangeText={setSumaDorita}
+                keyboardType="numeric"
+                style={styles.input}
+                placeholderTextColor={colors.light[50]}
+                placeholder="Introduceti suma dorita"
+              />
+            </View>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>Perioada (luni)</Text>
+              <TextInput
+                value={perioada}
+                onChangeText={setPerioada}
+                keyboardType="numeric"
+                style={styles.input}
+                placeholderTextColor={colors.light[50]}
+                placeholder="Introduceti perioada in luni"
+              />
+            </View>
           </View>
         );
 
       case 5:
         return (
           <View>
-            <Text variant="titleLarge" style={styles.stepTitle}>
+            <Text style={styles.stepTitle}>
               Pas 5: Upload documente
             </Text>
-            <Text variant="bodyMedium" style={styles.infoText}>
-              Documentele necesare vor fi încărcate ulterior prin interfața web sau
-              prin aplicație după finalizarea acestui formular.
+            <Text style={styles.infoText}>
+              Documentele necesare vor fi incarcate ulterior prin interfata web sau
+              prin aplicatie dupa finalizarea acestui formular.
             </Text>
-            <Text variant="bodySmall" style={styles.infoText}>
-              Documente necesare: CI, fluturaș salariu, extras de cont, etc.
+            <Text style={styles.infoTextSmall}>
+              Documente necesare: CI, fluturase salariu, extras de cont, etc.
             </Text>
           </View>
         );
@@ -309,17 +365,19 @@ const ApplicationWizardScreen: React.FC<Props> = ({navigation}) => {
       case 6:
         return (
           <View>
-            <Text variant="titleLarge" style={styles.stepTitle}>
+            <Text style={styles.stepTitle}>
               Pas 6: Acorduri
             </Text>
-            <Text variant="bodyMedium" style={styles.infoText}>
-              Te rugăm să citești și să accepți următoarele acorduri:
+            <Text style={styles.infoText}>
+              Te rugam sa citesti si sa accepti urmatoarele acorduri:
             </Text>
             <View style={styles.checkboxRow}>
               <RadioButton
                 value="acord1"
                 status={acordMarketing ? 'checked' : 'unchecked'}
                 onPress={() => setAcordMarketing(!acordMarketing)}
+                color={colors.brand.primary}
+                uncheckedColor={colors.light[50]}
               />
               <Text style={styles.checkboxText}>
                 Acord marketing Popix Brokerage Consulting SRL
@@ -330,11 +388,13 @@ const ApplicationWizardScreen: React.FC<Props> = ({navigation}) => {
                 value="acord2"
                 status={acordGdpr ? 'checked' : 'unchecked'}
                 onPress={() => setAcordGdpr(!acordGdpr)}
+                color={colors.brand.primary}
+                uncheckedColor={colors.light[50]}
               />
               <Text style={styles.checkboxText}>
-                Consimțământ GDPR - Popix Brokerage Consulting SRL colectează
-                datele și le poate transmite către Kingstone Management SRL, în
-                scopul analizei eligibilității pentru un credit bancar.
+                Consimtamant GDPR - Popix Brokerage Consulting SRL colecteaza
+                datele si le poate transmite catre Kingstone Management SRL, in
+                scopul analizei eligibilitatii pentru un credit bancar.
               </Text>
             </View>
             <View style={styles.checkboxRow}>
@@ -342,9 +402,11 @@ const ApplicationWizardScreen: React.FC<Props> = ({navigation}) => {
                 value="acord3"
                 status={acordIntermediere ? 'checked' : 'unchecked'}
                 onPress={() => setAcordIntermediere(!acordIntermediere)}
+                color={colors.brand.primary}
+                uncheckedColor={colors.light[50]}
               />
               <Text style={styles.checkboxText}>
-                Acord intermediere credite (OUG 52/2016 – fără comision)
+                Acord intermediere credite (OUG 52/2016 - fara comision)
               </Text>
             </View>
           </View>
@@ -353,31 +415,29 @@ const ApplicationWizardScreen: React.FC<Props> = ({navigation}) => {
       case 7:
         return (
           <View>
-            <Text variant="titleLarge" style={styles.stepTitle}>
+            <Text style={styles.stepTitle}>
               Pas 7: Confirmare
             </Text>
-            <Card style={styles.summaryCard}>
-              <Card.Content>
-                <Text variant="titleMedium" style={styles.summaryTitle}>
-                  Rezumat cerere:
-                </Text>
-                <Text style={styles.summaryText}>
-                  Nume: {nume} {prenume}
-                </Text>
-                <Text style={styles.summaryText}>
-                  Tip credit: {typeCredit === 'ipotecar' ? 'Ipotecar' : 'Nevoi personale'}
-                </Text>
-                <Text style={styles.summaryText}>
-                  Suma dorită: {sumaDorita} lei
-                </Text>
-                <Text style={styles.summaryText}>
-                  Salariu net: {salariuNet} lei
-                </Text>
-              </Card.Content>
-            </Card>
-            <Text variant="bodyMedium" style={styles.confirmText}>
-              Confirm că datele introduse sunt corecte și accept acordurile
-              menționate.
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>
+                REZUMAT CERERE
+              </Text>
+              <Text style={styles.summaryText}>
+                Nume: {nume} {prenume}
+              </Text>
+              <Text style={styles.summaryText}>
+                Tip credit: {typeCredit === 'ipotecar' ? 'Ipotecar' : 'Nevoi personale'}
+              </Text>
+              <Text style={styles.summaryText}>
+                Suma dorita: {sumaDorita} lei
+              </Text>
+              <Text style={styles.summaryText}>
+                Salariu net: {salariuNet} lei
+              </Text>
+            </View>
+            <Text style={styles.confirmText}>
+              Confirm ca datele introduse sunt corecte si accept acordurile
+              mentionate.
             </Text>
           </View>
         );
@@ -394,7 +454,7 @@ const ApplicationWizardScreen: React.FC<Props> = ({navigation}) => {
       case 2:
         return salariuNet;
       case 3:
-        return true; // Opțional
+        return true; // Optional
       case 4:
         return typeCredit && tipOperatiune && sumaDorita;
       case 5:
@@ -408,6 +468,9 @@ const ApplicationWizardScreen: React.FC<Props> = ({navigation}) => {
     }
   };
 
+  const isSubmitting = createApplicationMutation.isPending;
+  const isDisabled = !canProceed() || isSubmitting;
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -415,7 +478,7 @@ const ApplicationWizardScreen: React.FC<Props> = ({navigation}) => {
       <View style={styles.progressContainer}>
         <ProgressBar
           progress={currentStep / totalSteps}
-          color="#6200ee"
+          color={colors.brand.primary}
           style={styles.progressBar}
         />
         <Text style={styles.progressText}>
@@ -423,32 +486,50 @@ const ApplicationWizardScreen: React.FC<Props> = ({navigation}) => {
         </Text>
       </View>
       <ScrollView style={styles.scrollView}>
-        <Card style={styles.card}>
-          <Card.Content>{renderStep()}</Card.Content>
-        </Card>
+        <View style={styles.card}>
+          {renderStep()}
+        </View>
         <View style={styles.buttons}>
           {currentStep > 1 && (
-            <Button mode="outlined" onPress={handlePrevious} style={styles.button}>
-              Înapoi
-            </Button>
+            <TouchableOpacity
+              style={styles.buttonOutlined}
+              onPress={handlePrevious}
+              activeOpacity={0.8}>
+              <Text style={styles.buttonOutlinedLabel}>Inapoi</Text>
+            </TouchableOpacity>
           )}
           {currentStep < totalSteps ? (
-            <Button
-              mode="contained"
+            <TouchableOpacity
+              style={[
+                styles.buttonContained,
+                isDisabled && styles.buttonDisabled,
+              ]}
               onPress={handleNext}
               disabled={!canProceed()}
-              style={styles.button}>
-              Următorul
-            </Button>
+              activeOpacity={0.8}>
+              <Text style={[
+                styles.buttonContainedLabel,
+                isDisabled && styles.buttonDisabledLabel,
+              ]}>Urmatorul</Text>
+            </TouchableOpacity>
           ) : (
-            <Button
-              mode="contained"
+            <TouchableOpacity
+              style={[
+                styles.buttonContained,
+                isDisabled && styles.buttonDisabled,
+              ]}
               onPress={handleSubmit}
-              loading={createApplicationMutation.isPending}
-              disabled={!canProceed() || createApplicationMutation.isPending}
-              style={styles.button}>
-              Trimite cererea
-            </Button>
+              disabled={isDisabled}
+              activeOpacity={0.8}>
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color={colors.light[100]} />
+              ) : (
+                <Text style={[
+                  styles.buttonContainedLabel,
+                  isDisabled && styles.buttonDisabledLabel,
+                ]}>Trimite cererea</Text>
+              )}
+            </TouchableOpacity>
           )}
         </View>
       </ScrollView>
@@ -459,83 +540,183 @@ const ApplicationWizardScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.dark[800],
   },
   progressContainer: {
-    padding: 16,
-    backgroundColor: '#fff',
+    padding: spacing.md,
+    backgroundColor: colors.dark[700],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.dark[400],
   },
   progressBar: {
     height: 8,
-    borderRadius: 4,
-    marginBottom: 8,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.dark[500],
   },
   progressText: {
     textAlign: 'center',
-    fontSize: 12,
-    color: '#666',
+    ...typography.labelSmall,
+    color: colors.light[60],
   },
   scrollView: {
     flex: 1,
   },
   card: {
-    margin: 16,
+    margin: spacing.md,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    padding: spacing.lg,
   },
   stepTitle: {
-    marginBottom: 16,
-    fontWeight: 'bold',
+    ...typography.h4,
+    marginBottom: spacing.md,
+    fontWeight: '700',
+    color: colors.light[100],
   },
   sectionTitle: {
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    ...typography.labelUppercase,
+    color: colors.light[60],
+  },
+  inputWrapper: {
+    marginBottom: spacing.md,
+  },
+  inputLabel: {
+    ...typography.labelSmall,
+    color: colors.light[70],
+    marginBottom: spacing.xs,
   },
   input: {
-    marginBottom: 16,
+    backgroundColor: colors.dark[600],
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    fontSize: 16,
+    color: colors.light[100],
+    minHeight: 56,
+  },
+  inputMultiline: {
+    minHeight: 90,
+    paddingTop: spacing.md,
   },
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
+    backgroundColor: colors.dark[600],
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingRight: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+  },
+  checkboxLabel: {
+    ...typography.bodyMedium,
+    color: colors.light[100],
   },
   checkboxText: {
     flex: 1,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
+    ...typography.bodySmall,
+    color: colors.light[80],
   },
   radioRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.dark[600],
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.xs,
+    paddingRight: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+  },
+  radioLabel: {
+    ...typography.bodyMedium,
+    color: colors.light[100],
   },
   infoText: {
-    marginBottom: 16,
-    color: '#666',
+    marginBottom: spacing.md,
+    ...typography.bodyMedium,
+    color: colors.light[60],
+  },
+  infoTextSmall: {
+    marginBottom: spacing.md,
+    ...typography.bodySmall,
+    color: colors.light[50],
   },
   summaryCard: {
-    marginTop: 16,
-    marginBottom: 16,
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    backgroundColor: colors.dark[600],
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.brand.primary,
+    padding: spacing.lg,
   },
   summaryTitle: {
-    marginBottom: 12,
-    fontWeight: 'bold',
+    marginBottom: spacing.md,
+    ...typography.labelUppercase,
+    color: colors.brand.primary,
   },
   summaryText: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
+    ...typography.bodyMedium,
+    color: colors.light[90],
   },
   confirmText: {
-    marginTop: 16,
+    marginTop: spacing.md,
     textAlign: 'center',
-    color: '#666',
+    ...typography.bodyMedium,
+    color: colors.light[50],
   },
   buttons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 16,
+    padding: spacing.md,
+    gap: spacing.md,
   },
-  button: {
+  buttonOutlined: {
     flex: 1,
-    marginHorizontal: 8,
+    borderRadius: borderRadius.pill,
+    borderColor: colors.dark[400],
+    borderWidth: 1,
+    backgroundColor: 'transparent',
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  buttonOutlinedLabel: {
+    ...typography.labelLarge,
+    color: colors.light[100],
+  },
+  buttonContained: {
+    flex: 1,
+    borderRadius: borderRadius.pill,
+    backgroundColor: colors.brand.primary,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  buttonContainedLabel: {
+    ...typography.labelLarge,
+    color: colors.light[100],
+  },
+  buttonDisabled: {
+    backgroundColor: colors.dark[500],
+    opacity: 0.6,
+  },
+  buttonDisabledLabel: {
+    color: colors.light[50],
   },
 });
 
 export default ApplicationWizardScreen;
-

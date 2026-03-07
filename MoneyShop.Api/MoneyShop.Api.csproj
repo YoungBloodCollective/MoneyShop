@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>9e19e915-a63a-43bd-95f8-2b1c3abe03f9</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MoneyShop.ServiceAdapters\MoneyShop.ServiceAdapters.csproj" />
+    <ProjectReference Include="..\MoneyShop.ServiceInterface\MoneyShop.ServiceInterface.csproj" />
+    <ProjectReference Include="..\MoneyShop.DomainServices\MoneyShop.DomainServices.csproj" />
+    <ProjectReference Include="..\MoneyShop.Infrastructure.EntityFramework\MoneyShop.Infrastructure.EntityFramework.csproj" />
+  </ItemGroup>
+
+</Project>

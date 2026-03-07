@@ -1,108 +1,85 @@
 import React from 'react';
-import {View, StyleSheet, ScrollView} from 'react-native';
-import {Card, Button, Text, Divider} from 'react-native-paper';
+import {View, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import {Text} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
+
+const menuItems = [
+  {
+    icon: 'file-document-outline',
+    title: 'Termeni si Conditii',
+    description: 'Conditiile de utilizare a platformei',
+    route: 'Terms',
+  },
+  {
+    icon: 'shield-lock-outline',
+    title: 'Politica de Confidentialitate',
+    description: 'GDPR si protectia datelor personale',
+    route: 'Privacy',
+  },
+  {
+    icon: 'file-sign',
+    title: 'Politica de Mandatare',
+    description: 'Mandat ANAF si Biroul de Credit',
+    route: 'Mandate',
+  },
+  {
+    icon: 'file-document-multiple-outline',
+    title: 'Pachet de Conformitate',
+    description: 'Documente pentru ANAF si Biroul de Credit',
+    route: 'Compliance',
+  },
+  {
+    icon: 'file-send-outline',
+    title: 'Politica de Transmitere Date',
+    description: 'Transmiterea datelor catre brokeri autorizati',
+    route: 'DataTransfer',
+  },
+];
 
 const LegalMenuScreen = ({navigation}: any) => {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <Text variant="headlineSmall" style={styles.title}>
-            Documente Legale
-          </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Accesează documentele legale și politicile MoneyShop
+          <Text style={styles.sectionLabel}>DOCUMENTE</Text>
+          <Text style={styles.title}>Documente Legale</Text>
+          <Text style={styles.subtitle}>
+            Acceseaza documentele legale si politicile MoneyShop
           </Text>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Button
-                icon="file-document"
-                mode="text"
-                onPress={() => navigation.navigate('Terms')}
-                style={styles.menuItem}
-                contentStyle={styles.menuItemContent}>
-                <View style={styles.menuItemView}>
-                  <Icon name="file-document" size={24} color="#1976D2" />
+          <View style={styles.card}>
+            {menuItems.map((item, index) => (
+              <React.Fragment key={item.route}>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => navigation.navigate(item.route)}
+                  activeOpacity={0.6}>
+                  <View style={styles.iconCircle}>
+                    <Icon
+                      name={item.icon}
+                      size={20}
+                      color={colors.brand.primary}
+                    />
+                  </View>
                   <View style={styles.menuItemText}>
-                    <Text variant="titleMedium">Termeni și Condiții</Text>
-                    <Text variant="bodySmall" style={styles.description}>
-                      Condițiile de utilizare a platformei
+                    <Text style={styles.menuItemTitle}>{item.title}</Text>
+                    <Text style={styles.menuItemDescription}>
+                      {item.description}
                     </Text>
                   </View>
-                </View>
-              </Button>
-              <Divider />
-              <Button
-                icon="shield-lock"
-                mode="text"
-                onPress={() => navigation.navigate('Privacy')}
-                style={styles.menuItem}
-                contentStyle={styles.menuItemContent}>
-                <View style={styles.menuItemView}>
-                  <Icon name="shield-lock" size={24} color="#1976D2" />
-                  <View style={styles.menuItemText}>
-                    <Text variant="titleMedium">Politica de Confidențialitate</Text>
-                    <Text variant="bodySmall" style={styles.description}>
-                      GDPR și protecția datelor personale
-                    </Text>
-                  </View>
-                </View>
-              </Button>
-              <Divider />
-              <Button
-                icon="file-sign"
-                mode="text"
-                onPress={() => navigation.navigate('Mandate')}
-                style={styles.menuItem}
-                contentStyle={styles.menuItemContent}>
-                <View style={styles.menuItemView}>
-                  <Icon name="file-sign" size={24} color="#1976D2" />
-                  <View style={styles.menuItemText}>
-                    <Text variant="titleMedium">Politica de Mandatare</Text>
-                    <Text variant="bodySmall" style={styles.description}>
-                      Mandat ANAF și Biroul de Credit
-                    </Text>
-                  </View>
-                </View>
-              </Button>
-              <Divider />
-              <Button
-                icon="file-document-multiple"
-                mode="text"
-                onPress={() => navigation.navigate('Compliance')}
-                style={styles.menuItem}
-                contentStyle={styles.menuItemContent}>
-                <View style={styles.menuItemView}>
-                  <Icon name="file-document-multiple" size={24} color="#1976D2" />
-                  <View style={styles.menuItemText}>
-                    <Text variant="titleMedium">Pachet de Conformitate</Text>
-                    <Text variant="bodySmall" style={styles.description}>
-                      Documente pentru ANAF și Biroul de Credit
-                    </Text>
-                  </View>
-                </View>
-              </Button>
-              <Divider />
-              <Button
-                icon="file-send"
-                mode="text"
-                onPress={() => navigation.navigate('DataTransfer')}
-                style={styles.menuItem}
-                contentStyle={styles.menuItemContent}>
-                <View style={styles.menuItemView}>
-                  <Icon name="file-send" size={24} color="#1976D2" />
-                  <View style={styles.menuItemText}>
-                    <Text variant="titleMedium">Politica de Transmitere Date</Text>
-                    <Text variant="bodySmall" style={styles.description}>
-                      Transmiterea datelor către brokeri autorizați
-                    </Text>
-                  </View>
-                </View>
-              </Button>
-            </Card.Content>
-          </Card>
+                  <Icon
+                    name="chevron-right"
+                    size={20}
+                    color={colors.light[50]}
+                  />
+                </TouchableOpacity>
+                {index < menuItems.length - 1 && (
+                  <View style={styles.divider} />
+                )}
+              </React.Fragment>
+            ))}
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -112,52 +89,68 @@ const LegalMenuScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.dark[800],
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: spacing.lg,
+  },
+  sectionLabel: {
+    ...typography.labelUppercase,
+    color: colors.light[50],
+    marginBottom: spacing.sm,
   },
   title: {
-    marginBottom: 8,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.h3,
+    color: colors.light[100],
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    marginBottom: 24,
-    color: '#666',
+    ...typography.bodySmall,
+    color: colors.light[60],
+    marginBottom: spacing.lg,
   },
   card: {
-    marginBottom: 16,
-    borderRadius: 16,
-    elevation: 0,
-    shadowOpacity: 0,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    paddingVertical: spacing.sm,
   },
   menuItem: {
-    justifyContent: 'flex-start',
-    paddingVertical: 12,
-  },
-  menuItemContent: {
-    justifyContent: 'flex-start',
-  },
-  menuItemView: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
+    paddingVertical: 14,
+    paddingHorizontal: spacing.md,
+  },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.dark[600],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuItemText: {
-    marginLeft: 16,
+    marginLeft: spacing.md,
     flex: 1,
   },
-  description: {
-    color: '#666',
-    marginTop: 4,
+  menuItemTitle: {
+    ...typography.labelLarge,
+    color: colors.light[100],
+  },
+  menuItemDescription: {
+    ...typography.caption,
+    color: colors.light[60],
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.dark[400],
+    marginLeft: 72,
   },
 });
 
 export default LegalMenuScreen;
-

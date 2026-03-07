@@ -31,6 +31,8 @@ export interface OtpVerifyResponse {
     name: string;
     phone?: string;
     role: string;
+    emailVerified: boolean;
+    phoneVerified: boolean;
   };
   userId?: number;
 }

@@ -1,108 +1,94 @@
 import React from 'react';
 import {View, StyleSheet, ScrollView} from 'react-native';
-import {Text, Card} from 'react-native-paper';
+import {Text} from 'react-native-paper';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 
 const MandateScreen = ({navigation}: any) => {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <Text variant="headlineSmall" style={styles.title}>
+          <Text style={styles.sectionLabel}>MANDAT</Text>
+          <Text style={styles.title}>
             Politica de Mandatare – MoneyShop.ro
           </Text>
-          <Text variant="bodySmall" style={styles.date}>
+          <Text style={styles.date}>
             Ultima actualizare: {new Date().toLocaleDateString('ro-RO')}
           </Text>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                1. Natura Mandatului
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Prezenta Politică stabilește condițiile în care acordați un mandat expres, limitat și temporar societății POPIX BROKERAGE CONSULTING S.R.L.
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Mandatul este acordat electronic, la distanță, prin acțiune explicită (checkbox / confirmare digitală).
-              </Text>
-            </Card.Content>
-          </Card>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>1. Natura Mandatului</Text>
+            <Text style={styles.text}>
+              Prezenta Politica stabileste conditiile in care acordati un mandat
+              expres, limitat si temporar societatii POPIX BROKERAGE CONSULTING
+              S.R.L.
+            </Text>
+            <Text style={styles.text}>
+              Mandatul este acordat electronic, la distanta, prin actiune
+              explicita (checkbox / confirmare digitala).
+            </Text>
+          </View>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                2. Obiectul Mandatului
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Mandatul constă exclusiv în:
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                • Interogarea veniturilor la ANAF{'\n'}
-                • Interogarea situației la Biroul de Credit{'\n'}
-                • Analiza eligibilității de credit{'\n'}
-                • Realizarea analizei MoneyShop
-              </Text>
-            </Card.Content>
-          </Card>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>2. Obiectul Mandatului</Text>
+            <Text style={styles.text}>
+              Mandatul consta exclusiv in:
+            </Text>
+            <Text style={styles.text}>
+              {'\u2022'} Interogarea veniturilor la ANAF{'\n'}
+              {'\u2022'} Interogarea situatiei la Biroul de Credit{'\n'}
+              {'\u2022'} Analiza eligibilitatii de credit{'\n'}
+              {'\u2022'} Realizarea analizei MoneyShop
+            </Text>
+          </View>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                3. Durata Limitată
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>3. Durata Limitata</Text>
+            <View style={styles.warningBox}>
+              <Text style={styles.warningText}>
+                Mandatul este valabil pentru o perioada maxima de 30 (treizeci)
+                de zile calendaristice, calculate de la data acordarii
+                consimtamantului.
               </Text>
-              <Text variant="bodyMedium" style={styles.warning}>
-                Mandatul este valabil pentru o perioadă maximă de 30 (treizeci) de zile calendaristice, calculate de la data acordării consimțământului.
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                La expirarea termenului, mandatul încetează de drept și orice nouă interogare necesită un nou mandat expres.
-              </Text>
-            </Card.Content>
-          </Card>
+            </View>
+            <Text style={styles.text}>
+              La expirarea termenului, mandatul inceteaza de drept si orice noua
+              interogare necesita un nou mandat expres.
+            </Text>
+          </View>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                4. Limitări Exprese
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>4. Limitari Exprese</Text>
+            <Text style={styles.text}>
+              Este expres interzis ca datele:
+            </Text>
+            <View style={styles.warningBox}>
+              <Text style={styles.warningText}>
+                {'\u2022'} Sa fie vandute{'\n'}
+                {'\u2022'} Sa fie cesionate{'\n'}
+                {'\u2022'} Sa fie utilizate in scopuri comerciale sau de marketing{'\n'}
+                {'\u2022'} Sa fie transmise catre terti neimplicati
               </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Este expres interzis ca datele:
-              </Text>
-              <Text variant="bodyMedium" style={styles.warning}>
-                • Să fie vândute{'\n'}
-                • Să fie cesionate{'\n'}
-                • Să fie utilizate în scopuri comerciale sau de marketing{'\n'}
-                • Să fie transmise către terți neimplicați
-              </Text>
-            </Card.Content>
-          </Card>
+            </View>
+          </View>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                5. Revocarea Mandatului
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Poți revoca mandatul:
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                • În orice moment{'\n'}
-                • Fără justificare{'\n'}
-                • Cu efect pentru viitor
-              </Text>
-            </Card.Content>
-          </Card>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>5. Revocarea Mandatului</Text>
+            <Text style={styles.text}>Poti revoca mandatul:</Text>
+            <Text style={styles.text}>
+              {'\u2022'} In orice moment{'\n'}
+              {'\u2022'} Fara justificare{'\n'}
+              {'\u2022'} Cu efect pentru viitor
+            </Text>
+          </View>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                Contact
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Email: office@moneyshop.ro{'\n'}
-                Telefon: 031 434 0940
-              </Text>
-            </Card.Content>
-          </Card>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Contact</Text>
+            <Text style={styles.text}>
+              Email: office@moneyshop.ro{'\n'}
+              Telefon: 031 434 0940
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -112,53 +98,61 @@ const MandateScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.dark[800],
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: spacing.lg,
+  },
+  sectionLabel: {
+    ...typography.labelUppercase,
+    color: colors.light[50],
+    marginBottom: spacing.sm,
   },
   title: {
-    marginBottom: 8,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.h3,
+    color: colors.light[100],
+    marginBottom: spacing.sm,
   },
   date: {
-    marginBottom: 24,
-    color: '#999',
-    fontSize: 12,
+    ...typography.caption,
+    color: colors.light[60],
+    marginBottom: spacing.lg,
   },
   card: {
-    marginBottom: 16,
-    borderRadius: 16,
-    elevation: 0,
-    shadowOpacity: 0,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    padding: spacing.lg,
+    marginBottom: spacing.md,
   },
-  sectionTitle: {
-    marginBottom: 12,
-    fontWeight: '600',
-    color: '#1976D2',
-    fontSize: 18,
+  cardTitle: {
+    ...typography.h4,
+    color: colors.brand.primary,
+    marginBottom: spacing.md,
   },
   text: {
-    marginBottom: 12,
-    lineHeight: 24,
-    color: '#333',
+    ...typography.bodyMedium,
+    color: colors.light[70],
+    marginBottom: spacing.md,
   },
-  warning: {
-    marginTop: 8,
-    padding: 16,
-    backgroundColor: '#FFF9E6',
-    borderRadius: 12,
-    color: '#856404',
+  warningBox: {
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.md,
     borderLeftWidth: 4,
-    borderLeftColor: '#FFC107',
+    borderLeftColor: colors.warning[500],
+    marginBottom: spacing.md,
+  },
+  warningText: {
+    ...typography.bodyMedium,
+    color: colors.warning[400],
+    lineHeight: 24,
   },
 });
 
 export default MandateScreen;
-

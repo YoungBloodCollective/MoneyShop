@@ -5,16 +5,18 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image,
+  TouchableOpacity,
+  Text,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
-import {TextInput, Button, Text, Snackbar} from 'react-native-paper';
+import {Snackbar} from 'react-native-paper';
 import {useAuthStore} from '../../store/authStore';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {AuthStackParamList} from '../../navigation/AuthNavigator';
-import {kycApi} from '../../services/api/kycApi';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 import {appInsightsService} from '../../services/telemetry/appInsightsService';
-
-const logoImage = require('../../../assets/images/logo/Logo.PNG');
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -35,6 +37,8 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showError, setShowError] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {register} = useAuthStore();
 
@@ -45,7 +49,7 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
     });
 
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
-      setError('Te rugăm să completezi toate câmpurile obligatorii');
+      setError('Te rugam sa completezi toate campurile obligatorii');
       setShowError(true);
       return;
     }
@@ -56,8 +60,8 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Parola trebuie să aibă minim 6 caractere');
+    if (password.length < 8) {
+      setError('Parola trebuie sa aiba minim 8 caractere');
       setShowError(true);
       return;
     }
@@ -66,24 +70,26 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
       setLoading(true);
       setError(null);
       await register(email, password, firstName, lastName, phone || undefined);
-      
+
       // Track successful registration
       appInsightsService.trackEvent('UserRegistered', {
         email: email,
         hasPhone: phone ? 'true' : 'false',
       });
-      
-      // After successful registration, check KYC status
-      // The app will navigate to Main, and DashboardScreen will check KYC
-      // Navigation will be handled by AppNavigator
+
+      // After successful registration:
+      // 1. authStore sets isAuthenticated=true → AppNavigator switches to MainNavigator
+      // 2. User lands on DashboardScreen (first tab)
+      // 3. DashboardScreen auto-checks KYC status → redirects to KycFormScreen
+      // 4. KYC is blocking — user cannot access the app until verified
     } catch (err: any) {
       // Track registration error
       appInsightsService.trackError(err instanceof Error ? err : new Error(err?.message || 'Unknown error'), {
         screen: 'RegisterScreen',
         errorType: 'RegistrationError',
       });
-      
-      setError(err.response?.data?.message || 'Eroare la înregistrare');
+
+      setError(err.response?.data?.message || 'Eroare la inregistrare');
       setShowError(true);
     } finally {
       setLoading(false);
@@ -96,97 +102,169 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
-          <View style={styles.logoContainer}>
-            <Image 
-              source={logoImage} 
-              style={styles.logo}
-              resizeMode="contain"
-            />
+          {/* Back button */}
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            activeOpacity={0.7}>
+            <Icon name="arrow-left" size={22} color={colors.light[100]} />
+          </TouchableOpacity>
+
+          {/* Logo */}
+          <Text style={styles.logo}>
+            MoneyShop<Text style={styles.logoReg}>{'\u00AE'}</Text>
+          </Text>
+
+          {/* Title */}
+          <Text style={styles.title}>Creaza cont nou</Text>
+          <Text style={styles.subtitle}>
+            Completeaza datele pentru a incepe
+          </Text>
+
+          {/* First Name Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>PRENUME</Text>
+            <View style={styles.inputWrapper}>
+              <Icon name="account-outline" size={20} color={colors.light[60]} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="Introdu prenumele"
+                placeholderTextColor={colors.light[50]}
+                autoCapitalize="words"
+              />
+            </View>
           </View>
-          <Text variant="headlineMedium" style={styles.title}>
-            Creează cont nou
-          </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Completează datele pentru a începe
-          </Text>
 
-          <TextInput
-            label="Prenume"
-            value={firstName}
-            onChangeText={setFirstName}
-            mode="outlined"
-            style={styles.input}
-            autoCapitalize="words"
-          />
+          {/* Last Name Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>NUME</Text>
+            <View style={styles.inputWrapper}>
+              <Icon name="account-outline" size={20} color={colors.light[60]} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={lastName}
+                onChangeText={setLastName}
+                placeholder="Introdu numele"
+                placeholderTextColor={colors.light[50]}
+                autoCapitalize="words"
+              />
+            </View>
+          </View>
 
-          <TextInput
-            label="Nume"
-            value={lastName}
-            onChangeText={setLastName}
-            mode="outlined"
-            style={styles.input}
-            autoCapitalize="words"
-          />
+          {/* Email Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>EMAIL</Text>
+            <View style={styles.inputWrapper}>
+              <Icon name="email-outline" size={20} color={colors.light[60]} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="exemplu@email.com"
+                placeholderTextColor={colors.light[50]}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
+            </View>
+          </View>
 
-          <TextInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            mode="outlined"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            style={styles.input}
-          />
+          {/* Phone Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>TELEFON (OPTIONAL)</Text>
+            <View style={styles.inputWrapper}>
+              <Icon name="phone-outline" size={20} color={colors.light[60]} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="+40 700 000 000"
+                placeholderTextColor={colors.light[50]}
+                keyboardType="phone-pad"
+              />
+            </View>
+          </View>
 
-          <TextInput
-            label="Telefon (opțional)"
-            value={phone}
-            onChangeText={setPhone}
-            mode="outlined"
-            keyboardType="phone-pad"
-            style={styles.input}
-          />
+          {/* Password Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>PAROLA</Text>
+            <View style={styles.inputWrapper}>
+              <Icon name="lock-outline" size={20} color={colors.light[60]} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Minim 8 caractere"
+                placeholderTextColor={colors.light[50]}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeButton}>
+                <Icon
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={colors.light[60]}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
 
-          <TextInput
-            label="Parolă"
-            value={password}
-            onChangeText={setPassword}
-            mode="outlined"
-            secureTextEntry
-            style={styles.input}
-          />
+          {/* Confirm Password Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>CONFIRMA PAROLA</Text>
+            <View style={styles.inputWrapper}>
+              <Icon name="lock-check-outline" size={20} color={colors.light[60]} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Repeta parola"
+                placeholderTextColor={colors.light[50]}
+                secureTextEntry={!showConfirmPassword}
+              />
+              <TouchableOpacity
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={styles.eyeButton}>
+                <Icon
+                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={colors.light[60]}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
 
-          <TextInput
-            label="Confirmă parola"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            mode="outlined"
-            secureTextEntry
-            style={styles.input}
-          />
-
-          <Button
-            mode="contained"
+          {/* Register Button */}
+          <TouchableOpacity
             onPress={handleRegister}
-            loading={loading}
             disabled={loading}
-            style={styles.button}>
-            Înregistrare
-          </Button>
+            activeOpacity={0.8}
+            style={[styles.registerButton, loading && styles.registerButtonDisabled]}>
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.registerButtonText}>Inregistrare</Text>
+            )}
+          </TouchableOpacity>
 
-          <Button
-            mode="text"
-            onPress={() => navigation.navigate('Login')}
-            style={styles.linkButton}>
-            Ai deja cont? Autentifică-te
-          </Button>
+          {/* Login Link */}
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Ai deja cont? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.loginLink}>Autentifica-te</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 
       <Snackbar
         visible={showError}
         onDismiss={() => setShowError(false)}
-        duration={3000}>
+        duration={3000}
+        style={styles.snackbar}>
         {error || 'Eroare'}
       </Snackbar>
     </KeyboardAvoidingView>
@@ -196,7 +274,7 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.dark[800],
   },
   scrollContent: {
     flexGrow: 1,
@@ -204,51 +282,104 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   content: {
-    padding: 24,
+    padding: spacing.lg,
     maxWidth: 450,
     alignSelf: 'center',
     width: '100%',
   },
-  logoContainer: {
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.dark[600],
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: spacing.xl,
   },
   logo: {
-    width: 560,
-    height: 200,
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.light[100],
+    letterSpacing: -0.5,
+    marginBottom: spacing.xxl,
+  },
+  logoReg: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: colors.light[60],
   },
   title: {
-    textAlign: 'center',
-    marginBottom: 8,
-    color: '#212121',
-    fontWeight: '700',
-    fontSize: 28,
+    ...typography.h1,
+    color: colors.light[100],
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    textAlign: 'center',
-    marginBottom: 32,
-    color: '#757575',
-    fontSize: 16,
+    ...typography.bodyMedium,
+    color: colors.light[60],
+    marginBottom: spacing.xl,
+  },
+  inputContainer: {
+    marginBottom: spacing.lg,
+  },
+  inputLabel: {
+    ...typography.labelUppercase,
+    color: colors.light[60],
+    marginBottom: spacing.sm,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dark[600],
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    paddingHorizontal: spacing.md,
+    minHeight: 56,
+  },
+  inputIcon: {
+    marginRight: spacing.sm,
   },
   input: {
-    marginBottom: 16,
-    backgroundColor: '#FFFFFF',
+    flex: 1,
+    ...typography.bodyMedium,
+    color: colors.light[100],
+    paddingVertical: spacing.md,
   },
-  button: {
-    marginTop: 8,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: '#1976D2',
-    elevation: 2,
-    shadowColor: '#1976D2',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+  eyeButton: {
+    padding: spacing.sm,
   },
-  linkButton: {
-    marginTop: 12,
+  registerButton: {
+    backgroundColor: colors.brand.primary,
+    minHeight: 56,
+    borderRadius: borderRadius.pill,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  registerButtonDisabled: {
+    opacity: 0.5,
+  },
+  registerButtonText: {
+    ...typography.labelLarge,
+    color: '#FFFFFF',
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loginText: {
+    ...typography.bodyMedium,
+    color: colors.light[60],
+  },
+  loginLink: {
+    ...typography.labelLarge,
+    color: colors.brand.primary,
+  },
+  snackbar: {
+    backgroundColor: colors.error[500],
   },
 });
 
 export default RegisterScreen;
-

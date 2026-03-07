@@ -6,10 +6,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  TouchableOpacity,
+  Text,
+  ActivityIndicator,
 } from 'react-native';
-import {Text, Button, Card, Snackbar} from 'react-native-paper';
+import {Snackbar} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {chatApi, ChatRequest, ChatResponse} from '../../services/api/chatApi';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 
 interface Message {
   id: string;
@@ -108,17 +112,24 @@ const ChatScreen: React.FC = () => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+      {/* Header */}
       <View style={styles.header}>
-        <Icon name="robot" size={24} color="#1976D2" />
-        <Text variant="titleLarge" style={styles.headerTitle}>
-          Asistent Virtual
-        </Text>
+        <View style={styles.headerIcon}>
+          <Icon name="robot" size={20} color={colors.brand.primary} />
+        </View>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerTitle}>Asistent Virtual</Text>
+          <Text style={styles.headerSubtitle}>MoneyShop AI</Text>
+        </View>
+        <View style={styles.onlineDot} />
       </View>
 
+      {/* Messages */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.messagesContainer}
-        contentContainerStyle={styles.messagesContent}>
+        contentContainerStyle={styles.messagesContent}
+        showsVerticalScrollIndicator={false}>
         {messages.map(msg => (
           <View
             key={msg.id}
@@ -126,65 +137,73 @@ const ChatScreen: React.FC = () => {
               styles.messageWrapper,
               msg.isUser ? styles.userMessageWrapper : styles.botMessageWrapper,
             ]}>
-            <Card
+            {!msg.isUser && (
+              <View style={styles.botAvatar}>
+                <Icon name="robot" size={14} color={colors.brand.primary} />
+              </View>
+            )}
+            <View
               style={[
-                styles.messageCard,
-                msg.isUser ? styles.userMessageCard : styles.botMessageCard,
+                styles.messageBubble,
+                msg.isUser ? styles.userBubble : styles.botBubble,
               ]}>
-              <Card.Content style={styles.messageContent}>
-                <Text
-                  variant="bodyMedium"
-                  style={[
-                    styles.messageText,
-                    msg.isUser ? styles.userMessageText : styles.botMessageText,
-                  ]}>
-                  {msg.text}
-                </Text>
-                {!msg.isUser && msg.id === 'initial' && (
-                  <View style={styles.disclaimerContainer}>
-                    <Text variant="bodySmall" style={styles.disclaimerText}>
-                      Disclaimer: Asistentul virtual ofera informatii generale si
-                      explicatii educationale. Nu reprezinta consultanta financiara
-                      personalizata.
-                    </Text>
-                  </View>
-                )}
-              </Card.Content>
-            </Card>
+              <Text
+                style={[
+                  styles.messageText,
+                  msg.isUser ? styles.userMessageText : styles.botMessageText,
+                ]}>
+                {msg.text}
+              </Text>
+              {!msg.isUser && msg.id === 'initial' && (
+                <View style={styles.disclaimerContainer}>
+                  <Icon name="information-outline" size={12} color={colors.warning[400]} />
+                  <Text style={styles.disclaimerText}>
+                    Disclaimer: Asistentul virtual ofera informatii generale si
+                    explicatii educationale. Nu reprezinta consultanta financiara
+                    personalizata.
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         ))}
         {loading && (
           <View style={styles.botMessageWrapper}>
-            <Card style={styles.botMessageCard}>
-              <Card.Content style={styles.messageContent}>
-                <Text variant="bodyMedium" style={styles.botMessageText}>
-                  Se proceseaza...
-                </Text>
-              </Card.Content>
-            </Card>
+            <View style={styles.botAvatar}>
+              <Icon name="robot" size={14} color={colors.brand.primary} />
+            </View>
+            <View style={styles.typingBubble}>
+              <ActivityIndicator size="small" color={colors.brand.primary} />
+              <Text style={styles.typingText}>Se proceseaza...</Text>
+            </View>
           </View>
         )}
       </ScrollView>
 
+      {/* Input */}
       <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={inputText}
-          onChangeText={setInputText}
-          placeholder="Scrie mesajul tau..."
-          placeholderTextColor="#B0B0B0"
-          multiline
-          maxLength={2000}
-          editable={!loading}
-        />
-        <Button
-          mode="contained"
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.input}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Scrie mesajul tau..."
+            placeholderTextColor={colors.light[50]}
+            multiline
+            maxLength={2000}
+            editable={!loading}
+          />
+        </View>
+        <TouchableOpacity
           onPress={handleSend}
           disabled={!inputText.trim() || loading}
-          style={styles.sendButton}
-          icon="send">
-          Trimite
-        </Button>
+          activeOpacity={0.8}
+          style={[
+            styles.sendButton,
+            (!inputText.trim() || loading) && styles.sendButtonDisabled,
+          ]}>
+          <Icon name="send" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
 
       <Snackbar
@@ -201,117 +220,163 @@ const ChatScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.dark[800],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    paddingTop: Platform.OS === 'ios' ? spacing.xxl + spacing.lg : spacing.lg,
+    backgroundColor: colors.dark[700],
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    borderBottomColor: colors.dark[400],
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.info[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   headerTitle: {
-    marginLeft: 12,
-    color: '#212121',
-    fontWeight: '700',
+    ...typography.labelLarge,
+    color: colors.light[100],
+  },
+  headerSubtitle: {
+    ...typography.caption,
+    color: colors.light[60],
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.success[500],
   },
   messagesContainer: {
     flex: 1,
   },
   messagesContent: {
-    padding: 16,
-    paddingBottom: 20,
+    padding: spacing.md,
+    paddingBottom: spacing.lg,
   },
   messageWrapper: {
-    marginBottom: 12,
-  },
-  userMessageWrapper: {
+    marginBottom: spacing.md,
+    flexDirection: 'row',
     alignItems: 'flex-end',
   },
+  userMessageWrapper: {
+    justifyContent: 'flex-end',
+  },
   botMessageWrapper: {
-    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
   },
-  messageCard: {
-    maxWidth: '80%',
-    borderRadius: 16,
+  botAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.dark[600],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm,
+    marginBottom: 2,
   },
-  userMessageCard: {
-    backgroundColor: '#1976D2',
+  messageBubble: {
+    maxWidth: '78%',
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
   },
-  botMessageCard: {
-    backgroundColor: '#F5F5F5',
+  userBubble: {
+    backgroundColor: colors.brand.primary,
+    borderBottomRightRadius: 4,
   },
-  messageContent: {
-    padding: 12,
+  botBubble: {
+    backgroundColor: colors.dark[600],
+    borderBottomLeftRadius: 4,
   },
   messageText: {
-    color: '#212121',
-    lineHeight: 20,
+    ...typography.bodyMedium,
+    lineHeight: 22,
   },
   userMessageText: {
     color: '#FFFFFF',
   },
   botMessageText: {
-    color: '#212121',
+    color: colors.light[90],
   },
   disclaimerContainer: {
-    marginTop: 12,
-    padding: 10,
-    backgroundColor: '#FFF3E0',
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#FF9800',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.sm,
   },
   disclaimerText: {
-    color: '#757575',
-    fontSize: 11,
+    ...typography.caption,
+    color: colors.light[60],
+    flex: 1,
     lineHeight: 16,
+  },
+  typingBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.dark[600],
+    borderRadius: borderRadius.xl,
+    borderBottomLeftRadius: 4,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
+  },
+  typingText: {
+    ...typography.bodySmall,
+    color: colors.light[60],
   },
   inputContainer: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+    padding: spacing.md,
+    paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.md,
+    backgroundColor: colors.dark[700],
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: colors.dark[400],
     alignItems: 'flex-end',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: -2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    gap: spacing.sm,
+  },
+  inputWrapper: {
+    flex: 1,
+    backgroundColor: colors.dark[600],
+    borderRadius: borderRadius.xxl,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    paddingHorizontal: spacing.md,
   },
   input: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    color: '#212121',
+    ...typography.bodyMedium,
+    color: colors.light[100],
     maxHeight: 100,
-    marginRight: 12,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    paddingVertical: spacing.sm + 4,
   },
   sendButton: {
-    backgroundColor: '#1976D2',
-    borderRadius: 20,
-    elevation: 2,
-    shadowColor: '#1976D2',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.brand.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    opacity: 0.4,
   },
   snackbar: {
-    backgroundColor: '#F44336',
+    backgroundColor: colors.error[500],
   },
 });
 
 export default ChatScreen;
-

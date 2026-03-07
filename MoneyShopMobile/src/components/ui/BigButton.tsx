@@ -9,13 +9,13 @@ import {
   TextStyle,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { colors, spacing, borderRadius, typography, shadows } from '../../theme/designSystem';
+import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
 
 interface BigButtonProps {
   title: string;
   subtitle?: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'success' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'success' | 'outline' | 'ghost' | 'accent';
   icon?: string;
   iconPosition?: 'left' | 'right';
   loading?: boolean;
@@ -25,15 +25,6 @@ interface BigButtonProps {
   textStyle?: TextStyle;
 }
 
-/**
- * BigButton - Buton mare pentru UX accesibil (18-70 ani)
- * 
- * Principii:
- * - Țintă mare pentru atingere (min 56px)
- * - Text clar și lizibil
- * - Feedback vizual clar
- * - Subtitle opțional pentru clarificări
- */
 const BigButton: React.FC<BigButtonProps> = ({
   title,
   subtitle,
@@ -59,7 +50,7 @@ const BigButton: React.FC<BigButtonProps> = ({
         return {
           container: styles.secondaryContainer,
           text: styles.secondaryText,
-          iconColor: colors.primary[500],
+          iconColor: colors.brand.primary,
         };
       case 'success':
         return {
@@ -71,13 +62,19 @@ const BigButton: React.FC<BigButtonProps> = ({
         return {
           container: styles.outlineContainer,
           text: styles.outlineText,
-          iconColor: colors.primary[500],
+          iconColor: colors.light[100],
         };
       case 'ghost':
         return {
           container: styles.ghostContainer,
           text: styles.ghostText,
-          iconColor: colors.primary[500],
+          iconColor: colors.brand.primary,
+        };
+      case 'accent':
+        return {
+          container: styles.accentContainer,
+          text: styles.accentText,
+          iconColor: '#FFFFFF',
         };
       default:
         return {
@@ -103,16 +100,13 @@ const BigButton: React.FC<BigButtonProps> = ({
         style,
       ]}>
       {loading ? (
-        <ActivityIndicator
-          color={variantStyles.iconColor}
-          size="small"
-        />
+        <ActivityIndicator color={variantStyles.iconColor} size="small" />
       ) : (
         <View style={styles.content}>
           {icon && iconPosition === 'left' && (
             <Icon
               name={icon}
-              size={24}
+              size={22}
               color={variantStyles.iconColor}
               style={styles.iconLeft}
             />
@@ -122,7 +116,7 @@ const BigButton: React.FC<BigButtonProps> = ({
               {title}
             </Text>
             {subtitle && (
-              <Text style={[styles.subtitle, { color: variantStyles.iconColor }]}>
+              <Text style={[styles.subtitle, {color: variantStyles.iconColor}]}>
                 {subtitle}
               </Text>
             )}
@@ -130,7 +124,7 @@ const BigButton: React.FC<BigButtonProps> = ({
           {icon && iconPosition === 'right' && (
             <Icon
               name={icon}
-              size={24}
+              size={22}
               color={variantStyles.iconColor}
               style={styles.iconRight}
             />
@@ -143,19 +137,18 @@ const BigButton: React.FC<BigButtonProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 60,
-    borderRadius: borderRadius.lg,
+    minHeight: 56,
+    borderRadius: borderRadius.pill,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     justifyContent: 'center',
     alignItems: 'center',
-    ...shadows.md,
   },
   fullWidth: {
     width: '100%',
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   content: {
     flexDirection: 'row',
@@ -180,18 +173,21 @@ const styles = StyleSheet.create({
   iconRight: {
     marginLeft: spacing.sm,
   },
-  // Variants
+  // Variants - Revolut style
   primaryContainer: {
-    backgroundColor: colors.primary[500],
+    backgroundColor: colors.brand.primary,
+    ...shadows.glow,
   },
   primaryText: {
     color: '#FFFFFF',
   },
   secondaryContainer: {
-    backgroundColor: colors.primary[50],
+    backgroundColor: colors.dark[600],
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
   secondaryText: {
-    color: colors.primary[700],
+    color: colors.light[100],
   },
   successContainer: {
     backgroundColor: colors.success[500],
@@ -201,21 +197,25 @@ const styles = StyleSheet.create({
   },
   outlineContainer: {
     backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: colors.primary[500],
+    borderWidth: 1.5,
+    borderColor: colors.light[70],
   },
   outlineText: {
-    color: colors.primary[500],
+    color: colors.light[100],
   },
   ghostContainer: {
     backgroundColor: 'transparent',
-    elevation: 0,
-    shadowOpacity: 0,
   },
   ghostText: {
-    color: colors.primary[500],
+    color: colors.brand.primary,
+  },
+  accentContainer: {
+    backgroundColor: colors.brand.purple,
+    ...shadows.md,
+  },
+  accentText: {
+    color: '#FFFFFF',
   },
 });
 
 export default BigButton;
-
