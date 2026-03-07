@@ -2,7 +2,7 @@ import axios from 'axios';
 import {API_BASE_URL} from '../../utils/constants';
 
 export interface CalcSimpleRequest {
-  loanType: 'NP' | 'IPOTECAR';
+  loanType: 'NP' | 'IPOTECAR' | 'REFINANTARE';
   currency?: string;
   salaryNetUser: number;
   mealTicketsUser?: number;

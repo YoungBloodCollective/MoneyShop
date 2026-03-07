@@ -1,8 +1,8 @@
 import React from 'react';
-import {View, StyleSheet} from 'react-native';
-import {Card, Text, Button} from 'react-native-paper';
+import {View, StyleSheet, Text, TouchableOpacity} from 'react-native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 
 type ApplicationSuccessScreenNavigationProp = NativeStackNavigationProp<any>;
 
@@ -13,24 +13,26 @@ interface Props {
 const ApplicationSuccessScreen: React.FC<Props> = ({navigation}) => {
   return (
     <View style={styles.container}>
-      <Card style={styles.card}>
-        <Card.Content style={styles.content}>
-          <Icon name="check-circle" size={80} color="#4CAF50" />
-          <Text variant="headlineMedium" style={styles.title}>
+      <View style={styles.card}>
+        <View style={styles.content}>
+          <View style={styles.iconContainer}>
+            <Icon name="check-circle" size={80} color={colors.success[500]} />
+          </View>
+          <Text style={styles.title}>
             Cererea a fost trimisă!
           </Text>
-          <Text variant="bodyMedium" style={styles.message}>
+          <Text style={styles.message}>
             Cererea ta de credit a fost înregistrată cu succes. Vei primi
             notificări despre statusul cererii.
           </Text>
-          <Button
-            mode="contained"
-            onPress={() => navigation.navigate('Dashboard')}
-            style={styles.button}>
-            Mergi la Dashboard
-          </Button>
-        </Card.Content>
-      </Card>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => navigation.navigate('DashboardHome')}
+            activeOpacity={0.8}>
+            <Text style={styles.buttonLabel}>Mergi la Dashboard</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 };
@@ -40,33 +42,49 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    padding: 20,
+    backgroundColor: colors.dark[800],
+    padding: spacing.lg,
   },
   card: {
     width: '100%',
     maxWidth: 400,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
   content: {
     alignItems: 'center',
-    padding: 24,
+    padding: spacing.lg,
+  },
+  iconContainer: {
+    marginBottom: spacing.md,
   },
   title: {
-    marginTop: 16,
-    marginBottom: 12,
+    ...typography.h3,
+    color: colors.light[100],
+    marginBottom: spacing.sm,
     textAlign: 'center',
-    fontWeight: 'bold',
   },
   message: {
+    ...typography.bodyMedium,
     textAlign: 'center',
-    marginBottom: 24,
-    color: '#666',
+    marginBottom: spacing.lg,
+    color: colors.light[60],
   },
   button: {
-    marginTop: 8,
-    paddingVertical: 5,
+    marginTop: spacing.sm,
+    borderRadius: borderRadius.pill,
+    minHeight: 48,
+    width: '100%',
+    backgroundColor: colors.brand.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonLabel: {
+    ...typography.labelLarge,
+    color: colors.light[100],
   },
 });
 
 export default ApplicationSuccessScreen;
-

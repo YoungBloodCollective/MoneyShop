@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import {apiClient} from './apiClient';
 
 export interface OblioCompany {
   cif: string;
@@ -73,15 +73,18 @@ export interface OblioProductRequest {
   workStationId?: string;
   discount?: number;
   discountType?: string;
+  vatName?: string;
+  /** 0 = price excludes VAT, 1 = price includes VAT */
+  vatIncluded?: number;
 }
 
 export interface OblioInvoiceRequest {
-  cachedName: OblioClientRequest;
+  cachedName?: OblioClientRequest;
   client: OblioClientRequest;
   issueDate: string;
-  dueDate: string;
-  deliveryDate: string;
-  collectDate: string;
+  dueDate?: string;
+  deliveryDate?: string;
+  collectDate?: string;
   seriesName: string;
   language?: string;
   precision?: number;
@@ -107,6 +110,8 @@ export interface OblioInvoiceRequest {
   paymentLinkSecondary?: string;
   paymentLinkSecondaryText?: string;
   paymentLinkSecondaryTextSecondary?: string;
+  /** Set to 1 to email the invoice to the client via Oblio */
+  sendEmail?: number;
 }
 
 export interface OblioProformaRequest {

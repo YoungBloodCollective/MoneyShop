@@ -1,26 +1,15 @@
 import React from 'react';
-import {View, StyleSheet, ScrollView, TouchableOpacity, Alert} from 'react-native';
-import {Text} from 'react-native-paper';
+import {View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text} from 'react-native';
 import {useAuthStore} from '../../store/authStore';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
-import {StatusBadge} from '../../components/ui';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<any, 'Profile'>;
 
 interface Props {
   navigation: ProfileScreenNavigationProp;
 }
-
-/**
- * ProfileScreen - Profil Utilizator Redesign
- * 
- * Design UX simplu conform SRS:
- * - Secțiuni clare și organizate
- * - Iconuri mari și descriptive
- * - Acțiuni vizibile și accesibile
- */
 
 interface MenuItemProps {
   icon: string;
@@ -29,7 +18,6 @@ interface MenuItemProps {
   onPress: () => void;
   iconBg?: string;
   iconColor?: string;
-  badge?: string;
   chevron?: boolean;
 }
 
@@ -38,9 +26,8 @@ const MenuItem: React.FC<MenuItemProps> = ({
   title,
   subtitle,
   onPress,
-  iconBg = colors.neutral[100],
-  iconColor = colors.neutral[600],
-  badge,
+  iconBg = colors.dark[500],
+  iconColor = colors.light[80],
   chevron = true,
 }) => (
   <TouchableOpacity
@@ -48,15 +35,14 @@ const MenuItem: React.FC<MenuItemProps> = ({
     activeOpacity={0.7}
     style={styles.menuItem}>
     <View style={[styles.menuIcon, {backgroundColor: iconBg}]}>
-      <Icon name={icon} size={22} color={iconColor} />
+      <Icon name={icon} size={20} color={iconColor} />
     </View>
     <View style={styles.menuContent}>
       <Text style={styles.menuTitle}>{title}</Text>
       {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
     </View>
-    {badge && <StatusBadge status={badge} size="small" showIcon={false} />}
     {chevron && (
-      <Icon name="chevron-right" size={22} color={colors.neutral[400]} />
+      <Icon name="chevron-right" size={20} color={colors.dark[300]} />
     )}
   </TouchableOpacity>
 );
@@ -67,9 +53,9 @@ const ProfileScreen = ({navigation}: Props) => {
   const handleLogout = async () => {
     Alert.alert(
       'Deconectare',
-      'Ești sigur că vrei să te deconectezi?',
+      'Esti sigur ca vrei sa te deconectezi?',
       [
-        {text: 'Anulează', style: 'cancel'},
+        {text: 'Anuleaza', style: 'cancel'},
         {
           text: 'Deconectare',
           style: 'destructive',
@@ -91,11 +77,11 @@ const ProfileScreen = ({navigation}: Props) => {
   };
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}>
-      
+
       {/* Profile Header */}
       <View style={styles.profileHeader}>
         <View style={styles.avatarContainer}>
@@ -105,17 +91,17 @@ const ProfileScreen = ({navigation}: Props) => {
             </Text>
           </View>
           <View style={styles.avatarBadge}>
-            <Icon name="check" size={12} color="#FFFFFF" />
+            <Icon name="check" size={10} color="#FFFFFF" />
           </View>
         </View>
         <Text style={styles.userName}>{user?.name || 'Utilizator'}</Text>
         <Text style={styles.userEmail}>{user?.email}</Text>
         {user?.role && (
           <View style={styles.roleBadge}>
-            <Icon 
-              name={user.role === 'Administrator' ? 'shield-account' : 'account'} 
-              size={14} 
-              color={colors.primary[600]} 
+            <Icon
+              name={user.role === 'Administrator' ? 'shield-account' : 'account'}
+              size={13}
+              color={colors.brand.primary}
             />
             <Text style={styles.roleText}>{user.role}</Text>
           </View>
@@ -125,19 +111,19 @@ const ProfileScreen = ({navigation}: Props) => {
       {/* Quick Stats */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <Icon name="file-document-check" size={24} color={colors.success[500]} />
+          <Icon name="file-document-check" size={22} color={colors.success[400]} />
           <Text style={styles.statValue}>0</Text>
           <Text style={styles.statLabel}>Credite active</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Icon name="file-clock" size={24} color={colors.warning[500]} />
+          <Icon name="file-clock" size={22} color={colors.warning[400]} />
           <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>În analiză</Text>
+          <Text style={styles.statLabel}>In analiza</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Icon name="shield-check" size={24} color={colors.primary[500]} />
+          <Icon name="shield-check" size={22} color={colors.brand.primary} />
           <Text style={styles.statValue}>0</Text>
           <Text style={styles.statLabel}>Mandate</Text>
         </View>
@@ -145,86 +131,86 @@ const ProfileScreen = ({navigation}: Props) => {
 
       {/* Main Menu */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Contul tău</Text>
+        <Text style={styles.sectionTitle}>CONTUL TAU</Text>
         <View style={styles.menuCard}>
           <MenuItem
             icon="chart-line"
             title="Date Financiare"
-            subtitle="Vizualizează veniturile și istoricul"
+            subtitle="Vizualizeaza veniturile si istoricul"
             onPress={() => navigation.navigate('FinancialData')}
             iconBg={colors.success[50]}
-            iconColor={colors.success[600]}
+            iconColor={colors.success[400]}
           />
           <View style={styles.menuDivider} />
           <MenuItem
             icon="file-sign"
             title="Mandate"
-            subtitle="Gestionează mandatele pentru ANAF/BC"
+            subtitle="Gestioneaza mandatele pentru ANAF/BC"
             onPress={() => navigation.navigate('MandateManagement')}
-            iconBg={colors.primary[50]}
-            iconColor={colors.primary[600]}
+            iconBg={colors.info[50]}
+            iconColor={colors.brand.primary}
           />
           <View style={styles.menuDivider} />
           <MenuItem
             icon="checkbox-marked-circle"
-            title="Consimțământ"
-            subtitle="Gestionează acordurile tale"
+            title="Consimtamant"
+            subtitle="Gestioneaza acordurile tale"
             onPress={() => navigation.navigate('ConsentManagement')}
             iconBg={colors.warning[50]}
-            iconColor={colors.warning[600]}
+            iconColor={colors.warning[400]}
           />
         </View>
       </View>
 
       {/* Verification Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Verificări</Text>
+        <Text style={styles.sectionTitle}>VERIFICARI</Text>
         <View style={styles.menuCard}>
           {user?.role !== 'Administrator' && (
             <>
               <MenuItem
                 icon="card-account-details"
                 title="Verificare Identitate (KYC)"
-                subtitle="Confirmă-ți identitatea pentru siguranță"
+                subtitle="Confirma-ti identitatea pentru siguranta"
                 onPress={() => navigation.navigate('KycForm')}
-                iconBg={colors.primary[50]}
-                iconColor={colors.primary[600]}
+                iconBg={colors.info[50]}
+                iconColor={colors.brand.primary}
               />
               <View style={styles.menuDivider} />
             </>
           )}
           <MenuItem
             icon="email-check"
-            title="Verifică Email"
+            title="Verifica Email"
             subtitle={user?.email}
             onPress={() => {
               const parent = navigation.getParent();
               if (parent) {
-                parent.navigate('Auth', {
+                parent.navigate('Dashboard', {
                   screen: 'Verification',
-                  params: {type: 'email', email: user?.email},
+                  params: {type: 'email', email: user?.email, onComplete: 'dashboard'},
                 });
               }
             }}
             iconBg={colors.success[50]}
-            iconColor={colors.success[600]}
+            iconColor={colors.success[400]}
           />
           <View style={styles.menuDivider} />
           <MenuItem
             icon="phone-check"
-            title="Verifică Telefon"
-            subtitle="Confirmă numărul de telefon"
+            title="Verifica Telefon"
+            subtitle="Confirma numarul de telefon"
             onPress={() => {
               const parent = navigation.getParent();
               if (parent) {
-                parent.navigate('Auth', {
+                parent.navigate('Dashboard', {
                   screen: 'Verification',
-                  params: {type: 'phone', phone: user?.phone},
+                  params: {type: 'phone', phone: user?.phone, onComplete: 'dashboard'},
                 });
               }
             }}
             iconBg={colors.success[50]}
-            iconColor={colors.success[600]}
+            iconColor={colors.success[400]}
           />
         </View>
       </View>
@@ -232,15 +218,15 @@ const ProfileScreen = ({navigation}: Props) => {
       {/* Admin Section */}
       {user?.role === 'Administrator' && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Administrare</Text>
+          <Text style={styles.sectionTitle}>ADMINISTRARE</Text>
           <View style={styles.menuCard}>
             <MenuItem
               icon="shield-check"
-              title="Verificări KYC"
-              subtitle="Administrează verificările utilizatorilor"
+              title="Verificari KYC"
+              subtitle="Administreaza verificarile utilizatorilor"
               onPress={() => navigation.navigate('KycAdmin')}
               iconBg={colors.error[50]}
-              iconColor={colors.error[600]}
+              iconColor={colors.error[400]}
             />
           </View>
         </View>
@@ -248,48 +234,48 @@ const ProfileScreen = ({navigation}: Props) => {
 
       {/* Resources Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Resurse</Text>
+        <Text style={styles.sectionTitle}>RESURSE</Text>
         <View style={styles.menuCard}>
           <MenuItem
             icon="office-building"
             title="Director Brokeri"
-            subtitle="Găsește un broker autorizat"
+            subtitle="Gaseste un broker autorizat"
             onPress={() => navigation.navigate('BrokerDirectory')}
-            iconBg={colors.neutral[100]}
-            iconColor={colors.neutral[600]}
+            iconBg={colors.dark[500]}
+            iconColor={colors.light[80]}
           />
           <View style={styles.menuDivider} />
           <MenuItem
             icon="file-document-multiple"
-            title="Informații Legale"
-            subtitle="Termeni, confidențialitate, GDPR"
+            title="Informatii Legale"
+            subtitle="Termeni, confidentialitate, GDPR"
             onPress={() => navigation.navigate('LegalMenu')}
-            iconBg={colors.neutral[100]}
-            iconColor={colors.neutral[600]}
+            iconBg={colors.dark[500]}
+            iconColor={colors.light[80]}
           />
         </View>
       </View>
 
       {/* Settings Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Aplicație</Text>
+        <Text style={styles.sectionTitle}>APLICATIE</Text>
         <View style={styles.menuCard}>
           <MenuItem
             icon="cog"
-            title="Setări"
-            subtitle="Notificări, limbă, temă"
+            title="Setari"
+            subtitle="Notificari, limba, tema"
             onPress={() => {}}
-            iconBg={colors.neutral[100]}
-            iconColor={colors.neutral[600]}
+            iconBg={colors.dark[500]}
+            iconColor={colors.light[80]}
           />
           <View style={styles.menuDivider} />
           <MenuItem
             icon="help-circle"
-            title="Ajutor și Suport"
-            subtitle="Întrebări frecvente, contact"
+            title="Ajutor si Suport"
+            subtitle="Intrebari frecvente, contact"
             onPress={() => {}}
-            iconBg={colors.neutral[100]}
-            iconColor={colors.neutral[600]}
+            iconBg={colors.dark[500]}
+            iconColor={colors.light[80]}
           />
           <View style={styles.menuDivider} />
           <MenuItem
@@ -297,8 +283,8 @@ const ProfileScreen = ({navigation}: Props) => {
             title="Despre MoneyShop"
             subtitle="Versiune 1.0.0"
             onPress={() => {}}
-            iconBg={colors.primary[50]}
-            iconColor={colors.primary[600]}
+            iconBg={colors.info[50]}
+            iconColor={colors.brand.primary}
             chevron={false}
           />
         </View>
@@ -309,7 +295,7 @@ const ProfileScreen = ({navigation}: Props) => {
         onPress={handleLogout}
         activeOpacity={0.8}
         style={styles.logoutButton}>
-        <Icon name="logout" size={22} color={colors.error[500]} />
+        <Icon name="logout" size={20} color={colors.error[400]} />
         <Text style={styles.logoutText}>Deconectare</Text>
       </TouchableOpacity>
 
@@ -318,9 +304,7 @@ const ProfileScreen = ({navigation}: Props) => {
         <Text style={styles.footerText}>
           MoneyShop® - Broker de credite autorizat
         </Text>
-        <Text style={styles.footerVersion}>
-          Versiune 1.0.0
-        </Text>
+        <Text style={styles.footerVersion}>Versiune 1.0.0</Text>
       </View>
     </ScrollView>
   );
@@ -329,7 +313,7 @@ const ProfileScreen = ({navigation}: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[50],
+    backgroundColor: colors.dark[800],
   },
   scrollContent: {
     paddingBottom: spacing.xxxl,
@@ -340,20 +324,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.xxl,
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.dark[700],
     borderBottomLeftRadius: borderRadius.xxl,
     borderBottomRightRadius: borderRadius.xxl,
-    ...shadows.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.dark[400],
   },
   avatarContainer: {
     position: 'relative',
     marginBottom: spacing.md,
   },
   avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: colors.primary[500],
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: colors.brand.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -365,47 +350,49 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 4,
     right: 4,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: colors.success[500],
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.neutral[0],
+    borderWidth: 3,
+    borderColor: colors.dark[700],
   },
   userName: {
     ...typography.h3,
-    color: colors.neutral[900],
+    color: colors.light[100],
     marginBottom: spacing.xs,
   },
   userEmail: {
     ...typography.bodyMedium,
-    color: colors.neutral[500],
+    color: colors.light[60],
     marginBottom: spacing.sm,
   },
   roleBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary[50],
+    backgroundColor: colors.info[50],
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
+    borderRadius: borderRadius.pill,
     gap: spacing.xs,
   },
   roleText: {
     ...typography.labelSmall,
-    color: colors.primary[700],
+    color: colors.brand.primary,
   },
 
   // Stats
   statsContainer: {
     flexDirection: 'row',
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.dark[700],
     marginHorizontal: spacing.lg,
     marginTop: -spacing.lg,
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
     ...shadows.md,
   },
   statItem: {
@@ -414,18 +401,18 @@ const styles = StyleSheet.create({
   },
   statValue: {
     ...typography.h4,
-    color: colors.neutral[900],
+    color: colors.light[100],
     marginTop: spacing.xs,
   },
   statLabel: {
     ...typography.caption,
-    color: colors.neutral[500],
+    color: colors.light[60],
     marginTop: 2,
     textAlign: 'center',
   },
   statDivider: {
     width: 1,
-    backgroundColor: colors.neutral[200],
+    backgroundColor: colors.dark[400],
     marginVertical: spacing.xs,
   },
 
@@ -435,17 +422,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   sectionTitle: {
-    ...typography.labelLarge,
-    color: colors.neutral[600],
+    ...typography.labelUppercase,
+    color: colors.light[50],
     marginBottom: spacing.md,
     marginLeft: spacing.xs,
   },
 
   // Menu Card
   menuCard: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.dark[700],
     borderRadius: borderRadius.xl,
-    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
     overflow: 'hidden',
   },
   menuItem: {
@@ -454,8 +442,8 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   menuIcon: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
@@ -466,17 +454,17 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     ...typography.labelLarge,
-    color: colors.neutral[800],
+    color: colors.light[100],
     marginBottom: 2,
   },
   menuSubtitle: {
     ...typography.bodySmall,
-    color: colors.neutral[500],
+    color: colors.light[60],
   },
   menuDivider: {
     height: 1,
-    backgroundColor: colors.neutral[100],
-    marginLeft: 76,
+    backgroundColor: colors.dark[400],
+    marginLeft: 72,
   },
 
   // Logout
@@ -490,11 +478,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.error[50],
     borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: colors.error[200],
+    borderColor: `${colors.error[500]}30`,
   },
   logoutText: {
     ...typography.labelLarge,
-    color: colors.error[600],
+    color: colors.error[400],
     marginLeft: spacing.sm,
   },
 
@@ -506,11 +494,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     ...typography.caption,
-    color: colors.neutral[400],
+    color: colors.light[40],
   },
   footerVersion: {
     ...typography.caption,
-    color: colors.neutral[400],
+    color: colors.light[40],
     marginTop: spacing.xs,
   },
 });

@@ -1,16 +1,14 @@
 import React from 'react';
 import {View, StyleSheet, ScrollView, RefreshControl} from 'react-native';
 import {
-  Card,
   Text,
   ActivityIndicator,
-  Chip,
-  Divider,
 } from 'react-native-paper';
 import {useQuery} from '@tanstack/react-query';
 import {userFinancialDataApi} from '../../services/api/userFinancialDataApi';
 import CustomHeader from '../../components/CustomHeader';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 
 const FinancialDataScreen = ({navigation}: any) => {
   const {
@@ -38,14 +36,29 @@ const FinancialDataScreen = ({navigation}: any) => {
     switch (level?.toLowerCase()) {
       case 'foarte_ridicat':
       case 'ridicat':
-        return '#4CAF50';
+        return colors.success[400];
       case 'mediu':
-        return '#FF9800';
+        return colors.warning[400];
       case 'scazut':
       case 'foarte_scazut':
-        return '#F44336';
+        return colors.error[400];
       default:
-        return '#9E9E9E';
+        return colors.light[60];
+    }
+  };
+
+  const getScoringBg = (level?: string) => {
+    switch (level?.toLowerCase()) {
+      case 'foarte_ridicat':
+      case 'ridicat':
+        return colors.success[50];
+      case 'mediu':
+        return colors.warning[50];
+      case 'scazut':
+      case 'foarte_scazut':
+        return colors.error[50];
+      default:
+        return colors.dark[500];
     }
   };
 
@@ -69,9 +82,9 @@ const FinancialDataScreen = ({navigation}: any) => {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <CustomHeader navigation={navigation} title="Date Financiare" />
+        <CustomHeader title="Date Financiare" onBack={() => navigation.goBack()} />
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#1976D2" />
+          <ActivityIndicator size="large" color={colors.brand.primary} />
         </View>
       </View>
     );
@@ -80,13 +93,13 @@ const FinancialDataScreen = ({navigation}: any) => {
   if (!financialData) {
     return (
       <View style={styles.container}>
-        <CustomHeader navigation={navigation} title="Date Financiare" />
+        <CustomHeader title="Date Financiare" onBack={() => navigation.goBack()} />
         <View style={styles.centerContainer}>
-          <Icon name="chart-line" size={64} color="#999" />
-          <Text variant="titleMedium" style={styles.emptyText}>
+          <Icon name="chart-line" size={64} color={colors.dark[400]} />
+          <Text style={styles.emptyText}>
             Nu ai date financiare salvate
           </Text>
-          <Text variant="bodySmall" style={styles.emptySubtext}>
+          <Text style={styles.emptySubtext}>
             Completează simulatorul pentru a salva datele tale
           </Text>
         </View>
@@ -96,202 +109,188 @@ const FinancialDataScreen = ({navigation}: any) => {
 
   return (
     <View style={styles.container}>
-      <CustomHeader navigation={navigation} title="Date Financiare" />
+      <CustomHeader title="Date Financiare" onBack={() => navigation.goBack()} />
       <ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={colors.brand.primary}
+          />
         }>
         <View style={styles.content}>
           {/* Venituri Section */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <View style={styles.cardHeader}>
-                <Icon name="cash-multiple" size={24} color="#4CAF50" />
-                <Text variant="titleLarge" style={styles.cardTitle}>
-                  Venituri
-                </Text>
-              </View>
-              <Divider style={styles.divider} />
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Icon name="cash-multiple" size={24} color={colors.success[400]} />
+              <Text style={styles.cardTitle}>
+                Venituri
+              </Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.dataRow}>
+              <Text style={styles.label}>
+                Salariu Net
+              </Text>
+              <Text style={styles.value}>
+                {formatCurrency(financialData.salariuNet)}
+              </Text>
+            </View>
+            {financialData.bonuriMasa && (
               <View style={styles.dataRow}>
-                <Text variant="bodyMedium" style={styles.label}>
-                  Salariu Net
+                <Text style={styles.label}>
+                  Bonuri de masă
                 </Text>
-                <Text variant="titleMedium" style={styles.value}>
-                  {formatCurrency(financialData.salariuNet)}
-                </Text>
-              </View>
-              {financialData.bonuriMasa && (
-                <View style={styles.dataRow}>
-                  <Text variant="bodyMedium" style={styles.label}>
-                    Bonuri de masă
-                  </Text>
-                  <Text variant="titleMedium" style={styles.value}>
-                    {formatCurrency(financialData.sumaBonuriMasa)}
-                  </Text>
-                </View>
-              )}
-              <View style={[styles.dataRow, styles.totalRow]}>
-                <Text variant="titleMedium" style={styles.totalLabel}>
-                  Venit Total
-                </Text>
-                <Text variant="headlineSmall" style={styles.totalValue}>
-                  {formatCurrency(financialData.venitTotal)}
+                <Text style={styles.value}>
+                  {formatCurrency(financialData.sumaBonuriMasa)}
                 </Text>
               </View>
-            </Card.Content>
-          </Card>
+            )}
+            <View style={[styles.dataRow, styles.totalRow]}>
+              <Text style={styles.totalLabel}>
+                Venit Total
+              </Text>
+              <Text style={styles.totalValue}>
+                {formatCurrency(financialData.venitTotal)}
+              </Text>
+            </View>
+          </View>
 
           {/* Credite Section */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <View style={styles.cardHeader}>
-                <Icon name="credit-card" size={24} color="#FF9800" />
-                <Text variant="titleLarge" style={styles.cardTitle}>
-                  Credite Existente
-                </Text>
-              </View>
-              <Divider style={styles.divider} />
-              <View style={styles.dataRow}>
-                <Text variant="bodyMedium" style={styles.label}>
-                  Sold Total
-                </Text>
-                <Text variant="titleMedium" style={styles.value}>
-                  {formatCurrency(financialData.soldTotal)}
-                </Text>
-              </View>
-              <View style={styles.dataRow}>
-                <Text variant="bodyMedium" style={styles.label}>
-                  Rata Totală Lunară
-                </Text>
-                <Text variant="titleMedium" style={styles.value}>
-                  {formatCurrency(financialData.rataTotalaLunara)}
-                </Text>
-              </View>
-              <View style={styles.dataRow}>
-                <Text variant="bodyMedium" style={styles.label}>
-                  Număr Credite Bănci
-                </Text>
-                <Text variant="titleMedium" style={styles.value}>
-                  {financialData.nrCrediteBanci ?? 'N/A'}
-                </Text>
-              </View>
-              <View style={styles.dataRow}>
-                <Text variant="bodyMedium" style={styles.label}>
-                  Număr IFN
-                </Text>
-                <Text variant="titleMedium" style={styles.value}>
-                  {financialData.nrIfn ?? 'N/A'}
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Icon name="credit-card" size={24} color={colors.warning[400]} />
+              <Text style={styles.cardTitle}>
+                Credite Existente
+              </Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.dataRow}>
+              <Text style={styles.label}>
+                Sold Total
+              </Text>
+              <Text style={styles.value}>
+                {formatCurrency(financialData.soldTotal)}
+              </Text>
+            </View>
+            <View style={styles.dataRow}>
+              <Text style={styles.label}>
+                Rata Totală Lunară
+              </Text>
+              <Text style={styles.value}>
+                {formatCurrency(financialData.rataTotalaLunara)}
+              </Text>
+            </View>
+            <View style={styles.dataRow}>
+              <Text style={styles.label}>
+                Număr Credite Bănci
+              </Text>
+              <Text style={styles.value}>
+                {financialData.nrCrediteBanci ?? 'N/A'}
+              </Text>
+            </View>
+            <View style={styles.dataRow}>
+              <Text style={styles.label}>
+                Număr IFN
+              </Text>
+              <Text style={styles.value}>
+                {financialData.nrIfn ?? 'N/A'}
+              </Text>
+            </View>
+          </View>
 
           {/* Scoring Section */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <View style={styles.cardHeader}>
-                <Icon name="chart-bar" size={24} color="#1976D2" />
-                <Text variant="titleLarge" style={styles.cardTitle}>
-                  Scoring & Eligibilitate
-                </Text>
-              </View>
-              <Divider style={styles.divider} />
-              <View style={styles.dataRow}>
-                <Text variant="bodyMedium" style={styles.label}>
-                  DTI (Debt-to-Income)
-                </Text>
-                <Text variant="titleMedium" style={styles.value}>
-                  {formatPercentage(financialData.dti)}
-                </Text>
-              </View>
-              <View style={styles.dataRow}>
-                <Text variant="bodyMedium" style={styles.label}>
-                  Nivel Scoring
-                </Text>
-                <Chip
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: getScoringColor(
-                        financialData.scoringLevel,
-                      ) + '20',
-                    },
-                  ]}
-                  textStyle={{
-                    color: getScoringColor(financialData.scoringLevel),
-                    fontWeight: '600',
-                  }}>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Icon name="chart-bar" size={24} color={colors.brand.primary} />
+              <Text style={styles.cardTitle}>
+                Scoring & Eligibilitate
+              </Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.dataRow}>
+              <Text style={styles.label}>
+                DTI (Debt-to-Income)
+              </Text>
+              <Text style={styles.value}>
+                {formatPercentage(financialData.dti)}
+              </Text>
+            </View>
+            <View style={styles.dataRow}>
+              <Text style={styles.label}>
+                Nivel Scoring
+              </Text>
+              <View style={[
+                styles.scoringBadge,
+                {backgroundColor: getScoringBg(financialData.scoringLevel)},
+              ]}>
+                <Text style={[
+                  styles.scoringBadgeText,
+                  {color: getScoringColor(financialData.scoringLevel)},
+                ]}>
                   {getScoringLabel(financialData.scoringLevel)}
-                </Chip>
-              </View>
-              <View style={styles.dataRow}>
-                <Text variant="bodyMedium" style={styles.label}>
-                  Nivel Recomandat
-                </Text>
-                <Text variant="titleMedium" style={styles.value}>
-                  {financialData.recommendedLevel ?? 'N/A'}
                 </Text>
               </View>
-            </Card.Content>
-          </Card>
+            </View>
+            <View style={styles.dataRow}>
+              <Text style={styles.label}>
+                Nivel Recomandat
+              </Text>
+              <Text style={styles.value}>
+                {financialData.recommendedLevel ?? 'N/A'}
+              </Text>
+            </View>
+          </View>
 
           {/* Status Section */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <View style={styles.cardHeader}>
-                <Icon name="alert-circle" size={24} color="#F44336" />
-                <Text variant="titleLarge" style={styles.cardTitle}>
-                  Status
-                </Text>
-              </View>
-              <Divider style={styles.divider} />
-              <View style={styles.dataRow}>
-                <Text variant="bodyMedium" style={styles.label}>
-                  Poprire
-                </Text>
-                <Chip
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: financialData.poprire
-                        ? '#F4433620'
-                        : '#4CAF5020',
-                    },
-                  ]}
-                  textStyle={{
-                    color: financialData.poprire ? '#F44336' : '#4CAF50',
-                  }}>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Icon name="alert-circle" size={24} color={colors.error[400]} />
+              <Text style={styles.cardTitle}>
+                Status
+              </Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.dataRow}>
+              <Text style={styles.label}>
+                Poprire
+              </Text>
+              <View style={[
+                styles.scoringBadge,
+                {backgroundColor: financialData.poprire ? colors.error[50] : colors.success[50]},
+              ]}>
+                <Text style={[
+                  styles.scoringBadgeText,
+                  {color: financialData.poprire ? colors.error[400] : colors.success[400]},
+                ]}>
                   {financialData.poprire ? 'Da' : 'Nu'}
-                </Chip>
-              </View>
-              <View style={styles.dataRow}>
-                <Text variant="bodyMedium" style={styles.label}>
-                  Întârzieri
                 </Text>
-                <Chip
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: financialData.intarzieri
-                        ? '#F4433620'
-                        : '#4CAF5020',
-                    },
-                  ]}
-                  textStyle={{
-                    color: financialData.intarzieri ? '#F44336' : '#4CAF50',
-                  }}>
+              </View>
+            </View>
+            <View style={styles.dataRow}>
+              <Text style={styles.label}>
+                Întârzieri
+              </Text>
+              <View style={[
+                styles.scoringBadge,
+                {backgroundColor: financialData.intarzieri ? colors.error[50] : colors.success[50]},
+              ]}>
+                <Text style={[
+                  styles.scoringBadgeText,
+                  {color: financialData.intarzieri ? colors.error[400] : colors.success[400]},
+                ]}>
                   {financialData.intarzieri
                     ? `Da (${financialData.intarzieriNumar ?? 0})`
                     : 'Nu'}
-                </Chip>
+                </Text>
               </View>
-            </Card.Content>
-          </Card>
+            </View>
+          </View>
 
           {/* Last Updated */}
           {financialData.lastUpdated && (
-            <Text variant="bodySmall" style={styles.lastUpdated}>
+            <Text style={styles.lastUpdated}>
               Ultima actualizare:{' '}
               {new Date(financialData.lastUpdated).toLocaleString('ro-RO')}
             </Text>
@@ -305,89 +304,100 @@ const FinancialDataScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.dark[800],
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: spacing.lg,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    padding: spacing.xl,
   },
   emptyText: {
-    marginTop: 16,
-    color: '#666',
+    ...typography.h4,
+    marginTop: spacing.md,
+    color: colors.light[60],
     textAlign: 'center',
   },
   emptySubtext: {
-    marginTop: 8,
-    color: '#999',
+    ...typography.bodySmall,
+    marginTop: spacing.sm,
+    color: colors.light[50],
     textAlign: 'center',
   },
   card: {
-    marginBottom: 16,
-    borderRadius: 16,
-    elevation: 0,
-    shadowOpacity: 0,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.dark[700],
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    padding: spacing.lg,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   cardTitle: {
-    marginLeft: 12,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.h4,
+    marginLeft: spacing.md,
+    color: colors.light[100],
   },
   divider: {
-    marginBottom: 16,
+    height: 1,
+    backgroundColor: colors.dark[400],
+    marginBottom: spacing.md,
   },
   dataRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   label: {
-    color: '#666',
+    ...typography.bodyMedium,
+    color: colors.light[70],
     flex: 1,
   },
   value: {
-    fontWeight: '600',
-    color: '#333',
+    ...typography.labelLarge,
+    color: colors.light[100],
   },
   totalRow: {
-    marginTop: 8,
-    paddingTop: 16,
+    marginTop: spacing.sm,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: colors.dark[400],
   },
   totalLabel: {
-    fontWeight: '600',
-    color: '#333',
+    ...typography.labelLarge,
+    color: colors.light[100],
   },
   totalValue: {
-    fontWeight: '700',
-    color: '#4CAF50',
+    ...typography.h3,
+    color: colors.success[400],
   },
-  chip: {
-    height: 32,
+  scoringBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.pill,
+  },
+  scoringBadgeText: {
+    ...typography.labelSmall,
+    fontWeight: '600',
   },
   lastUpdated: {
+    ...typography.caption,
     textAlign: 'center',
-    color: '#999',
-    marginTop: 8,
-    marginBottom: 16,
+    color: colors.light[50],
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
   },
 });
 
 export default FinancialDataScreen;
-

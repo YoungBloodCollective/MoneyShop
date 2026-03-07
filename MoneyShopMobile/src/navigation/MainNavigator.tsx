@@ -21,25 +21,77 @@ import BrokerDirectoryScreen from '../screens/Broker/BrokerDirectoryScreen';
 import FinancialDataScreen from '../screens/Profile/FinancialDataScreen';
 import KycFormScreen from '../screens/Kyc/KycFormScreen';
 import KycAdminScreen from '../screens/Kyc/KycAdminScreen';
+import VerificationScreen from '../screens/Auth/VerificationScreen';
 import ChatScreen from '../screens/Chat/ChatScreen';
 import CustomHeader from '../components/CustomHeader';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {colors} from '../theme/designSystem';
+import type {ScoringResult} from '../types/application.types';
 
-const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+export type DashboardStackParamList = {
+  DashboardHome: undefined;
+  ApplicationList: undefined;
+  ApplicationWizard: undefined;
+  ApplicationSuccess: undefined;
+  Verification: {type: 'email' | 'phone'; email?: string; phone?: string; onComplete?: string};
+  KycForm: undefined;
+  KycAdmin: undefined;
+};
+
+export type SimulatorStackParamList = {
+  SimulatorHome: undefined;
+  SimulatorForm: undefined;
+  SimulatorResult: { result: ScoringResult };
+};
+
+export type ProfileStackParamList = {
+  ProfileHome: undefined;
+  LegalMenu: undefined;
+  Terms: undefined;
+  Privacy: undefined;
+  Mandate: undefined;
+  Compliance: undefined;
+  DataTransfer: undefined;
+  ConsentManagement: undefined;
+  MandateManagement: undefined;
+  BrokerDirectory: undefined;
+  FinancialData: undefined;
+  KycForm: undefined;
+  KycAdmin: undefined;
+};
+
+export type ChatStackParamList = {
+  ChatHome: undefined;
+};
+
+export type MainTabParamList = {
+  Dashboard: undefined;
+  Simulator: undefined;
+  Profile: undefined;
+  Chat: undefined;
+};
+
+const Tab = createBottomTabNavigator<MainTabParamList>();
+
+const DashStack = createNativeStackNavigator<DashboardStackParamList>();
+const SimStack = createNativeStackNavigator<SimulatorStackParamList>();
+const ProfStack = createNativeStackNavigator<ProfileStackParamList>();
+const ChatStackNav = createNativeStackNavigator<ChatStackParamList>();
 
 const DashboardStack = () => {
   const getTitle = (routeName: string) => {
     const titles: {[key: string]: string} = {
       ApplicationList: 'Cererile mele',
       ApplicationWizard: 'Cerere nouă',
+      Verification: 'Verificare',
+      KycForm: 'Verificare KYC',
       KycAdmin: 'Verificări KYC',
     };
     return titles[routeName];
   };
 
   return (
-    <Stack.Navigator
+    <DashStack.Navigator
       screenOptions={{
         header: ({navigation, route}) => (
           <CustomHeader
@@ -49,33 +101,38 @@ const DashboardStack = () => {
           />
         ),
       }}>
-      <Stack.Screen
+      <DashStack.Screen
         name="DashboardHome"
         component={DashboardScreen}
         options={{headerShown: true}}
       />
-      <Stack.Screen
+      <DashStack.Screen
         name="ApplicationList"
         component={ApplicationListScreen}
       />
-      <Stack.Screen
+      <DashStack.Screen
         name="ApplicationWizard"
         component={ApplicationWizardScreen}
       />
-      <Stack.Screen
+      <DashStack.Screen
         name="ApplicationSuccess"
         component={ApplicationSuccessScreen}
         options={{headerShown: false}}
       />
-      <Stack.Screen
+      <DashStack.Screen
+        name="Verification"
+        component={VerificationScreen as any}
+        options={{headerShown: false}}
+      />
+      <DashStack.Screen
         name="KycForm"
         component={KycFormScreen}
       />
-      <Stack.Screen
+      <DashStack.Screen
         name="KycAdmin"
         component={KycAdminScreen}
       />
-    </Stack.Navigator>
+    </DashStack.Navigator>
   );
 };
 
@@ -89,7 +146,7 @@ const SimulatorStack = () => {
   };
 
   return (
-    <Stack.Navigator
+    <SimStack.Navigator
       screenOptions={{
         header: ({navigation, route}) => (
           <CustomHeader
@@ -99,20 +156,20 @@ const SimulatorStack = () => {
           />
         ),
       }}>
-      <Stack.Screen
+      <SimStack.Screen
         name="SimulatorHome"
         component={SimulatorScreen}
         options={{headerShown: true}}
       />
-      <Stack.Screen
+      <SimStack.Screen
         name="SimulatorForm"
         component={SimulatorFormScreen}
       />
-      <Stack.Screen
+      <SimStack.Screen
         name="SimulatorResult"
-        component={SimulatorResultScreen}
+        component={SimulatorResultScreen as any}
       />
-    </Stack.Navigator>
+    </SimStack.Navigator>
   );
 };
 
@@ -127,7 +184,7 @@ const MainNavigator = () => {
             iconName = focused ? 'view-dashboard' : 'view-dashboard-outline';
           } else if (route.name === 'Simulator') {
             iconName = focused ? 'calculator' : 'calculator-outline';
-          } else           if (route.name === 'Profile') {
+          } else if (route.name === 'Profile') {
             iconName = focused ? 'account' : 'account-outline';
           } else if (route.name === 'Chat') {
             iconName = focused ? 'robot' : 'robot-outline';
@@ -137,19 +194,20 @@ const MainNavigator = () => {
 
           return <Icon name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#00C853',
-        tabBarInactiveTintColor: '#9E9E9E',
+        tabBarActiveTintColor: colors.brand.primary,
+        tabBarInactiveTintColor: colors.light[50],
         headerShown: false,
         tabBarStyle: {
           display: 'flex',
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 0,
-          elevation: 8,
+          backgroundColor: colors.dark[800],
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(255, 255, 255, 0.06)',
+          elevation: 0,
           shadowColor: '#000',
-          shadowOffset: {width: 0, height: -2},
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          height: 70,
+          shadowOffset: {width: 0, height: -4},
+          shadowOpacity: 0.3,
+          shadowRadius: 12,
+          height: 72,
           paddingBottom: 12,
           paddingTop: 12,
         },
@@ -159,23 +217,23 @@ const MainNavigator = () => {
           letterSpacing: 0.3,
         },
       })}>
-      <Tab.Screen 
-        name="Dashboard" 
+      <Tab.Screen
+        name="Dashboard"
         component={DashboardStack}
         options={{title: 'Dashboard'}}
       />
-      <Tab.Screen 
-        name="Simulator" 
+      <Tab.Screen
+        name="Simulator"
         component={SimulatorStack}
         options={{title: 'Simulator'}}
       />
-      <Tab.Screen 
-        name="Profile" 
+      <Tab.Screen
+        name="Profile"
         component={ProfileStack}
         options={{title: 'Profil'}}
       />
-      <Tab.Screen 
-        name="Chat" 
+      <Tab.Screen
+        name="Chat"
         component={ChatStack}
         options={{title: 'Chat'}}
       />
@@ -185,15 +243,15 @@ const MainNavigator = () => {
 
 const ChatStack = () => {
   return (
-    <Stack.Navigator
+    <ChatStackNav.Navigator
       screenOptions={{
         headerShown: false,
       }}>
-      <Stack.Screen
+      <ChatStackNav.Screen
         name="ChatHome"
         component={ChatScreen}
       />
-    </Stack.Navigator>
+    </ChatStackNav.Navigator>
   );
 };
 
@@ -217,7 +275,7 @@ const ProfileStack = () => {
   };
 
   return (
-    <Stack.Navigator
+    <ProfStack.Navigator
       screenOptions={{
         header: ({navigation, route}) => (
           <CustomHeader
@@ -227,62 +285,62 @@ const ProfileStack = () => {
           />
         ),
       }}>
-      <Stack.Screen
+      <ProfStack.Screen
         name="ProfileHome"
         component={ProfileScreen}
         options={{headerShown: true}}
       />
-      <Stack.Screen
+      <ProfStack.Screen
         name="LegalMenu"
         component={LegalMenuScreen}
       />
-      <Stack.Screen
+      <ProfStack.Screen
         name="Terms"
         component={TermsScreen}
       />
-      <Stack.Screen
+      <ProfStack.Screen
         name="Privacy"
         component={PrivacyScreen}
       />
-      <Stack.Screen
+      <ProfStack.Screen
         name="Mandate"
         component={MandateScreen}
       />
-      <Stack.Screen
+      <ProfStack.Screen
         name="Compliance"
         component={ComplianceScreen}
       />
-      <Stack.Screen
+      <ProfStack.Screen
         name="DataTransfer"
         component={DataTransferScreen}
       />
-      <Stack.Screen
+      <ProfStack.Screen
         name="ConsentManagement"
         component={ConsentManagementScreen}
       />
-      <Stack.Screen
+      <ProfStack.Screen
         name="MandateManagement"
         component={MandateManagementScreen}
       />
-      <Stack.Screen
+      <ProfStack.Screen
         name="BrokerDirectory"
         component={BrokerDirectoryScreen}
       />
-      <Stack.Screen
+      <ProfStack.Screen
         name="FinancialData"
         component={FinancialDataScreen}
+        options={{headerShown: false}}
       />
-      <Stack.Screen
+      <ProfStack.Screen
         name="KycForm"
         component={KycFormScreen}
       />
-      <Stack.Screen
+      <ProfStack.Screen
         name="KycAdmin"
         component={KycAdminScreen}
       />
-    </Stack.Navigator>
+    </ProfStack.Navigator>
   );
 };
 
 export default MainNavigator;
-

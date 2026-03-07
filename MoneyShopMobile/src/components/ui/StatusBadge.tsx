@@ -12,11 +12,6 @@ interface StatusBadgeProps {
   showIcon?: boolean;
 }
 
-/**
- * StatusBadge - Badge pentru afișarea statusului
- * 
- * Afișează statusul într-un mod vizual clar cu culori și iconuri intuitive.
- */
 const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,
   label,
@@ -31,16 +26,16 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
           label: label || 'Activ',
           icon: 'check-circle',
           backgroundColor: colors.success[50],
-          textColor: colors.success[700],
+          textColor: colors.success[400],
           iconColor: colors.success[500],
         };
       case 'pending':
-      case 'în așteptare':
+      case 'in asteptare':
         return {
-          label: label || 'În așteptare',
+          label: label || 'In asteptare',
           icon: 'clock-outline',
           backgroundColor: colors.warning[50],
-          textColor: colors.warning[700],
+          textColor: colors.warning[400],
           iconColor: colors.warning[500],
         };
       case 'expired':
@@ -49,7 +44,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
           label: label || 'Expirat',
           icon: 'calendar-remove',
           backgroundColor: colors.warning[50],
-          textColor: colors.warning[700],
+          textColor: colors.warning[400],
           iconColor: colors.warning[600],
         };
       case 'revoked':
@@ -58,7 +53,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
           label: label || 'Revocat',
           icon: 'close-circle',
           backgroundColor: colors.error[50],
-          textColor: colors.error[700],
+          textColor: colors.error[400],
           iconColor: colors.error[500],
         };
       case 'approved':
@@ -67,7 +62,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
           label: label || 'Aprobat',
           icon: 'check-decagram',
           backgroundColor: colors.success[50],
-          textColor: colors.success[700],
+          textColor: colors.success[400],
           iconColor: colors.success[500],
         };
       case 'rejected':
@@ -77,26 +72,26 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
           label: label || 'Refuzat',
           icon: 'close-octagon',
           backgroundColor: colors.error[50],
-          textColor: colors.error[700],
+          textColor: colors.error[400],
           iconColor: colors.error[500],
         };
       case 'processing':
       case 'in_procesare':
-      case 'în procesare':
+      case 'in procesare':
         return {
-          label: label || 'În procesare',
+          label: label || 'In procesare',
           icon: 'progress-clock',
-          backgroundColor: colors.primary[50],
-          textColor: colors.primary[700],
-          iconColor: colors.primary[500],
+          backgroundColor: colors.info[50],
+          textColor: colors.brand.primary,
+          iconColor: colors.brand.primary,
         };
       default:
         return {
           label: label || status,
           icon: 'information',
-          backgroundColor: colors.neutral[100],
-          textColor: colors.neutral[700],
-          iconColor: colors.neutral[500],
+          backgroundColor: colors.dark[500],
+          textColor: colors.light[80],
+          iconColor: colors.light[60],
         };
     }
   };
@@ -154,7 +149,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: borderRadius.full,
+    borderRadius: borderRadius.pill,
     alignSelf: 'flex-start',
   },
   containerSmall: {
@@ -187,4 +182,3 @@ const styles = StyleSheet.create({
 });
 
 export default StatusBadge;
-

@@ -1,22 +1,112 @@
 import {apiClient} from './apiClient';
 import {Platform} from 'react-native';
 
-export interface KycSession {
+// ── Types ──
+
+export interface KycStartResponse {
+  kycId: string;
+  sessionId: string;
+  token: string;
+  status: string;
+}
+
+export interface KycStatusResponse {
   kycId: string;
   status: 'pending' | 'verified' | 'rejected' | 'expired';
   createdAt: string;
-  expiresAt: string;
   verifiedAt?: string;
   rejectionReason?: string;
-  files?: KycFile[];
+  externalSessionId?: string;
 }
 
-export interface KycFile {
-  fileId: string;
-  fileType: string;
-  fileName: string;
-  createdAt: string;
+export interface OcrData {
+  lastName?: string;
+  firstName?: string;
+  cnp?: string;
+  idSeries?: string;
+  idNumber?: string;
+  expiryDate?: string;
+  birthDate?: string;
+  sex?: string;
+  address?: string;
+  nationality?: string;
+  placeOfBirth?: string;
+  issuedBy?: string;
+  issueDate?: string;
+  confidenceScore?: number;
+  isNewFormat: boolean;
 }
+
+export interface OcrResult {
+  decision: string;
+  reasonCode?: string;
+  ocrData?: OcrData;
+  logicValidation?: {
+    isValid: boolean;
+    cnpChecksumValid: boolean;
+    cnpBirthDateMatch: boolean;
+    cnpSexMatch: boolean;
+    documentNotExpired: boolean;
+    errors: string[];
+  };
+  error?: string;
+}
+
+export interface LivenessResult {
+  livenessDetected: boolean;
+  confidence: number;
+  decision: string;
+  reasonCode?: string;
+  error?: string;
+}
+
+export interface ActiveLivenessResult {
+  isLive: boolean;
+  confidence: number;
+  decision: string;
+  reasonCode?: string;
+  challenges?: Array<{type: string; passed: boolean; durationMs: number}>;
+  error?: string;
+}
+
+export interface FaceCompareResult {
+  facesMatch: boolean;
+  confidence: number;
+  decision: string;
+  reasonCode?: string;
+  documentFaceDetected: boolean;
+  selfieFaceDetected: boolean;
+  error?: string;
+}
+
+export interface DecisionResponse {
+  faceCompare: FaceCompareResult;
+  decision: {
+    code: number;
+    status: string;
+    reason?: string;
+    person?: {
+      firstName?: string;
+      lastName?: string;
+      gender?: string;
+      idNumber?: string;
+      dateOfBirth?: string;
+      nationality?: string;
+      placeOfBirth?: string;
+      addresses?: Array<{fullAddress?: string}>;
+    };
+    document?: {
+      type?: string;
+      number?: string;
+      country?: string;
+      validFrom?: string;
+      validUntil?: string;
+      issuedBy?: string;
+    };
+  };
+}
+
+// ── Legacy admin types (kept for KycAdminScreen) ──
 
 export interface KycPending {
   kycId: string;
@@ -45,242 +135,230 @@ export interface KycFileDetail {
   fileId: string;
   fileType: string;
   fileName: string;
-  blobPath?: string; // Deprecated, kept for backward compatibility
-  fileContentBase64?: string; // Base64 encoded file content
+  fileContentBase64?: string;
   mimeType: string;
-  dataUri?: string; // data:image/jpeg;base64,... format for easy display
+  dataUri?: string;
   createdAt: string;
 }
 
-export const kycApi = {
-  // Start a new KYC session
-  startSession: async (kycType: string = 'USER_KYC'): Promise<KycSession> => {
-    console.log('startSession called with kycType:', kycType);
-    try {
-      const response = await apiClient.post('/kyc/start', {kycType});
-      console.log('startSession response:', {
-        status: response.status,
-        data: response.data,
-        kycId: response.data?.kycId,
-      });
-      
-      // Ensure kycId is present
-      if (!response.data || !response.data.kycId) {
-        console.error('Invalid startSession response:', response.data);
-        throw new Error('Failed to start KYC session: kycId missing in response');
-      }
-      
-      return response.data;
-    } catch (error: any) {
-      console.error('startSession error:', error);
-      console.error('Error details:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message,
-      });
-      throw error;
-    }
-  },
+// ── Helper: prepare image for multipart upload ──
 
-  // Upload a file for KYC
-  uploadFile: async (
-    kycId: string,
-    fileType: string,
-    file: {
-      uri: string;
-      type: string;
-      name: string;
-    },
-  ): Promise<KycFile> => {
-    console.log('[kycApi] uploadFile - Starting upload', {
-      kycId,
-      fileType,
-      fileName: file.name,
-      mimeType: file.type,
-      uriType: file.uri.startsWith('data:') ? 'data-uri' : file.uri.startsWith('file://') ? 'file-uri' : 'url',
-    });
+async function prepareImageFormData(
+  fieldName: string,
+  imageUri: string,
+  fileName: string = 'image.jpg',
+): Promise<{formData: FormData; append: (fd: FormData) => void}> {
+  const formData = new FormData();
 
-    const formData = new FormData();
-    formData.append('kycId', kycId);
-    formData.append('fileType', fileType);
-    
-    // Prepare file for upload
-    // Web: Convert data URI to File object (FormData requirement)
-    // Mobile: Use URI directly (React Native FormData handles it)
-    let fileToUpload: any;
-    
-    if (Platform.OS === 'web') {
-      // Web platform
-      if (file.uri.startsWith('data:')) {
-        // Data URI - convert to File object
-        const match = file.uri.match(/^data:([^;]+);base64,(.+)$/);
-        if (!match) {
-          throw new Error('Invalid data URI format');
-        }
-        
-        const mimeType = match[1] || file.type || 'image/jpeg';
-        const base64Data = match[2];
-        
-        // Decode base64 to binary
-        const binaryString = atob(base64Data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        
-        // Create File object
-        fileToUpload = new File([bytes], file.name || 'image.jpg', { type: mimeType });
-        console.log('[kycApi] Web: Converted data URI to File object');
-      } else {
-        // Regular URL - fetch and create File
-        try {
-          const response = await fetch(file.uri);
-          const blob = await response.blob();
-          fileToUpload = new File([blob], file.name || 'image.jpg', {
-            type: file.type || 'image/jpeg',
-          });
-          console.log('[kycApi] Web: Created File from URL');
-        } catch (error) {
-          console.error('[kycApi] Web: Failed to fetch URL:', error);
-          throw new Error('Failed to process image file');
-        }
+  if (Platform.OS === 'web') {
+    if (imageUri.startsWith('data:')) {
+      const match = imageUri.match(/^data:([^;]+);base64,(.+)$/);
+      if (!match) throw new Error('Invalid data URI format');
+      const mimeType = match[1] || 'image/jpeg';
+      const base64Data = match[2];
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
       }
+      const file = new File([bytes], fileName, {type: mimeType});
+      formData.append(fieldName, file);
     } else {
-      // Mobile platform (iOS/Android)
-      // React Native FormData accepts {uri, type, name} directly
-      fileToUpload = {
-        uri: file.uri,
-        type: file.type || 'image/jpeg',
-        name: file.name || 'image.jpg',
-      };
-      console.log('[kycApi] Mobile: Using URI object directly');
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      const file = new File([blob], fileName, {type: 'image/jpeg'});
+      formData.append(fieldName, file);
     }
-    
-    formData.append('file', fileToUpload);
+  } else {
+    formData.append(fieldName, {
+      uri: imageUri,
+      type: 'image/jpeg',
+      name: fileName,
+    } as any);
+  }
 
-    try {
-      console.log('[kycApi] Sending FormData to backend');
-      const response = await apiClient.post('/kyc/upload', formData);
-      console.log('[kycApi] Upload successful:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('[kycApi] Upload failed:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
-      throw error;
-    }
-  },
+  return {formData, append: () => {}};
+}
 
-  // Get KYC status for current user
-  getStatus: async (kycType: string = 'USER_KYC'): Promise<KycSession> => {
-    const response = await apiClient.get(`/kyc/status?kycType=${kycType}`);
+// ── API ──
+
+export const kycApi = {
+  // ── New automated KYC flow ──
+
+  /** Start a new KYC verification session */
+  startSession: async (): Promise<KycStartResponse> => {
+    const response = await apiClient.post('/kyc-verify/start');
     return response.data;
   },
 
-  // Update KYC form data
-  updateFormData: async (
-    kycId: string,
-    formData: {
-      cnp?: string;
-      address?: string;
-      city?: string;
-      county?: string;
-      postalCode?: string;
-    },
-  ): Promise<void> => {
-    console.log('updateFormData called with:', {kycId, formData});
-    
-    // Validate kycId
-    if (!kycId || kycId === 'undefined' || kycId === 'null') {
-      console.error('Invalid kycId:', kycId);
-      throw new Error('KycId is required');
-    }
-    
-    try {
-      const requestData = {
-        kycId: kycId, // Ensure it's sent as string, backend will parse it as Guid
-        cnp: formData.cnp,
-        address: formData.address,
-        city: formData.city,
-        county: formData.county,
-        postalCode: formData.postalCode,
-      };
-      
-      console.log('Sending request data:', requestData);
-      
-      const response = await apiClient.post('/kyc/update-form-data', requestData);
-      
-      console.log('updateFormData response:', {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data,
-        headers: response.headers,
-      });
-      
-      // Check if response is empty (204 No Content)
-      if (response.status === 204 || !response.data) {
-        console.warn('Received 204 No Content or empty response');
+  /** Submit ID document front (+ optional back) for OCR */
+  submitDocument: async (
+    frontImageUri: string,
+    backImageUri?: string,
+  ): Promise<OcrResult> => {
+    const formData = new FormData();
+
+    // Front image
+    if (Platform.OS === 'web') {
+      if (frontImageUri.startsWith('data:')) {
+        const match = frontImageUri.match(/^data:([^;]+);base64,(.+)$/);
+        if (!match) throw new Error('Invalid data URI');
+        const bytes = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
+        formData.append('DocumentFront', new File([bytes], 'front.jpg', {type: match[1]}));
+      } else {
+        const res = await fetch(frontImageUri);
+        const blob = await res.blob();
+        formData.append('DocumentFront', new File([blob], 'front.jpg', {type: 'image/jpeg'}));
       }
-    } catch (error: any) {
-      console.error('updateFormData error:', error);
-      console.error('Error details:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          data: error.config?.data,
-        },
-      });
-      throw error;
+    } else {
+      formData.append('DocumentFront', {uri: frontImageUri, type: 'image/jpeg', name: 'front.jpg'} as any);
     }
+
+    // Back image (optional)
+    if (backImageUri) {
+      if (Platform.OS === 'web') {
+        if (backImageUri.startsWith('data:')) {
+          const match = backImageUri.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            const bytes = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
+            formData.append('DocumentBack', new File([bytes], 'back.jpg', {type: match[1]}));
+          }
+        } else {
+          const res = await fetch(backImageUri);
+          const blob = await res.blob();
+          formData.append('DocumentBack', new File([blob], 'back.jpg', {type: 'image/jpeg'}));
+        }
+      } else {
+        formData.append('DocumentBack', {uri: backImageUri, type: 'image/jpeg', name: 'back.jpg'} as any);
+      }
+    }
+
+    const response = await apiClient.post('/kyc-verify/document', formData);
+    return response.data;
   },
 
-  // Admin: Get all pending KYC sessions
+  /** Submit selfie for basic liveness detection */
+  submitLiveness: async (selfieUri: string): Promise<LivenessResult> => {
+    const formData = new FormData();
+
+    if (Platform.OS === 'web') {
+      if (selfieUri.startsWith('data:')) {
+        const match = selfieUri.match(/^data:([^;]+);base64,(.+)$/);
+        if (!match) throw new Error('Invalid data URI');
+        const bytes = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
+        formData.append('Selfie', new File([bytes], 'selfie.jpg', {type: match[1]}));
+      } else {
+        const res = await fetch(selfieUri);
+        const blob = await res.blob();
+        formData.append('Selfie', new File([blob], 'selfie.jpg', {type: 'image/jpeg'}));
+      }
+    } else {
+      formData.append('Selfie', {uri: selfieUri, type: 'image/jpeg', name: 'selfie.jpg'} as any);
+    }
+
+    const response = await apiClient.post('/kyc-verify/liveness', formData);
+    return response.data;
+  },
+
+  /** Submit selfie + challenge results for active liveness */
+  submitActiveLiveness: async (
+    selfieUri: string,
+    challenges: Array<{type: string; passed: boolean; durationMs: number}>,
+  ): Promise<ActiveLivenessResult> => {
+    const formData = new FormData();
+
+    if (Platform.OS === 'web') {
+      if (selfieUri.startsWith('data:')) {
+        const match = selfieUri.match(/^data:([^;]+);base64,(.+)$/);
+        if (!match) throw new Error('Invalid data URI');
+        const bytes = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
+        formData.append('Selfie', new File([bytes], 'liveness.jpg', {type: match[1]}));
+      } else {
+        const res = await fetch(selfieUri);
+        const blob = await res.blob();
+        formData.append('Selfie', new File([blob], 'liveness.jpg', {type: 'image/jpeg'}));
+      }
+    } else {
+      formData.append('Selfie', {uri: selfieUri, type: 'image/jpeg', name: 'liveness.jpg'} as any);
+    }
+
+    formData.append('ChallengesJson', JSON.stringify(challenges));
+
+    const response = await apiClient.post('/kyc-verify/active-liveness', formData);
+    return response.data;
+  },
+
+  /** Trigger face comparison — sends document photo + selfie */
+  submitFaceCompare: async (
+    documentPhotoUri: string,
+    selfieUri: string,
+  ): Promise<DecisionResponse> => {
+    const formData = new FormData();
+
+    // Document photo
+    if (Platform.OS === 'web') {
+      if (documentPhotoUri.startsWith('data:')) {
+        const match = documentPhotoUri.match(/^data:([^;]+);base64,(.+)$/);
+        if (!match) throw new Error('Invalid data URI');
+        const bytes = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
+        formData.append('DocumentPhoto', new File([bytes], 'document.jpg', {type: match[1]}));
+      } else {
+        const res = await fetch(documentPhotoUri);
+        const blob = await res.blob();
+        formData.append('DocumentPhoto', new File([blob], 'document.jpg', {type: 'image/jpeg'}));
+      }
+    } else {
+      formData.append('DocumentPhoto', {uri: documentPhotoUri, type: 'image/jpeg', name: 'document.jpg'} as any);
+    }
+
+    // Selfie
+    if (Platform.OS === 'web') {
+      if (selfieUri.startsWith('data:')) {
+        const match = selfieUri.match(/^data:([^;]+);base64,(.+)$/);
+        if (!match) throw new Error('Invalid data URI');
+        const bytes = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
+        formData.append('Selfie', new File([bytes], 'selfie.jpg', {type: match[1]}));
+      } else {
+        const res = await fetch(selfieUri);
+        const blob = await res.blob();
+        formData.append('Selfie', new File([blob], 'selfie.jpg', {type: 'image/jpeg'}));
+      }
+    } else {
+      formData.append('Selfie', {uri: selfieUri, type: 'image/jpeg', name: 'selfie.jpg'} as any);
+    }
+
+    const response = await apiClient.post('/kyc-verify/face-compare', formData);
+    return response.data;
+  },
+
+  /** Get current KYC status for the authenticated user */
+  getStatus: async (): Promise<KycStatusResponse> => {
+    const response = await apiClient.get('/kyc-verify/status');
+    return response.data;
+  },
+
+  // ── Legacy admin endpoints (kept for KycAdminScreen) ──
+
   getAllPending: async (): Promise<KycPending[]> => {
     const response = await apiClient.get('/kyc/pending');
-    // Ensure we always return an array
     return Array.isArray(response.data) ? response.data : [];
   },
 
-  // Admin: Get KYC details
   getDetails: async (kycId: string): Promise<KycDetails> => {
     const response = await apiClient.get(`/kyc/details/${kycId}`);
     return response.data;
   },
 
-  // Admin: Get KYC file (returns base64 data)
   getFile: async (fileId: string): Promise<{fileContentBase64: string; dataUri: string; mimeType: string; fileName: string}> => {
     const response = await apiClient.get(`/kyc/file/${fileId}`);
     return response.data;
   },
 
-  // Admin: Update KYC status
   updateStatus: async (
     kycId: string,
     status: 'verified' | 'rejected',
     rejectionReason?: string,
   ): Promise<void> => {
-    console.log('[kycApi] updateStatus called:', { kycId, status, rejectionReason });
-    try {
-      const response = await apiClient.post('/kyc/update-status', {
-        kycId,
-        status,
-        rejectionReason,
-      });
-      console.log('[kycApi] updateStatus response:', response.data);
-    } catch (error: any) {
-      console.error('[kycApi] updateStatus error:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
-      throw error;
-    }
+    await apiClient.post('/kyc/update-status', {kycId, status, rejectionReason});
   },
 };
-

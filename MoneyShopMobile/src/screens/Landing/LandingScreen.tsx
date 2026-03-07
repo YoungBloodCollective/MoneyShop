@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {
   View,
   StyleSheet,
@@ -14,24 +14,21 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useAuthStore} from '../../store/authStore';
 import {eligibilityApi, CalcSimpleRequest} from '../../services/api/eligibilityApi';
-import {GuestStackParamList} from '../../navigation/GuestNavigator';
-import LinearGradient from 'react-native-linear-gradient';
+import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
+
 
 const alexPhoto = require('../../../assets/images/Alex/Alex.jpeg');
 
-type LandingScreenNavigationProp = NativeStackNavigationProp<
-  GuestStackParamList,
-  'Landing'
->;
-
 interface Props {
-  navigation: LandingScreenNavigationProp;
+  navigation: any;
 }
 
 const {width} = Dimensions.get('window');
 
 const LandingScreen: React.FC<Props> = ({navigation}) => {
   const {isAuthenticated} = useAuthStore();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const calculatorSectionY = useRef(0);
   const [currentLoanType, setCurrentLoanType] = useState<'NP' | 'IPOTECAR' | 'REFINANTARE'>('NP');
   const [salaryNet, setSalaryNet] = useState('9000');
   const [mealTickets, setMealTickets] = useState('0');
@@ -99,8 +96,9 @@ const LandingScreen: React.FC<Props> = ({navigation}) => {
   };
 
   return (
-    <ScrollView 
-      style={styles.container} 
+    <ScrollView
+      ref={scrollViewRef}
+      style={styles.container}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}>
       
@@ -111,26 +109,26 @@ const LandingScreen: React.FC<Props> = ({navigation}) => {
             MoneyShop<Text style={styles.logoReg}>®</Text>
           </Text>
           <View style={styles.navLinks}>
-            <TouchableOpacity style={styles.navLink}>
+            <TouchableOpacity style={styles.navLink} onPress={() => scrollViewRef.current?.scrollTo({y: calculatorSectionY.current, animated: true})}>
               <Text style={styles.navLinkText}>Calculator Credite</Text>
               <Icon name="chevron-down" size={14} color="#94a3b8" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.navLink}>
+            <TouchableOpacity style={styles.navLink} onPress={() => scrollViewRef.current?.scrollToEnd({animated: true})}>
               <Text style={styles.navLinkText}>Cum Functioneaza</Text>
               <Icon name="chevron-down" size={14} color="#94a3b8" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.navLink}>
+            <TouchableOpacity style={styles.navLink} onPress={() => scrollViewRef.current?.scrollToEnd({animated: true})}>
               <Text style={styles.navLinkText}>Educatie Financiara</Text>
               <Icon name="chevron-down" size={14} color="#94a3b8" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.navLink}>
+            <TouchableOpacity style={styles.navLink} onPress={() => scrollViewRef.current?.scrollToEnd({animated: true})}>
               <Text style={styles.navLinkText}>Contact</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.navActions}>
             {!isAuthenticated && (
               <TouchableOpacity
-                onPress={() => navigation.navigate('Login')}
+                onPress={() => navigation.navigate('Auth', {screen: 'Login'})}
                 style={styles.loginButton}>
                 <Text style={styles.loginButtonText}>Conecteaza-te</Text>
               </TouchableOpacity>
@@ -168,12 +166,12 @@ const LandingScreen: React.FC<Props> = ({navigation}) => {
             </Text>
             
             <View style={styles.heroButtons}>
-              <TouchableOpacity style={styles.heroButtonPrimary}>
+              <TouchableOpacity style={styles.heroButtonPrimary} onPress={() => scrollViewRef.current?.scrollTo({y: calculatorSectionY.current, animated: true})}>
                 <Text style={styles.heroButtonPrimaryText}>Calculeaza Creditul</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.heroButtonSecondary}
-                onPress={() => navigation.navigate('Login')}>
+                onPress={() => navigation.navigate('Auth', {screen: 'Login'})}>
                 <Text style={styles.heroButtonSecondaryText}>Vorbeste cu un Broker</Text>
               </TouchableOpacity>
             </View>
@@ -293,7 +291,7 @@ const LandingScreen: React.FC<Props> = ({navigation}) => {
       </View>
 
       {/* Calculator Section */}
-      <View style={styles.calculatorSection}>
+      <View style={styles.calculatorSection} onLayout={(e) => { calculatorSectionY.current = e.nativeEvent.layout.y; }}>
         <View style={styles.calculatorCard}>
           {/* Tabs */}
           <View style={styles.calculatorTabs}>
@@ -531,12 +529,12 @@ const LandingScreen: React.FC<Props> = ({navigation}) => {
               
               <View style={styles.helpButtons}>
                 <TouchableOpacity
-                  onPress={() => navigation.navigate('Login')}
+                  onPress={() => navigation.navigate('Auth', {screen: 'Login'})}
                   style={styles.helpButtonPrimary}>
                   <Text style={styles.helpButtonPrimaryText}>Programeaza un Apel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => navigation.navigate('Login')}
+                  onPress={() => navigation.navigate('Auth', {screen: 'Login'})}
                   style={styles.helpButtonSecondary}>
                   <Text style={styles.helpButtonSecondaryText}>Chat cu un Broker</Text>
                 </TouchableOpacity>
@@ -565,7 +563,7 @@ const LandingScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0f1a',
+    backgroundColor: colors.dark[900],
   },
   contentContainer: {
     paddingBottom: 60,
@@ -588,12 +586,12 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.light[100],
     letterSpacing: -0.5,
   },
   logoReg: {
     fontSize: 10,
-    color: '#6b7280',
+    color: colors.light[50],
     fontWeight: '400',
   },
   navLinks: {
@@ -609,7 +607,7 @@ const styles = StyleSheet.create({
   navLinkText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#94a3b8',
+    color: colors.light[60],
   },
   navActions: {
     flexDirection: 'row',
@@ -617,13 +615,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loginButton: {
-    backgroundColor: '#1d4ed8',
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 6,
+    backgroundColor: colors.brand.primary,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    borderRadius: 999,
   },
   loginButtonText: {
-    color: '#fff',
+    color: colors.light[100],
     fontSize: 13,
     fontWeight: '600',
   },
@@ -633,7 +631,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: 'rgba(55, 65, 81, 0.5)',
     borderWidth: 1,
-    borderColor: '#374151',
+    borderColor: colors.dark[400],
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -686,57 +684,57 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 44,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.light[100],
     lineHeight: 52,
     letterSpacing: -1,
     marginBottom: 24,
   },
   heroTitleAccent: {
-    color: '#60a5fa',
+    color: colors.brand.primary,
   },
   heroDescription: {
     fontSize: 17,
-    color: '#94a3b8',
+    color: colors.light[60],
     lineHeight: 26,
     marginBottom: 16,
   },
   heroBadge: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.light[100],
     marginBottom: 32,
   },
   heroBadgeLight: {
     fontWeight: '400',
-    color: '#6b7280',
+    color: colors.light[50],
   },
   heroButtons: {
     flexDirection: 'row',
     gap: 14,
   },
   heroButtonPrimary: {
-    backgroundColor: '#1e3a8a',
-    borderWidth: 1,
-    borderColor: '#1e40af',
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 8,
+    backgroundColor: colors.brand.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 999,
   },
   heroButtonPrimaryText: {
-    color: '#fff',
+    color: colors.light[100],
     fontSize: 15,
     fontWeight: '600',
   },
   heroButtonSecondary: {
-    backgroundColor: '#2563eb',
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 999,
   },
   heroButtonSecondaryText: {
-    color: '#fff',
+    color: colors.light[100],
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   
   // Device Mockups
@@ -757,10 +755,10 @@ const styles = StyleSheet.create({
   },
   monitorFrame: {
     width: 420,
-    backgroundColor: '#1a202c',
+    backgroundColor: colors.dark[700],
     borderRadius: 12,
     borderWidth: 8,
-    borderColor: '#2d3748',
+    borderColor: colors.dark[500],
     overflow: 'hidden',
     ...Platform.select({
       ios: {
@@ -780,13 +778,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#0f1419',
+    backgroundColor: colors.dark[800],
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   screenHeaderText: {
     fontSize: 11,
-    color: '#6b7280',
+    color: colors.light[50],
     fontWeight: '500',
   },
   windowDots: {
@@ -798,13 +796,13 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
   },
-  dotRed: {backgroundColor: '#ef4444'},
-  dotYellow: {backgroundColor: '#eab308'},
-  dotGreen: {backgroundColor: '#22c55e'},
+  dotRed: {backgroundColor: colors.error[500]},
+  dotYellow: {backgroundColor: colors.warning[500]},
+  dotGreen: {backgroundColor: colors.success[500]},
   screenContent: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: '#0f1419',
+    backgroundColor: colors.dark[800],
     minHeight: 200,
   },
   sidebar: {
@@ -815,16 +813,16 @@ const styles = StyleSheet.create({
     marginRight: 16,
     gap: 8,
   },
-  sidebarItem1: {height: 6, backgroundColor: '#374151', borderRadius: 3, width: '50%'},
-  sidebarItem2: {height: 6, backgroundColor: '#3b82f6', borderRadius: 3, opacity: 0.6},
-  sidebarItem3: {height: 6, backgroundColor: '#374151', borderRadius: 3, width: '70%', opacity: 0.5},
-  sidebarItem4: {height: 6, backgroundColor: '#374151', borderRadius: 3, width: '85%', opacity: 0.5},
+  sidebarItem1: {height: 6, backgroundColor: colors.dark[400], borderRadius: 3, width: '50%'},
+  sidebarItem2: {height: 6, backgroundColor: colors.brand.primary, borderRadius: 3, opacity: 0.6},
+  sidebarItem3: {height: 6, backgroundColor: colors.dark[400], borderRadius: 3, width: '70%', opacity: 0.5},
+  sidebarItem4: {height: 6, backgroundColor: colors.dark[400], borderRadius: 3, width: '85%', opacity: 0.5},
   mainContent: {
     flex: 1,
   },
   eligibilityLabel: {
     fontSize: 10,
-    color: '#6b7280',
+    color: colors.light[50],
     marginBottom: 4,
     letterSpacing: 0.3,
   },
@@ -836,12 +834,12 @@ const styles = StyleSheet.create({
   amountValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.light[100],
     letterSpacing: -0.5,
   },
   amountCurrency: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.light[50],
     marginLeft: 6,
   },
   statsRow: {
@@ -854,34 +852,34 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 9,
-    color: '#4b5563',
+    color: colors.light[40],
     marginBottom: 3,
     letterSpacing: 0.2,
   },
   statValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.light[100],
   },
   statUnit: {
     fontSize: 10,
     fontWeight: '400',
-    color: '#6b7280',
+    color: colors.light[50],
   },
   scoreCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.dark[600],
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.dark[400],
     borderRadius: 8,
     padding: 10,
   },
   scoreInfo: {},
   scoreLabel: {
     fontSize: 9,
-    color: '#6b7280',
+    color: colors.light[50],
     marginBottom: 2,
   },
   scoreValueRow: {
@@ -892,12 +890,12 @@ const styles = StyleSheet.create({
   scoreValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.light[100],
   },
   scoreRating: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#22c55e',
+    color: colors.success[500],
   },
   scoreCheckmark: {
     width: 22,
@@ -911,26 +909,26 @@ const styles = StyleSheet.create({
   },
   scoreProgressBar: {
     height: 4,
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.dark[600],
     borderRadius: 2,
     marginTop: 8,
     overflow: 'hidden',
   },
   scoreProgressFill: {
     height: '100%',
-    backgroundColor: '#22c55e',
+    backgroundColor: colors.success[500],
     borderRadius: 2,
   },
   monitorStand: {
     width: 80,
     height: 35,
-    backgroundColor: '#374151',
+    backgroundColor: colors.dark[400],
     marginTop: -1,
   },
   monitorBase: {
     width: 140,
     height: 10,
-    backgroundColor: '#1f2937',
+    backgroundColor: colors.dark[500],
     borderRadius: 5,
     marginTop: -1,
     ...Platform.select({
@@ -960,7 +958,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     borderRadius: 22,
     borderWidth: 4,
-    borderColor: '#1f2937',
+    borderColor: colors.dark[500],
     overflow: 'hidden',
     ...Platform.select({
       ios: {
@@ -977,7 +975,7 @@ const styles = StyleSheet.create({
   phoneNotch: {
     width: 40,
     height: 5,
-    backgroundColor: '#1f2937',
+    backgroundColor: colors.dark[500],
     borderRadius: 3,
     alignSelf: 'center',
     marginTop: 8,
@@ -991,7 +989,7 @@ const styles = StyleSheet.create({
   },
   phoneHeaderText: {
     fontSize: 10,
-    color: '#6b7280',
+    color: colors.light[50],
     fontWeight: '600',
     textAlign: 'center',
     letterSpacing: 0.5,
@@ -999,10 +997,10 @@ const styles = StyleSheet.create({
   phoneContent: {
     flex: 1,
     padding: 10,
-    backgroundColor: '#0f1419',
+    backgroundColor: colors.dark[800],
   },
   phoneCard: {
-    backgroundColor: '#334155',
+    backgroundColor: colors.dark[400],
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
@@ -1010,7 +1008,7 @@ const styles = StyleSheet.create({
   },
   phoneCardLabel: {
     fontSize: 8,
-    color: '#6b7280',
+    color: colors.light[50],
     fontWeight: '600',
     letterSpacing: 0.8,
     marginBottom: 6,
@@ -1018,12 +1016,12 @@ const styles = StyleSheet.create({
   phoneCardAmount: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.light[100],
     letterSpacing: -0.5,
   },
   phoneCardCurrency: {
     fontSize: 10,
-    color: '#6b7280',
+    color: colors.light[50],
     marginBottom: 10,
   },
   phoneCardStats: {
@@ -1039,12 +1037,12 @@ const styles = StyleSheet.create({
   },
   phoneCardStatLabel: {
     fontSize: 8,
-    color: '#4b5563',
+    color: colors.light[40],
     fontWeight: '500',
   },
   phoneCardStatValue: {
     fontSize: 10,
-    color: '#e2e8f0',
+    color: colors.light[90],
     fontWeight: '600',
   },
   
@@ -1085,15 +1083,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
   },
   calculatorTabActive: {
-    backgroundColor: '#d1d5db',
+    backgroundColor: colors.brand.primary,
   },
   calculatorTabText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#6b7280',
+    color: colors.light[50],
   },
   calculatorTabTextActive: {
-    color: '#111827',
+    color: colors.light[100],
     fontWeight: '600',
   },
   calculatorContent: {
@@ -1102,7 +1100,7 @@ const styles = StyleSheet.create({
   calculatorInputs: {
     flex: 1,
     padding: 28,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: colors.dark[700],
   },
   inputsGrid: {
     flexDirection: 'row',
@@ -1116,53 +1114,42 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#475569',
+    color: colors.light[60],
     marginBottom: 8,
     letterSpacing: 0.5,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.dark[600],
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 1},
-        shadowOpacity: 0.08,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
   },
   input: {
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: '#0f172a',
+    color: colors.light[100],
     padding: 0,
   },
   inputText: {
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: '#0f172a',
+    color: colors.light[100],
   },
   inputTextDisabled: {
     flex: 1,
     fontSize: 13,
-    color: '#64748b',
+    color: colors.light[50],
     fontStyle: 'italic',
   },
   calculateButton: {
-    backgroundColor: '#1e3a8a',
+    backgroundColor: colors.brand.primary,
     paddingVertical: 14,
     paddingHorizontal: 28,
-    borderRadius: 8,
+    borderRadius: 999,
     alignSelf: 'flex-end',
     ...Platform.select({
       ios: {
@@ -1177,13 +1164,13 @@ const styles = StyleSheet.create({
     }),
   },
   calculateButtonText: {
-    color: '#fff',
+    color: colors.light[100],
     fontSize: 14,
     fontWeight: '600',
   },
   calculatorResults: {
     width: 280,
-    backgroundColor: '#111827',
+    backgroundColor: colors.dark[800],
     padding: 24,
     borderLeftWidth: 1,
     borderLeftColor: 'rgba(255, 255, 255, 0.05)',
@@ -1196,19 +1183,19 @@ const styles = StyleSheet.create({
   },
   resultLabel: {
     fontSize: 13,
-    color: '#94a3b8',
+    color: colors.light[60],
     marginBottom: 6,
   },
   resultValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.light[100],
     letterSpacing: -0.3,
   },
   resultUnit: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#6b7280',
+    color: colors.light[50],
   },
   resultDtiRow: {
     flexDirection: 'row',
@@ -1235,9 +1222,9 @@ const styles = StyleSheet.create({
   },
   estimativText: {
     fontSize: 11,
-    color: '#6b7280',
+    color: colors.light[50],
   },
-  
+
   // Partners Section
   partnersSection: {
     paddingVertical: 50,
@@ -1249,11 +1236,11 @@ const styles = StyleSheet.create({
   partnersDivider: {
     width: 80,
     height: 1,
-    backgroundColor: '#374151',
+    backgroundColor: colors.dark[400],
   },
   partnersTitle: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.light[50],
     letterSpacing: 0.5,
     marginVertical: 30,
     textAlign: 'center',
@@ -1275,12 +1262,12 @@ const styles = StyleSheet.create({
   partnerBCR: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#3b82f6',
+    color: colors.brand.primary,
   },
   partnerBCRDot: {
     width: 14,
     height: 14,
-    backgroundColor: '#dc2626',
+    backgroundColor: colors.error[500],
     borderRadius: 2,
   },
   partnerBTCircle: {
@@ -1288,14 +1275,14 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: '#eab308',
+    borderColor: colors.warning[500],
     justifyContent: 'center',
     alignItems: 'center',
   },
   partnerBTText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#eab308',
+    color: colors.warning[500],
   },
   partnerBRD: {
     flexDirection: 'row',
@@ -1304,7 +1291,7 @@ const styles = StyleSheet.create({
   brdShape1: {
     width: 12,
     height: 12,
-    backgroundColor: '#dc2626',
+    backgroundColor: colors.error[500],
     transform: [{rotate: '45deg'}],
   },
   brdShape2: {
@@ -1312,26 +1299,26 @@ const styles = StyleSheet.create({
     height: 12,
     backgroundColor: '#000',
     borderWidth: 1,
-    borderColor: '#fff',
+    borderColor: colors.light[100],
     transform: [{rotate: '45deg'}],
   },
   partnerBRDText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.light[100],
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     marginLeft: 4,
   },
   partnerING: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#f97316',
+    color: colors.warning[400],
   },
   partnerUniCredit: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#dc2626',
+    backgroundColor: colors.error[500],
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1341,22 +1328,22 @@ const styles = StyleSheet.create({
   partnerUniCreditText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.light[100],
     fontStyle: 'italic',
     marginLeft: 4,
   },
   partnerGaranti: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.light[100],
     marginLeft: 4,
   },
-  
+
   // Features Section
   featuresSection: {
     paddingVertical: 60,
     paddingHorizontal: 20,
-    backgroundColor: '#0f1419',
+    backgroundColor: colors.dark[800],
   },
   featuresTitleContainer: {
     alignItems: 'center',
@@ -1369,13 +1356,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: '#1f2937',
+    backgroundColor: colors.dark[500],
   },
   featuresTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#fff',
-    backgroundColor: '#0f1419',
+    color: colors.light[100],
+    backgroundColor: colors.dark[800],
     paddingHorizontal: 20,
   },
   featuresGrid: {
@@ -1384,7 +1371,7 @@ const styles = StyleSheet.create({
   },
   featureCard: {
     flex: 1,
-    backgroundColor: '#151f32',
+    backgroundColor: colors.dark[700],
     borderRadius: 12,
     padding: 18,
     borderWidth: 1,
@@ -1408,18 +1395,18 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.light[100],
     lineHeight: 18,
     flex: 1,
   },
   featureDivider: {
     height: 1,
-    backgroundColor: '#1f2937',
+    backgroundColor: colors.dark[500],
     marginBottom: 12,
   },
   featureDescription: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.light[50],
     lineHeight: 18,
   },
   
@@ -1427,13 +1414,13 @@ const styles = StyleSheet.create({
   helpSection: {
     paddingVertical: 50,
     paddingHorizontal: 20,
-    backgroundColor: '#0a0f1a',
+    backgroundColor: colors.dark[900],
   },
   helpCard: {
-    backgroundColor: '#162032',
+    backgroundColor: colors.dark[700],
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1f2937',
+    borderColor: colors.dark[500],
     overflow: 'hidden',
   },
   helpContent: {
@@ -1446,13 +1433,13 @@ const styles = StyleSheet.create({
   helpTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.light[100],
     marginBottom: 14,
     letterSpacing: -0.3,
   },
   helpDescription: {
     fontSize: 15,
-    color: '#94a3b8',
+    color: colors.light[60],
     lineHeight: 24,
     marginBottom: 28,
   },
@@ -1462,31 +1449,31 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   helpButtonPrimary: {
-    backgroundColor: '#1e3a8a',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: colors.brand.primary,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 999,
   },
   helpButtonPrimaryText: {
-    color: '#fff',
+    color: colors.light[100],
     fontSize: 14,
     fontWeight: '600',
   },
   helpButtonSecondary: {
-    borderWidth: 1,
-    borderColor: '#4b5563',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 999,
   },
   helpButtonSecondaryText: {
-    color: '#d1d5db',
+    color: colors.light[80],
     fontSize: 14,
     fontWeight: '500',
   },
   helpFooter: {
     fontSize: 11,
-    color: '#4b5563',
+    color: colors.light[40],
     letterSpacing: 0.2,
   },
   helpImageContainer: {

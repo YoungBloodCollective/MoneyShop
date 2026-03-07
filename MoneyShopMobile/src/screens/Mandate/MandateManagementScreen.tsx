@@ -1,15 +1,15 @@
 import React, {useState} from 'react';
 import {View, StyleSheet, ScrollView, Alert, Animated} from 'react-native';
-import {Card, Text, ActivityIndicator} from 'react-native-paper';
+import {Text, ActivityIndicator} from 'react-native-paper';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {mandateApi, MandateInfo} from '../../services/api/mandateApi';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
-import {BigButton, StatusBadge, InfoCard} from '../../components/ui';
+import {BigButton, StatusBadge} from '../../components/ui';
 
 /**
  * MandateManagementScreen - Gestionare Mandate
- * 
+ *
  * Design UX simplu conform SRS:
  * - 1 ecran = 1 decizie
  * - Text mare și clar
@@ -58,7 +58,7 @@ const MandateManagementScreen = ({navigation}: any) => {
     },
     onError: (error: any) => {
       Alert.alert(
-        '❌ Eroare', 
+        '❌ Eroare',
         error.message || 'Nu am putut revoca mandatul. Te rugăm să încerci din nou.',
         [{text: 'OK', style: 'default'}]
       );
@@ -105,8 +105,8 @@ const MandateManagementScreen = ({navigation}: any) => {
       title: 'ANAF',
       description: 'Acces la datele de venit din ANAF pentru verificarea veniturilor tale.',
       icon: 'file-document-outline',
-      iconBg: colors.primary[100],
-      iconColor: colors.primary[600],
+      iconBg: colors.info[100],
+      iconColor: colors.info[400],
     },
     {
       type: 'BC',
@@ -114,7 +114,7 @@ const MandateManagementScreen = ({navigation}: any) => {
       description: 'Acces la istoricul tău de credit pentru a evalua eligibilitatea.',
       icon: 'bank-outline',
       iconBg: colors.warning[100],
-      iconColor: colors.warning[600],
+      iconColor: colors.warning[400],
     },
     {
       type: 'ANAF_BC',
@@ -122,7 +122,7 @@ const MandateManagementScreen = ({navigation}: any) => {
       description: 'Acces complet pentru o analiză detaliată și cele mai bune oferte.',
       icon: 'shield-check-outline',
       iconBg: colors.success[100],
-      iconColor: colors.success[600],
+      iconColor: colors.success[400],
       recommended: true,
     },
   ];
@@ -138,7 +138,7 @@ const MandateManagementScreen = ({navigation}: any) => {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary[500]} />
+        <ActivityIndicator size="large" color={colors.brand.primary} />
         <Text style={styles.loadingText}>Se încarcă mandatele...</Text>
       </View>
     );
@@ -149,11 +149,11 @@ const MandateManagementScreen = ({navigation}: any) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
-        
+
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Mandate</Text>
@@ -164,7 +164,7 @@ const MandateManagementScreen = ({navigation}: any) => {
 
         {/* Info Card - Explicație simplă */}
         <View style={styles.infoBox}>
-          <Icon name="information-outline" size={24} color={colors.primary[500]} />
+          <Icon name="information-outline" size={24} color={colors.brand.primary} />
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoTitle}>Ce este un mandat?</Text>
             <Text style={styles.infoDescription}>
@@ -177,7 +177,7 @@ const MandateManagementScreen = ({navigation}: any) => {
         {activeMandates.length > 0 && (
           <View style={styles.summaryCard}>
             <View style={styles.summaryHeader}>
-              <Icon name="check-circle" size={28} color={colors.success[500]} />
+              <Icon name="check-circle" size={28} color={colors.success[400]} />
               <View style={styles.summaryTextContainer}>
                 <Text style={styles.summaryTitle}>
                   {activeMandates.length === 1 ? '1 Mandat Activ' : `${activeMandates.length} Mandate Active`}
@@ -191,8 +191,8 @@ const MandateManagementScreen = ({navigation}: any) => {
         )}
 
         {/* Mandate Types - Create New */}
-        <Text style={styles.sectionTitle}>Tipuri de Mandate</Text>
-        
+        <Text style={styles.sectionTitle}>TIPURI DE MANDATE</Text>
+
         {mandateTypes.map((mandateType, index) => {
           const hasActive = activeMandates.some(m => m.mandateType === mandateType.type);
           const activeMandate = activeMandates.find(m => m.mandateType === mandateType.type);
@@ -205,20 +205,20 @@ const MandateManagementScreen = ({navigation}: any) => {
             ]}>
               {mandateType.recommended && (
                 <View style={styles.recommendedBadge}>
-                  <Icon name="star" size={12} color="#FFFFFF" />
+                  <Icon name="star" size={12} color={colors.light[100]} />
                   <Text style={styles.recommendedText}>Recomandat</Text>
                 </View>
               )}
-              
+
               <View style={styles.mandateCardContent}>
                 <View style={[styles.mandateIcon, {backgroundColor: mandateType.iconBg}]}>
                   <Icon name={mandateType.icon} size={28} color={mandateType.iconColor} />
                 </View>
-                
+
                 <View style={styles.mandateInfo}>
                   <Text style={styles.mandateTitle}>{mandateType.title}</Text>
                   <Text style={styles.mandateDescription}>{mandateType.description}</Text>
-                  
+
                   {hasActive && (
                     <View style={styles.activeInfo}>
                       <StatusBadge status="active" size="small" />
@@ -258,11 +258,11 @@ const MandateManagementScreen = ({navigation}: any) => {
         {/* All Mandates History */}
         {allMandates.length > 0 && (
           <View style={styles.historySection}>
-            <Text style={styles.sectionTitle}>Istoric Mandate</Text>
-            
+            <Text style={styles.sectionTitle}>ISTORIC MANDATE</Text>
+
             {allMandates.map((mandate: MandateInfo) => {
               const remainingDays = getRemainingDays(mandate.expiresAt);
-              
+
               return (
                 <View key={mandate.mandateId} style={styles.historyCard}>
                   <View style={styles.historyHeader}>
@@ -271,16 +271,16 @@ const MandateManagementScreen = ({navigation}: any) => {
                       <StatusBadge status={mandate.status} size="small" />
                     </View>
                   </View>
-                  
+
                   <View style={styles.historyDates}>
                     <View style={styles.historyDateItem}>
-                      <Icon name="calendar-plus" size={16} color={colors.neutral[500]} />
+                      <Icon name="calendar-plus" size={16} color={colors.light[60]} />
                       <Text style={styles.historyDateText}>
                         Creat: {new Date(mandate.grantedAt).toLocaleDateString('ro-RO')}
                       </Text>
                     </View>
                     <View style={styles.historyDateItem}>
-                      <Icon name="calendar-clock" size={16} color={colors.neutral[500]} />
+                      <Icon name="calendar-clock" size={16} color={colors.light[60]} />
                       <Text style={styles.historyDateText}>
                         Expiră: {new Date(mandate.expiresAt).toLocaleDateString('ro-RO')}
                       </Text>
@@ -290,11 +290,11 @@ const MandateManagementScreen = ({navigation}: any) => {
                   {mandate.status === 'active' && remainingDays > 0 && (
                     <View style={styles.progressContainer}>
                       <View style={styles.progressBar}>
-                        <View 
+                        <View
                           style={[
-                            styles.progressFill, 
+                            styles.progressFill,
                             {width: `${Math.min(100, (remainingDays / 30) * 100)}%`}
-                          ]} 
+                          ]}
                         />
                       </View>
                       <Text style={styles.progressText}>
@@ -311,7 +311,7 @@ const MandateManagementScreen = ({navigation}: any) => {
         {/* Empty State */}
         {allMandates.length === 0 && (
           <View style={styles.emptyState}>
-            <Icon name="file-document-outline" size={64} color={colors.neutral[300]} />
+            <Icon name="file-document-outline" size={64} color={colors.dark[400]} />
             <Text style={styles.emptyTitle}>Niciun mandat creat</Text>
             <Text style={styles.emptyDescription}>
               Creează un mandat pentru a ne permite să analizăm datele tale și să-ți găsim cele mai bune oferte de credit.
@@ -321,7 +321,7 @@ const MandateManagementScreen = ({navigation}: any) => {
 
         {/* Footer Info */}
         <View style={styles.footer}>
-          <Icon name="shield-check" size={20} color={colors.success[500]} />
+          <Icon name="shield-check" size={20} color={colors.success[400]} />
           <Text style={styles.footerText}>
             Datele tale sunt protejate și securizate conform GDPR.{'\n'}
             Poți revoca mandatele oricând din această pagină.
@@ -335,7 +335,7 @@ const MandateManagementScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[50],
+    backgroundColor: colors.dark[800],
   },
   scrollView: {
     flex: 1,
@@ -348,38 +348,38 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.neutral[50],
+    backgroundColor: colors.dark[800],
   },
   loadingText: {
     ...typography.bodyMedium,
-    color: colors.neutral[600],
+    color: colors.light[60],
     marginTop: spacing.md,
   },
-  
+
   // Header
   header: {
     marginBottom: spacing.xl,
   },
   headerTitle: {
     ...typography.h2,
-    color: colors.neutral[900],
+    color: colors.light[100],
     marginBottom: spacing.sm,
   },
   headerSubtitle: {
     ...typography.bodyMedium,
-    color: colors.neutral[600],
+    color: colors.light[70],
     lineHeight: 24,
   },
-  
+
   // Info Box
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: colors.primary[50],
+    backgroundColor: colors.info[50],
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     marginBottom: spacing.xl,
     borderWidth: 1,
-    borderColor: colors.primary[100],
+    borderColor: colors.info[100],
   },
   infoTextContainer: {
     flex: 1,
@@ -387,15 +387,15 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     ...typography.labelLarge,
-    color: colors.primary[700],
+    color: colors.info[400],
     marginBottom: spacing.xs,
   },
   infoDescription: {
     ...typography.bodySmall,
-    color: colors.primary[600],
+    color: colors.light[70],
     lineHeight: 20,
   },
-  
+
   // Summary Card
   summaryCard: {
     backgroundColor: colors.success[50],
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.xl,
     borderWidth: 1,
-    borderColor: colors.success[200],
+    borderColor: colors.success[100],
   },
   summaryHeader: {
     flexDirection: 'row',
@@ -414,34 +414,35 @@ const styles = StyleSheet.create({
   },
   summaryTitle: {
     ...typography.h4,
-    color: colors.success[700],
+    color: colors.success[400],
   },
   summarySubtitle: {
     ...typography.bodySmall,
-    color: colors.success[600],
+    color: colors.light[70],
     marginTop: 2,
   },
-  
+
   // Section Title
   sectionTitle: {
-    ...typography.h4,
-    color: colors.neutral[800],
+    ...typography.labelUppercase,
+    color: colors.light[50],
     marginBottom: spacing.lg,
   },
-  
+
   // Mandate Card
   mandateCard: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xxl,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
     padding: spacing.lg,
     marginBottom: spacing.lg,
-    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
     position: 'relative',
     overflow: 'hidden',
   },
   mandateCardRecommended: {
     borderWidth: 2,
-    borderColor: colors.success[300],
+    borderColor: colors.success[500],
   },
   recommendedBadge: {
     position: 'absolute',
@@ -456,7 +457,7 @@ const styles = StyleSheet.create({
   },
   recommendedText: {
     ...typography.labelSmall,
-    color: '#FFFFFF',
+    color: colors.light[100],
     marginLeft: 4,
   },
   mandateCardContent: {
@@ -476,12 +477,12 @@ const styles = StyleSheet.create({
   },
   mandateTitle: {
     ...typography.h4,
-    color: colors.neutral[900],
+    color: colors.light[100],
     marginBottom: spacing.xs,
   },
   mandateDescription: {
     ...typography.bodySmall,
-    color: colors.neutral[600],
+    color: colors.light[70],
     lineHeight: 20,
   },
   activeInfo: {
@@ -492,26 +493,27 @@ const styles = StyleSheet.create({
   },
   daysRemaining: {
     ...typography.caption,
-    color: colors.success[600],
+    color: colors.success[400],
   },
   mandateActions: {
     marginTop: spacing.sm,
   },
   revokeButton: {
     backgroundColor: 'transparent',
-    borderColor: colors.error[300],
+    borderColor: colors.error[500],
   },
-  
+
   // History Section
   historySection: {
     marginTop: spacing.xl,
   },
   historyCard: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.dark[700],
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     marginBottom: spacing.md,
-    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
   historyHeader: {
     flexDirection: 'row',
@@ -526,7 +528,7 @@ const styles = StyleSheet.create({
   },
   historyType: {
     ...typography.labelLarge,
-    color: colors.neutral[800],
+    color: colors.light[100],
   },
   historyDates: {
     gap: spacing.xs,
@@ -538,17 +540,17 @@ const styles = StyleSheet.create({
   },
   historyDateText: {
     ...typography.bodySmall,
-    color: colors.neutral[600],
+    color: colors.light[70],
   },
   progressContainer: {
     marginTop: spacing.md,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: colors.dark[400],
   },
   progressBar: {
     height: 6,
-    backgroundColor: colors.neutral[200],
+    backgroundColor: colors.dark[500],
     borderRadius: 3,
     overflow: 'hidden',
     marginBottom: spacing.xs,
@@ -560,10 +562,10 @@ const styles = StyleSheet.create({
   },
   progressText: {
     ...typography.caption,
-    color: colors.success[600],
+    color: colors.success[400],
     textAlign: 'right',
   },
-  
+
   // Empty State
   emptyState: {
     alignItems: 'center',
@@ -571,29 +573,31 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...typography.h4,
-    color: colors.neutral[600],
+    color: colors.light[60],
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
   emptyDescription: {
     ...typography.bodyMedium,
-    color: colors.neutral[500],
+    color: colors.light[60],
     textAlign: 'center',
     lineHeight: 24,
   },
-  
+
   // Footer
   footer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: colors.neutral[100],
+    backgroundColor: colors.dark[700],
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     marginTop: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
   footerText: {
     ...typography.bodySmall,
-    color: colors.neutral[600],
+    color: colors.light[60],
     flex: 1,
     marginLeft: spacing.md,
     lineHeight: 20,

@@ -63,7 +63,7 @@ const MobileLoginScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a0f1a" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.dark[900]} />
       
       {/* Background gradient effect */}
       <View style={styles.backgroundGradient1} />
@@ -95,7 +95,7 @@ const MobileLoginScreen: React.FC = () => {
         
         {/* Info Card */}
         <View style={styles.infoCard}>
-          <Icon name="information-outline" size={24} color={colors.primary[400]} />
+          <Icon name="information-outline" size={24} color={colors.brand.primary} />
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>Autentificare securizată</Text>
             <Text style={styles.infoText}>
@@ -145,7 +145,7 @@ const MobileLoginScreen: React.FC = () => {
           style={styles.secondaryButton}
           onPress={handleOpenCalculator}
           activeOpacity={0.8}>
-          <Icon name="calculator" size={20} color={colors.primary[400]} />
+          <Icon name="calculator" size={20} color={colors.brand.primary} />
           <Text style={styles.secondaryButtonText}>Calculator Credite</Text>
         </TouchableOpacity>
         
@@ -160,7 +160,7 @@ const MobileLoginScreen: React.FC = () => {
             <Text style={styles.featureText}>Rapid</Text>
           </View>
           <View style={styles.featureItem}>
-            <Icon name="eye" size={18} color={colors.primary[400]} />
+            <Icon name="eye" size={18} color={colors.brand.primary} />
             <Text style={styles.featureText}>Transparent</Text>
           </View>
         </View>
@@ -182,7 +182,7 @@ const MobileLoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0f1a',
+    backgroundColor: colors.dark[900],
   },
   backgroundGradient1: {
     position: 'absolute',
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     width: width * 0.8,
     height: width * 0.8,
     borderRadius: width * 0.4,
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    backgroundColor: 'rgba(0, 117, 235, 0.08)',
   },
   backgroundGradient2: {
     position: 'absolute',
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     width: width * 0.6,
     height: width * 0.6,
     borderRadius: width * 0.3,
-    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    backgroundColor: 'rgba(127, 132, 246, 0.05)',
   },
   content: {
     flex: 1,
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(34, 197, 94, 0.1)',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
+    borderRadius: borderRadius.pill,
     marginBottom: spacing.xl,
     gap: spacing.xs,
   },
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   },
   badgeSubtext: {
     ...typography.caption,
-    color: colors.success[600],
+    color: colors.success[400],
   },
   infoCard: {
     flexDirection: 'row',
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     ...typography.labelLarge,
-    color: colors.primary[300],
+    color: colors.brand.primary,
     marginBottom: spacing.xs,
   },
   infoText: {
@@ -290,10 +290,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary[600],
+    backgroundColor: colors.brand.primary,
     width: '100%',
     paddingVertical: spacing.lg,
-    borderRadius: borderRadius.xl,
+    borderRadius: borderRadius.pill,
     gap: spacing.md,
     ...shadows.lg,
   },

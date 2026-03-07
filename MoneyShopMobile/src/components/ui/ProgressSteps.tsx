@@ -11,12 +11,6 @@ interface ProgressStepsProps {
   variant?: 'horizontal' | 'compact';
 }
 
-/**
- * ProgressSteps - Indicator de progres clar și vizibil
- * 
- * Arată utilizatorului unde se află în proces și câți pași mai are.
- * Design simplu și ușor de înțeles pentru toate vârstele.
- */
 const ProgressSteps: React.FC<ProgressStepsProps> = ({
   currentStep,
   totalSteps,
@@ -45,15 +39,14 @@ const ProgressSteps: React.FC<ProgressStepsProps> = ({
           <View style={[styles.progressBarFill, {width: `${progress}%`}]} />
         </View>
         <Text style={styles.progressText}>
-          {progress < 100 
-            ? `Mai ai ${totalSteps - currentStep} ${totalSteps - currentStep === 1 ? 'pas' : 'pași'}`
+          {progress < 100
+            ? `Mai ai ${totalSteps - currentStep} ${totalSteps - currentStep === 1 ? 'pas' : 'pasi'}`
             : 'Ultimul pas!'}
         </Text>
       </View>
     );
   }
 
-  // Horizontal variant
   return (
     <View style={styles.horizontalContainer}>
       <View style={styles.stepsRow}>
@@ -118,10 +111,12 @@ const ProgressSteps: React.FC<ProgressStepsProps> = ({
 const styles = StyleSheet.create({
   // Compact variant
   compactContainer: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.dark[700],
     padding: spacing.lg,
     borderRadius: borderRadius.xl,
     marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
   compactHeader: {
     flexDirection: 'row',
@@ -131,54 +126,56 @@ const styles = StyleSheet.create({
   stepIndicator: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    backgroundColor: colors.primary[50],
+    backgroundColor: colors.info[50],
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.md,
   },
   stepNumber: {
     ...typography.h4,
-    color: colors.primary[700],
+    color: colors.brand.primary,
   },
   stepSeparator: {
     ...typography.bodyMedium,
-    color: colors.primary[400],
+    color: colors.light[50],
     marginHorizontal: 2,
   },
   stepTotal: {
     ...typography.bodyMedium,
-    color: colors.primary[500],
+    color: colors.light[60],
   },
   currentStepTitle: {
     ...typography.labelMedium,
-    color: colors.neutral[700],
+    color: colors.light[100],
     marginLeft: spacing.md,
     flex: 1,
   },
   progressBarContainer: {
-    height: 8,
-    backgroundColor: colors.neutral[200],
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: colors.dark[500],
+    borderRadius: 3,
     overflow: 'hidden',
     marginBottom: spacing.sm,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: colors.primary[500],
-    borderRadius: 4,
+    backgroundColor: colors.brand.primary,
+    borderRadius: 3,
   },
   progressText: {
     ...typography.caption,
-    color: colors.neutral[500],
+    color: colors.light[50],
     textAlign: 'center',
   },
-  
+
   // Horizontal variant
   horizontalContainer: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.dark[700],
     padding: spacing.lg,
     borderRadius: borderRadius.xl,
     marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
   stepsRow: {
     flexDirection: 'row',
@@ -201,34 +198,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.success[500],
   },
   stepCircleCurrent: {
-    backgroundColor: colors.primary[500],
+    backgroundColor: colors.brand.primary,
   },
   stepCircleUpcoming: {
-    backgroundColor: colors.neutral[200],
+    backgroundColor: colors.dark[500],
   },
   stepCircleText: {
     ...typography.labelMedium,
-    color: colors.neutral[500],
+    color: colors.light[50],
   },
   stepCircleTextCurrent: {
     color: '#FFFFFF',
   },
   stepTitle: {
     ...typography.caption,
-    color: colors.neutral[500],
+    color: colors.light[50],
     textAlign: 'center',
   },
   stepTitleCurrent: {
-    color: colors.primary[700],
+    color: colors.brand.primary,
     fontWeight: '600',
   },
   stepTitleCompleted: {
-    color: colors.success[700],
+    color: colors.success[400],
   },
   connector: {
     flex: 1,
     height: 2,
-    backgroundColor: colors.neutral[200],
+    backgroundColor: colors.dark[500],
     marginTop: 17,
     marginHorizontal: spacing.xs,
     maxWidth: 40,
@@ -239,4 +236,3 @@ const styles = StyleSheet.create({
 });
 
 export default ProgressSteps;
-

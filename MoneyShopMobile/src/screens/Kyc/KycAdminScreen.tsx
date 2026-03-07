@@ -7,25 +7,25 @@ import {
   Image,
   Alert,
   Modal,
+  Text as RNText,
   TextInput as RNTextInput,
   TouchableOpacity,
   Platform,
   Pressable,
 } from 'react-native';
 import {
-  Card,
   Text,
   Button,
   ActivityIndicator,
   Dialog,
   Portal,
-  Paragraph,
 } from 'react-native-paper';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {kycApi, KycPending, KycDetails} from '../../services/api/kycApi';
 import CustomHeader from '../../components/CustomHeader';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 
 type KycAdminScreenNavigationProp = NativeStackNavigationProp<any>;
 
@@ -111,18 +111,18 @@ const KycAdminScreen: React.FC<Props> = ({navigation}) => {
     } catch (error: any) {
       Alert.alert(
         'Eroare',
-        error.response?.data?.message || 'Eroare la încărcarea detaliilor',
+        error.response?.data?.message || 'Eroare la incarcarea detaliilor',
       );
     }
   };
 
   const handleApprove = (kycId: string) => {
     console.log('[KycAdmin] handleApprove called with kycId:', kycId);
-    
+
     // On web, use window.confirm; on mobile, use Alert.alert
     if (Platform.OS === 'web') {
       const win = typeof window !== 'undefined' ? window : null;
-      const confirmed = win?.confirm?.('Ești sigur că vrei să aprobi acest KYC? Pozele vor fi șterse permanent.') ?? false;
+      const confirmed = win?.confirm?.('Esti sigur ca vrei sa aprobi acest KYC? Pozele vor fi sterse permanent.') ?? false;
       if (confirmed) {
         console.log('[KycAdmin] Approve confirmed (web), calling mutation with kycId:', kycId);
         approveMutation.mutate(kycId);
@@ -132,11 +132,11 @@ const KycAdminScreen: React.FC<Props> = ({navigation}) => {
     } else {
       Alert.alert(
         'Confirmare',
-        'Ești sigur că vrei să aprobi acest KYC? Pozele vor fi șterse permanent.',
+        'Esti sigur ca vrei sa aprobi acest KYC? Pozele vor fi sterse permanent.',
         [
-          {text: 'Anulează', style: 'cancel', onPress: () => console.log('[KycAdmin] Approve cancelled')},
+          {text: 'Anuleaza', style: 'cancel', onPress: () => console.log('[KycAdmin] Approve cancelled')},
           {
-            text: 'Aprobă',
+            text: 'Aproba',
             style: 'default',
             onPress: () => {
               console.log('[KycAdmin] Approve confirmed, calling mutation with kycId:', kycId);
@@ -150,7 +150,7 @@ const KycAdminScreen: React.FC<Props> = ({navigation}) => {
 
   const handleReject = (kycId: string) => {
     console.log('[KycAdmin] handleReject called with kycId:', kycId);
-    
+
     // On web, use prompt; on mobile, use Dialog
     if (Platform.OS === 'web') {
       const win = typeof window !== 'undefined' ? window : null;
@@ -163,7 +163,7 @@ const KycAdminScreen: React.FC<Props> = ({navigation}) => {
         });
       } else if (reason !== null) {
         // User pressed OK but didn't enter a reason
-        Alert.alert('Eroare', 'Trebuie să introduci un motiv pentru respingere');
+        Alert.alert('Eroare', 'Trebuie sa introduci un motiv pentru respingere');
       } else {
         console.log('[KycAdmin] Reject cancelled (web)');
       }
@@ -178,7 +178,7 @@ const KycAdminScreen: React.FC<Props> = ({navigation}) => {
   const submitRejection = () => {
     console.log('[KycAdmin] submitRejection called, selectedKycId:', selectedKycId, 'reason:', rejectionReason);
     if (!rejectionReason.trim()) {
-      Alert.alert('Eroare', 'Trebuie să introduci un motiv pentru respingere');
+      Alert.alert('Eroare', 'Trebuie sa introduci un motiv pentru respingere');
       return;
     }
 
@@ -203,14 +203,14 @@ const KycAdminScreen: React.FC<Props> = ({navigation}) => {
       setViewingFile(imageUri);
     } catch (error) {
       console.error('Error loading file:', error);
-      Alert.alert('Eroare', 'Nu s-a putut încărca fișierul');
+      Alert.alert('Eroare', 'Nu s-a putut incarca fisierul');
     }
   };
 
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.brand.primary} />
       </View>
     );
   }
@@ -220,61 +220,79 @@ const KycAdminScreen: React.FC<Props> = ({navigation}) => {
       <ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={colors.brand.primary}
+            colors={[colors.brand.primary]}
+          />
         }>
         <View style={styles.content}>
-          <Card style={styles.headerCard}>
-            <Card.Content>
-              <Text variant="headlineSmall" style={styles.title}>
-                Verificări KYC în Așteptare
+          {/* Header Card */}
+          <View style={styles.headerCard}>
+            <Text style={styles.title}>
+              Verificari KYC in Asteptare
+            </Text>
+            <View style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>
+                {pendingKyc?.length || 0} cereri
               </Text>
-              <Text variant="bodyMedium" style={styles.subtitle}>
-                {pendingKyc?.length || 0} cereri în așteptare
-              </Text>
-            </Card.Content>
-          </Card>
+            </View>
+          </View>
 
+          {/* Empty State */}
           {!pendingKyc || pendingKyc.length === 0 ? (
-            <Card style={styles.card}>
-              <Card.Content>
-                <View style={styles.emptyContainer}>
-                  <Icon name="check-circle" size={64} color="#4CAF50" />
-                  <Text variant="titleMedium" style={styles.emptyText}>
-                    Nu există cereri KYC în așteptare
-                  </Text>
+            <View style={styles.card}>
+              <View style={styles.emptyContainer}>
+                <View style={styles.emptyIconContainer}>
+                  <Icon name="check-circle" size={48} color={colors.success[500]} />
                 </View>
-              </Card.Content>
-            </Card>
+                <Text style={styles.emptyTitle}>
+                  Totul este in regula
+                </Text>
+                <Text style={styles.emptyText}>
+                  Nu exista cereri KYC in asteptare
+                </Text>
+              </View>
+            </View>
           ) : (
             (Array.isArray(pendingKyc) ? pendingKyc : []).map(kyc => (
-              <Card
+              <TouchableOpacity
                 key={kyc.kycId}
                 style={styles.card}
-                onPress={() => loadKycDetails(kyc.kycId)}>
-                <Card.Content>
-                  <View style={styles.kycItem}>
-                    <View style={styles.kycInfo}>
-                      <Text variant="titleMedium" style={styles.userName}>
-                        {kyc.userName}
-                      </Text>
-                      <Text variant="bodySmall" style={styles.userEmail}>
-                        {kyc.userEmail}
-                      </Text>
-                      <View style={styles.metaRow}>
-                        <Icon name="file-document" size={16} color="#666" />
-                        <Text variant="bodySmall" style={styles.metaText}>
-                          {kyc.fileCount} fișier(e)
+                onPress={() => loadKycDetails(kyc.kycId)}
+                activeOpacity={0.7}>
+                <View style={styles.kycItem}>
+                  <View style={styles.kycAvatarContainer}>
+                    <View style={styles.kycAvatar}>
+                      <Icon name="account" size={24} color={colors.brand.primary} />
+                    </View>
+                  </View>
+                  <View style={styles.kycInfo}>
+                    <Text style={styles.userName}>
+                      {kyc.userName}
+                    </Text>
+                    <Text style={styles.userEmail}>
+                      {kyc.userEmail}
+                    </Text>
+                    <View style={styles.metaRow}>
+                      <View style={styles.metaItem}>
+                        <Icon name="file-document" size={14} color={colors.light[50]} />
+                        <Text style={styles.metaText}>
+                          {kyc.fileCount} fisier(e)
                         </Text>
-                        <Icon name="clock" size={16} color="#666" />
-                        <Text variant="bodySmall" style={styles.metaText}>
+                      </View>
+                      <View style={styles.metaItem}>
+                        <Icon name="clock" size={14} color={colors.light[50]} />
+                        <Text style={styles.metaText}>
                           {new Date(kyc.createdAt).toLocaleDateString('ro-RO')}
                         </Text>
                       </View>
                     </View>
-                    <Icon name="chevron-right" size={24} color="#999" />
                   </View>
-                </Card.Content>
-              </Card>
+                  <Icon name="chevron-right" size={24} color={colors.light[50]} />
+                </View>
+              </TouchableOpacity>
             ))
           )}
         </View>
@@ -297,83 +315,102 @@ const KycAdminScreen: React.FC<Props> = ({navigation}) => {
             }}
             showLogo={false}
           />
-          <ScrollView 
+          <ScrollView
             style={styles.modalContent}
-            contentContainerStyle={{paddingBottom: 24}}
+            contentContainerStyle={{paddingBottom: spacing.lg}}
             keyboardShouldPersistTaps="handled">
             {selectedKyc && (
               <>
-                <Card style={styles.card}>
-                  <Card.Content>
-                    <Text variant="titleMedium" style={styles.sectionTitle}>
-                      Informații Utilizator
-                    </Text>
-                    <Text variant="bodyMedium">
-                      <Text style={styles.label}>Nume: </Text>
-                      {selectedKyc.userName}
-                    </Text>
-                    <Text variant="bodyMedium">
-                      <Text style={styles.label}>Email: </Text>
-                      {selectedKyc.userEmail}
-                    </Text>
-                    <Text variant="bodyMedium">
-                      <Text style={styles.label}>Status: </Text>
+                {/* User Info Card */}
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>
+                    Informatii Utilizator
+                  </Text>
+
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>NUME</Text>
+                    <Text style={styles.detailValue}>{selectedKyc.userName}</Text>
+                  </View>
+
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>EMAIL</Text>
+                    <Text style={styles.detailValue}>{selectedKyc.userEmail}</Text>
+                  </View>
+
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>STATUS</Text>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        selectedKyc.status === 'pending'
+                          ? styles.statusPending
+                          : styles.statusRejected,
+                      ]}>
                       <Text
                         style={[
-                          styles.statusBadge,
+                          styles.statusBadgeText,
                           selectedKyc.status === 'pending'
-                            ? styles.statusPending
-                            : styles.statusRejected,
+                            ? styles.statusPendingText
+                            : styles.statusRejectedText,
                         ]}>
                         {selectedKyc.status === 'pending'
-                          ? 'În așteptare'
+                          ? 'In asteptare'
                           : 'Respins'}
                       </Text>
-                    </Text>
-                    <Text variant="bodySmall" style={styles.dateText}>
-                      Creat: {new Date(selectedKyc.createdAt).toLocaleString('ro-RO')}
-                    </Text>
-                  </Card.Content>
-                </Card>
+                    </View>
+                  </View>
 
-                <Card style={styles.card}>
-                  <Card.Content>
-                    <Text variant="titleMedium" style={styles.sectionTitle}>
-                      Fișiere încărcate
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>DATA CREARE</Text>
+                    <Text style={styles.detailValueMuted}>
+                      {new Date(selectedKyc.createdAt).toLocaleString('ro-RO')}
                     </Text>
-                    {selectedKyc.files.map(file => (
-                      <View key={file.fileId} style={styles.fileItem}>
+                  </View>
+                </View>
+
+                {/* Files Card */}
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>
+                    Fisiere incarcate
+                  </Text>
+                  {selectedKyc.files.map((file, index) => (
+                    <View
+                      key={file.fileId}
+                      style={[
+                        styles.fileItem,
+                        index < selectedKyc.files.length - 1 && styles.fileItemBorder,
+                      ]}>
+                      <View style={styles.fileIconContainer}>
                         <Icon
                           name="file-image"
-                          size={24}
-                          color="#1976D2"
-                          style={styles.fileIcon}
+                          size={22}
+                          color={colors.brand.primary}
                         />
-                        <View style={styles.fileInfo}>
-                          <Text variant="bodyMedium">{file.fileName}</Text>
-                          <Text variant="bodySmall" style={styles.fileType}>
-                            {file.fileType}
-                          </Text>
-                        </View>
-                        <Button
-                          mode="outlined"
-                          compact
-                          onPress={() => viewFile(file.fileId)}>
-                          Vezi
-                        </Button>
                       </View>
-                    ))}
-                  </Card.Content>
-                </Card>
+                      <View style={styles.fileInfo}>
+                        <Text style={styles.fileName}>{file.fileName}</Text>
+                        <Text style={styles.fileType}>
+                          {file.fileType}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => viewFile(file.fileId)}
+                        style={styles.viewFileButton}
+                        activeOpacity={0.7}>
+                        <Icon name="eye" size={18} color={colors.brand.primary} />
+                        <Text style={styles.viewFileText}>Vezi</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
               </>
             )}
           </ScrollView>
-          {/* Action buttons outside ScrollView to ensure they work */}
+
+          {/* Action Buttons - fixed at bottom */}
           {selectedKyc && (
             <View style={styles.actionButtonsContainer}>
-              <Button
-                mode="contained"
-                icon="check-circle"
+              <TouchableOpacity
                 onPress={() => {
                   console.log('[KycAdmin] ===== APPROVE BUTTON PRESSED =====');
                   console.log('[KycAdmin] selectedKyc:', selectedKyc);
@@ -382,14 +419,24 @@ const KycAdminScreen: React.FC<Props> = ({navigation}) => {
                     handleApprove(selectedKyc.kycId);
                   }
                 }}
-                loading={approveMutation.isPending}
                 disabled={approveMutation.isPending || rejectMutation.isPending || !selectedKyc?.kycId}
-                style={[styles.actionButton, styles.approveButton]}>
-                Aprobă
-              </Button>
-              <Button
-                mode="outlined"
-                icon="close-circle"
+                style={[
+                  styles.actionButton,
+                  styles.approveButton,
+                  (approveMutation.isPending || rejectMutation.isPending) && styles.actionButtonDisabled,
+                ]}
+                activeOpacity={0.8}>
+                {approveMutation.isPending ? (
+                  <ActivityIndicator size="small" color={colors.light[100]} />
+                ) : (
+                  <>
+                    <Icon name="check-circle" size={20} color={colors.light[100]} />
+                    <Text style={styles.approveButtonText}>Aproba</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 onPress={() => {
                   console.log('[KycAdmin] ===== REJECT BUTTON PRESSED =====');
                   console.log('[KycAdmin] selectedKyc:', selectedKyc);
@@ -398,12 +445,22 @@ const KycAdminScreen: React.FC<Props> = ({navigation}) => {
                     handleReject(selectedKyc.kycId);
                   }
                 }}
-                loading={rejectMutation.isPending}
                 disabled={approveMutation.isPending || rejectMutation.isPending || !selectedKyc?.kycId}
-                style={[styles.actionButton, styles.rejectButton]}
-                textColor="#F44336">
-                Respinge
-              </Button>
+                style={[
+                  styles.actionButton,
+                  styles.rejectButton,
+                  (approveMutation.isPending || rejectMutation.isPending) && styles.actionButtonDisabled,
+                ]}
+                activeOpacity={0.8}>
+                {rejectMutation.isPending ? (
+                  <ActivityIndicator size="small" color={colors.error[500]} />
+                ) : (
+                  <>
+                    <Icon name="close-circle" size={20} color={colors.error[500]} />
+                    <Text style={styles.rejectButtonText}>Respinge</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -438,36 +495,43 @@ const KycAdminScreen: React.FC<Props> = ({navigation}) => {
             onDismiss={() => {
               setShowRejectDialog(false);
               setRejectionReason('');
-            }}>
-            <Dialog.Title>Respinge KYC</Dialog.Title>
+            }}
+            style={styles.dialog}>
+            <Dialog.Title style={styles.dialogTitle}>Respinge KYC</Dialog.Title>
             <Dialog.Content>
-              <Paragraph>
+              <RNText style={styles.dialogParagraph}>
                 Introdu motivul pentru care respingi acest KYC. Mesajul va fi
                 vizibil utilizatorului.
-              </Paragraph>
+              </RNText>
               <RNTextInput
                 style={styles.rejectionInput}
                 placeholder="Motivul respingerii..."
+                placeholderTextColor={colors.light[50]}
                 value={rejectionReason}
                 onChangeText={setRejectionReason}
                 multiline
                 numberOfLines={4}
               />
             </Dialog.Content>
-            <Dialog.Actions>
-              <Button
+            <Dialog.Actions style={styles.dialogActions}>
+              <TouchableOpacity
                 onPress={() => {
                   setShowRejectDialog(false);
                   setRejectionReason('');
-                }}>
-                Anulează
-              </Button>
-              <Button
+                }}
+                style={styles.dialogCancelButton}>
+                <Text style={styles.dialogCancelText}>Anuleaza</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 onPress={submitRejection}
-                loading={rejectMutation.isPending}
-                textColor="#F44336">
-                Respinge
-              </Button>
+                disabled={rejectMutation.isPending}
+                style={styles.dialogRejectButton}>
+                {rejectMutation.isPending ? (
+                  <ActivityIndicator size="small" color={colors.error[500]} />
+                ) : (
+                  <Text style={styles.dialogRejectText}>Respinge</Text>
+                )}
+              </TouchableOpacity>
             </Dialog.Actions>
           </Dialog>
         </Portal>
@@ -479,174 +543,306 @@ const KycAdminScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: colors.dark[800],
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 16,
+    padding: spacing.md,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.dark[800],
   },
   headerCard: {
-    marginBottom: 16,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    elevation: 1,
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.dark[700],
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    padding: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   title: {
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 4,
+    ...typography.h3,
+    color: colors.light[100],
+    flex: 1,
   },
-  subtitle: {
-    color: '#6B7280',
+  countBadge: {
+    backgroundColor: colors.info[50],
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.pill,
+  },
+  countBadgeText: {
+    ...typography.labelSmall,
+    color: colors.brand.primary,
   },
   card: {
-    marginBottom: 12,
-    borderRadius: 16,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    backgroundColor: '#FFFFFF',
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.dark[700],
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    padding: spacing.lg,
   },
   kycItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+  },
+  kycAvatarContainer: {
+    marginRight: spacing.md,
+  },
+  kycAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.info[50],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   kycInfo: {
     flex: 1,
   },
   userName: {
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 4,
+    ...typography.labelLarge,
+    color: colors.light[100],
+    marginBottom: 2,
   },
   userEmail: {
-    color: '#6B7280',
-    marginBottom: 8,
+    ...typography.bodySmall,
+    color: colors.light[60],
+    marginBottom: spacing.sm,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.md,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   metaText: {
-    color: '#666',
-    marginRight: 12,
+    ...typography.caption,
+    color: colors.light[50],
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: spacing.xl,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.success[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  emptyTitle: {
+    ...typography.h4,
+    color: colors.light[100],
+    marginBottom: spacing.xs,
   },
   emptyText: {
-    marginTop: 16,
-    color: '#666',
+    ...typography.bodyMedium,
+    color: colors.light[50],
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: colors.dark[800],
   },
   modalContent: {
     flex: 1,
-    padding: 16,
+    padding: spacing.md,
   },
   sectionTitle: {
-    fontWeight: '700',
-    marginBottom: 12,
-    color: '#1A1A1A',
+    ...typography.h4,
+    color: colors.light[100],
+    marginBottom: spacing.md,
   },
-  label: {
-    fontWeight: '600',
+  detailRow: {
+    marginBottom: spacing.md,
+  },
+  detailLabel: {
+    ...typography.labelUppercase,
+    color: colors.light[60],
+    marginBottom: spacing.xs,
+  },
+  detailValue: {
+    ...typography.bodyMedium,
+    color: colors.light[100],
+  },
+  detailValueMuted: {
+    ...typography.bodySmall,
+    color: colors.light[50],
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    fontSize: 12,
-    fontWeight: '600',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.pill,
+    alignSelf: 'flex-start',
   },
   statusPending: {
-    backgroundColor: '#FFF3E0',
-    color: '#FF9800',
+    backgroundColor: colors.warning[50],
   },
   statusRejected: {
-    backgroundColor: '#FFEBEE',
-    color: '#F44336',
+    backgroundColor: colors.error[50],
   },
-  dateText: {
-    color: '#666',
-    marginTop: 8,
+  statusBadgeText: {
+    ...typography.labelSmall,
+    fontWeight: '700',
+  },
+  statusPendingText: {
+    color: colors.warning[500],
+  },
+  statusRejectedText: {
+    color: colors.error[500],
   },
   fileItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingVertical: spacing.md,
   },
-  fileIcon: {
-    marginRight: 12,
+  fileItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.dark[400],
+  },
+  fileIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.info[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
   },
   fileInfo: {
     flex: 1,
   },
+  fileName: {
+    ...typography.labelMedium,
+    color: colors.light[100],
+  },
   fileType: {
-    color: '#666',
-    marginTop: 4,
+    ...typography.caption,
+    color: colors.light[50],
+    marginTop: 2,
     textTransform: 'capitalize',
+  },
+  viewFileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.pill,
+    borderWidth: 1,
+    borderColor: colors.brand.primary,
+  },
+  viewFileText: {
+    ...typography.labelSmall,
+    color: colors.brand.primary,
   },
   actionButtonsContainer: {
     flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    backgroundColor: '#F5F7FA',
+    gap: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.dark[700],
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-    marginBottom: 24,
+    borderTopColor: colors.dark[400],
   },
   actionButton: {
     flex: 1,
-    borderRadius: 16,
-    paddingVertical: 6,
+    borderRadius: borderRadius.pill,
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
   },
   approveButton: {
-    backgroundColor: '#00C853',
+    backgroundColor: colors.success[500],
+  },
+  approveButtonText: {
+    ...typography.labelLarge,
+    color: colors.light[100],
   },
   rejectButton: {
-    borderColor: '#F44336',
+    borderWidth: 1,
+    borderColor: colors.error[500],
+    backgroundColor: colors.error[50],
+  },
+  rejectButtonText: {
+    ...typography.labelLarge,
+    color: colors.error[500],
   },
   imageModalContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: colors.dark[900],
   },
   fullImage: {
     flex: 1,
     width: '100%',
   },
+  dialog: {
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+  },
+  dialogTitle: {
+    color: colors.light[100],
+    ...typography.h4,
+  },
+  dialogParagraph: {
+    color: colors.light[60],
+    ...typography.bodySmall,
+  },
+  dialogActions: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  dialogCancelButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.pill,
+  },
+  dialogCancelText: {
+    ...typography.labelMedium,
+    color: colors.light[60],
+  },
+  dialogRejectButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.pill,
+    backgroundColor: colors.error[50],
+  },
+  dialogRejectText: {
+    ...typography.labelMedium,
+    color: colors.error[500],
+  },
   rejectionInput: {
-    marginTop: 12,
+    marginTop: spacing.md,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.dark[400],
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
     minHeight: 100,
     textAlignVertical: 'top',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.dark[600],
+    color: colors.light[100],
+    ...typography.bodyMedium,
   },
 });
 
 export default KycAdminScreen;
-

@@ -1,5 +1,6 @@
 import React from 'react';
-import {View, StyleSheet, Text, Image} from 'react-native';
+import {View, StyleSheet, Text, Platform} from 'react-native';
+import {colors} from '../theme/designSystem';
 
 interface LogoProps {
   size?: 'small' | 'medium' | 'large';
@@ -45,24 +46,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   money: {
-    color: '#00C853', // Vibrant Green (Volt-inspired)
+    color: colors.brand.primary, // Brand blue
   },
   shop: {
-    color: '#1A237E', // Deep Blue
+    color: colors.light[100], // White for dark backgrounds
   },
   registered: {
-    color: '#1A237E',
+    color: colors.light[60],
     fontSize: 10,
-    verticalAlign: 'super',
+    ...(Platform.OS === 'web' ? {verticalAlign: 'super' as any} : {}),
   },
   tagline: {
     marginTop: 6,
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.light[50],
     fontWeight: '400',
     letterSpacing: 0.8,
   },
 });
 
 export default Logo;
-

@@ -1,96 +1,103 @@
 /**
  * MoneyShop Design System
- * 
- * Principii UX (conform SRS):
- * - 1 ecran = 1 decizie
- * - Text mare, butoane mari
- * - Nu arăta tehnic (hash, logs)
- * - Confirmări clare
- * - UX super simplu (18-70 ani)
+ *
+ * Inspired by Revolut's premium fintech aesthetic:
+ * - Dark-mode dominant with high contrast
+ * - Bold gradients (blue-to-pink, purple-to-blue)
+ * - Pill-shaped buttons, generous spacing
+ * - Clean typography with strong hierarchy
+ *
+ * UX Principles (SRS):
+ * - 1 screen = 1 decision
+ * - Large text, large buttons
+ * - No technical details exposed
+ * - Clear confirmations
+ * - Super simple UX (18-70 years)
  */
 
-// Culori principale - Paleta modernă și profesională
+// Revolut-inspired color palette
 export const colors = {
-  // Primary - Albastru profesional
-  primary: {
-    50: '#E3F2FD',
-    100: '#BBDEFB',
-    200: '#90CAF9',
-    300: '#64B5F6',
-    400: '#42A5F5',
-    500: '#1976D2', // Main
-    600: '#1565C0',
-    700: '#0D47A1',
-    800: '#0A3D8F',
-    900: '#072D6B',
+  // Brand
+  brand: {
+    primary: '#0075EB',    // Revolut blue - main CTA
+    secondary: '#7F84F6',  // Cornflower - accent
+    accent: '#EB008D',     // Magenta/pink - highlights
+    purple: '#6E4CE5',     // Premium tier
+    deepPurple: '#261073', // Gradient base
   },
-  
-  // Success - Verde pentru confirmări pozitive
+
+  // Dark backgrounds (Revolut's shark palette)
+  dark: {
+    900: '#0A0B0D',  // Deepest background
+    800: '#111214',  // Primary background
+    700: '#191C1F',  // Card background (Shark)
+    600: '#1F2226',  // Elevated surfaces
+    500: '#2A2D31',  // Secondary surfaces
+    400: '#3A3D41',  // Borders, dividers
+    300: '#4A4D51',  // Subtle borders
+  },
+
+  // Light text & UI
+  light: {
+    100: '#FFFFFF',
+    90: '#F0F2F5',
+    80: '#D1D5DB',
+    70: '#B0B3B7',
+    60: '#8A8D91',
+    50: '#6B7280',
+    40: '#4B5563',
+  },
+
+  // Success
   success: {
-    50: '#E8F5E9',
-    100: '#C8E6C9',
-    200: '#A5D6A7',
-    300: '#81C784',
-    400: '#66BB6A',
-    500: '#4CAF50', // Main
-    600: '#43A047',
-    700: '#388E3C',
-    800: '#2E7D32',
-    900: '#1B5E20',
+    50: 'rgba(16, 185, 129, 0.1)',
+    100: 'rgba(16, 185, 129, 0.15)',
+    400: '#34D399',
+    500: '#10B981',
+    600: '#059669',
   },
-  
-  // Warning - Portocaliu pentru atenție
+
+  // Warning
   warning: {
-    50: '#FFF3E0',
-    100: '#FFE0B2',
-    200: '#FFCC80',
-    300: '#FFB74D',
-    400: '#FFA726',
-    500: '#FF9800', // Main
-    600: '#FB8C00',
-    700: '#F57C00',
-    800: '#EF6C00',
-    900: '#E65100',
+    50: 'rgba(245, 158, 11, 0.1)',
+    100: 'rgba(245, 158, 11, 0.15)',
+    400: '#FBBF24',
+    500: '#F59E0B',
+    600: '#D97706',
   },
-  
-  // Error - Roșu pentru erori
+
+  // Error
   error: {
-    50: '#FFEBEE',
-    100: '#FFCDD2',
-    200: '#EF9A9A',
-    300: '#E57373',
-    400: '#EF5350',
-    500: '#F44336', // Main
-    600: '#E53935',
-    700: '#D32F2F',
-    800: '#C62828',
-    900: '#B71C1C',
+    50: 'rgba(239, 68, 68, 0.1)',
+    100: 'rgba(239, 68, 68, 0.15)',
+    400: '#F87171',
+    500: '#EF4444',
+    600: '#DC2626',
   },
-  
-  // Neutral - Griuri pentru text și fundal
-  neutral: {
-    0: '#FFFFFF',
-    50: '#FAFAFA',
-    100: '#F5F5F5',
-    200: '#EEEEEE',
-    300: '#E0E0E0',
-    400: '#BDBDBD',
-    500: '#9E9E9E',
-    600: '#757575',
-    700: '#616161',
-    800: '#424242',
-    900: '#212121',
+
+  // Info
+  info: {
+    50: 'rgba(0, 117, 235, 0.1)',
+    100: 'rgba(0, 117, 235, 0.15)',
+    400: '#60A5FA',
+    500: '#0075EB',
+    600: '#0060C0',
   },
-  
-  // Gradiente pentru fundal
+
+  // Gradients (Revolut signature)
   gradients: {
-    primary: ['#1976D2', '#0D47A1'],
-    success: ['#4CAF50', '#2E7D32'],
-    dark: ['#0B1120', '#1a2332'],
+    primary: ['#0075EB', '#EB008D'],        // Blue-to-pink (signature)
+    purple: ['#6E4CE5', '#0075EB'],         // Purple-to-blue (premium)
+    deep: ['#261073', '#6E4CE5'],           // Deep purple
+    dark: ['#0A0B0D', '#191C1F'],           // Dark surface
+    card: ['#1F2226', '#191C1F'],           // Card gradient
+    success: ['#059669', '#10B981'],        // Green gradient
+    sunset: ['#F59E0B', '#EF4444'],         // Warning-danger
+    hero: ['#0A0B0D', '#111214', '#191C1F'], // Hero section
   },
 };
 
-// Spațiere consistentă
+// Spacing (8px based, like Revolut)
 export const spacing = {
   xs: 4,
   sm: 8,
@@ -99,11 +106,19 @@ export const spacing = {
   xl: 32,
   xxl: 48,
   xxxl: 64,
+  xxxxl: 80,
 };
 
-// Fonturi cu dimensiuni mari pentru accesibilitate
+// Typography - clean, modern, strong hierarchy
 export const typography = {
-  // Titluri - mari și clare
+  // Display - hero sections
+  display: {
+    fontSize: 40,
+    fontWeight: '800' as const,
+    lineHeight: 48,
+    letterSpacing: -1,
+  },
+  // Headings
   h1: {
     fontSize: 32,
     fontWeight: '700' as const,
@@ -128,8 +143,7 @@ export const typography = {
     lineHeight: 28,
     letterSpacing: 0,
   },
-  
-  // Body text - lizibil
+  // Body
   bodyLarge: {
     fontSize: 18,
     fontWeight: '400' as const,
@@ -145,8 +159,7 @@ export const typography = {
     fontWeight: '400' as const,
     lineHeight: 20,
   },
-  
-  // Labels și butoane
+  // Labels & buttons
   labelLarge: {
     fontSize: 16,
     fontWeight: '600' as const,
@@ -165,7 +178,14 @@ export const typography = {
     lineHeight: 16,
     letterSpacing: 0.3,
   },
-  
+  // Uppercase labels (Revolut style)
+  labelUppercase: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    lineHeight: 16,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase' as const,
+  },
   // Caption
   caption: {
     fontSize: 12,
@@ -175,124 +195,134 @@ export const typography = {
   },
 };
 
-// Border radius consistent
+// Border radius
 export const borderRadius = {
   sm: 8,
   md: 12,
   lg: 16,
   xl: 20,
   xxl: 24,
-  full: 999,
+  pill: 999,  // Revolut pill-shaped buttons
 };
 
-// Shadows pentru elevație
+// Shadows (subtle on dark backgrounds)
 export const shadows = {
   sm: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
   },
   md: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
   },
   lg: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
     shadowRadius: 16,
-    elevation: 6,
+    elevation: 8,
   },
   xl: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
     shadowRadius: 24,
     elevation: 12,
   },
+  // Glow effects for accents
+  glow: {
+    shadowColor: '#0075EB',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  glowPink: {
+    shadowColor: '#EB008D',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
+  },
 };
 
-// Stiluri pentru componente comune
+// Component styles
 export const componentStyles = {
-  // Carduri
+  // Screen container (dark bg)
+  screenContainer: {
+    flex: 1,
+    backgroundColor: colors.dark[800],
+  },
+  // Content padding
+  contentPadding: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
+  },
+  // Cards (dark elevated surfaces)
   card: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.dark[700],
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
-    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
-  
-  // Carduri evidențiate
   cardHighlighted: {
-    backgroundColor: colors.primary[50],
+    backgroundColor: colors.dark[600],
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
-    borderWidth: 2,
-    borderColor: colors.primary[200],
-    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.brand.primary,
   },
-  
-  // Butoane mari (pentru 18-70 ani)
+  // Buttons (pill-shaped, Revolut style)
   buttonLarge: {
     minHeight: 56,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.pill,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
   },
-  
-  // Butoane medii
   buttonMedium: {
     minHeight: 48,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.pill,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
-  
-  // Input-uri mari și lizibile
+  // Inputs (dark styled)
   inputLarge: {
     minHeight: 56,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     fontSize: 18,
+    backgroundColor: colors.dark[600],
+    color: colors.light[100],
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
-  
-  // Container pentru ecran
-  screenContainer: {
-    flex: 1,
-    backgroundColor: colors.neutral[50],
-  },
-  
-  // Content padding
-  contentPadding: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
-  },
-  
-  // Header section
+  // Header
   headerSection: {
     marginBottom: spacing.xl,
   },
 };
 
-// Statusuri vizuale
-export const statusColors = {
+// Status colors
+export const statusColors: Record<string, string> = {
   active: colors.success[500],
   pending: colors.warning[500],
   expired: colors.warning[600],
   revoked: colors.error[500],
   approved: colors.success[500],
   rejected: colors.error[500],
-  processing: colors.primary[500],
+  processing: colors.brand.primary,
 };
 
-// Iconuri pentru diferite stări
-export const statusIcons = {
+// Status icons
+export const statusIcons: Record<string, string> = {
   active: 'check-circle',
   pending: 'clock-outline',
   expired: 'calendar-remove',
@@ -302,14 +332,12 @@ export const statusIcons = {
   processing: 'progress-clock',
 };
 
-// Helper pentru a obține culoarea statusului
 export const getStatusColor = (status: string): string => {
-  return statusColors[status as keyof typeof statusColors] || colors.neutral[500];
+  return statusColors[status] || colors.light[60];
 };
 
-// Helper pentru a obține iconul statusului
 export const getStatusIcon = (status: string): string => {
-  return statusIcons[status as keyof typeof statusIcons] || 'help-circle';
+  return statusIcons[status] || 'help-circle';
 };
 
 export default {
@@ -324,4 +352,3 @@ export default {
   getStatusColor,
   getStatusIcon,
 };
-

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
+    <PackageReference Include="FluentValidation" Version="11.11.0" />
+    <PackageReference Include="itext7" Version="8.0.5" />
+    <PackageReference Include="EPPlus" Version="7.5.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MoneyShop.ServiceInterface\MoneyShop.ServiceInterface.csproj" />
+    <ProjectReference Include="..\MoneyShop.DomainModel\MoneyShop.DomainModel.csproj" />
+    <ProjectReference Include="..\MoneyShop.DomainServices\MoneyShop.DomainServices.csproj" />
+    <ProjectReference Include="..\MoneyShop.Infrastructure.EntityFramework\MoneyShop.Infrastructure.EntityFramework.csproj" />
+  </ItemGroup>
+
+</Project>

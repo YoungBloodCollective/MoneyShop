@@ -1,9 +1,9 @@
 import React from 'react';
-import {View, StyleSheet, ScrollView} from 'react-native';
-import {Text, Button, Card} from 'react-native-paper';
+import {View, StyleSheet, ScrollView, TouchableOpacity, Text} from 'react-native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useAuthStore} from '../../store/authStore';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
 
 type SimulatorScreenNavigationProp = NativeStackNavigationProp<any, 'Simulator'>;
 
@@ -15,97 +15,101 @@ const SimulatorScreen: React.FC<Props> = ({navigation}) => {
   const {isAuthenticated} = useAuthStore();
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
+        {/* Header */}
         <View style={styles.headerSection}>
-          <Text variant="headlineSmall" style={styles.welcomeText}>
+          <Text style={styles.brandName}>
             MoneyShop<Text style={styles.superscript}>®</Text>
           </Text>
-          <Text variant="bodyMedium" style={styles.tagline}>
-            Simplu. Rapid. Transparent.
-          </Text>
-          <Text variant="bodyMedium" style={styles.description}>
-            Platformă digitală de intermediere credite. Analizează eligibilitatea ta de credit în câteva minute, cu transparență totală.
+          <Text style={styles.tagline}>Simplu. Rapid. Transparent.</Text>
+          <Text style={styles.description}>
+            Platforma digitala de intermediere credite. Analizeaza eligibilitatea
+            ta de credit in cateva minute, cu transparenta totala.
           </Text>
         </View>
 
-        {/* Simulator Card - Large and Prominent */}
-        <Card 
+        {/* Simulator Card */}
+        <TouchableOpacity
           style={styles.simulatorCard}
+          activeOpacity={0.85}
           onPress={() => navigation.navigate('SimulatorForm')}>
-          <Card.Content style={styles.simulatorCardContent}>
+          <View style={styles.simulatorGradientBar} />
+          <View style={styles.simulatorCardContent}>
             <View style={styles.simulatorHeader}>
               <View style={styles.simulatorIconContainer}>
-                <Icon name="calculator-variant" size={40} color="#FFFFFF" />
+                <Icon name="calculator-variant" size={36} color="#FFFFFF" />
               </View>
               <View style={styles.simulatorTextContainer}>
-                <Text variant="headlineSmall" style={styles.simulatorTitle}>
-                  Simulator Credit
-                </Text>
-                <Text variant="bodyMedium" style={styles.simulatorDescription}>
-                  Calculează rata ta lunară și vezi ofertele disponibile
+                <Text style={styles.simulatorTitle}>Simulator Credit</Text>
+                <Text style={styles.simulatorDescription}>
+                  Calculeaza rata ta lunara si vezi ofertele disponibile
                 </Text>
               </View>
             </View>
             <View style={styles.simulatorFooter}>
-              <Text variant="bodySmall" style={styles.simulatorActionText}>
-                Începe simularea →
-              </Text>
+              <Text style={styles.simulatorActionText}>Incepe simularea</Text>
+              <Icon name="arrow-right" size={20} color={colors.brand.primary} />
             </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </TouchableOpacity>
 
         {/* Info Card */}
-        <Card style={styles.infoCard}>
-          <Card.Content style={styles.infoCardContent}>
-            <View style={styles.infoRow}>
-              <View style={styles.infoIconContainer}>
-                <Icon name="information" size={24} color="#1976D2" />
-              </View>
-              <View style={styles.infoTextContainer}>
-                <Text variant="bodySmall" style={styles.infoTitle}>
-                  Gratuit și fără înregistrare
-                </Text>
-                <Text variant="bodySmall" style={styles.infoText}>
-                  Simulatorul este complet gratuit. Pentru a salva datele și a vedea istoricul, te poți autentifica.
-                </Text>
-              </View>
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <View style={styles.infoIconContainer}>
+              <Icon name="information-outline" size={22} color={colors.brand.primary} />
             </View>
-          </Card.Content>
-        </Card>
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoTitle}>Gratuit si fara inregistrare</Text>
+              <Text style={styles.infoText}>
+                Simulatorul este complet gratuit. Pentru a salva datele si a vedea
+                istoricul, te poti autentifica.
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Features mini */}
+        <View style={styles.featuresRow}>
+          <View style={styles.featureMini}>
+            <Icon name="clock-fast" size={24} color={colors.success[400]} />
+            <Text style={styles.featureMiniText}>Sub 2 minute</Text>
+          </View>
+          <View style={styles.featureMini}>
+            <Icon name="shield-check" size={24} color={colors.brand.primary} />
+            <Text style={styles.featureMiniText}>Date sigure</Text>
+          </View>
+          <View style={styles.featureMini}>
+            <Icon name="cash-multiple" size={24} color={colors.warning[400]} />
+            <Text style={styles.featureMiniText}>0 comision</Text>
+          </View>
+        </View>
 
         {/* Auth Actions for non-authenticated users */}
         {!isAuthenticated && (
           <View style={styles.authSection}>
-            <Text variant="titleMedium" style={styles.authSectionTitle}>
-              Ai deja cont?
-            </Text>
+            <Text style={styles.authSectionTitle}>Ai deja cont?</Text>
             <View style={styles.authButtons}>
-              <Card 
+              <TouchableOpacity
                 style={styles.authCard}
-                onPress={() => navigation.navigate('Login')}>
-                <Card.Content style={styles.authCardContent}>
-                  <View style={[styles.authIcon, {backgroundColor: '#E3F2FD'}]}>
-                    <Icon name="login" size={28} color="#1976D2" />
-                  </View>
-                  <Text variant="bodySmall" style={styles.authCardText}>
-                    Autentificare
-                  </Text>
-                </Card.Content>
-              </Card>
+                activeOpacity={0.7}
+                onPress={() => (navigation as any).navigate('Auth', {screen: 'Login'})}>
+                <View style={[styles.authIcon, {backgroundColor: colors.info[50]}]}>
+                  <Icon name="login" size={26} color={colors.brand.primary} />
+                </View>
+                <Text style={styles.authCardText}>Autentificare</Text>
+              </TouchableOpacity>
 
-              <Card 
+              <TouchableOpacity
                 style={styles.authCard}
-                onPress={() => navigation.navigate('Register')}>
-                <Card.Content style={styles.authCardContent}>
-                  <View style={[styles.authIcon, {backgroundColor: '#E8F5E9'}]}>
-                    <Icon name="account-plus" size={28} color="#4CAF50" />
-                  </View>
-                  <Text variant="bodySmall" style={styles.authCardText}>
-                    Înregistrare
-                  </Text>
-                </Card.Content>
-              </Card>
+                activeOpacity={0.7}
+                onPress={() => (navigation as any).navigate('Auth', {screen: 'Register'})}>
+                <View style={[styles.authIcon, {backgroundColor: colors.success[50]}]}>
+                  <Icon name="account-plus" size={26} color={colors.success[500]} />
+                </View>
+                <Text style={styles.authCardText}>Inregistrare</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -117,184 +121,191 @@ const SimulatorScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.dark[800],
   },
   content: {
-    padding: 16,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxxl,
   },
   headerSection: {
-    marginBottom: 24,
-    paddingTop: 8,
+    marginBottom: spacing.xl,
+    paddingTop: spacing.sm,
     alignItems: 'center',
   },
-  welcomeText: {
-    fontWeight: '700',
-    color: '#1A1A1A',
-    fontSize: 32,
-    letterSpacing: -0.5,
-    marginBottom: 8,
+  brandName: {
+    ...typography.h1,
+    color: colors.light[100],
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   superscript: {
     fontSize: 16,
     fontWeight: '400',
+    color: colors.light[60],
   },
   tagline: {
-    color: '#1976D2',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
+    ...typography.labelLarge,
+    color: colors.brand.primary,
+    marginBottom: spacing.md,
     textAlign: 'center',
   },
   description: {
-    color: '#64748B',
-    fontSize: 15,
-    lineHeight: 22,
+    ...typography.bodyMedium,
+    color: colors.light[60],
     textAlign: 'center',
-    paddingHorizontal: 8,
+    lineHeight: 24,
   },
-  // Simulator Card - Large and Prominent
+
+  // Simulator Card
   simulatorCard: {
-    marginBottom: 20,
-    borderRadius: 24,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+    marginBottom: spacing.lg,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    ...shadows.md,
+  },
+  simulatorGradientBar: {
+    height: 3,
+    backgroundColor: colors.brand.primary,
   },
   simulatorCardContent: {
-    padding: 24,
+    padding: spacing.lg,
   },
   simulatorHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   simulatorIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: '#1976D2',
+    width: 64,
+    height: 64,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.brand.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: spacing.md,
   },
   simulatorTextContainer: {
     flex: 1,
   },
   simulatorTitle: {
-    fontWeight: '700',
-    color: '#1A1A1A',
-    fontSize: 22,
+    ...typography.h3,
+    color: colors.light[100],
     marginBottom: 4,
   },
   simulatorDescription: {
-    color: '#64748B',
-    fontSize: 14,
-    lineHeight: 20,
+    ...typography.bodySmall,
+    color: colors.light[60],
   },
   simulatorFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    paddingTop: 16,
-    marginTop: 8,
+    borderTopColor: colors.dark[400],
+    paddingTop: spacing.md,
   },
   simulatorActionText: {
-    color: '#1976D2',
-    fontWeight: '600',
-    fontSize: 14,
+    ...typography.labelLarge,
+    color: colors.brand.primary,
   },
+
   // Info Card
   infoCard: {
-    marginBottom: 24,
-    borderRadius: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
-  },
-  infoCardContent: {
-    padding: 20,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   infoIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#E3F2FD',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.info[50],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: spacing.md,
   },
   infoTextContainer: {
     flex: 1,
   },
   infoTitle: {
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 6,
-    fontSize: 14,
+    ...typography.labelLarge,
+    color: colors.light[100],
+    marginBottom: 4,
   },
   infoText: {
-    color: '#64748B',
+    ...typography.bodySmall,
+    color: colors.light[60],
     lineHeight: 20,
-    fontSize: 13,
   },
+
+  // Features Mini
+  featuresRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.xl,
+  },
+  featureMini: {
+    flex: 1,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+  },
+  featureMiniText: {
+    ...typography.labelSmall,
+    color: colors.light[80],
+    textAlign: 'center',
+  },
+
   // Auth Section
   authSection: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   authSectionTitle: {
-    marginBottom: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    fontSize: 18,
+    ...typography.h4,
+    color: colors.light[100],
+    marginBottom: spacing.md,
     textAlign: 'center',
   },
   authButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   authCard: {
     flex: 1,
-    borderRadius: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
-  },
-  authCardContent: {
-    padding: 20,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.dark[400],
   },
   authIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 52,
+    height: 52,
+    borderRadius: borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.sm,
   },
   authCardText: {
-    color: '#1A1A1A',
-    fontWeight: '600',
-    fontSize: 13,
+    ...typography.labelMedium,
+    color: colors.light[90],
     textAlign: 'center',
   },
 });
 
 export default SimulatorScreen;
-

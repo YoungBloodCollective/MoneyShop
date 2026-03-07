@@ -5,16 +5,18 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  TextInput as RNTextInput,
-  Image,
+  TextInput,
+  TouchableOpacity,
+  Text,
+  ActivityIndicator,
 } from 'react-native';
-import {TextInput, Button, Text, Snackbar} from 'react-native-paper';
+import {Snackbar} from 'react-native-paper';
 import {otpApi} from '../../services/api/otpApi';
 import {useAuthStore} from '../../store/authStore';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {AuthStackParamList} from '../../navigation/AuthNavigator';
-
-const logoImage = require('../../../assets/images/logo/Logo.PNG');
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 
 type OtpLoginScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -34,7 +36,7 @@ const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
   const [showError, setShowError] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [otpFromServer, setOtpFromServer] = useState<string | null>(null);
-  const otpInputRef = useRef<RNTextInput>(null);
+  const otpInputRef = useRef<TextInput>(null);
   const {loginWithToken} = useAuthStore();
 
   useEffect(() => {
@@ -47,7 +49,7 @@ const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
 
   const handleRequestOtp = async () => {
     if (!phone || phone.length < 10) {
-      setError('Te rugăm să introduci un număr de telefon valid');
+      setError('Te rugam sa introduci un numar de telefon valid');
       setShowError(true);
       return;
     }
@@ -77,7 +79,7 @@ const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
 
   const handleVerifyOtp = async () => {
     if (!otpId || !otpCode || otpCode.length !== 6) {
-      setError('Te rugăm să introduci codul OTP de 6 cifre');
+      setError('Te rugam sa introduci codul OTP de 6 cifre');
       setShowError(true);
       return;
     }
@@ -120,109 +122,168 @@ const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
-          <View style={styles.logoContainer}>
-            <Image 
-              source={logoImage} 
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </View>
-          <Text variant="headlineMedium" style={styles.title}>
-            Autentificare cu cod SMS
+          {/* Back button */}
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            activeOpacity={0.7}>
+            <Icon name="arrow-left" size={22} color={colors.light[100]} />
+          </TouchableOpacity>
+
+          {/* Logo */}
+          <Text style={styles.logo}>
+            MoneyShop<Text style={styles.logoReg}>{'\u00AE'}</Text>
           </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Introdu numărul de telefon pentru a primi codul
+
+          {/* Title */}
+          <Text style={styles.title}>Autentificare cu cod SMS</Text>
+          <Text style={styles.subtitle}>
+            Introdu numarul de telefon pentru a primi codul
           </Text>
 
           {!otpId ? (
             <>
-              <TextInput
-                label="Număr de telefon"
-                value={phone}
-                onChangeText={setPhone}
-                mode="outlined"
-                keyboardType="phone-pad"
-                placeholder="0712345678"
-                style={styles.input}
-                left={<TextInput.Icon icon="phone" />}
-              />
+              {/* Phone Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>NUMAR DE TELEFON</Text>
+                <View style={styles.inputWrapper}>
+                  <Icon
+                    name="phone-outline"
+                    size={20}
+                    color={colors.light[60]}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder="0712345678"
+                    placeholderTextColor={colors.light[50]}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+              </View>
 
-              <Button
-                mode="contained"
+              {/* Send OTP Button */}
+              <TouchableOpacity
                 onPress={handleRequestOtp}
-                loading={loading}
                 disabled={loading}
-                style={styles.button}>
-                Trimite cod SMS
-              </Button>
+                activeOpacity={0.8}
+                style={[styles.primaryButton, loading && styles.buttonDisabled]}>
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Trimite cod SMS</Text>
+                )}
+              </TouchableOpacity>
 
+              {/* Dev OTP display */}
               {otpFromServer && (
                 <View style={styles.devOtpContainer}>
-                  <Text style={styles.devOtpLabel}>Cod OTP (Development):</Text>
+                  <Text style={styles.devOtpLabel}>COD OTP (DEVELOPMENT)</Text>
                   <Text style={styles.devOtpCode}>{otpFromServer}</Text>
                 </View>
               )}
             </>
           ) : (
             <>
-              <Text variant="bodyMedium" style={styles.infoText}>
-                Am trimis un cod SMS la {phone}
-              </Text>
-
-              <TextInput
-                ref={otpInputRef}
-                label="Cod OTP"
-                value={otpCode}
-                onChangeText={setOtpCode}
-                mode="outlined"
-                keyboardType="number-pad"
-                maxLength={6}
-                style={styles.input}
-                left={<TextInput.Icon icon="lock" />}
-              />
-
-              {countdown > 0 && (
-                <Text style={styles.countdownText}>
-                  Codul expiră în: {formatCountdown(countdown)}
+              {/* Info text */}
+              <View style={styles.infoCard}>
+                <Icon name="message-text-outline" size={20} color={colors.brand.primary} />
+                <Text style={styles.infoText}>
+                  Am trimis un cod SMS la {phone}
                 </Text>
+              </View>
+
+              {/* OTP Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>COD OTP</Text>
+                <View style={styles.inputWrapper}>
+                  <Icon
+                    name="lock-outline"
+                    size={20}
+                    color={colors.light[60]}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    ref={otpInputRef}
+                    style={styles.input}
+                    value={otpCode}
+                    onChangeText={setOtpCode}
+                    placeholder="000000"
+                    placeholderTextColor={colors.light[50]}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                  />
+                </View>
+              </View>
+
+              {/* Countdown */}
+              {countdown > 0 && (
+                <View style={styles.countdownContainer}>
+                  <Icon name="timer-outline" size={16} color={colors.warning[400]} />
+                  <Text style={styles.countdownText}>
+                    Codul expira in: {formatCountdown(countdown)}
+                  </Text>
+                </View>
               )}
 
-              <Button
-                mode="contained"
+              {/* Verify Button */}
+              <TouchableOpacity
                 onPress={handleVerifyOtp}
-                loading={loading}
                 disabled={loading || otpCode.length !== 6}
-                style={styles.button}>
-                Verifică cod
-              </Button>
+                activeOpacity={0.8}
+                style={[
+                  styles.primaryButton,
+                  (loading || otpCode.length !== 6) && styles.buttonDisabled,
+                ]}>
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Verifica cod</Text>
+                )}
+              </TouchableOpacity>
 
-              <Button
-                mode="text"
+              {/* Change number */}
+              <TouchableOpacity
                 onPress={() => {
                   setOtpId(null);
                   setOtpCode('');
                   setOtpFromServer(null);
                   setCountdown(0);
                 }}
-                style={styles.linkButton}>
-                Schimbă numărul
-              </Button>
+                style={styles.linkButton}
+                activeOpacity={0.7}>
+                <Text style={styles.linkButtonText}>Schimba numarul</Text>
+              </TouchableOpacity>
             </>
           )}
 
-          <Button
-            mode="text"
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>sau</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Email login link */}
+          <TouchableOpacity
             onPress={() => navigation.navigate('Login')}
-            style={styles.linkButton}>
-            Autentificare cu email/parolă
-          </Button>
+            activeOpacity={0.8}
+            style={styles.secondaryButton}>
+            <Icon name="email-outline" size={20} color={colors.light[100]} />
+            <Text style={styles.secondaryButtonText}>
+              Autentificare cu email/parola
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
       <Snackbar
         visible={showError}
         onDismiss={() => setShowError(false)}
-        duration={3000}>
+        duration={3000}
+        style={styles.snackbar}>
         {error || 'Eroare'}
       </Snackbar>
     </KeyboardAvoidingView>
@@ -232,7 +293,7 @@ const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.dark[800],
   },
   scrollContent: {
     flexGrow: 1,
@@ -240,85 +301,174 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   content: {
-    padding: 24,
+    padding: spacing.lg,
     maxWidth: 450,
     alignSelf: 'center',
     width: '100%',
   },
-  logoContainer: {
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.dark[600],
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: spacing.xl,
   },
   logo: {
-    width: 560,
-    height: 200,
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.light[100],
+    letterSpacing: -0.5,
+    marginBottom: spacing.xxl,
+  },
+  logoReg: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: colors.light[60],
   },
   title: {
-    textAlign: 'center',
-    marginBottom: 8,
-    color: '#212121',
-    fontWeight: '700',
-    fontSize: 28,
+    ...typography.h1,
+    color: colors.light[100],
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    textAlign: 'center',
-    marginBottom: 32,
-    color: '#757575',
-    fontSize: 16,
+    ...typography.bodyMedium,
+    color: colors.light[60],
+    marginBottom: spacing.xl,
+  },
+  inputContainer: {
+    marginBottom: spacing.lg,
+  },
+  inputLabel: {
+    ...typography.labelUppercase,
+    color: colors.light[60],
+    marginBottom: spacing.sm,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dark[600],
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    paddingHorizontal: spacing.md,
+    minHeight: 56,
+  },
+  inputIcon: {
+    marginRight: spacing.sm,
   },
   input: {
-    marginBottom: 16,
-    backgroundColor: '#FFFFFF',
+    flex: 1,
+    ...typography.bodyMedium,
+    color: colors.light[100],
+    paddingVertical: spacing.md,
   },
-  button: {
-    marginTop: 8,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: '#1976D2',
-    elevation: 2,
-    shadowColor: '#1976D2',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+  primaryButton: {
+    backgroundColor: colors.brand.primary,
+    minHeight: 56,
+    borderRadius: borderRadius.pill,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  primaryButtonText: {
+    ...typography.labelLarge,
+    color: '#FFFFFF',
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    minHeight: 56,
+    borderRadius: borderRadius.pill,
+    borderWidth: 1.5,
+    borderColor: colors.dark[400],
+    backgroundColor: colors.dark[700],
+  },
+  secondaryButtonText: {
+    ...typography.labelLarge,
+    color: colors.light[100],
   },
   linkButton: {
-    marginTop: 12,
+    alignSelf: 'center',
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  linkButtonText: {
+    ...typography.labelMedium,
+    color: colors.brand.primary,
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.info[50],
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.brand.primary,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
   },
   infoText: {
-    textAlign: 'center',
-    marginBottom: 24,
-    color: '#757575',
-    fontSize: 15,
+    ...typography.bodySmall,
+    color: colors.light[80],
+    flex: 1,
+  },
+  countdownContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
   },
   countdownText: {
-    textAlign: 'center',
-    marginBottom: 16,
-    color: '#FF9800',
-    fontWeight: '600',
-    fontSize: 14,
+    ...typography.labelMedium,
+    color: colors.warning[400],
   },
   devOtpContainer: {
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#E3F2FD',
-    borderRadius: 12,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.info[50],
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#1976D2',
+    borderColor: colors.brand.primary,
+    alignItems: 'center',
   },
   devOtpLabel: {
-    fontSize: 12,
-    color: '#1976D2',
-    marginBottom: 8,
-    fontWeight: '600',
+    ...typography.labelUppercase,
+    color: colors.brand.primary,
+    marginBottom: spacing.sm,
   },
   devOtpCode: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
-    color: '#1976D2',
+    color: colors.brand.primary,
     textAlign: 'center',
-    letterSpacing: 4,
+    letterSpacing: 6,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.dark[400],
+  },
+  dividerText: {
+    ...typography.caption,
+    color: colors.light[50],
+    marginHorizontal: spacing.md,
+  },
+  snackbar: {
+    backgroundColor: colors.error[500],
   },
 });
 
 export default OtpLoginScreen;
-

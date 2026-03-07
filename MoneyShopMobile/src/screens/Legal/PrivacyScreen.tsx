@@ -1,122 +1,107 @@
 import React from 'react';
 import {View, StyleSheet, ScrollView} from 'react-native';
-import {Text, Card} from 'react-native-paper';
+import {Text} from 'react-native-paper';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 
 const PrivacyScreen = ({navigation}: any) => {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <Text variant="headlineSmall" style={styles.title}>
-            Politica de Confidențialitate (GDPR) – MoneyShop.ro
+          <Text style={styles.sectionLabel}>GDPR</Text>
+          <Text style={styles.title}>
+            Politica de Confidentialitate (GDPR) – MoneyShop.ro
           </Text>
-          <Text variant="bodySmall" style={styles.date}>
+          <Text style={styles.date}>
             Ultima actualizare: {new Date().toLocaleDateString('ro-RO')}
           </Text>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                1. Operatorul de Date
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>1. Operatorul de Date</Text>
+            <Text style={styles.text}>
+              <Text style={styles.bold}>
+                POPIX BROKERAGE CONSULTING S.R.L.
               </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                <Text style={styles.bold}>POPIX BROKERAGE CONSULTING S.R.L.</Text>
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Nr. ONRC: J2024018340008{'\n'}
-                CUI: 50477260{'\n'}
-                E-mail GDPR: gdpr@moneyshop.ro{'\n'}
-                E-mail DPO: dpo@moneyshop.ro
-              </Text>
-            </Card.Content>
-          </Card>
+            </Text>
+            <Text style={styles.text}>
+              Nr. ONRC: J2024018340008{'\n'}
+              CUI: 50477260{'\n'}
+              E-mail GDPR: gdpr@moneyshop.ro{'\n'}
+              E-mail DPO: dpo@moneyshop.ro
+            </Text>
+          </View>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                2. Scopurile Prelucrării
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Datele sunt prelucrate exclusiv pentru:
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                • Analiza eligibilității financiare{'\n'}
-                • Realizarea analizelor MoneyShop{'\n'}
-                • Intermedierea solicitărilor de credit{'\n'}
-                • Îndeplinirea obligațiilor legale
-              </Text>
-            </Card.Content>
-          </Card>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>2. Scopurile Prelucrarii</Text>
+            <Text style={styles.text}>
+              Datele sunt prelucrate exclusiv pentru:
+            </Text>
+            <Text style={styles.text}>
+              {'\u2022'} Analiza eligibilitatii financiare{'\n'}
+              {'\u2022'} Realizarea analizelor MoneyShop{'\n'}
+              {'\u2022'} Intermedierea solicitarilor de credit{'\n'}
+              {'\u2022'} Indeplinirea obligatiilor legale
+            </Text>
+          </View>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                3. Prelucrarea Datelor ANAF/BC
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>
+              3. Prelucrarea Datelor ANAF/BC
+            </Text>
+            <Text style={styles.text}>
+              Datele obtinute de la ANAF si Biroul de Credit sunt prelucrate:
+            </Text>
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>
+                {'\u2022'} Exclusiv pentru analiza eligibilitatii de credit{'\n'}
+                {'\u2022'} In baza mandatului temporar (max. 30 zile){'\n'}
+                {'\u2022'} Fara transmitere catre brokeri sau terti neimplicati
               </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Datele obținute de la ANAF și Biroul de Credit sunt prelucrate:
-              </Text>
-              <Text variant="bodyMedium" style={styles.infoBox}>
-                • Exclusiv pentru analiza eligibilității de credit{'\n'}
-                • În baza mandatului temporar (max. 30 zile){'\n'}
-                • Fără transmitere către brokeri sau terți neimplicați
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Aceste date NU sunt vândute, NU sunt cesionate și NU sunt utilizate în scopuri de marketing.
-              </Text>
-            </Card.Content>
-          </Card>
+            </View>
+            <Text style={styles.text}>
+              Aceste date NU sunt vandute, NU sunt cesionate si NU sunt
+              utilizate in scopuri de marketing.
+            </Text>
+          </View>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                4. Transmiterea către Brokeri
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Transmiterea analizei către un broker:
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                • Se face exclusiv cu consimțământ separat{'\n'}
-                • Este inițiată doar de utilizator{'\n'}
-                • Nu este condiție pentru utilizarea Platformei{'\n'}
-                • Poate fi refuzată fără consecințe
-              </Text>
-            </Card.Content>
-          </Card>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>
+              4. Transmiterea catre Brokeri
+            </Text>
+            <Text style={styles.text}>
+              Transmiterea analizei catre un broker:
+            </Text>
+            <Text style={styles.text}>
+              {'\u2022'} Se face exclusiv cu consimtamant separat{'\n'}
+              {'\u2022'} Este initiata doar de utilizator{'\n'}
+              {'\u2022'} Nu este conditie pentru utilizarea Platformei{'\n'}
+              {'\u2022'} Poate fi refuzata fara consecinte
+            </Text>
+          </View>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                5. Drepturile Tale
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Beneficiezi de drepturile prevăzute la art. 12–22 GDPR:
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                • Dreptul de acces{'\n'}
-                • Dreptul la rectificare{'\n'}
-                • Dreptul la ștergere{'\n'}
-                • Dreptul la portabilitate{'\n'}
-                • Dreptul de opoziție
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Solicitări: gdpr@moneyshop.ro
-              </Text>
-            </Card.Content>
-          </Card>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>5. Drepturile Tale</Text>
+            <Text style={styles.text}>
+              Beneficiezi de drepturile prevazute la art. 12-22 GDPR:
+            </Text>
+            <Text style={styles.text}>
+              {'\u2022'} Dreptul de acces{'\n'}
+              {'\u2022'} Dreptul la rectificare{'\n'}
+              {'\u2022'} Dreptul la stergere{'\n'}
+              {'\u2022'} Dreptul la portabilitate{'\n'}
+              {'\u2022'} Dreptul de opozitie
+            </Text>
+            <Text style={styles.text}>Solicitari: gdpr@moneyshop.ro</Text>
+          </View>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                Contact GDPR
-              </Text>
-              <Text variant="bodyMedium" style={styles.text}>
-                Email GDPR: gdpr@moneyshop.ro{'\n'}
-                Email DPO: dpo@moneyshop.ro{'\n'}
-                Telefon: 031 434 0940
-              </Text>
-            </Card.Content>
-          </Card>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Contact GDPR</Text>
+            <Text style={styles.text}>
+              Email GDPR: gdpr@moneyshop.ro{'\n'}
+              Email DPO: dpo@moneyshop.ro{'\n'}
+              Telefon: 031 434 0940
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -126,56 +111,65 @@ const PrivacyScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.dark[800],
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: spacing.lg,
+  },
+  sectionLabel: {
+    ...typography.labelUppercase,
+    color: colors.light[50],
+    marginBottom: spacing.sm,
   },
   title: {
-    marginBottom: 8,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.h3,
+    color: colors.light[100],
+    marginBottom: spacing.sm,
   },
   date: {
-    marginBottom: 24,
-    color: '#999',
-    fontSize: 12,
+    ...typography.caption,
+    color: colors.light[60],
+    marginBottom: spacing.lg,
   },
   card: {
-    marginBottom: 16,
-    borderRadius: 16,
-    elevation: 0,
-    shadowOpacity: 0,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    padding: spacing.lg,
+    marginBottom: spacing.md,
   },
-  sectionTitle: {
-    marginBottom: 12,
-    fontWeight: '600',
-    color: '#1976D2',
-    fontSize: 18,
+  cardTitle: {
+    ...typography.h4,
+    color: colors.brand.primary,
+    marginBottom: spacing.md,
   },
   text: {
-    marginBottom: 12,
-    lineHeight: 24,
-    color: '#333',
+    ...typography.bodyMedium,
+    color: colors.light[70],
+    marginBottom: spacing.md,
   },
   bold: {
-    fontWeight: '600',
+    fontWeight: '700',
+    color: colors.light[100],
   },
   infoBox: {
-    marginTop: 8,
-    padding: 16,
-    backgroundColor: '#E3F2FD',
-    borderRadius: 12,
-    color: '#1976D2',
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.info[50],
+    borderRadius: borderRadius.md,
     borderLeftWidth: 4,
-    borderLeftColor: '#2196F3',
+    borderLeftColor: colors.brand.primary,
+    marginBottom: spacing.md,
+  },
+  infoText: {
+    ...typography.bodyMedium,
+    color: colors.info[400],
+    lineHeight: 24,
   },
 });
 
 export default PrivacyScreen;
-

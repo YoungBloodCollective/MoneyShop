@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MoneyShop.DomainModel\MoneyShop.DomainModel.csproj" />
+    <ProjectReference Include="..\MoneyShop.Infrastructure.EntityFramework\MoneyShop.Infrastructure.EntityFramework.csproj" />
+  </ItemGroup>
+
+</Project>

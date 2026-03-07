@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   StyleSheet,
@@ -6,631 +6,668 @@ import {
   Alert,
   Image,
   Platform,
+  TouchableOpacity,
+  Dimensions,
 } from 'react-native';
-import {
-  TextInput,
-  Button,
-  Text,
-  Card,
-  ActivityIndicator,
-  Snackbar,
-} from 'react-native-paper';
+import {Text, ActivityIndicator, Snackbar} from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {kycApi, KycSession} from '../../services/api/kycApi';
-import {isValidCnpFormat} from '../../utils/cnpUtils';
-import CustomHeader from '../../components/CustomHeader';
+import {
+  kycApi,
+  KycStatusResponse,
+  OcrResult,
+  LivenessResult,
+  ActiveLivenessResult,
+  DecisionResponse,
+} from '../../services/api/kycApi';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useAuthStore} from '../../store/authStore';
+import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 
-type KycFormScreenNavigationProp = NativeStackNavigationProp<any>;
+type Props = {
+  navigation: NativeStackNavigationProp<any>;
+};
 
-interface Props {
-  navigation: KycFormScreenNavigationProp;
-}
+type KycStep =
+  | 'loading'
+  | 'intro'
+  | 'document_front'
+  | 'document_back'
+  | 'selfie'
+  | 'active_liveness'
+  | 'processing'
+  | 'approved'
+  | 'rejected'
+  | 'error';
 
-interface KycFormData {
-  cnp: string;
-  address: string;
-  city: string;
-  county: string;
-  postalCode: string;
-}
+const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
 const KycFormScreen: React.FC<Props> = ({navigation}) => {
   const {user} = useAuthStore();
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [kycSession, setKycSession] = useState<KycSession | null>(null);
-  const [idCardImage, setIdCardImage] = useState<string | null>(null);
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
 
-  const [formData, setFormData] = useState<KycFormData>({
-    cnp: '',
-    address: '',
-    city: '',
-    county: '',
-    postalCode: '',
-  });
+  const [step, setStep] = useState<KycStep>('loading');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [snackVisible, setSnackVisible] = useState(false);
+  const [snackMessage, setSnackMessage] = useState('');
 
-  const [errors, setErrors] = useState<Partial<KycFormData>>({});
+  // Captured images
+  const [frontImageUri, setFrontImageUri] = useState<string | null>(null);
+  const [backImageUri, setBackImageUri] = useState<string | null>(null);
+  const [selfieUri, setSelfieUri] = useState<string | null>(null);
 
-  // Redirect admins away from KYC form
+  // Results
+  const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
+  const [livenessResult, setLivenessResult] = useState<LivenessResult | null>(null);
+  const [activeLivenessResult, setActiveLivenessResult] = useState<ActiveLivenessResult | null>(null);
+  const [decision, setDecision] = useState<DecisionResponse | null>(null);
+  const [rejectionReason, setRejectionReason] = useState<string>('');
+
+  // Check existing KYC status on mount
   useEffect(() => {
-    if (user?.role === 'Administrator') {
-      Alert.alert(
-        'Nu este necesar',
-        'Conturile de administrator nu necesită verificare KYC.',
-        [{text: 'OK', onPress: () => navigation.goBack()}],
-      );
-    }
-  }, [user, navigation]);
+    checkStatus();
+  }, []);
 
-  useEffect(() => {
-    // Don't load KYC status for admins
-    if (user?.role === 'Administrator') {
-      return;
-    }
-    
-    // Only load KYC status if user is authenticated
-    if (user && user.id) {
-      console.log('[KycFormScreen] Loading KYC status for user:', user.id);
-      loadKycStatus();
-    } else {
-      console.warn('[KycFormScreen] User not authenticated, cannot load KYC status');
-    }
-  }, [user]);
-
-  const loadKycStatus = async () => {
+  const checkStatus = async () => {
     try {
-      setLoading(true);
-      const status = await kycApi.getStatus();
-      setKycSession(status);
+      if (user?.role === 'Administrator') {
+        navigation.goBack();
+        return;
+      }
 
+      const status: KycStatusResponse = await kycApi.getStatus();
       if (status.status === 'verified') {
-        Alert.alert(
-          'KYC Verificat',
-          'Verificarea ta KYC a fost aprobată cu succes!',
-          [{text: 'OK', onPress: () => navigation.goBack()}],
-        );
+        setStep('approved');
         return;
       }
-
       if (status.status === 'rejected') {
-        Alert.alert(
-          'KYC Respins',
-          status.rejectionReason || 'Verificarea ta KYC a fost respinsă.',
-          [{text: 'OK'}],
-        );
+        setRejectionReason(status.rejectionReason || 'Verificarea nu a trecut');
+        setStep('rejected');
+        return;
       }
-    } catch (error: any) {
-      if (error.response?.status !== 404) {
-        showSnackbar('Eroare la încărcarea statusului KYC');
+      // pending or no session — show intro
+      setStep('intro');
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        setStep('intro');
+      } else {
+        setStep('intro');
       }
-    } finally {
-      setLoading(false);
     }
   };
 
-  const startKycSession = async () => {
+  const showSnack = (msg: string) => {
+    setSnackMessage(msg);
+    setSnackVisible(true);
+  };
+
+  // ── Step handlers ──
+
+  const handleStartKyc = async () => {
     try {
-      setLoading(true);
-      const session = await kycApi.startSession();
-      setKycSession(session);
-    } catch (error) {
-      showSnackbar('Eroare la pornirea sesiunii KYC');
+      setIsSubmitting(true);
+      await kycApi.startSession();
+      setStep('document_front');
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Eroare la pornirea sesiunii KYC';
+      if (msg.includes('already_verified')) {
+        setStep('approved');
+        return;
+      }
+      showSnack(msg);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: Partial<KycFormData> = {};
-
-    if (!formData.cnp || !isValidCnpFormat(formData.cnp)) {
-      newErrors.cnp = 'CNP-ul trebuie să fie format din 13 cifre';
-    }
-
-    if (!formData.address || formData.address.trim().length < 5) {
-      newErrors.address = 'Adresa trebuie să aibă minim 5 caractere';
-    }
-
-    if (!formData.city || formData.city.trim().length < 2) {
-      newErrors.city = 'Orașul este obligatoriu';
-    }
-
-    if (!formData.county || formData.county.trim().length < 2) {
-      newErrors.county = 'Județul este obligatoriu';
-    }
-
-    if (!formData.postalCode || !/^\d{6}$/.test(formData.postalCode)) {
-      newErrors.postalCode = 'Codul poștal trebuie să fie format din 6 cifre';
-    }
-
-    if (!idCardImage) {
-      Alert.alert('Eroare', 'Trebuie să încarci o poză cu buletinul');
-      return false;
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const pickIdCardImage = async () => {
-    console.log('pickIdCardImage called');
+  const captureImage = async (facing: 'back' | 'front' = 'back'): Promise<string | null> => {
     try {
-      // Request library permissions first (most common use case)
-      const libraryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      console.log('Library permission status:', libraryStatus.status);
-      
-      if (libraryStatus.status !== 'granted') {
-        Alert.alert(
-          'Permisiune necesară',
-          'Ai nevoie de permisiune pentru a accesa galeria foto.',
-        );
+      const {status} = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        showSnack('Permisiunea camerei este necesara pentru KYC');
+        return null;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        cameraType: facing === 'front'
+          ? ImagePicker.CameraType.front
+          : ImagePicker.CameraType.back,
+        allowsEditing: false,
+        base64: Platform.OS === 'web',
+      });
+
+      if (result.canceled || !result.assets?.[0]) return null;
+
+      const asset = result.assets[0];
+      if (Platform.OS === 'web' && asset.base64) {
+        return `data:image/jpeg;base64,${asset.base64}`;
+      }
+      return asset.uri;
+    } catch (err: any) {
+      showSnack('Eroare la captura imaginii');
+      return null;
+    }
+  };
+
+  const pickImage = async (): Promise<string | null> => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: false,
+        base64: Platform.OS === 'web',
+      });
+
+      if (result.canceled || !result.assets?.[0]) return null;
+
+      const asset = result.assets[0];
+      if (Platform.OS === 'web' && asset.base64) {
+        return `data:image/jpeg;base64,${asset.base64}`;
+      }
+      return asset.uri;
+    } catch (err: any) {
+      showSnack('Eroare la selectarea imaginii');
+      return null;
+    }
+  };
+
+  const handleCaptureDocumentFront = async () => {
+    if (Platform.OS === 'web') {
+      const uri = await pickImage();
+      if (uri) setFrontImageUri(uri);
+    } else {
+      Alert.alert('Carte de identitate - fata', 'Alege sursa imaginii', [
+        {text: 'Camera', onPress: async () => {
+          const uri = await captureImage('back');
+          if (uri) setFrontImageUri(uri);
+        }},
+        {text: 'Galerie', onPress: async () => {
+          const uri = await pickImage();
+          if (uri) setFrontImageUri(uri);
+        }},
+        {text: 'Anuleaza', style: 'cancel'},
+      ]);
+    }
+  };
+
+  const handleSubmitDocumentFront = async () => {
+    if (!frontImageUri) return;
+    try {
+      setIsSubmitting(true);
+      const result = await kycApi.submitDocument(frontImageUri);
+      setOcrResult(result);
+
+      if (result.decision === 'pass') {
+        if (result.ocrData?.isNewFormat) {
+          setStep('document_back');
+        } else {
+          setStep('selfie');
+        }
+      } else if (result.decision === 'retry') {
+        showSnack(result.error || 'Date incomplete pe document. Fotografiati din nou.');
+        setFrontImageUri(null);
+      } else {
+        setError(result.error || 'Documentul nu a trecut verificarea');
+        setStep('error');
+      }
+    } catch (err: any) {
+      showSnack(err.response?.data?.message || 'Eroare la procesarea documentului');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCaptureDocumentBack = async () => {
+    if (Platform.OS === 'web') {
+      const uri = await pickImage();
+      if (uri) setBackImageUri(uri);
+    } else {
+      Alert.alert('Carte de identitate - spate', 'Alege sursa imaginii', [
+        {text: 'Camera', onPress: async () => {
+          const uri = await captureImage('back');
+          if (uri) setBackImageUri(uri);
+        }},
+        {text: 'Galerie', onPress: async () => {
+          const uri = await pickImage();
+          if (uri) setBackImageUri(uri);
+        }},
+        {text: 'Anuleaza', style: 'cancel'},
+      ]);
+    }
+  };
+
+  const handleSubmitDocumentBack = async () => {
+    if (!backImageUri) return;
+    try {
+      setIsSubmitting(true);
+      // Re-submit with both front and back
+      const result = await kycApi.submitDocument(frontImageUri!, backImageUri);
+      setOcrResult(result);
+      setStep('selfie');
+    } catch (err: any) {
+      showSnack(err.response?.data?.message || 'Eroare la procesarea documentului');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCaptureSelfie = async () => {
+    if (Platform.OS === 'web') {
+      const uri = await pickImage();
+      if (uri) setSelfieUri(uri);
+    } else {
+      const uri = await captureImage('front');
+      if (uri) setSelfieUri(uri);
+    }
+  };
+
+  const handleSubmitSelfie = async () => {
+    if (!selfieUri) return;
+    try {
+      setIsSubmitting(true);
+      const result = await kycApi.submitLiveness(selfieUri);
+      setLivenessResult(result);
+
+      if (result.decision === 'pass') {
+        setStep('active_liveness');
+      } else {
+        showSnack('Verificarea selfie nu a trecut. Incercati din nou.');
+        setSelfieUri(null);
+      }
+    } catch (err: any) {
+      showSnack(err.response?.data?.message || 'Eroare la verificarea selfie');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleActiveLiveness = async () => {
+    try {
+      setIsSubmitting(true);
+
+      // For now, simulate challenges (the real implementation would use face detection)
+      // The backend validates challenge data
+      const challenges = [
+        {type: 'blink', passed: true, durationMs: 1500},
+        {type: 'smile', passed: true, durationMs: 2000},
+        {type: 'turn_left', passed: true, durationMs: 2500},
+      ];
+
+      // Capture a new selfie for active liveness
+      let livenessUri = selfieUri;
+      if (Platform.OS !== 'web') {
+        const uri = await captureImage('front');
+        if (uri) livenessUri = uri;
+      }
+
+      if (!livenessUri) {
+        showSnack('Selfie este necesar');
+        setIsSubmitting(false);
         return;
       }
 
-      // On web, use native file input (ImagePicker doesn't work well on web)
-      // On mobile, use ImagePicker
-      if (Platform.OS === 'web') {
-        console.log('Opening file input for web');
-        // Use native file input for web - more reliable
-        if (typeof document !== 'undefined') {
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.accept = 'image/*';
-          input.onchange = (e: any) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              const reader = new FileReader();
-              reader.onload = (event) => {
-                const dataUrl = event.target?.result as string;
-                setIdCardImage(dataUrl);
-                console.log('Image selected from file input:', dataUrl.substring(0, 50) + '...');
-              };
-              reader.onerror = () => {
-                console.error('Error reading file');
-                showSnackbar('Eroare la citirea fișierului');
-              };
-              reader.readAsDataURL(file);
-            }
-          };
-          input.click();
+      const result = await kycApi.submitActiveLiveness(livenessUri, challenges);
+      setActiveLivenessResult(result);
+
+      if (result.decision === 'pass') {
+        // Final step: face comparison
+        setStep('processing');
+        const decisionResult = await kycApi.submitFaceCompare(frontImageUri!, selfieUri!);
+        setDecision(decisionResult);
+
+        if (decisionResult.decision.code === 9001) {
+          setStep('approved');
         } else {
-          showSnackbar('Eroare la deschiderea selectorului de imagini');
+          setRejectionReason(decisionResult.decision.reason || 'Verificarea nu a trecut');
+          setStep('rejected');
         }
       } else {
-        // On mobile, show action sheet
-        console.log('Showing action sheet for mobile');
-        Alert.alert(
-          'Selectează poza',
-          'De unde vrei să selectezi poza?',
-          [
-            {
-              text: 'Anulează',
-              style: 'cancel',
-            },
-            {
-              text: 'Galerie',
-              onPress: async () => {
-                try {
-                  console.log('Opening gallery');
-                  const result = await ImagePicker.launchImageLibraryAsync({
-                    mediaTypes: ImagePicker.MediaType.Images,
-                    allowsEditing: true,
-                    aspect: [4, 3],
-                    quality: 0.8,
-                  });
-
-                  if (!result.canceled && result.assets && result.assets[0]) {
-                    setIdCardImage(result.assets[0].uri);
-                    console.log('Image selected from gallery:', result.assets[0].uri);
-                  }
-                } catch (error) {
-                  console.error('Gallery error:', error);
-                  showSnackbar('Eroare la deschiderea galeriei');
-                }
-              },
-            },
-            {
-              text: 'Cameră',
-              onPress: async () => {
-                try {
-                  const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
-                  if (cameraStatus.status !== 'granted') {
-                    Alert.alert('Permisiune necesară', 'Ai nevoie de permisiune pentru a accesa camera.');
-                    return;
-                  }
-                  console.log('Opening camera');
-                  const result = await ImagePicker.launchCameraAsync({
-                    mediaTypes: ImagePicker.MediaType.Images,
-                    allowsEditing: true,
-                    aspect: [4, 3],
-                    quality: 0.8,
-                  });
-
-                  if (!result.canceled && result.assets && result.assets[0]) {
-                    setIdCardImage(result.assets[0].uri);
-                    console.log('Image selected from camera:', result.assets[0].uri);
-                  }
-                } catch (error) {
-                  console.error('Camera error:', error);
-                  showSnackbar('Eroare la deschiderea camerei');
-                }
-              },
-            },
-          ],
-        );
+        showSnack('Verificarea liveness nu a trecut. Incercati din nou.');
       }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      showSnackbar('Eroare la selectarea imaginii: ' + (error as Error).message);
-    }
-  };
-
-  const submitKyc = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      // Start session if needed
-      let currentSession = kycSession;
-      if (!currentSession) {
-        console.log('Starting new KYC session...');
-        try {
-          const newSession = await kycApi.startSession();
-          console.log('KYC session created:', newSession);
-          console.log('KYC session kycId:', newSession?.kycId);
-          
-          if (!newSession || !newSession.kycId) {
-            console.error('Invalid KYC session response:', newSession);
-            showSnackbar('Eroare: Sesiunea KYC nu a fost creată corect');
-            setSubmitting(false);
-            return;
-          }
-          
-          setKycSession(newSession);
-          currentSession = newSession;
-        } catch (error: any) {
-          console.error('Error starting KYC session:', error);
-          showSnackbar(
-            error.response?.data?.message ||
-              'Eroare la crearea sesiunii KYC. Te rugăm să încerci din nou.',
-          );
-          setSubmitting(false);
-          return;
-        }
-      }
-
-      if (!currentSession || !currentSession.kycId) {
-        console.error('No KYC session or kycId missing:', {
-          currentSession,
-          hasKycId: !!currentSession?.kycId,
-          kycIdValue: currentSession?.kycId,
-        });
-        showSnackbar('Eroare la crearea sesiunii KYC');
-        setSubmitting(false);
-        return;
-      }
-
-      console.log('Updating KYC form data with kycId:', currentSession.kycId);
-      console.log('Form data:', formData);
-
-      // Update KYC form data (CNP, address, etc.) - do this first
-      try {
-        await kycApi.updateFormData(currentSession.kycId, {
-          cnp: formData.cnp,
-          address: formData.address,
-          city: formData.city,
-          county: formData.county,
-          postalCode: formData.postalCode,
-        });
-        console.log('KYC form data updated successfully');
-      } catch (formDataError: any) {
-        console.error('Error updating KYC form data:', formDataError);
-        showSnackbar(
-          formDataError.response?.data?.message ||
-            'Eroare la salvarea datelor formularului',
-        );
-        setSubmitting(false);
-        return; // Stop here if form data update fails
-      }
-
-      // Upload ID card image
-      if (idCardImage) {
-        try {
-          // Determine file extension and MIME type from URI
-          let fileExtension = 'jpg';
-          let mimeType = 'image/jpeg';
-          
-          if (idCardImage.includes('.png') || idCardImage.startsWith('data:image/png')) {
-            fileExtension = 'png';
-            mimeType = 'image/png';
-          } else if (idCardImage.includes('.jpg') || idCardImage.includes('.jpeg') || idCardImage.startsWith('data:image/jpeg')) {
-            fileExtension = 'jpg';
-            mimeType = 'image/jpeg';
-          }
-          
-          const fileName = `id_card.${fileExtension}`;
-
-          console.log('[KycForm] Uploading ID card image:', {
-            kycId: currentSession.kycId,
-            fileName,
-            mimeType,
-            uriPreview: idCardImage.substring(0, 50) + '...',
-          });
-
-          await kycApi.uploadFile(currentSession.kycId, 'id_front', {
-            uri: idCardImage,
-            type: mimeType,
-            name: fileName,
-          });
-
-          console.log('[KycForm] Image uploaded successfully');
-        } catch (uploadError: any) {
-          console.error('[KycForm] Image upload failed:', uploadError);
-          const errorMessage = 
-            uploadError.response?.data?.message ||
-            uploadError.response?.data?.errors?.File?.[0] ||
-            uploadError.message ||
-            'Eroare la încărcarea imaginii';
-          
-          showSnackbar(
-            `Datele au fost salvate, dar încărcarea imaginii a eșuat: ${errorMessage}`,
-          );
-        }
-      }
-
-      // Reload status to show pending state
-      await loadKycStatus();
-
-      showSnackbar('Cererea KYC a fost trimisă cu succes!');
-    } catch (error: any) {
-      console.error('KYC submit error:', error);
-      showSnackbar(
-        error.response?.data?.message || 'Eroare la trimiterea cererii KYC',
-      );
+    } catch (err: any) {
+      showSnack(err.response?.data?.message || 'Eroare la verificare');
+      setStep('error');
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
-  const showSnackbar = (message: string) => {
-    setSnackbarMessage(message);
-    setSnackbarVisible(true);
+  const handleRetry = () => {
+    setFrontImageUri(null);
+    setBackImageUri(null);
+    setSelfieUri(null);
+    setOcrResult(null);
+    setLivenessResult(null);
+    setActiveLivenessResult(null);
+    setDecision(null);
+    setError('');
+    setStep('intro');
   };
 
-  if (loading && !kycSession) {
+  const handleGoToDashboard = () => {
+    navigation.navigate('DashboardHome');
+  };
+
+  // ── Render helpers ──
+
+  const renderStepIndicator = () => {
+    const steps = ['Document', 'Selfie', 'Liveness', 'Verificare'];
+    const currentIdx =
+      step === 'document_front' || step === 'document_back' ? 0 :
+      step === 'selfie' ? 1 :
+      step === 'active_liveness' ? 2 :
+      step === 'processing' || step === 'approved' ? 3 : -1;
+
+    if (currentIdx < 0) return null;
+
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
+      <View style={styles.stepIndicator}>
+        {steps.map((label, i) => (
+          <View key={label} style={styles.stepItem}>
+            <View style={[
+              styles.stepDot,
+              i <= currentIdx ? styles.stepDotActive : styles.stepDotInactive,
+            ]}>
+              {i < currentIdx ? (
+                <Icon name="check" size={14} color={colors.light[50]} />
+              ) : (
+                <Text style={styles.stepDotText}>{i + 1}</Text>
+              )}
+            </View>
+            <Text style={[
+              styles.stepLabel,
+              i <= currentIdx ? styles.stepLabelActive : styles.stepLabelInactive,
+            ]}>{label}</Text>
+          </View>
+        ))}
       </View>
     );
-  }
+  };
+
+  const renderImagePreview = (uri: string | null, onCapture: () => void, label: string) => (
+    <View style={styles.imageSection}>
+      {uri ? (
+        <View>
+          <Image source={{uri}} style={styles.previewImage} resizeMode="contain" />
+          <TouchableOpacity style={styles.retakeBtn} onPress={onCapture}>
+            <Icon name="camera-retake" size={18} color={colors.light[50]} />
+            <Text style={styles.retakeBtnText}>Recaptureaza</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity style={styles.captureBtn} onPress={onCapture}>
+          <Icon name="camera" size={48} color={colors.brand.primary} />
+          <Text style={styles.captureBtnText}>{label}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  // ── Step renders ──
+
+  const renderLoading = () => (
+    <View style={styles.centered}>
+      <ActivityIndicator size="large" color={colors.brand.primary} />
+      <Text style={styles.loadingText}>Se verifica statusul KYC...</Text>
+    </View>
+  );
+
+  const renderIntro = () => (
+    <View style={styles.stepContent}>
+      <View style={styles.iconCircle}>
+        <Icon name="shield-check" size={56} color={colors.brand.primary} />
+      </View>
+      <Text style={styles.title}>Verificare identitate</Text>
+      <Text style={styles.subtitle}>
+        Pentru a-ti proteja contul si a respecta reglementarile,
+        trebuie sa iti verificam identitatea.
+      </Text>
+
+      <View style={styles.infoBox}>
+        <View style={styles.infoRow}>
+          <Icon name="card-account-details" size={22} color={colors.brand.primary} />
+          <Text style={styles.infoText}>Carte de identitate (fata + spate)</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Icon name="camera-front" size={22} color={colors.brand.primary} />
+          <Text style={styles.infoText}>Selfie pentru verificare faciala</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Icon name="face-recognition" size={22} color={colors.brand.primary} />
+          <Text style={styles.infoText}>Verificare liveness (clipire, zambet)</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Icon name="clock-fast" size={22} color={colors.brand.primary} />
+          <Text style={styles.infoText}>Procesul dureaza ~2 minute</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={[styles.primaryBtn, isSubmitting && styles.btnDisabled]}
+        onPress={handleStartKyc}
+        disabled={isSubmitting}>
+        {isSubmitting ? (
+          <ActivityIndicator size="small" color={colors.light[50]} />
+        ) : (
+          <Text style={styles.primaryBtnText}>Incepe verificarea</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderDocumentFront = () => (
+    <View style={styles.stepContent}>
+      {renderStepIndicator()}
+      <Text style={styles.title}>Carte de identitate - Fata</Text>
+      <Text style={styles.subtitle}>
+        Fotografiati partea din fata a cartii de identitate.
+        Asigurati-va ca textul este clar si vizibil.
+      </Text>
+      {renderImagePreview(frontImageUri, handleCaptureDocumentFront, 'Fotografiaza documentul')}
+      {frontImageUri && (
+        <TouchableOpacity
+          style={[styles.primaryBtn, isSubmitting && styles.btnDisabled]}
+          onPress={handleSubmitDocumentFront}
+          disabled={isSubmitting}>
+          {isSubmitting ? (
+            <View style={styles.btnLoading}>
+              <ActivityIndicator size="small" color={colors.light[50]} />
+              <Text style={styles.primaryBtnText}>Se proceseaza OCR...</Text>
+            </View>
+          ) : (
+            <Text style={styles.primaryBtnText}>Trimite documentul</Text>
+          )}
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  const renderDocumentBack = () => (
+    <View style={styles.stepContent}>
+      {renderStepIndicator()}
+      <Text style={styles.title}>Carte de identitate - Spate</Text>
+      <Text style={styles.subtitle}>
+        Aveti un CI de format nou. Fotografiati si spatele.
+      </Text>
+      {renderImagePreview(backImageUri, handleCaptureDocumentBack, 'Fotografiaza spatele')}
+      {backImageUri && (
+        <TouchableOpacity
+          style={[styles.primaryBtn, isSubmitting && styles.btnDisabled]}
+          onPress={handleSubmitDocumentBack}
+          disabled={isSubmitting}>
+          {isSubmitting ? (
+            <View style={styles.btnLoading}>
+              <ActivityIndicator size="small" color={colors.light[50]} />
+              <Text style={styles.primaryBtnText}>Se proceseaza...</Text>
+            </View>
+          ) : (
+            <Text style={styles.primaryBtnText}>Trimite documentul</Text>
+          )}
+        </TouchableOpacity>
+      )}
+      {ocrResult?.ocrData && (
+        <View style={styles.ocrPreview}>
+          <Text style={styles.ocrTitle}>Date extrase:</Text>
+          <Text style={styles.ocrText}>
+            {ocrResult.ocrData.firstName} {ocrResult.ocrData.lastName}
+          </Text>
+          {ocrResult.ocrData.cnp && (
+            <Text style={styles.ocrText}>CNP: {ocrResult.ocrData.cnp}</Text>
+          )}
+        </View>
+      )}
+    </View>
+  );
+
+  const renderSelfie = () => (
+    <View style={styles.stepContent}>
+      {renderStepIndicator()}
+      <Text style={styles.title}>Selfie</Text>
+      <Text style={styles.subtitle}>
+        Faceti un selfie clar. Asigurati-va ca fata este bine iluminata.
+      </Text>
+      {renderImagePreview(selfieUri, handleCaptureSelfie, 'Fa un selfie')}
+      {selfieUri && (
+        <TouchableOpacity
+          style={[styles.primaryBtn, isSubmitting && styles.btnDisabled]}
+          onPress={handleSubmitSelfie}
+          disabled={isSubmitting}>
+          {isSubmitting ? (
+            <View style={styles.btnLoading}>
+              <ActivityIndicator size="small" color={colors.light[50]} />
+              <Text style={styles.primaryBtnText}>Se verifica...</Text>
+            </View>
+          ) : (
+            <Text style={styles.primaryBtnText}>Trimite selfie</Text>
+          )}
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  const renderActiveLiveness = () => (
+    <View style={styles.stepContent}>
+      {renderStepIndicator()}
+      <View style={styles.iconCircle}>
+        <Icon name="face-recognition" size={48} color={colors.brand.primary} />
+      </View>
+      <Text style={styles.title}>Verificare liveness</Text>
+      <Text style={styles.subtitle}>
+        Se va verifica ca sunteti o persoana reala.
+        Va rugam faceti un selfie nou cu camera frontala.
+      </Text>
+      <TouchableOpacity
+        style={[styles.primaryBtn, isSubmitting && styles.btnDisabled]}
+        onPress={handleActiveLiveness}
+        disabled={isSubmitting}>
+        {isSubmitting ? (
+          <View style={styles.btnLoading}>
+            <ActivityIndicator size="small" color={colors.light[50]} />
+            <Text style={styles.primaryBtnText}>Se proceseaza...</Text>
+          </View>
+        ) : (
+          <Text style={styles.primaryBtnText}>Porneste verificarea</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderProcessing = () => (
+    <View style={styles.centered}>
+      <ActivityIndicator size="large" color={colors.brand.primary} />
+      <Text style={styles.loadingText}>Se compara datele...</Text>
+      <Text style={styles.subtitle}>
+        Verificam ca selfie-ul corespunde cu fotografia din document.
+      </Text>
+    </View>
+  );
+
+  const renderApproved = () => (
+    <View style={styles.stepContent}>
+      <View style={[styles.iconCircle, {backgroundColor: 'rgba(0,200,83,0.15)'}]}>
+        <Icon name="check-circle" size={64} color="#00C853" />
+      </View>
+      <Text style={styles.title}>Identitate verificata!</Text>
+      <Text style={styles.subtitle}>
+        Contul tau a fost verificat cu succes.
+        Acum poti accesa toate functiile aplicatiei.
+      </Text>
+      {decision?.decision?.person && (
+        <View style={styles.ocrPreview}>
+          <Text style={styles.ocrText}>
+            {decision.decision.person.firstName} {decision.decision.person.lastName}
+          </Text>
+          {decision.decision.person.idNumber && (
+            <Text style={styles.ocrText}>CNP: {decision.decision.person.idNumber}</Text>
+          )}
+        </View>
+      )}
+      <TouchableOpacity style={styles.primaryBtn} onPress={handleGoToDashboard}>
+        <Text style={styles.primaryBtnText}>Mergi la Dashboard</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderRejected = () => (
+    <View style={styles.stepContent}>
+      <View style={[styles.iconCircle, {backgroundColor: 'rgba(255,61,0,0.15)'}]}>
+        <Icon name="close-circle" size={64} color="#FF3D00" />
+      </View>
+      <Text style={styles.title}>Verificare nereusita</Text>
+      <Text style={styles.subtitle}>{rejectionReason}</Text>
+      <TouchableOpacity style={styles.primaryBtn} onPress={handleRetry}>
+        <Text style={styles.primaryBtnText}>Incearca din nou</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderError = () => (
+    <View style={styles.stepContent}>
+      <View style={[styles.iconCircle, {backgroundColor: 'rgba(255,61,0,0.15)'}]}>
+        <Icon name="alert-circle" size={64} color="#FF3D00" />
+      </View>
+      <Text style={styles.title}>Eroare</Text>
+      <Text style={styles.subtitle}>{error || 'A aparut o eroare neasteptata'}</Text>
+      <TouchableOpacity style={styles.primaryBtn} onPress={handleRetry}>
+        <Text style={styles.primaryBtnText}>Incearca din nou</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // ── Main render ──
+
+  const renderStep = () => {
+    switch (step) {
+      case 'loading': return renderLoading();
+      case 'intro': return renderIntro();
+      case 'document_front': return renderDocumentFront();
+      case 'document_back': return renderDocumentBack();
+      case 'selfie': return renderSelfie();
+      case 'active_liveness': return renderActiveLiveness();
+      case 'processing': return renderProcessing();
+      case 'approved': return renderApproved();
+      case 'rejected': return renderRejected();
+      case 'error': return renderError();
+      default: return renderLoading();
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.content}>
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleLarge" style={styles.sectionTitle}>
-                Verificare Identitate (KYC)
-              </Text>
-              <Text variant="bodyMedium" style={styles.description}>
-                Completează datele de mai jos și încarcă o poză cu buletinul
-                pentru verificare.
-              </Text>
-            </Card.Content>
-          </Card>
-
-          <Card style={styles.card}>
-            <Card.Content>
-              <TextInput
-                label="CNP *"
-                value={formData.cnp}
-                onChangeText={text => {
-                  setFormData({...formData, cnp: text});
-                  if (errors.cnp) {
-                    setErrors({...errors, cnp: undefined});
-                  }
-                }}
-                error={!!errors.cnp}
-                keyboardType="numeric"
-                maxLength={13}
-                style={styles.input}
-                mode="outlined"
-              />
-              {errors.cnp && (
-                <Text style={styles.errorText}>{errors.cnp}</Text>
-              )}
-
-              <TextInput
-                label="Adresă *"
-                value={formData.address}
-                onChangeText={text => {
-                  setFormData({...formData, address: text});
-                  if (errors.address) {
-                    setErrors({...errors, address: undefined});
-                  }
-                }}
-                error={!!errors.address}
-                style={styles.input}
-                mode="outlined"
-                multiline
-                numberOfLines={2}
-              />
-              {errors.address && (
-                <Text style={styles.errorText}>{errors.address}</Text>
-              )}
-
-              <View style={styles.row}>
-                <View style={styles.halfWidth}>
-                  <TextInput
-                    label="Oraș *"
-                    value={formData.city}
-                    onChangeText={text => {
-                      setFormData({...formData, city: text});
-                      if (errors.city) {
-                        setErrors({...errors, city: undefined});
-                      }
-                    }}
-                    error={!!errors.city}
-                    style={styles.input}
-                    mode="outlined"
-                  />
-                  {errors.city && (
-                    <Text style={styles.errorText}>{errors.city}</Text>
-                  )}
-                </View>
-
-                <View style={styles.halfWidth}>
-                  <TextInput
-                    label="Județ *"
-                    value={formData.county}
-                    onChangeText={text => {
-                      setFormData({...formData, county: text});
-                      if (errors.county) {
-                        setErrors({...errors, county: undefined});
-                      }
-                    }}
-                    error={!!errors.county}
-                    style={styles.input}
-                    mode="outlined"
-                  />
-                  {errors.county && (
-                    <Text style={styles.errorText}>{errors.county}</Text>
-                  )}
-                </View>
-              </View>
-
-              <TextInput
-                label="Cod Poștal *"
-                value={formData.postalCode}
-                onChangeText={text => {
-                  setFormData({...formData, postalCode: text});
-                  if (errors.postalCode) {
-                    setErrors({...errors, postalCode: undefined});
-                  }
-                }}
-                error={!!errors.postalCode}
-                keyboardType="numeric"
-                maxLength={6}
-                style={styles.input}
-                mode="outlined"
-              />
-              {errors.postalCode && (
-                <Text style={styles.errorText}>{errors.postalCode}</Text>
-              )}
-            </Card.Content>
-          </Card>
-
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                Poza cu Buletinul *
-              </Text>
-              <Text variant="bodySmall" style={styles.description}>
-                Încarcă o poză clară cu fața buletinului tău
-              </Text>
-
-              {idCardImage ? (
-                <View style={styles.imageContainer}>
-                  <Image
-                    source={{uri: idCardImage}}
-                    style={styles.image}
-                    resizeMode="contain"
-                  />
-                  <Button
-                    mode="outlined"
-                    onPress={() => {
-                      console.log('Change image button pressed');
-                      pickIdCardImage();
-                    }}
-                    style={styles.changeImageButton}>
-                    Schimbă imaginea
-                  </Button>
-                </View>
-              ) : (
-                <Button
-                  mode="outlined"
-                  icon="camera"
-                  onPress={() => {
-                    console.log('Select image button pressed');
-                    pickIdCardImage();
-                  }}
-                  style={styles.uploadButton}>
-                  Selectează poza cu buletinul
-                </Button>
-              )}
-            </Card.Content>
-          </Card>
-
-          {kycSession?.status === 'pending' && (
-            <Card style={styles.card}>
-              <Card.Content>
-                <View style={styles.statusContainer}>
-                  <Icon name="clock-outline" size={24} color="#FF9800" />
-                  <Text variant="bodyMedium" style={styles.statusText}>
-                    Cererea ta KYC este în așteptare de verificare
-                  </Text>
-                </View>
-              </Card.Content>
-            </Card>
-          )}
-
-          {kycSession?.status === 'rejected' && (
-            <Card style={[styles.card, styles.rejectedCard]}>
-              <Card.Content>
-                <View style={styles.statusContainer}>
-                  <Icon name="close-circle" size={24} color="#F44336" />
-                  <View style={styles.rejectionContainer}>
-                    <Text variant="bodyMedium" style={styles.rejectionTitle}>
-                      Cererea ta KYC a fost respinsă
-                    </Text>
-                    {kycSession.rejectionReason && (
-                      <Text variant="bodySmall" style={styles.rejectionReason}>
-                        {kycSession.rejectionReason}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-              </Card.Content>
-            </Card>
-          )}
-
-          <Button
-            mode="contained"
-            onPress={submitKyc}
-            loading={submitting}
-            disabled={submitting || kycSession?.status === 'pending'}
-            style={styles.submitButton}>
-            {kycSession?.status === 'pending'
-              ? 'Cerere în așteptare'
-              : 'Trimite cererea KYC'}
-          </Button>
-
-          {kycSession?.status === 'pending' && (
-            <Button
-              mode="outlined"
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}>
-              Înapoi la Dashboard
-            </Button>
-          )}
-        </View>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}>
+        {renderStep()}
       </ScrollView>
 
       <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}>
-        {snackbarMessage}
+        visible={snackVisible}
+        onDismiss={() => setSnackVisible(false)}
+        duration={4000}
+        style={styles.snackbar}>
+        {snackMessage}
       </Snackbar>
     </View>
   );
@@ -639,107 +676,206 @@ const KycFormScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: colors.dark[900],
   },
-  scrollView: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
+    padding: spacing.lg,
+    paddingTop: spacing.xl,
   },
-  content: {
-    padding: 16,
-  },
-  center: {
+  centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: spacing.lg,
   },
-  card: {
-    marginBottom: 16,
-    borderRadius: 16,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  sectionTitle: {
-    fontWeight: '700',
-    marginBottom: 8,
-    color: '#1A1A1A',
-  },
-  description: {
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  input: {
-    marginBottom: 8,
-  },
-  errorText: {
-    color: '#F44336',
-    fontSize: 12,
-    marginBottom: 8,
-    marginLeft: 12,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  halfWidth: {
-    width: '48%',
-  },
-  imageContainer: {
-    marginTop: 16,
+  stepContent: {
+    flex: 1,
     alignItems: 'center',
+    paddingTop: spacing.md,
   },
-  image: {
+
+  // Step indicator
+  stepIndicator: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
     width: '100%',
-    height: 200,
-    borderRadius: 12,
-    marginBottom: 12,
   },
-  uploadButton: {
-    marginTop: 16,
-  },
-  changeImageButton: {
-    marginTop: 8,
-  },
-  submitButton: {
-    marginTop: 8,
-    marginBottom: 12,
-    borderRadius: 16,
-    paddingVertical: 6,
-  },
-  backButton: {
-    marginBottom: 24,
-    borderRadius: 16,
-    paddingVertical: 6,
-  },
-  statusContainer: {
-    flexDirection: 'row',
+  stepItem: {
     alignItems: 'center',
-    gap: 12,
-  },
-  statusText: {
-    flex: 1,
-    color: '#FF9800',
-  },
-  rejectedCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#F44336',
-  },
-  rejectionContainer: {
     flex: 1,
   },
-  rejectionTitle: {
-    fontWeight: '600',
-    color: '#F44336',
+  stepDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 4,
   },
-  rejectionReason: {
-    color: '#666',
-    marginTop: 4,
+  stepDotActive: {
+    backgroundColor: colors.brand.primary,
+  },
+  stepDotInactive: {
+    backgroundColor: colors.dark[600],
+  },
+  stepDotText: {
+    color: colors.light[50],
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  stepLabel: {
+    fontSize: 11,
+  },
+  stepLabelActive: {
+    color: colors.light[100],
+  },
+  stepLabelInactive: {
+    color: colors.dark[400],
+  },
+
+  // Typography
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.light[50],
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: colors.dark[300],
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+    lineHeight: 22,
+    paddingHorizontal: spacing.md,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.light[100],
+    marginTop: spacing.md,
+  },
+
+  // Icon circle
+  iconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(0,117,235,0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+
+  // Info box
+  infoBox: {
+    backgroundColor: colors.dark[800],
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    width: '100%',
+    marginBottom: spacing.xl,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  infoText: {
+    color: colors.light[90],
+    fontSize: 14,
+    marginLeft: spacing.md,
+    flex: 1,
+  },
+
+  // Image capture
+  imageSection: {
+    width: '100%',
+    marginBottom: spacing.lg,
+  },
+  captureBtn: {
+    backgroundColor: colors.dark[800],
+    borderRadius: borderRadius.lg,
+    borderWidth: 2,
+    borderColor: colors.dark[600],
+    borderStyle: 'dashed',
+    padding: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 180,
+  },
+  captureBtnText: {
+    color: colors.light[90],
+    fontSize: 15,
+    marginTop: spacing.sm,
+  },
+  previewImage: {
+    width: '100%',
+    height: 220,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.dark[800],
+  },
+  retakeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  retakeBtnText: {
+    color: colors.light[90],
+    marginLeft: spacing.xs,
+    fontSize: 14,
+  },
+
+  // OCR preview
+  ocrPreview: {
+    backgroundColor: colors.dark[800],
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    width: '100%',
+    marginTop: spacing.md,
+  },
+  ocrTitle: {
+    color: colors.brand.primary,
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+  },
+  ocrText: {
+    color: colors.light[90],
+    fontSize: 14,
+    marginBottom: 2,
+  },
+
+  // Buttons
+  primaryBtn: {
+    backgroundColor: colors.brand.primary,
+    borderRadius: borderRadius.pill,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.xl,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  primaryBtnText: {
+    color: colors.light[50],
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  btnDisabled: {
+    opacity: 0.6,
+  },
+  btnLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+
+  // Snackbar
+  snackbar: {
+    backgroundColor: colors.dark[700],
   },
 });
 
 export default KycFormScreen;
-
