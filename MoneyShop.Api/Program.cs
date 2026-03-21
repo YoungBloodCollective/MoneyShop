@@ -94,6 +94,8 @@ builder.Services.AddCors(options =>
             "http://127.0.0.1:19000",
             "https://black-grass-037518603.6.azurestaticapps.net",
             "https://gentle-tree-0f5cdaa03.1.azurestaticapps.net",
+            "https://moneyshop.ro",
+            "https://www.moneyshop.ro",
             "null"
         };
 
