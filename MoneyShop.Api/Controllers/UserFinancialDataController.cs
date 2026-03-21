@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.User;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace MoneyShop.Api.Controllers
 {
@@ -34,14 +35,33 @@ namespace MoneyShop.Api.Controllers
                 var data = _financialDataService.GetFinancialData(userId);
 
                 if (data == null)
-                    return NotFound(new { message = "No financial data found" });
+                    return Ok(new { isEmpty = true });
+
+                object? credits = null;
+                if (!string.IsNullOrEmpty(data.CreditsJson))
+                {
+                    try
+                    {
+                        credits = JsonSerializer.Deserialize<List<CreditEntryDto>>(data.CreditsJson, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+                    }
+                    catch { credits = null; }
+                }
 
                 return Ok(new
                 {
+                    isEmpty = false,
+                    ficoScore = data.FicoScore,
+                    salariu1 = data.Salariu1,
+                    salariu2 = data.Salariu2,
+                    salariu3 = data.Salariu3,
                     salariuNet = data.SalariuNet,
                     bonuriMasa = data.BonuriMasa,
                     sumaBonuriMasa = data.SumaBonuriMasa,
                     venitTotal = data.VenitTotal,
+                    credits = credits ?? new List<CreditEntryDto>(),
                     soldTotal = data.SoldTotal,
                     rataTotalaLunara = data.RataTotalaLunara,
                     nrCrediteBanci = data.NrCrediteBanci,
@@ -57,7 +77,33 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPut("my-data")]
+        public IActionResult SaveMyFinancialData([FromBody] ManualFinancialDataDto dto)
+        {
+            try
+            {
+                var userId = GetUserId();
+                var result = _financialDataService.SaveManualFinancialData(userId, dto);
+
+                return Ok(new
+                {
+                    message = "Date financiare salvate cu succes",
+                    salariuNet = result.SalariuNet,
+                    venitTotal = result.VenitTotal,
+                    soldTotal = result.SoldTotal,
+                    rataTotalaLunara = result.RataTotalaLunara,
+                    dti = result.Dti,
+                    scoringLevel = result.ScoringLevel,
+                    lastUpdated = result.LastUpdated
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
     }

@@ -25,6 +25,7 @@ namespace MoneyShop.DomainModel.Entities
         public int? NonbankClosedLast4Years { get; set; }
         public int? NonbankActiveNow { get; set; }
         
+        public string? ParsedDataJson { get; set; } // Full parsed report as JSON
         public string? ParseWarnings { get; set; } // JSON array cu warning-uri
         public string? ParserVersion { get; set; }
         

@@ -263,7 +263,7 @@ public class KycScanController : ControllerBase
             {
                 var externalStatus = await _externalKyc.GetSessionStatusAsync(session.ProviderTransactionId);
 
-                if (externalStatus.Status == "Completed")
+                if (string.Equals(externalStatus.Status, "Completed", StringComparison.OrdinalIgnoreCase))
                 {
                     var decision = await _externalKyc.GetDecisionAsync(session.ProviderTransactionId);
 

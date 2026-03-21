@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 500" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#87CEEB"/><stop offset="100%" stop-color="#E0F0FF"/></linearGradient>
+    <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4CAF50"/><stop offset="100%" stop-color="#2E7D32"/></linearGradient>
+  </defs>
+  <rect width="600" height="500" rx="20" fill="url(#sky)"/>
+  <ellipse cx="300" cy="500" rx="350" ry="120" fill="url(#grass)"/>
+  <!-- House silhouette -->
+  <rect x="320" y="120" width="200" height="160" rx="8" fill="#F5F5F5" stroke="#DDD" stroke-width="2"/>
+  <polygon points="320,120 420,50 520,120" fill="#8D6E63" stroke="#795548" stroke-width="2"/>
+  <rect x="360" y="180" width="50" height="60" rx="4" fill="#90CAF9"/>
+  <rect x="440" y="180" width="50" height="60" rx="4" fill="#90CAF9"/>
+  <rect x="395" y="220" width="30" height="60" rx="4" fill="#795548"/>
+  <!-- Family silhouettes -->
+  <circle cx="180" cy="260" r="28" fill="#FFB74D"/>
+  <rect x="155" y="290" width="50" height="80" rx="10" fill="#1565C0"/>
+  <circle cx="240" cy="265" r="25" fill="#FFB74D"/>
+  <rect x="218" y="292" width="44" height="70" rx="10" fill="#E91E63"/>
+  <circle cx="210" cy="310" r="15" fill="#FFB74D"/>
+  <rect x="198" y="325" width="24" height="40" rx="8" fill="#FF9800"/>
+  <!-- Tablet/laptop in hands -->
+  <rect x="160" y="330" width="70" height="45" rx="6" fill="#263238"/>
+  <rect x="165" y="334" width="60" height="37" rx="3" fill="#4FC3F7"/>
+  <text x="300" y="470" font-family="Arial" font-size="14" fill="white" text-anchor="middle" opacity="0.8">Replace with real family photo</text>
+</svg>

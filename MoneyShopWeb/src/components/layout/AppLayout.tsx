@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { MobileNav } from './MobileNav';
+import { ChatWidget } from '@/components/chat/ChatWidget';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 
 export function AppLayout() {
@@ -10,7 +11,7 @@ export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-dark-800">
+    <div className="flex h-screen overflow-hidden bg-dark-900">
       {/* Desktop sidebar */}
       {isDesktop && <Sidebar />}
 
@@ -42,6 +43,9 @@ export function AppLayout() {
 
       {/* Mobile bottom nav */}
       {!isDesktop && <MobileNav />}
+
+      {/* Floating chat widget */}
+      <ChatWidget />
     </div>
   );
 }

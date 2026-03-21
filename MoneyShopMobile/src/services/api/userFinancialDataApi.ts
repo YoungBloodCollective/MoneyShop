@@ -1,6 +1,11 @@
 import {apiClient} from './apiClient';
 
 export interface UserFinancialData {
+  isEmpty?: boolean;
+  ficoScore?: number;
+  salariu1?: number;
+  salariu2?: number;
+  salariu3?: number;
   salariuNet?: number;
   bonuriMasa?: boolean;
   sumaBonuriMasa?: number;

@@ -1,30 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  /* Brand */
-  --color-brand-primary: #0075EB;
-  --color-brand-secondary: #7F84F6;
-  --color-brand-accent: #EB008D;
+  /* Brand — volt.ro inspired */
+  --color-brand-primary: #2D2DF0;
+  --color-brand-secondary: #4F46E5;
+  --color-brand-accent: #FFA800;
   --color-brand-purple: #6E4CE5;
-  --color-brand-deep-purple: #261073;
+  --color-brand-deep-purple: #1A1A96;
 
-  /* Dark backgrounds */
-  --color-dark-900: #0A0B0D;
-  --color-dark-800: #111214;
-  --color-dark-700: #191C1F;
-  --color-dark-600: #1F2226;
-  --color-dark-500: #2A2D31;
-  --color-dark-400: #3A3D41;
-  --color-dark-300: #4A4D51;
+  /* Surface / Background scale — "dark" = furthest from content, "700" = closest */
+  /* NOTE: values are light because this is a light-mode theme */
+  --color-dark-900: #ECEEEE;
+  --color-dark-800: #F5F5F5;
+  --color-dark-700: #FFFFFF;
+  --color-dark-600: #E5E7EB;
+  --color-dark-500: #D1D5DB;
+  --color-dark-400: #C5C9D2;
+  --color-dark-300: #B0B4BD;
 
-  /* Light text */
-  --color-light-100: #FFFFFF;
-  --color-light-90: #F0F2F5;
-  --color-light-80: #D1D5DB;
-  --color-light-70: #B0B3B7;
+  /* Text scale — "light" = text on light backgrounds, 100 = darkest/strongest */
+  --color-light-100: #222626;
+  --color-light-90: #222626;
+  --color-light-80: #374151;
+  --color-light-70: #5B6D83;
   --color-light-60: #8A8D91;
-  --color-light-50: #6B7280;
-  --color-light-40: #4B5563;
+  --color-light-50: #9CA3AF;
+  --color-light-40: #C5C9D2;
 
   /* Semantic */
   --color-success-400: #34D399;
@@ -37,15 +38,32 @@
   --color-error-500: #EF4444;
   --color-error-600: #DC2626;
   --color-info-400: #60A5FA;
-  --color-info-500: #0075EB;
-  --color-info-600: #0060C0;
+  --color-info-500: #2D2DF0;
+  --color-info-600: #1A1A96;
 
-  /* Border radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-xxl: 24px;
+  /* Cyan / Teal palette — landing page accent */
+  --color-cyan-50: #ECFEFF;
+  --color-cyan-100: #CFFAFE;
+  --color-cyan-200: #A5F3FC;
+  --color-cyan-300: #67E8F9;
+  --color-cyan-400: #22D3EE;
+  --color-cyan-500: #0EA5E9;
+  --color-cyan-600: #0891B2;
+  --color-cyan-700: #0E7490;
+  --color-cyan-800: #155E75;
+  --color-cyan-900: #164E63;
+
+  /* Navy — complementary dark palette */
+  --color-navy-700: #334155;
+  --color-navy-800: #1E293B;
+  --color-navy-900: #0F172A;
+
+  /* Border radius — volt uses very round/pill shapes */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-xxl: 32px;
   --radius-pill: 9999px;
 
   /* Font family */
@@ -61,7 +79,7 @@ html, body, #root {
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-dark-800);
+  background-color: var(--color-dark-900);
   color: var(--color-light-90);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -73,7 +91,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-dark-800);
+  background: var(--color-dark-900);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -89,4 +107,103 @@ body {
 *:focus-visible {
   outline: 2px solid var(--color-brand-primary);
   outline-offset: 2px;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulseSoft {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.8; }
+}
+
+@keyframes slidePartners {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes monitorFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+.animate-fade-in-up     { animation: fadeInUp 0.7s ease-out both; }
+.animate-fade-in-down   { animation: fadeInDown 0.6s ease-out both; }
+.animate-fade-in-left   { animation: fadeInLeft 0.7s ease-out both; }
+.animate-fade-in-right  { animation: fadeInRight 0.7s ease-out both; }
+.animate-scale-in       { animation: scaleIn 0.6s ease-out both; }
+.animate-float          { animation: floatY 4s ease-in-out infinite; }
+.animate-pulse-soft     { animation: pulseSoft 3s ease-in-out infinite; }
+.animate-slide-partners { animation: slidePartners 25s linear infinite; }
+.animate-monitor-float  { animation: monitorFloat 5s ease-in-out infinite; }
+
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+.delay-700 { animation-delay: 700ms; }
+.delay-800 { animation-delay: 800ms; }
+
+.shimmer-text {
+  background: linear-gradient(90deg, #222626 0%, #2D2DF0 50%, #222626 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Safe area for mobile bottom nav (iPhone notch / home bar) */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Number input: hide spinners for cleaner look */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }

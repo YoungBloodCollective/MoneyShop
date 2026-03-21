@@ -4,10 +4,13 @@
     "slug": "moneyshop-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "scheme": "moneyshop",
+    "icon": "./assets/images/icon.png",
     "splash": {
+      "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#030303"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -15,6 +18,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.moneyshop.mobile",
+      "buildNumber": "1",
+      "icon": "./assets/images/icon-ios.png",
       "infoPlist": {
         "NSCameraUsageDescription": "Această aplicație are nevoie de acces la cameră pentru a încărca poze cu buletinul pentru verificare KYC.",
         "NSPhotoLibraryUsageDescription": "Această aplicație are nevoie de acces la galeria foto pentru a încărca poze cu buletinul pentru verificare KYC."
@@ -22,9 +27,11 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#030303"
       },
       "package": "com.moneyshop.mobile",
+      "versionCode": 1,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -41,4 +48,3 @@
     }
   }
 }
-

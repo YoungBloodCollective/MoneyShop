@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { GuestLayout } from '@/components/layout/GuestLayout';
+import { PublicLayout } from '@/components/layout/PublicLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 
 // Lazy-loaded pages
@@ -17,31 +18,41 @@ const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
 const ApplicationListPage = lazy(() => import('@/pages/dashboard/ApplicationListPage'));
 const ApplicationWizardPage = lazy(() => import('@/pages/dashboard/ApplicationWizardPage'));
 const ApplicationSuccessPage = lazy(() => import('@/pages/dashboard/ApplicationSuccessPage'));
+const SalaryDetailPage = lazy(() => import('@/pages/dashboard/SalaryDetailPage'));
+const PaymentDetailPage = lazy(() => import('@/pages/dashboard/PaymentDetailPage'));
+const CreditsDetailPage = lazy(() => import('@/pages/dashboard/CreditsDetailPage'));
 
 const SimulatorPage = lazy(() => import('@/pages/simulator/SimulatorPage'));
 const SimulatorFormPage = lazy(() => import('@/pages/simulator/SimulatorFormPage'));
 const SimulatorResultPage = lazy(() => import('@/pages/simulator/SimulatorResultPage'));
-
-const ChatPage = lazy(() => import('@/pages/chat/ChatPage'));
+const AdvancedCalculatorPage = lazy(() => import('@/pages/simulator/AdvancedCalculatorPage'));
 
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const FinancialDataPage = lazy(() => import('@/pages/profile/FinancialDataPage'));
+const NotificationSettingsPage = lazy(() => import('@/pages/profile/NotificationSettingsPage'));
+const BcReportPage = lazy(() => import('@/pages/profile/BcReportPage'));
 
 const KycFormPage = lazy(() => import('@/pages/kyc/KycFormPage'));
 const KycAdminPage = lazy(() => import('@/pages/kyc/KycAdminPage'));
-
-const LegalMenuPage = lazy(() => import('@/pages/legal/LegalMenuPage'));
-const TermsPage = lazy(() => import('@/pages/legal/TermsPage'));
-const PrivacyPage = lazy(() => import('@/pages/legal/PrivacyPage'));
-const MandatePage = lazy(() => import('@/pages/legal/MandatePage'));
-const CompliancePage = lazy(() => import('@/pages/legal/CompliancePage'));
-const DataTransferPage = lazy(() => import('@/pages/legal/DataTransferPage'));
 
 const ConsentManagementPage = lazy(() => import('@/pages/management/ConsentManagementPage'));
 const MandateManagementPage = lazy(() => import('@/pages/management/MandateManagementPage'));
 
 const BrokerDirectoryPage = lazy(() => import('@/pages/broker/BrokerDirectoryPage'));
+const ScheduleCallPage = lazy(() => import('@/pages/broker/ScheduleCallPage'));
 const InvoicingPage = lazy(() => import('@/pages/invoicing/InvoicingPage'));
+
+// Public pages (no auth required)
+const AboutPage = lazy(() => import('@/pages/about/AboutPage'));
+const LegalAllPage = lazy(() => import('@/pages/legal/LegalAllPage'));
+const LegalMenuPage = lazy(() => import('@/pages/legal/LegalMenuPage'));
+const PublicBrokerSearchPage = lazy(() => import('@/pages/broker/PublicBrokerSearchPage'));
+
+const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
+const AdminApplicationsPage = lazy(() => import('@/pages/admin/AdminApplicationsPage'));
+const AdminKycPage = lazy(() => import('@/pages/admin/AdminKycPage'));
+const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'));
+const AdminBrokersPage = lazy(() => import('@/pages/admin/AdminBrokersPage'));
 
 function PageLoader() {
   return (
@@ -61,6 +72,13 @@ export function AppRouter() {
         {/* Public KYC scan page (phone browser, no layout) */}
         <Route path="/kyc/scan/:token" element={<KycScanPage />} />
 
+        {/* Public pages (accessible to everyone, with PublicLayout) */}
+        <Route element={<PublicLayout />}>
+          <Route path="/despre" element={<AboutPage />} />
+          <Route path="/verifica-broker" element={<PublicBrokerSearchPage />} />
+          <Route path="/legal" element={<LegalAllPage />} />
+        </Route>
+
         {/* Guest routes */}
         <Route element={<GuestLayout />}>
           <Route path="/auth/login" element={<LoginPage />} />
@@ -78,29 +96,36 @@ export function AppRouter() {
           <Route path="/dashboard/applications" element={<ApplicationListPage />} />
           <Route path="/dashboard/apply" element={<ApplicationWizardPage />} />
           <Route path="/dashboard/success" element={<ApplicationSuccessPage />} />
+          <Route path="/dashboard/salary-detail" element={<SalaryDetailPage />} />
+          <Route path="/dashboard/payment-detail" element={<PaymentDetailPage />} />
+          <Route path="/dashboard/credits-detail" element={<CreditsDetailPage />} />
 
           <Route path="/simulator" element={<SimulatorPage />} />
           <Route path="/simulator/form" element={<SimulatorFormPage />} />
           <Route path="/simulator/result" element={<SimulatorResultPage />} />
-
-          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/simulator/advanced" element={<AdvancedCalculatorPage />} />
 
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/financial" element={<FinancialDataPage />} />
+          <Route path="/profile/notifications" element={<NotificationSettingsPage />} />
           <Route path="/profile/kyc" element={<KycFormPage />} />
+          <Route path="/profile/bc-report" element={<BcReportPage />} />
           <Route path="/profile/kyc-admin" element={<ProtectedRoute adminOnly><KycAdminPage /></ProtectedRoute>} />
 
           <Route path="/profile/legal" element={<LegalMenuPage />} />
-          <Route path="/profile/legal/terms" element={<TermsPage />} />
-          <Route path="/profile/legal/privacy" element={<PrivacyPage />} />
-          <Route path="/profile/legal/mandate" element={<MandatePage />} />
-          <Route path="/profile/legal/compliance" element={<CompliancePage />} />
-          <Route path="/profile/legal/data-transfer" element={<DataTransferPage />} />
 
           <Route path="/profile/consents" element={<ConsentManagementPage />} />
           <Route path="/profile/mandates" element={<MandateManagementPage />} />
           <Route path="/profile/brokers" element={<BrokerDirectoryPage />} />
+          <Route path="/profile/schedule-call" element={<ScheduleCallPage />} />
           <Route path="/profile/invoicing" element={<InvoicingPage />} />
+
+          {/* Admin routes */}
+          <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboardPage /></ProtectedRoute>} />
+          <Route path="/admin/applications" element={<ProtectedRoute adminOnly><AdminApplicationsPage /></ProtectedRoute>} />
+          <Route path="/admin/kyc" element={<ProtectedRoute adminOnly><AdminKycPage /></ProtectedRoute>} />
+          <Route path="/admin/reports" element={<ProtectedRoute adminOnly><AdminReportsPage /></ProtectedRoute>} />
+          <Route path="/admin/brokers" element={<ProtectedRoute adminOnly><AdminBrokersPage /></ProtectedRoute>} />
         </Route>
 
         {/* Catch-all */}

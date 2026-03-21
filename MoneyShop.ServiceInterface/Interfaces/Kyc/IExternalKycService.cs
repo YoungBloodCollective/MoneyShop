@@ -35,7 +35,14 @@ public class KycSessionStatus
     public LivenessResult? LivenessResult { get; set; }
     public ActiveLivenessResult? ActiveLivenessResult { get; set; }
     public FaceCompareResult? CompareResult { get; set; }
-    public int? AttemptsRemaining { get; set; }
+    public AttemptsRemainingInfo? AttemptsRemaining { get; set; }
+}
+
+public class AttemptsRemainingInfo
+{
+    public int Ocr { get; set; }
+    public int Liveness { get; set; }
+    public int Compare { get; set; }
 }
 
 // ── OCR ──

@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Phone, QrCode, CheckCircle, Shield } from 'lucide-react';
+import { Mail, Phone, Camera, CheckCircle, Shield } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import { authApi } from '@/services/api/authApi';
 import { kycApi } from '@/services/api/kycApi';
 import { useAuthStore } from '@/store/authStore';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 
 type Step = 'email' | 'phone' | 'kyc' | 'done';
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const user = useAuthStore(s => s.user);
   const setUser = useAuthStore(s => s.setUser);
 
@@ -30,7 +32,7 @@ export default function OnboardingPage() {
   const [kycToken, setKycToken] = useState('');
   const [kycQrUrl, setKycQrUrl] = useState('');
   const [kycStatus, setKycStatus] = useState('');
-  const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   // Redirect to dashboard if already completed
   useEffect(() => {
@@ -38,6 +40,19 @@ export default function OnboardingPage() {
       navigate('/dashboard', { replace: true });
     }
   }, [user, navigate]);
+
+  // On mount: if at KYC step, check if KYC was completed (e.g. user returning from mobile scan page)
+  useEffect(() => {
+    if (step === 'kyc') {
+      kycApi.getStatus().then(status => {
+        if (status.status === 'verified') {
+          if (user) setUser({ ...user, kycStatus: 'verified' });
+          setStep('done');
+          toast.success('KYC verificat cu succes!');
+        }
+      }).catch(() => { /* ignore - status check failed, proceed normally */ });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -110,7 +125,7 @@ export default function OnboardingPage() {
     }
   };
 
-  // ── KYC via QR ──
+  // ── KYC ──
 
   const startKyc = async () => {
     setLoading(true);
@@ -122,10 +137,17 @@ export default function OnboardingPage() {
         toast.success('KYC deja verificat!');
         return;
       }
+
+      // Mobile: navigate directly to the scan page (skip QR)
+      if (!isDesktop) {
+        navigate(`/kyc/scan/${res.accessToken}?returnTo=/onboarding`);
+        return;
+      }
+
+      // Desktop: show QR code + poll for completion
       setKycToken(res.accessToken);
       setKycQrUrl(`https://black-grass-037518603.6.azurestaticapps.net/kyc/${res.externalSessionId}?token=${res.externalToken}`);
       setKycStatus('pending');
-      // Start polling for KYC completion
       pollRef.current = setInterval(async () => {
         try {
           const status = await kycApi.getScanStatus(res.accessToken);
@@ -173,10 +195,10 @@ export default function OnboardingPage() {
                 i === currentIdx ? 'text-brand-primary' : 'text-light-40'
               }`}>
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center ${
-                  i < currentIdx ? 'bg-success-500/15' :
-                  i === currentIdx ? 'bg-brand-primary/15' : 'bg-dark-600'
+                  i < currentIdx ? 'bg-success-500 text-white' :
+                  i === currentIdx ? 'bg-brand-primary/15 ring-2 ring-brand-primary' : 'bg-dark-600'
                 }`}>
-                  {i < currentIdx ? <CheckCircle size={14} /> : s.icon}
+                  {i < currentIdx ? <CheckCircle size={14} className="text-white" /> : s.icon}
                 </div>
                 <span className="hidden sm:inline">{s.label}</span>
               </div>
@@ -203,7 +225,7 @@ export default function OnboardingPage() {
 
               {!otpId ? (
                 <button onClick={sendEmailOtp} disabled={loading}
-                  className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 transition-colors">
+                  className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-brand-primary/25">
                   {loading ? 'Se trimite...' : 'Trimite codul'}
                 </button>
               ) : (
@@ -213,11 +235,16 @@ export default function OnboardingPage() {
                     placeholder="000000" maxLength={6}
                     className="w-full h-14 text-center text-2xl tracking-[0.5em] rounded-xl bg-dark-600 border border-dark-400 text-light-90 placeholder:text-light-50 focus:border-brand-primary focus:outline-none" />
                   <button type="submit" disabled={loading}
-                    className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 transition-colors">
+                    className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-brand-primary/25">
                     {loading ? 'Se verifica...' : 'Verifica codul'}
                   </button>
                 </form>
               )}
+              <div className="mt-4 text-center">
+                <button onClick={() => navigate('/dashboard')} className="text-sm text-light-50 hover:text-light-70 underline">
+                  Finalizeaza mai tarziu
+                </button>
+              </div>
             </>
           )}
 
@@ -236,7 +263,7 @@ export default function OnboardingPage() {
 
               {!otpId ? (
                 <button onClick={sendPhoneOtp} disabled={loading}
-                  className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 transition-colors">
+                  className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-brand-primary/25">
                   {loading ? 'Se trimite...' : 'Trimite codul SMS'}
                 </button>
               ) : (
@@ -246,11 +273,16 @@ export default function OnboardingPage() {
                     placeholder="000000" maxLength={6}
                     className="w-full h-14 text-center text-2xl tracking-[0.5em] rounded-xl bg-dark-600 border border-dark-400 text-light-90 placeholder:text-light-50 focus:border-brand-primary focus:outline-none" />
                   <button type="submit" disabled={loading}
-                    className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 transition-colors">
+                    className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-brand-primary/25">
                     {loading ? 'Se verifica...' : 'Verifica codul'}
                   </button>
                 </form>
               )}
+              <div className="mt-4 text-center">
+                <button onClick={() => navigate('/dashboard')} className="text-sm text-light-50 hover:text-light-70 underline">
+                  Finalizeaza mai tarziu
+                </button>
+              </div>
             </>
           )}
 
@@ -263,31 +295,58 @@ export default function OnboardingPage() {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-light-100">Verificare identitate</h1>
-                  <p className="text-sm text-light-60">Scaneaza codul QR cu telefonul</p>
+                  <p className="text-sm text-light-60">
+                    {isDesktop ? 'Scaneaza codul QR cu telefonul' : 'Fotografiaza actul de identitate'}
+                  </p>
                 </div>
               </div>
 
               {!kycToken ? (
                 <div className="space-y-4">
                   <p className="text-sm text-light-70">
-                    Vei primi un cod QR pe care il scanezi cu telefonul mobil.
-                    Pe telefon vei fotografia actul de identitate si vei face un selfie.
+                    {isDesktop
+                      ? 'Vei primi un cod QR pe care il scanezi cu telefonul mobil. Pe telefon vei fotografia actul de identitate si vei face un selfie.'
+                      : 'Vei fotografia actul de identitate si vei face un selfie pentru verificarea identitatii.'
+                    }
                   </p>
                   <button onClick={startKyc} disabled={loading}
-                    className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 transition-colors">
-                    {loading ? 'Se initializeaza...' : 'Incepe verificarea'}
+                    className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-brand-primary/25 flex items-center justify-center gap-2">
+                    {loading ? 'Se initializeaza...' : (
+                      <>
+                        {!isDesktop && <Camera size={18} />}
+                        {isDesktop ? 'Incepe verificarea' : 'Deschide camera'}
+                      </>
+                    )}
                   </button>
+                  <div className="mt-4 text-center">
+                    <button onClick={() => navigate('/dashboard')} className="text-sm text-light-50 hover:text-light-70 underline">
+                      Finalizeaza mai tarziu
+                    </button>
+                  </div>
                 </div>
               ) : (
+                /* Desktop only: QR code + polling (mobile navigates away) */
                 <div className="space-y-5 text-center">
                   <div className="bg-white p-4 rounded-xl inline-block mx-auto">
                     <QRCodeSVG value={qrUrl} size={200} level="M" />
                   </div>
 
+                  <div className="flex flex-col gap-3 text-left">
+                    {[
+                      'Deschide camera telefonului',
+                      'Scaneaza codul QR',
+                      'Urmeaza instructiunile pe telefon',
+                    ].map((text, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-brand-primary/15 text-brand-primary flex items-center justify-center text-xs font-bold shrink-0">
+                          {i + 1}
+                        </div>
+                        <span className="text-sm text-light-70">{text}</span>
+                      </div>
+                    ))}
+                  </div>
+
                   <div className="space-y-2">
-                    <p className="text-sm text-light-70">
-                      Scaneaza codul QR cu camera telefonului
-                    </p>
                     <p className="text-xs text-light-50">
                       {kycStatus === 'pending'
                         ? 'Se asteapta finalizarea verificarii...'
@@ -306,10 +365,16 @@ export default function OnboardingPage() {
 
                   {kycStatus === 'rejected' && (
                     <button onClick={() => { setKycToken(''); setKycStatus(''); startKyc(); }}
-                      className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors">
+                      className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-all hover:shadow-lg hover:shadow-brand-primary/25">
                       Reincearca verificarea
                     </button>
                   )}
+
+                  <div className="mt-2">
+                    <button onClick={() => navigate('/dashboard')} className="text-sm text-light-50 hover:text-light-70 underline">
+                      Finalizeaza mai tarziu
+                    </button>
+                  </div>
                 </div>
               )}
             </>
@@ -326,7 +391,7 @@ export default function OnboardingPage() {
                 Contul tau este verificat si activ. Poti accesa acum toate functiile MoneyShop.
               </p>
               <button onClick={() => navigate('/dashboard')}
-                className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors">
+                className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-all hover:shadow-lg hover:shadow-brand-primary/25">
                 Mergi la Dashboard
               </button>
             </div>

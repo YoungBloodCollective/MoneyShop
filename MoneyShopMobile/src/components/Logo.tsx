@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     color: colors.brand.primary, // Brand blue
   },
   shop: {
-    color: colors.light[100], // White for dark backgrounds
+    color: colors.brand.gold,
   },
   registered: {
     color: colors.light[60],

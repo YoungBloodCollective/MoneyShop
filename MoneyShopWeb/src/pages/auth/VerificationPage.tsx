@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 export default function VerificationPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { loginWithToken } = useAuth();
   const state = location.state as { email?: string; phone?: string } | null;
 
   const [step, setStep] = useState<'email' | 'phone' | 'done'>('email');
@@ -69,14 +69,14 @@ export default function VerificationPage() {
         } else {
           setStep('done');
           if (res.accessToken && res.user) {
-            login(res.accessToken, res.user);
+            loginWithToken(res.accessToken!, { ...res.user!, kycStatus: 'none' } as Parameters<typeof loginWithToken>[1]);
           }
           toast.success('Verificare completa!');
         }
       } else {
         setStep('done');
         if (res.accessToken && res.user) {
-          login(res.accessToken, res.user);
+          loginWithToken(res.accessToken!, { ...res.user!, kycStatus: 'none' } as Parameters<typeof loginWithToken>[1]);
         }
         toast.success('Verificare completa!');
       }
@@ -129,7 +129,7 @@ export default function VerificationPage() {
         <button
           onClick={step === 'email' ? sendEmailOtp : sendPhoneOtp}
           disabled={loading}
-          className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 transition-colors"
+          className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? 'Se trimite...' : 'Trimite codul'}
         </button>
@@ -146,7 +146,7 @@ export default function VerificationPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 transition-colors"
+            className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? 'Se verifica...' : 'Verifica codul'}
           </button>

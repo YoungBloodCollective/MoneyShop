@@ -15,7 +15,7 @@ interface BigButtonProps {
   title: string;
   subtitle?: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'success' | 'outline' | 'ghost' | 'accent';
+  variant?: 'primary' | 'secondary' | 'success' | 'outline' | 'ghost' | 'accent' | 'gold';
   icon?: string;
   iconPosition?: 'left' | 'right';
   loading?: boolean;
@@ -75,6 +75,12 @@ const BigButton: React.FC<BigButtonProps> = ({
           container: styles.accentContainer,
           text: styles.accentText,
           iconColor: '#FFFFFF',
+        };
+      case 'gold':
+        return {
+          container: styles.goldContainer,
+          text: styles.goldText,
+          iconColor: colors.dark[900],
         };
       default:
         return {
@@ -215,6 +221,13 @@ const styles = StyleSheet.create({
   },
   accentText: {
     color: '#FFFFFF',
+  },
+  goldContainer: {
+    backgroundColor: colors.gold[500],
+    ...shadows.glowGold,
+  },
+  goldText: {
+    color: colors.dark[900],
   },
 });
 

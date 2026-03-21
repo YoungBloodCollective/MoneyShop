@@ -7,6 +7,7 @@ import {kycApi} from '../../services/api/kycApi';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useAuthStore} from '../../store/authStore';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {FicoGauge} from '../../components/ui';
 import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
 
 type DashboardScreenNavigationProp = NativeStackNavigationProp<any, 'DashboardHome'>;
@@ -142,6 +143,21 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
             </Text>
           </View>
 
+          {/* FICO Score Hero */}
+          {financialData?.ficoScore != null && financialData.ficoScore > 0 && (
+            <View style={styles.ficoHero}>
+              <FicoGauge score={financialData.ficoScore} size={140} />
+              <View style={styles.ficoDetails}>
+                <Text style={styles.ficoLabel}>SCOR FICO</Text>
+                <Text style={styles.ficoSublabel}>
+                  {financialData.venitTotal
+                    ? `Venit: ${financialData.venitTotal.toLocaleString('ro-RO')} lei`
+                    : 'Actualizat recent'}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Simulator Card - Gradient accent */}
           <TouchableOpacity
             style={styles.simulatorCard}
@@ -211,7 +227,7 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
                 style={styles.quickActionCard}
                 activeOpacity={0.7}
                 onPress={() => navigation.getParent()?.navigate('Profile')}>
-                <View style={[styles.quickActionIcon, {backgroundColor: 'rgba(110, 76, 229, 0.1)'}]}>
+                <View style={[styles.quickActionIcon, {backgroundColor: colors.info[50]}]}>
                   <Icon name="account" size={26} color={colors.brand.purple} />
                 </View>
                 <Text style={styles.quickActionText}>Profil</Text>
@@ -304,6 +320,32 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     ...typography.bodyMedium,
+    color: colors.light[60],
+  },
+
+  // FICO Hero
+  ficoHero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.gold[500],
+    ...shadows.glowGold,
+  },
+  ficoDetails: {
+    flex: 1,
+    marginLeft: spacing.lg,
+  },
+  ficoLabel: {
+    ...typography.labelUppercase,
+    color: colors.gold[500],
+    marginBottom: spacing.xs,
+  },
+  ficoSublabel: {
+    ...typography.bodySmall,
     color: colors.light[60],
   },
 

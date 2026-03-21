@@ -186,7 +186,7 @@ export default function InvoicingPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full h-11 rounded-full bg-brand-primary text-white font-medium hover:bg-brand-primary/90 disabled:opacity-50 transition-colors"
+                className="w-full h-11 rounded-full bg-brand-primary text-white font-medium hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {submitting ? 'Se creeaza...' : 'Creeaza factura'}
               </button>

@@ -1,4 +1,5 @@
 import React from 'react';
+import {View} from 'react-native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import DashboardScreen from '../screens/Dashboard/DashboardScreen';
@@ -192,7 +193,27 @@ const MainNavigator = () => {
             iconName = 'help-circle';
           }
 
-          return <Icon name={iconName} size={size} color={color} />;
+          return (
+            <View style={{alignItems: 'center'}}>
+              {focused && (
+                <View style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: colors.brand.primary,
+                  marginBottom: 4,
+                }} />
+              )}
+              <View style={focused ? {
+                backgroundColor: 'rgba(45, 45, 240, 0.12)',
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+              } : undefined}>
+                <Icon name={iconName} size={size} color={color} />
+              </View>
+            </View>
+          );
         },
         tabBarActiveTintColor: colors.brand.primary,
         tabBarInactiveTintColor: colors.light[50],
@@ -201,20 +222,21 @@ const MainNavigator = () => {
           display: 'flex',
           backgroundColor: colors.dark[800],
           borderTopWidth: 1,
-          borderTopColor: 'rgba(255, 255, 255, 0.06)',
+          borderTopColor: colors.dark[400],
           elevation: 0,
-          shadowColor: '#000',
+          shadowColor: '#1a1a3e',
           shadowOffset: {width: 0, height: -4},
           shadowOpacity: 0.3,
           shadowRadius: 12,
-          height: 72,
-          paddingBottom: 12,
-          paddingTop: 12,
+          height: 80,
+          paddingBottom: 14,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
           letterSpacing: 0.3,
+          marginTop: 2,
         },
       })}>
       <Tab.Screen

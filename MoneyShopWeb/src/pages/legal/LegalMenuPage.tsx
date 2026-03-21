@@ -22,10 +22,10 @@ export default function LegalMenuPage() {
           <button
             key={item.path}
             onClick={() => navigate(item.path)}
-            className="flex items-center justify-between w-full bg-dark-700 border border-dark-400 rounded-xl px-5 py-4 hover:border-dark-300 transition-colors"
+            className="flex items-center justify-between w-full bg-dark-700 border border-dark-400 rounded-xl px-5 py-4 hover:border-brand-primary/30 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-primary/5 transition-all duration-200 group"
           >
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-dark-600 flex items-center justify-center text-light-70">
+              <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary group-hover:bg-brand-primary/20 transition-colors">
                 <item.icon size={20} />
               </div>
               <div className="text-left">
@@ -33,7 +33,7 @@ export default function LegalMenuPage() {
                 <p className="text-xs text-light-60">{item.desc}</p>
               </div>
             </div>
-            <ChevronRight size={18} className="text-light-50" />
+            <ChevronRight size={18} className="text-light-50 group-hover:text-brand-primary transition-colors" />
           </button>
         ))}
       </div>

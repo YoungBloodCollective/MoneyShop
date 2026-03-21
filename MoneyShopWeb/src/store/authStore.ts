@@ -53,7 +53,21 @@ export const useAuthStore = create<AuthState>((set) => ({
   register: async (email: string, password: string, firstName: string, lastName: string, phone?: string) => {
     try {
       set({ isLoading: true });
-      const response = await authApi.register({ email, password, firstName, lastName, phone });
+      const response = await authApi.register({
+        email,
+        password,
+        confirmPassword: password,
+        firstName,
+        lastName,
+        phone,
+        acceptTerms: true,
+        acceptGdpr: true,
+        acceptCosts: true,
+        mandateAnaf: true,
+        ipAddress: '',
+        userAgent: navigator.userAgent,
+        deviceHash: '',
+      });
       tokenStorage.setToken(response.token);
       set({
         user: response.user,

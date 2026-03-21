@@ -9,13 +9,24 @@ namespace MoneyShop.DomainModel.Entities
         public int Id { get; set; }
         public int UserId { get; set; }
         
+        // Ultimele 3 salarii (introduse manual)
+        public decimal? Salariu1 { get; set; }
+        public decimal? Salariu2 { get; set; }
+        public decimal? Salariu3 { get; set; }
+
         // Venituri
-        public decimal? SalariuNet { get; set; }
+        public decimal? SalariuNet { get; set; } // Media celor 3 salarii
         public bool? BonuriMasa { get; set; }
         public decimal? SumaBonuriMasa { get; set; }
         public decimal? VenitTotal { get; set; } // Calculat: SalariuNet + BonuriMasa
-        
-        // Credite existente
+
+        // FICO score (from BC Report)
+        public int? FicoScore { get; set; }
+
+        // Credite active (JSON array: [{name, remainingAmount, monthsLeft, monthlyPayment}])
+        public string? CreditsJson { get; set; }
+
+        // Credite existente (aggregate)
         public decimal? SoldTotal { get; set; }
         public decimal? RataTotalaLunara { get; set; } // Total rate lunare
         public int? NrCrediteBanci { get; set; }

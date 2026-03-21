@@ -77,10 +77,10 @@ export default function ApplicationWizardPage() {
               <button
                 key={lt.value}
                 onClick={() => update('loanType', lt.value)}
-                className={`w-full p-4 rounded-xl text-left border transition-colors ${
+                className={`w-full p-4 rounded-xl text-left border transition-all duration-200 ${
                   form.loanType === lt.value
-                    ? 'border-brand-primary bg-brand-primary/10 text-light-100'
-                    : 'border-dark-400 bg-dark-600 text-light-80 hover:border-dark-300'
+                    ? 'border-brand-primary bg-brand-primary/10 text-light-100 shadow-md shadow-brand-primary/10'
+                    : 'border-dark-400 bg-dark-600 text-light-80 hover:border-dark-300 hover:-translate-y-0.5 hover:shadow-md'
                 }`}
               >
                 <p className="font-medium">{lt.label}</p>
@@ -157,7 +157,7 @@ export default function ApplicationWizardPage() {
         {step < 2 ? (
           <button
             onClick={next}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-brand-primary text-white text-sm font-medium hover:bg-brand-primary/90 transition-colors"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-brand-primary text-white text-sm font-medium hover:bg-brand-primary/90 transition-all hover:shadow-lg hover:shadow-brand-primary/25"
           >
             Continua <ArrowRight size={16} />
           </button>
@@ -165,7 +165,7 @@ export default function ApplicationWizardPage() {
           <button
             onClick={submit}
             disabled={loading}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-success-500 text-white text-sm font-medium hover:bg-success-600 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-success-500 text-white text-sm font-medium hover:bg-success-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-success-500/25"
           >
             {loading ? 'Se trimite...' : 'Depune aplicatia'}
           </button>
