@@ -34,7 +34,7 @@ jobs:
           ###### End of Repository/Build Configurations ######
         env:
           VITE_API_URL: https://moneyshop20260107220205-adbnf8c7a2fec4d4.canadacentral-01.azurewebsites.net/api
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_API_KEY: AIzaSyB6jYy3opmIlYNslVkn_6jcxZ-oMIxsUrA
           VITE_FIREBASE_AUTH_DOMAIN: moneyshop-8b82b.firebaseapp.com
           VITE_FIREBASE_PROJECT_ID: moneyshop-8b82b
 
