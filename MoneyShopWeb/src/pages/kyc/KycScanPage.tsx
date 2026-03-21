@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
-import { Camera, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { Camera, CheckCircle, XCircle, ArrowRight, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 import { API_BASE_URL } from '@/utils/constants';
 
@@ -38,6 +38,9 @@ function dataURItoBlob(dataURI: string): Blob {
 
 export default function KycScanPage() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const navigateFn = useNavigate();
+  const returnTo = searchParams.get('returnTo');
   const [step, setStep] = useState<ScanStep>('loading');
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -172,19 +175,27 @@ export default function KycScanPage() {
 
   if (step === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-navy-900 flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-brand-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (step === 'invalid') {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-        <div className="bg-gray-800 rounded-2xl p-8 text-center max-w-sm">
-          <XCircle size={48} className="text-red-500 mx-auto mb-4" />
+      <div className="min-h-screen bg-navy-900 flex items-center justify-center p-4">
+        <div className="bg-navy-800 rounded-2xl p-8 text-center max-w-sm">
+          <XCircle size={48} className="text-error-500 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-white mb-2">Link invalid sau expirat</h1>
-          <p className="text-sm text-gray-400">Genereaza un nou cod QR din aplicatia web.</p>
+          <p className="text-sm text-light-50 mb-4">
+            {returnTo ? 'Sesiunea a expirat. Incearca din nou.' : 'Genereaza un nou cod QR din aplicatia web.'}
+          </p>
+          {returnTo && (
+            <button onClick={() => navigateFn(returnTo, { replace: true })}
+              className="w-full py-3 rounded-full bg-brand-primary text-white font-semibold flex items-center justify-center gap-2">
+              <ArrowLeft size={16} /> Inapoi la inregistrare
+            </button>
+          )}
         </div>
       </div>
     );
@@ -192,11 +203,21 @@ export default function KycScanPage() {
 
   if (step === 'done') {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-        <div className="bg-gray-800 rounded-2xl p-8 text-center max-w-sm">
-          <CheckCircle size={48} className="text-green-500 mx-auto mb-4" />
+      <div className="min-h-screen bg-navy-900 flex items-center justify-center p-4">
+        <div className="bg-navy-800 rounded-2xl p-8 text-center max-w-sm">
+          <CheckCircle size={48} className="text-success-500 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-white mb-2">Identitate verificata!</h1>
-          <p className="text-sm text-gray-400">Poti inchide aceasta pagina si reveni la calculator.</p>
+          {returnTo ? (
+            <>
+              <p className="text-sm text-light-50 mb-6">Verificarea a fost finalizata cu succes.</p>
+              <button onClick={() => navigateFn(returnTo, { replace: true })}
+                className="w-full py-3 rounded-full bg-brand-primary text-white font-semibold flex items-center justify-center gap-2">
+                <ArrowLeft size={16} /> Inapoi la inregistrare
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-light-50">Poti inchide aceasta pagina si reveni la calculator.</p>
+          )}
         </div>
       </div>
     );
@@ -204,15 +225,21 @@ export default function KycScanPage() {
 
   if (step === 'rejected') {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-        <div className="bg-gray-800 rounded-2xl p-8 text-center max-w-sm">
-          <XCircle size={48} className="text-red-500 mx-auto mb-4" />
+      <div className="min-h-screen bg-navy-900 flex items-center justify-center p-4">
+        <div className="bg-navy-800 rounded-2xl p-8 text-center max-w-sm">
+          <XCircle size={48} className="text-error-500 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-white mb-2">Verificare esuata</h1>
-          <p className="text-sm text-gray-400 mb-4">{error || 'Verificarea nu a putut fi finalizata.'}</p>
+          <p className="text-sm text-light-50 mb-4">{error || 'Verificarea nu a putut fi finalizata.'}</p>
           <button onClick={() => { setStep('doc_front'); setDocFrontBlob(null); setDocBackBlob(null); setSelfieBlob(null); setError(''); }}
-            className="w-full py-3 rounded-full bg-blue-600 text-white font-semibold">
+            className="w-full py-3 rounded-full bg-brand-primary text-white font-semibold mb-3">
             Incearca din nou
           </button>
+          {returnTo && (
+            <button onClick={() => navigateFn(returnTo, { replace: true })}
+              className="w-full py-3 rounded-full border border-dark-400 text-light-60 font-medium flex items-center justify-center gap-2">
+              <ArrowLeft size={16} /> Inapoi la inregistrare
+            </button>
+          )}
         </div>
       </div>
     );
@@ -220,11 +247,11 @@ export default function KycScanPage() {
 
   if (step === 'processing') {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-        <div className="bg-gray-800 rounded-2xl p-8 text-center max-w-sm">
-          <div className="w-12 h-12 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <div className="min-h-screen bg-navy-900 flex items-center justify-center p-4">
+        <div className="bg-navy-800 rounded-2xl p-8 text-center max-w-sm">
+          <div className="w-12 h-12 border-3 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <h1 className="text-xl font-bold text-white mb-2">Se proceseaza...</h1>
-          <p className="text-sm text-gray-400">Documentele sunt in curs de verificare.</p>
+          <p className="text-sm text-light-50">Documentele sunt in curs de verificare.</p>
         </div>
       </div>
     );
@@ -252,15 +279,15 @@ export default function KycScanPage() {
                       handleTakeSelfie;
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-navy-900 flex flex-col">
       {/* Header */}
       <div className="p-4 text-center">
         <h1 className="text-lg font-bold text-white">{title}</h1>
-        <p className="text-sm text-gray-400">{subtitle}</p>
+        <p className="text-sm text-light-50">{subtitle}</p>
         <div className="flex gap-1 justify-center mt-3">
-          <div className={`w-8 h-1 rounded ${isDocFront || isDocBack || isSelfie ? 'bg-blue-500' : 'bg-gray-600'}`} />
-          <div className={`w-8 h-1 rounded ${isDocBack || isSelfie ? 'bg-blue-500' : 'bg-gray-600'}`} />
-          <div className={`w-8 h-1 rounded ${isSelfie ? 'bg-blue-500' : 'bg-gray-600'}`} />
+          <div className={`w-8 h-1 rounded ${isDocFront || isDocBack || isSelfie ? 'bg-brand-primary' : 'bg-dark-400'}`} />
+          <div className={`w-8 h-1 rounded ${isDocBack || isSelfie ? 'bg-brand-primary' : 'bg-dark-400'}`} />
+          <div className={`w-8 h-1 rounded ${isSelfie ? 'bg-brand-primary' : 'bg-dark-400'}`} />
         </div>
       </div>
 
@@ -272,7 +299,7 @@ export default function KycScanPage() {
         {/* Camera overlay guide */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className={`border-2 border-white/40 rounded-xl ${
-            isSelfie ? 'w-48 h-60' : 'w-72 h-44'
+            isSelfie ? 'w-36 h-48 sm:w-48 sm:h-60' : 'w-56 h-36 sm:w-72 sm:h-44'
           }`} />
         </div>
       </div>
@@ -281,24 +308,24 @@ export default function KycScanPage() {
       <div className="p-4 space-y-3">
         {!streamRef.current ? (
           <button onClick={onStartCapture}
-            className="w-full py-4 rounded-full bg-blue-600 text-white font-semibold flex items-center justify-center gap-2">
+            className="w-full py-4 rounded-full bg-brand-primary text-white font-semibold flex items-center justify-center gap-2">
             <Camera size={20} /> Deschide camera
           </button>
         ) : (
           <button onClick={onTakePhoto}
-            className="w-full py-4 rounded-full bg-blue-600 text-white font-semibold">
+            className="w-full py-4 rounded-full bg-brand-primary text-white font-semibold">
             Fotografiaza
           </button>
         )}
 
         {isDocBack && (
           <button onClick={handleSkipBack}
-            className="w-full py-3 rounded-full border border-gray-600 text-gray-300 font-medium flex items-center justify-center gap-2">
+            className="w-full py-3 rounded-full border border-dark-400 text-light-60 font-medium flex items-center justify-center gap-2">
             Sari peste <ArrowRight size={16} />
           </button>
         )}
 
-        {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+        {error && <p className="text-error-400 text-sm text-center">{error}</p>}
       </div>
     </div>
   );

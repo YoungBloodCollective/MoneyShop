@@ -7,8 +7,9 @@ import {
 import {useQuery} from '@tanstack/react-query';
 import {userFinancialDataApi} from '../../services/api/userFinancialDataApi';
 import CustomHeader from '../../components/CustomHeader';
+import {FicoGauge} from '../../components/ui';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
+import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
 
 const FinancialDataScreen = ({navigation}: any) => {
   const {
@@ -120,6 +121,29 @@ const FinancialDataScreen = ({navigation}: any) => {
           />
         }>
         <View style={styles.content}>
+          {/* FICO Score */}
+          {financialData.ficoScore != null && financialData.ficoScore > 0 && (
+            <View style={styles.ficoCard}>
+              <FicoGauge score={financialData.ficoScore} size={130} />
+              <View style={styles.ficoInfo}>
+                <Text style={styles.ficoTitle}>SCOR FICO</Text>
+                <Text style={styles.ficoHint}>
+                  {financialData.ficoScore >= 700 ? 'Eligibil pentru cele mai bune oferte' : financialData.ficoScore >= 500 ? 'Eligibil cu conditii standard' : 'Eligibilitate limitata'}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* BC Report auto-import banner */}
+          {financialData.ficoScore != null && financialData.ficoScore > 0 && (financialData.nrCrediteBanci ?? 0) > 0 && (
+            <View style={styles.bcBanner}>
+              <Icon name="information" size={18} color={colors.brand.primary} />
+              <Text style={styles.bcBannerText}>
+                Creditele au fost importate automat din Raportul BC. Poti modifica datele manual daca este necesar.
+              </Text>
+            </View>
+          )}
+
           {/* Venituri Section */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -330,6 +354,30 @@ const styles = StyleSheet.create({
     color: colors.light[50],
     textAlign: 'center',
   },
+  ficoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.gold[500],
+    ...shadows.glowGold,
+  },
+  ficoInfo: {
+    flex: 1,
+    marginLeft: spacing.lg,
+  },
+  ficoTitle: {
+    ...typography.labelUppercase,
+    color: colors.gold[500],
+    marginBottom: spacing.xs,
+  },
+  ficoHint: {
+    ...typography.bodySmall,
+    color: colors.light[60],
+  },
   card: {
     marginBottom: spacing.md,
     borderRadius: borderRadius.xl,
@@ -380,7 +428,7 @@ const styles = StyleSheet.create({
   },
   totalValue: {
     ...typography.h3,
-    color: colors.success[400],
+    color: colors.gold[500],
   },
   scoringBadge: {
     paddingHorizontal: spacing.md,
@@ -397,6 +445,23 @@ const styles = StyleSheet.create({
     color: colors.light[50],
     marginTop: spacing.sm,
     marginBottom: spacing.md,
+  },
+  bcBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: `${colors.brand.primary}15`,
+    borderWidth: 1,
+    borderColor: `${colors.brand.primary}30`,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  bcBannerText: {
+    ...typography.bodySmall,
+    color: colors.light[70],
+    flex: 1,
   },
 });
 

@@ -2,7 +2,7 @@ import { apiClient } from './apiClient';
 
 export interface OtpRequest {
   phone: string;
-  purpose: 'LOGIN_SMS' | 'SIGN_SMS' | 'EMAIL_VERIFY' | 'STEP_UP_SECURITY';
+  purpose: 'LOGIN_SMS' | 'SIGN_SMS' | 'EMAIL_VERIFY' | 'PHONE_VERIFY' | 'STEP_UP_SECURITY';
   channel?: 'sms' | 'email';
   userId?: number;
 }
@@ -17,7 +17,7 @@ export interface OtpVerify {
   otpId: string;
   code: string;
   phone: string;
-  purpose: 'LOGIN_SMS' | 'SIGN_SMS' | 'EMAIL_VERIFY' | 'STEP_UP_SECURITY';
+  purpose: 'LOGIN_SMS' | 'SIGN_SMS' | 'EMAIL_VERIFY' | 'PHONE_VERIFY' | 'STEP_UP_SECURITY';
 }
 
 export interface OtpVerifyResponse {

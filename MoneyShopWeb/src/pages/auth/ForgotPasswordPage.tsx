@@ -25,12 +25,12 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="bg-dark-700 border border-dark-400 rounded-2xl p-8">
+    <div className="bg-white rounded-3xl p-8 shadow-lg shadow-black/5">
       <Link to="/auth/login" className="flex items-center gap-1 text-sm text-light-60 hover:text-light-80 mb-6">
         <ArrowLeft size={16} /> Inapoi la autentificare
       </Link>
 
-      <h1 className="text-2xl font-bold text-light-100 mb-2">Resetare parola</h1>
+      <h1 className="text-2xl font-medium text-light-100 mb-2">Resetare parola</h1>
       <p className="text-sm text-light-60 mb-8">Introdu email-ul pentru a primi link-ul de resetare</p>
 
       {sent ? (
@@ -52,14 +52,14 @@ export default function ForgotPasswordPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="email@exemplu.ro"
-                className="w-full h-12 pl-11 pr-4 rounded-xl bg-dark-600 border border-dark-400 text-light-90 placeholder:text-light-50 focus:border-brand-primary focus:outline-none transition-colors"
+                className="w-full h-12 pl-11 pr-4 rounded-2xl bg-dark-800 border border-dark-600 text-light-90 placeholder:text-light-50 focus:border-brand-primary focus:outline-none transition-colors"
               />
             </div>
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 transition-colors"
+            className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-brand-primary/25"
           >
             {loading ? 'Se trimite...' : 'Trimite link de resetare'}
           </button>

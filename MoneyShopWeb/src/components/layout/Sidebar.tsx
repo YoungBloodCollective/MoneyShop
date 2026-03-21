@@ -3,13 +3,10 @@ import {
   LayoutDashboard,
   Calculator,
   User,
-  MessageCircle,
-  FileText,
-  Shield,
   Users,
-  Receipt,
   ChevronDown,
   LogOut,
+  ShieldCheck,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Logo } from '@/components/shared/Logo';
@@ -27,10 +24,6 @@ const navItems: NavItem[] = [
     label: 'Dashboard',
     path: '/dashboard',
     icon: <LayoutDashboard size={20} />,
-    children: [
-      { label: 'Aplicatii', path: '/dashboard/applications' },
-      { label: 'Aplicatie noua', path: '/dashboard/apply' },
-    ],
   },
   {
     label: 'Simulator',
@@ -43,51 +36,37 @@ const navItems: NavItem[] = [
     icon: <User size={20} />,
     children: [
       { label: 'Date financiare', path: '/profile/financial' },
+      { label: 'Raport BC', path: '/profile/bc-report' },
       { label: 'Verificare KYC', path: '/profile/kyc' },
+      { label: 'Notificari', path: '/profile/notifications' },
     ],
-  },
-  {
-    label: 'Chat',
-    path: '/chat',
-    icon: <MessageCircle size={20} />,
-  },
-  {
-    label: 'Legal',
-    path: '/profile/legal',
-    icon: <FileText size={20} />,
-    children: [
-      { label: 'Termeni', path: '/profile/legal/terms' },
-      { label: 'Confidentialitate', path: '/profile/legal/privacy' },
-      { label: 'Mandat', path: '/profile/legal/mandate' },
-      { label: 'Conformitate', path: '/profile/legal/compliance' },
-      { label: 'Transfer date', path: '/profile/legal/data-transfer' },
-    ],
-  },
-  {
-    label: 'Consimtaminte',
-    path: '/profile/consents',
-    icon: <Shield size={20} />,
-  },
-  {
-    label: 'Mandate',
-    path: '/profile/mandates',
-    icon: <FileText size={20} />,
   },
   {
     label: 'Brokeri',
     path: '/profile/brokers',
     icon: <Users size={20} />,
   },
+];
+
+const adminNavItems: NavItem[] = [
   {
-    label: 'Facturare',
-    path: '/profile/invoicing',
-    icon: <Receipt size={20} />,
+    label: 'Admin',
+    path: '/admin',
+    icon: <ShieldCheck size={20} />,
+    children: [
+      { label: 'Aplicatii', path: '/admin/applications' },
+      { label: 'Verificari KYC', path: '/admin/kyc' },
+      { label: 'Rapoarte', path: '/admin/reports' },
+      { label: 'Brokeri', path: '/admin/brokers' },
+    ],
   },
 ];
 
 export function Sidebar() {
-  const { user, logout } = useAuth();
-  const [expandedItems, setExpandedItems] = useState<string[]>(['Dashboard', 'Profil']);
+  const { user, logout, isAdmin } = useAuth();
+  const [expandedItems, setExpandedItems] = useState<string[]>(
+    ['Profil'],
+  );
 
   const toggleExpand = (label: string) => {
     setExpandedItems(prev =>
@@ -96,14 +75,14 @@ export function Sidebar() {
   };
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+    `flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all ${
       isActive
-        ? 'bg-brand-primary/15 text-brand-primary'
-        : 'text-light-70 hover:bg-dark-600 hover:text-light-90'
+        ? 'bg-brand-primary text-white'
+        : 'text-light-70 hover:bg-dark-800 hover:text-light-90'
     }`;
 
   return (
-    <aside className="flex flex-col w-64 h-full bg-dark-900 border-r border-dark-400">
+    <aside className="flex flex-col w-64 h-full bg-dark-700 border-r border-dark-600">
       {/* Logo */}
       <div className="flex items-center px-5 py-6">
         <Logo size="md" />
@@ -115,9 +94,39 @@ export function Sidebar() {
           <div key={item.label}>
             {item.children ? (
               <>
+                <NavLink
+                  to={item.path}
+                  className={linkClass}
+                >
+                  {item.icon}
+                  {item.label}
+                </NavLink>
+                <div className="ml-9 mt-1 space-y-0.5">
+                  {item.children.map(child => (
+                    <NavLink key={child.path} to={child.path} className={linkClass}>
+                      {child.label}
+                    </NavLink>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <NavLink to={item.path} className={linkClass}>
+                {item.icon}
+                {item.label}
+              </NavLink>
+            )}
+          </div>
+        ))}
+
+        {/* Admin section */}
+        {isAdmin && (
+          <>
+            <div className="my-3 mx-4 border-t border-dark-600" />
+            {adminNavItems.map(item => (
+              <div key={item.label}>
                 <button
                   onClick={() => toggleExpand(item.label)}
-                  className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-sm font-medium text-light-70 hover:bg-dark-600 hover:text-light-90 transition-colors"
+                  className="flex items-center justify-between w-full px-4 py-2.5 rounded-2xl text-sm font-medium text-brand-primary hover:bg-brand-primary/10 transition-all"
                 >
                   <span className="flex items-center gap-3">
                     {item.icon}
@@ -133,28 +142,23 @@ export function Sidebar() {
                     <NavLink to={item.path} end className={linkClass}>
                       General
                     </NavLink>
-                    {item.children.map(child => (
+                    {item.children?.map(child => (
                       <NavLink key={child.path} to={child.path} className={linkClass}>
                         {child.label}
                       </NavLink>
                     ))}
                   </div>
                 )}
-              </>
-            ) : (
-              <NavLink to={item.path} className={linkClass}>
-                {item.icon}
-                {item.label}
-              </NavLink>
-            )}
-          </div>
-        ))}
+              </div>
+            ))}
+          </>
+        )}
       </nav>
 
       {/* User section */}
-      <div className="p-4 border-t border-dark-400">
+      <div className="p-4 border-t border-dark-600">
         <div className="flex items-center gap-3 px-2 mb-3">
-          <div className="w-9 h-9 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary text-sm font-bold">
+          <div className="w-9 h-9 rounded-full bg-brand-primary/15 flex items-center justify-center text-brand-primary text-sm font-bold">
             {user?.name?.charAt(0)?.toUpperCase() || 'U'}
           </div>
           <div className="flex-1 min-w-0">
@@ -164,7 +168,7 @@ export function Sidebar() {
         </div>
         <button
           onClick={logout}
-          className="flex items-center gap-2 w-full px-4 py-2 rounded-xl text-sm text-error-400 hover:bg-error-500/10 transition-colors"
+          className="flex items-center gap-2 w-full px-4 py-2 rounded-2xl text-sm text-error-500 hover:bg-error-500/10 transition-all"
         >
           <LogOut size={16} />
           Deconectare

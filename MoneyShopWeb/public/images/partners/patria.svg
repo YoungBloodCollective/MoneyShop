@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 70" fill="none">
+  <polygon points="30,10 35,22 25,22" fill="#ffd700"/>
+  <polygon points="22,18 28,28 16,28" fill="#e53935"/>
+  <polygon points="38,18 44,28 32,28" fill="#43a047"/>
+  <polygon points="15,26 22,38 8,38" fill="#7b1fa2"/>
+  <polygon points="30,26 37,38 23,38" fill="#1565c0"/>
+  <polygon points="45,26 52,38 38,38" fill="#00838f"/>
+  <polygon points="22,36 30,50 14,50" fill="#283593"/>
+  <polygon points="38,36 46,50 30,50" fill="#1565c0"/>
+  <text x="62" y="48" font-family="Arial Black, Arial, sans-serif" font-size="34" font-weight="900" letter-spacing="2" fill="#0d1b7a">PATRIA BANK</text>
+</svg>

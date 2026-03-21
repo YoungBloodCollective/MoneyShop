@@ -3,6 +3,7 @@ import {View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text} from 'react
 import {useAuthStore} from '../../store/authStore';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {DSMenuItem} from '../../components/ui';
 import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<any, 'Profile'>;
@@ -10,42 +11,6 @@ type ProfileScreenNavigationProp = NativeStackNavigationProp<any, 'Profile'>;
 interface Props {
   navigation: ProfileScreenNavigationProp;
 }
-
-interface MenuItemProps {
-  icon: string;
-  title: string;
-  subtitle?: string;
-  onPress: () => void;
-  iconBg?: string;
-  iconColor?: string;
-  chevron?: boolean;
-}
-
-const MenuItem: React.FC<MenuItemProps> = ({
-  icon,
-  title,
-  subtitle,
-  onPress,
-  iconBg = colors.dark[500],
-  iconColor = colors.light[80],
-  chevron = true,
-}) => (
-  <TouchableOpacity
-    onPress={onPress}
-    activeOpacity={0.7}
-    style={styles.menuItem}>
-    <View style={[styles.menuIcon, {backgroundColor: iconBg}]}>
-      <Icon name={icon} size={20} color={iconColor} />
-    </View>
-    <View style={styles.menuContent}>
-      <Text style={styles.menuTitle}>{title}</Text>
-      {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
-    </View>
-    {chevron && (
-      <Icon name="chevron-right" size={20} color={colors.dark[300]} />
-    )}
-  </TouchableOpacity>
-);
 
 const ProfileScreen = ({navigation}: Props) => {
   const {user, logout} = useAuthStore();
@@ -111,8 +76,8 @@ const ProfileScreen = ({navigation}: Props) => {
       {/* Quick Stats */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <Icon name="file-document-check" size={22} color={colors.success[400]} />
-          <Text style={styles.statValue}>0</Text>
+          <Icon name="file-document-check" size={22} color={colors.gold[500]} />
+          <Text style={[styles.statValue, {color: colors.gold[500]}]}>0</Text>
           <Text style={styles.statLabel}>Credite active</Text>
         </View>
         <View style={styles.statDivider} />
@@ -129,175 +94,158 @@ const ProfileScreen = ({navigation}: Props) => {
         </View>
       </View>
 
-      {/* Main Menu */}
+      {/* Main Menu - Account */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>CONTUL TAU</Text>
-        <View style={styles.menuCard}>
-          <MenuItem
-            icon="chart-line"
-            title="Date Financiare"
-            subtitle="Vizualizeaza veniturile si istoricul"
-            onPress={() => navigation.navigate('FinancialData')}
-            iconBg={colors.success[50]}
-            iconColor={colors.success[400]}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="file-sign"
-            title="Mandate"
-            subtitle="Gestioneaza mandatele pentru ANAF/BC"
-            onPress={() => navigation.navigate('MandateManagement')}
-            iconBg={colors.info[50]}
-            iconColor={colors.brand.primary}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="checkbox-marked-circle"
-            title="Consimtamant"
-            subtitle="Gestioneaza acordurile tale"
-            onPress={() => navigation.navigate('ConsentManagement')}
-            iconBg={colors.warning[50]}
-            iconColor={colors.warning[400]}
-          />
-        </View>
+        <DSMenuItem
+          icon="chart-line"
+          label="Date Financiare"
+          description="Vizualizeaza veniturile si istoricul"
+          onPress={() => navigation.navigate('FinancialData')}
+          iconColor={colors.success[400]}
+          iconBgColor={colors.success[50]}
+        />
+        <DSMenuItem
+          icon="file-sign"
+          label="Mandate"
+          description="Gestioneaza mandatele pentru ANAF/BC"
+          onPress={() => navigation.navigate('MandateManagement')}
+          iconColor={colors.brand.primary}
+          iconBgColor={colors.info[50]}
+        />
+        <DSMenuItem
+          icon="checkbox-marked-circle"
+          label="Consimtamant"
+          description="Gestioneaza acordurile tale"
+          onPress={() => navigation.navigate('ConsentManagement')}
+          iconColor={colors.warning[400]}
+          iconBgColor={colors.warning[50]}
+        />
       </View>
 
       {/* Verification Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>VERIFICARI</Text>
-        <View style={styles.menuCard}>
-          {user?.role !== 'Administrator' && (
-            <>
-              <MenuItem
-                icon="card-account-details"
-                title="Verificare Identitate (KYC)"
-                subtitle="Confirma-ti identitatea pentru siguranta"
-                onPress={() => navigation.navigate('KycForm')}
-                iconBg={colors.info[50]}
-                iconColor={colors.brand.primary}
-              />
-              <View style={styles.menuDivider} />
-            </>
-          )}
-          <MenuItem
-            icon="email-check"
-            title="Verifica Email"
-            subtitle={user?.email}
-            onPress={() => {
-              const parent = navigation.getParent();
-              if (parent) {
-                parent.navigate('Dashboard', {
-                  screen: 'Verification',
-                  params: {type: 'email', email: user?.email, onComplete: 'dashboard'},
-                });
-              }
-            }}
-            iconBg={colors.success[50]}
-            iconColor={colors.success[400]}
+        {user?.role !== 'Administrator' && (
+          <DSMenuItem
+            icon="card-account-details"
+            label="Verificare Identitate (KYC)"
+            description="Confirma-ti identitatea pentru siguranta"
+            onPress={() => navigation.navigate('KycForm')}
+            iconColor={colors.brand.primary}
+            iconBgColor={colors.info[50]}
           />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="phone-check"
-            title="Verifica Telefon"
-            subtitle="Confirma numarul de telefon"
-            onPress={() => {
-              const parent = navigation.getParent();
-              if (parent) {
-                parent.navigate('Dashboard', {
-                  screen: 'Verification',
-                  params: {type: 'phone', phone: user?.phone, onComplete: 'dashboard'},
-                });
-              }
-            }}
-            iconBg={colors.success[50]}
-            iconColor={colors.success[400]}
-          />
-        </View>
+        )}
+        <DSMenuItem
+          icon="email-check"
+          label="Verifica Email"
+          description={user?.email}
+          onPress={() => {
+            const parent = navigation.getParent();
+            if (parent) {
+              parent.navigate('Dashboard', {
+                screen: 'Verification',
+                params: {type: 'email', email: user?.email, onComplete: 'dashboard'},
+              });
+            }
+          }}
+          iconColor={colors.success[400]}
+          iconBgColor={colors.success[50]}
+        />
+        <DSMenuItem
+          icon="phone-check"
+          label="Verifica Telefon"
+          description="Confirma numarul de telefon"
+          onPress={() => {
+            const parent = navigation.getParent();
+            if (parent) {
+              parent.navigate('Dashboard', {
+                screen: 'Verification',
+                params: {type: 'phone', phone: user?.phone, onComplete: 'dashboard'},
+              });
+            }
+          }}
+          iconColor={colors.success[400]}
+          iconBgColor={colors.success[50]}
+        />
       </View>
 
       {/* Admin Section */}
       {user?.role === 'Administrator' && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>ADMINISTRARE</Text>
-          <View style={styles.menuCard}>
-            <MenuItem
-              icon="shield-check"
-              title="Verificari KYC"
-              subtitle="Administreaza verificarile utilizatorilor"
-              onPress={() => navigation.navigate('KycAdmin')}
-              iconBg={colors.error[50]}
-              iconColor={colors.error[400]}
-            />
-          </View>
+          <DSMenuItem
+            icon="shield-check"
+            label="Verificari KYC"
+            description="Administreaza verificarile utilizatorilor"
+            onPress={() => navigation.navigate('KycAdmin')}
+            iconColor={colors.error[400]}
+            iconBgColor={colors.error[50]}
+          />
         </View>
       )}
 
       {/* Resources Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>RESURSE</Text>
-        <View style={styles.menuCard}>
-          <MenuItem
-            icon="office-building"
-            title="Director Brokeri"
-            subtitle="Gaseste un broker autorizat"
-            onPress={() => navigation.navigate('BrokerDirectory')}
-            iconBg={colors.dark[500]}
-            iconColor={colors.light[80]}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="file-document-multiple"
-            title="Informatii Legale"
-            subtitle="Termeni, confidentialitate, GDPR"
-            onPress={() => navigation.navigate('LegalMenu')}
-            iconBg={colors.dark[500]}
-            iconColor={colors.light[80]}
-          />
-        </View>
+        <DSMenuItem
+          icon="office-building"
+          label="Director Brokeri"
+          description="Gaseste un broker autorizat"
+          onPress={() => navigation.navigate('BrokerDirectory')}
+          iconColor={colors.brand.primary}
+          iconBgColor={colors.info[50]}
+        />
+        <DSMenuItem
+          icon="file-document-multiple"
+          label="Informatii Legale"
+          description="Termeni, confidentialitate, GDPR"
+          onPress={() => navigation.navigate('LegalMenu')}
+          iconColor={colors.brand.purple}
+          iconBgColor={colors.info[50]}
+        />
       </View>
 
       {/* Settings Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>APLICATIE</Text>
-        <View style={styles.menuCard}>
-          <MenuItem
-            icon="cog"
-            title="Setari"
-            subtitle="Notificari, limba, tema"
-            onPress={() => {}}
-            iconBg={colors.dark[500]}
-            iconColor={colors.light[80]}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="help-circle"
-            title="Ajutor si Suport"
-            subtitle="Intrebari frecvente, contact"
-            onPress={() => {}}
-            iconBg={colors.dark[500]}
-            iconColor={colors.light[80]}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="information"
-            title="Despre MoneyShop"
-            subtitle="Versiune 1.0.0"
-            onPress={() => {}}
-            iconBg={colors.info[50]}
-            iconColor={colors.brand.primary}
-            chevron={false}
-          />
-        </View>
+        <DSMenuItem
+          icon="cog"
+          label="Setari"
+          description="Notificari, limba, tema"
+          onPress={() => {}}
+          iconColor={colors.light[80]}
+          iconBgColor={colors.dark[500]}
+        />
+        <DSMenuItem
+          icon="help-circle"
+          label="Ajutor si Suport"
+          description="Intrebari frecvente, contact"
+          onPress={() => {}}
+          iconColor={colors.brand.primary}
+          iconBgColor={colors.info[50]}
+        />
+        <DSMenuItem
+          icon="information"
+          label="Despre MoneyShop"
+          description="Versiune 1.0.0"
+          onPress={() => {}}
+          iconColor={colors.brand.primary}
+          iconBgColor={colors.info[50]}
+          rightElement={null}
+        />
       </View>
 
       {/* Logout Button */}
-      <TouchableOpacity
-        onPress={handleLogout}
-        activeOpacity={0.8}
-        style={styles.logoutButton}>
-        <Icon name="logout" size={20} color={colors.error[400]} />
-        <Text style={styles.logoutText}>Deconectare</Text>
-      </TouchableOpacity>
+      <View style={styles.logoutSection}>
+        <DSMenuItem
+          icon="logout"
+          label="Deconectare"
+          onPress={handleLogout}
+          danger
+          rightElement={null}
+        />
+      </View>
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -428,62 +376,10 @@ const styles = StyleSheet.create({
     marginLeft: spacing.xs,
   },
 
-  // Menu Card
-  menuCard: {
-    backgroundColor: colors.dark[700],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.dark[400],
-    overflow: 'hidden',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  menuIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  menuContent: {
-    flex: 1,
-  },
-  menuTitle: {
-    ...typography.labelLarge,
-    color: colors.light[100],
-    marginBottom: 2,
-  },
-  menuSubtitle: {
-    ...typography.bodySmall,
-    color: colors.light[60],
-  },
-  menuDivider: {
-    height: 1,
-    backgroundColor: colors.dark[400],
-    marginLeft: 72,
-  },
-
   // Logout
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: spacing.lg,
+  logoutSection: {
     marginTop: spacing.xl,
-    padding: spacing.lg,
-    backgroundColor: colors.error[50],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: `${colors.error[500]}30`,
-  },
-  logoutText: {
-    ...typography.labelLarge,
-    color: colors.error[400],
-    marginLeft: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
 
   // Footer

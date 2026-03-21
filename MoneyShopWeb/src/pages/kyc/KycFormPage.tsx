@@ -109,30 +109,41 @@ export default function KycFormPage() {
 
       {/* Steps indicator */}
       <div className="flex items-center gap-4 mb-4">
-        {['Document', 'Selfie', 'Verificare'].map((s, i) => (
-          <div key={s} className="flex items-center gap-2">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
-              (step === 'document' && i === 0) || (step === 'selfie' && i === 1) || ((step === 'processing' || step === 'done') && i === 2)
-                ? 'bg-brand-primary text-white'
-                : i < (['document', 'selfie', 'processing', 'done'].indexOf(step))
+        {['Document', 'Selfie', 'Verificare'].map((s, i) => {
+          const isVerified = step === 'done' || kycStatus?.status === 'verified';
+          return (
+            <div key={s} className="flex items-center gap-2">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+                isVerified
                   ? 'bg-success-500 text-white'
-                  : 'bg-dark-600 text-light-50'
-            }`}>{i + 1}</div>
-            <span className="text-xs text-light-60 hidden sm:block">{s}</span>
-          </div>
-        ))}
+                  : (step === 'document' && i === 0) || (step === 'selfie' && i === 1) || (step === 'processing' && i === 2)
+                    ? 'bg-brand-primary text-white'
+                    : i < (['document', 'selfie', 'processing', 'done'].indexOf(step))
+                      ? 'bg-success-500 text-white'
+                      : 'bg-dark-600 text-light-50'
+              }`}>{i + 1}</div>
+              <span className="text-xs text-light-60 hidden sm:block">{s}</span>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Already verified */}
-      {step === 'status' && kycStatus?.status === 'verified' && (
+      {/* Already verified (from API status or after QR-based verification) */}
+      {(step === 'done' && !decision && kycStatus?.status === 'verified') && (
         <div className="bg-dark-700 border border-dark-400 rounded-2xl p-8 text-center">
           <CheckCircle size={48} className="mx-auto text-success-500 mb-4" />
           <h2 className="text-xl font-bold text-light-100 mb-2">Identitate verificata</h2>
-          <p className="text-sm text-light-60">KYC verificat la {kycStatus.verifiedAt ? new Date(kycStatus.verifiedAt).toLocaleDateString('ro-RO') : ''}</p>
+          <p className="text-sm text-light-60 mb-6">KYC verificat la {kycStatus.verifiedAt ? new Date(kycStatus.verifiedAt).toLocaleDateString('ro-RO') : ''}</p>
+          <button
+            onClick={() => navigate('/profile')}
+            className="px-8 py-3 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors"
+          >
+            Inapoi la profil
+          </button>
         </div>
       )}
 
-      {step === 'status' && kycStatus?.status === 'pending' && (
+      {kycStatus?.status === 'pending' && (step === 'status' || step === 'done') && (
         <div className="bg-dark-700 border border-dark-400 rounded-2xl p-8 text-center">
           <AlertCircle size={48} className="mx-auto text-warning-500 mb-4" />
           <h2 className="text-xl font-bold text-light-100 mb-2">Verificare in curs</h2>
@@ -158,7 +169,7 @@ export default function KycFormPage() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={loading}
-            className="w-full border-2 border-dashed border-dark-400 rounded-xl py-12 flex flex-col items-center gap-3 hover:border-brand-primary/50 transition-colors disabled:opacity-50"
+            className="w-full border-2 border-dashed border-dark-400 rounded-xl py-12 flex flex-col items-center gap-3 hover:border-brand-primary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <Loader2 size={32} className="text-brand-primary animate-spin" />
@@ -183,7 +194,7 @@ export default function KycFormPage() {
 
           <button
             onClick={takeSelfie}
-            className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors flex items-center justify-center gap-2"
+            className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-all hover:shadow-lg hover:shadow-brand-primary/25 flex items-center justify-center gap-2"
           >
             <Camera size={20} /> Fa selfie
           </button>

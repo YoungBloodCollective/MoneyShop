@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 70" fill="none">
+  <text x="5" y="52" font-family="Arial Black, Arial, sans-serif" font-size="40" font-weight="900" fill="#c41230">FI</text>
+  <text x="55" y="52" font-family="Arial Black, Arial, sans-serif" font-size="40" font-weight="900" fill="#c41230">RST</text>
+  <polygon points="52,15 56,50 48,50" fill="#003da5" opacity="0.6"/>
+  <text x="152" y="52" font-family="Arial Black, Arial, sans-serif" font-size="40" font-weight="900" fill="#003da5">BANK</text>
+</svg>

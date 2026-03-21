@@ -8,6 +8,8 @@ using MoneyShop.DomainServices.RepositoryInterfaces.Account;
 using MoneyShop.DomainServices.RepositoryInterfaces.Auth;
 using MoneyShop.DomainServices.RepositoryInterfaces.Kyc;
 using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using MoneyShop.Api.Services;
 
 namespace MoneyShop.Api.Controllers
 {
@@ -20,14 +22,16 @@ namespace MoneyShop.Api.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IOtpService _otpService;
         private readonly IKycSessionRepository _kycSessionRepository;
+        private readonly FirebaseTokenVerifier _firebaseVerifier;
 
-        public AuthController(IAccountService accountService, JwtTokenGenerator jwtService, IUserRepository userRepository, IOtpService otpService, IKycSessionRepository kycSessionRepository)
+        public AuthController(IAccountService accountService, JwtTokenGenerator jwtService, IUserRepository userRepository, IOtpService otpService, IKycSessionRepository kycSessionRepository, FirebaseTokenVerifier firebaseVerifier)
         {
             _accountService = accountService;
             _jwtService = jwtService;
             _userRepository = userRepository;
             _otpService = otpService;
             _kycSessionRepository = kycSessionRepository;
+            _firebaseVerifier = firebaseVerifier;
         }
 
         /// <summary>
@@ -186,6 +190,58 @@ namespace MoneyShop.Api.Controllers
                     innerError = ex.InnerException?.Message,
                     errorType = ex.GetType().Name
                 });
+            }
+        }
+
+        [HttpPost("social-login")]
+        public async Task<IActionResult> SocialLogin([FromBody] SocialLoginModel model)
+        {
+            if (model == null || string.IsNullOrEmpty(model.IdToken))
+            {
+                return BadRequest(new { message = "IdToken is required" });
+            }
+            try
+            {
+                var firebaseUser = await _firebaseVerifier.VerifyIdTokenAsync(model.IdToken);
+                if (string.IsNullOrEmpty(firebaseUser.Email))
+                {
+                    return BadRequest(new { message = "Firebase token does not contain an email" });
+                }
+                var user = _accountService.SocialLogin(firebaseUser.Uid, firebaseUser.Email, firebaseUser.Name);
+                if (!user.IsAuthenticated)
+                {
+                    return StatusCode(500, new { message = "Failed to create or find user" });
+                }
+                var token = _jwtService.GenerateToken(user.Id, user.Email, user.FirstName, user.Role);
+                var dbUser = _userRepository.Get().FirstOrDefault(u => u.IdUtilizator == user.Id);
+                var kycSession = _kycSessionRepository.Get()
+                    .Where(k => k.UserId == user.Id && k.KycType == "USER_KYC")
+                    .OrderByDescending(k => k.CreatedAt)
+                    .FirstOrDefault();
+                return Ok(new
+                {
+                    token,
+                    user = new
+                    {
+                        id = user.Id.ToString(),
+                        name = user.FirstName,
+                        email = user.Email,
+                        phone = dbUser?.NumarTelefon,
+                        role = user.Role,
+                        emailVerified = dbUser?.EmailVerified ?? false,
+                        phoneVerified = dbUser?.PhoneVerified ?? false,
+                        kycStatus = kycSession?.Status ?? "none",
+                        onboardingCompleted = false
+                    }
+                });
+            }
+            catch (SecurityTokenException ex)
+            {
+                return Unauthorized(new { message = "Invalid Firebase token", error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Social login failed", error = ex.Message });
             }
         }
 

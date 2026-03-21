@@ -1,1 +1,0 @@
-﻿SELECT * FROM user_tab_privs WHERE table_name = 'DBMS_CRYPTO';

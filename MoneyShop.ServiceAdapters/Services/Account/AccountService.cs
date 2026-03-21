@@ -357,6 +357,52 @@ public class AccountService : IAccountService
         };
     }
 
+    public CurrentUserDto SocialLogin(string firebaseUid, string email, string name)
+    {
+        var userRoles = new UserRoles();
+        var rolesDict = userRoles.CreateUserRolesDictionary();
+        var user = _userRepository.Get().FirstOrDefault(u => u.FirebaseUid == firebaseUid);
+        if (user == null)
+        {
+            user = _userRepository.Get().FirstOrDefault(u => u.Mail == email);
+            if (user != null)
+            {
+                user.FirebaseUid = firebaseUid;
+                _userRepository.Update(user);
+                _context.SaveChanges();
+            }
+        }
+        if (user == null)
+        {
+            var nameParts = (name ?? email ?? "").Split(' ', 2);
+            var firstName = nameParts.Length > 0 ? nameParts[0] : "";
+            var lastName = nameParts.Length > 1 ? nameParts[1] : "";
+            user = new Utilizatori
+            {
+                Nume = firstName,
+                Prenume = lastName,
+                Mail = email,
+                Username = email,
+                FirebaseUid = firebaseUid,
+                EmailVerified = true,
+                PhoneVerified = false,
+                IdRol = 1,
+                IsDeleted = false
+            };
+            _userRepository.Insert(user);
+            _context.SaveChanges();
+        }
+        string role = rolesDict.ContainsKey(user.IdRol) ? rolesDict[user.IdRol] : "Utilizator";
+        return new CurrentUserDto
+        {
+            Id = user.IdUtilizator,
+            Email = user.Mail,
+            FirstName = user.Nume + " " + user.Prenume,
+            IsAuthenticated = true,
+            Role = role
+        };
+    }
+
     static string GenerateRandomString(int length)
     {
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

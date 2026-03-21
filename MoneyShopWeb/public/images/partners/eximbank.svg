@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" fill="none">
+  <rect x="8" y="12" width="48" height="48" rx="10" stroke="#003399" stroke-width="4" fill="none" transform="rotate(-10 32 36)"/>
+  <polygon points="22,36 30,30 38,36" fill="#ffd700" transform="translate(-6,0)"/>
+  <polygon points="22,36 30,30 38,36" fill="#cc0000" transform="translate(0,0)"/>
+  <polygon points="22,36 30,30 38,36" fill="#003399" transform="translate(6,0)"/>
+  <text x="68" y="42" font-family="Arial Black, Arial, sans-serif" font-size="36" font-weight="900" fill="#003399">Ex</text>
+  <text x="118" y="42" font-family="Arial Black, Arial, sans-serif" font-size="36" font-weight="900" fill="#003399">i</text>
+  <text x="130" y="42" font-family="Arial Black, Arial, sans-serif" font-size="36" font-weight="900" fill="#cc0000">m</text>
+  <text x="68" y="64" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#003399">Banca Romaneasca</text>
+</svg>

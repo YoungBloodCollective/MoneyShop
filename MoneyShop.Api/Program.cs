@@ -13,6 +13,7 @@ using Microsoft.ApplicationInsights.Extensibility;
 using AutoMapper;
 using System.Security.Claims;
 using System.Text;
+using MoneyShop.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,6 +85,7 @@ builder.Services.AddCors(options =>
             "http://localhost:19006",
             "http://localhost:19000",
             "http://localhost:5173",
+            "http://localhost:5174",
             "http://localhost:3000",
             "exp://localhost:8081",
             "http://127.0.0.1:8081",
@@ -131,6 +133,12 @@ builder.Services.AddScoped<MoneyShop.ServiceInterface.Interfaces.Oblio.IOblioApi
 builder.Services.AddHttpClient<MoneyShop.ServiceAdapters.Services.Kyc.ExternalKycService>();
 builder.Services.AddScoped<MoneyShop.ServiceInterface.Interfaces.Kyc.IExternalKycService>(sp =>
     sp.GetRequiredService<MoneyShop.ServiceAdapters.Services.Kyc.ExternalKycService>());
+
+// ── Chat services (Azure OpenAI assistant) ──
+builder.Services.AddScoped<MoneyShop.ServiceInterface.Interfaces.Chat.IChatService, MoneyShop.ServiceAdapters.Services.Chat.OpenAIChatService>();
+builder.Services.AddScoped<MoneyShop.ServiceInterface.Interfaces.Chat.IRateLimitService, MoneyShop.ServiceAdapters.Services.Chat.RateLimitService>();
+builder.Services.AddScoped<MoneyShop.ServiceInterface.Interfaces.Chat.ICostControlService, MoneyShop.ServiceAdapters.Services.Chat.CostControlService>();
+builder.Services.AddScoped<MoneyShop.ServiceInterface.Interfaces.Chat.IFaqCacheService, MoneyShop.ServiceAdapters.Services.Chat.FaqCacheService>();
 
 // ── Swagger / OpenAPI with JWT security ──
 builder.Services.AddEndpointsApiExplorer();
@@ -266,11 +274,20 @@ if (!string.IsNullOrEmpty(appInsightsConnectionString))
 }
 else
 {
+    builder.Services.AddSingleton(new Microsoft.ApplicationInsights.TelemetryClient(new Microsoft.ApplicationInsights.Extensibility.TelemetryConfiguration()));
     Console.WriteLine("[MoneyShop.Api] Application Insights connection string not found - telemetry disabled");
 }
 
 // ── SignalR (if needed for real-time features) ──
 builder.Services.AddSignalR();
+
+// ── Firebase Token Verifier ──
+builder.Services.AddSingleton(sp =>
+{
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+    return new FirebaseTokenVerifier("moneyshop-8b82b", httpClient);
+});
+Console.WriteLine("[MoneyShop.Api] Firebase token verifier registered (project: moneyshop-8b82b)");
 
 // ── Build ──
 var app = builder.Build();

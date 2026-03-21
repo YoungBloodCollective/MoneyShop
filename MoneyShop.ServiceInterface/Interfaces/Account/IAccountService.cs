@@ -11,5 +11,6 @@ namespace MoneyShop.ServiceInterface.Interfaces.Account
         bool SendMailResetPassword(string email);
         UserModelEdit GetUserById();
         CurrentUserDto UpdateUser(UserModelEdit model);
+        CurrentUserDto SocialLogin(string firebaseUid, string email, string name);
     }
 }

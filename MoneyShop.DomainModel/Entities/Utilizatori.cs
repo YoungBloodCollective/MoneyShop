@@ -28,6 +28,8 @@ public partial class Utilizatori : IEntity
 
     public int IdRol { get; set; }
 
+    public string? FirebaseUid { get; set; }
+
     public bool? IsDeleted { get; set; }
 
     // OTP & Session navigation

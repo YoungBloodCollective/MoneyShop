@@ -8,23 +8,17 @@ import {
   TextInput,
   TouchableOpacity,
   Text,
-  ActivityIndicator,
 } from 'react-native';
 import {Snackbar} from 'react-native-paper';
 import {otpApi} from '../../services/api/otpApi';
 import {useAuthStore} from '../../store/authStore';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {AuthStackParamList} from '../../navigation/AuthNavigator';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {DSTextInput, BigButton, DSCard} from '../../components/ui';
+import Logo from '../../components/Logo';
 import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
 
-type OtpLoginScreenNavigationProp = NativeStackNavigationProp<
-  AuthStackParamList,
-  'OtpLogin'
->;
-
 interface Props {
-  navigation: OtpLoginScreenNavigationProp;
+  navigation: any;
 }
 
 const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
@@ -63,9 +57,8 @@ const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
       });
 
       setOtpId(response.otpId);
-      setCountdown(300); // 5 minutes
+      setCountdown(300);
       if (response.otpCode) {
-        // Development mode - show OTP
         setOtpFromServer(response.otpCode);
       }
       otpInputRef.current?.focus();
@@ -95,9 +88,7 @@ const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
       });
 
       if (response.accessToken && response.user) {
-        // Login successful
         await loginWithToken(response.accessToken, response.user);
-        // Navigation will be handled by AppNavigator
       } else {
         setError(response.message || 'Eroare la verificarea codului');
         setShowError(true);
@@ -120,7 +111,9 @@ const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
           {/* Back button */}
           <TouchableOpacity
@@ -131,9 +124,9 @@ const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
           </TouchableOpacity>
 
           {/* Logo */}
-          <Text style={styles.logo}>
-            MoneyShop<Text style={styles.logoReg}>{'\u00AE'}</Text>
-          </Text>
+          <View style={styles.logoSection}>
+            <Logo size="medium" />
+          </View>
 
           {/* Title */}
           <Text style={styles.title}>Autentificare cu cod SMS</Text>
@@ -144,79 +137,55 @@ const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
           {!otpId ? (
             <>
               {/* Phone Input */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>NUMAR DE TELEFON</Text>
-                <View style={styles.inputWrapper}>
-                  <Icon
-                    name="phone-outline"
-                    size={20}
-                    color={colors.light[60]}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="0712345678"
-                    placeholderTextColor={colors.light[50]}
-                    keyboardType="phone-pad"
-                  />
-                </View>
-              </View>
+              <DSTextInput
+                label="NUMAR DE TELEFON"
+                leftIcon="phone-outline"
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="0712345678"
+                keyboardType="phone-pad"
+              />
 
               {/* Send OTP Button */}
-              <TouchableOpacity
+              <BigButton
+                title={loading ? 'Se trimite...' : 'Trimite cod SMS'}
                 onPress={handleRequestOtp}
+                variant="primary"
+                loading={loading}
                 disabled={loading}
-                activeOpacity={0.8}
-                style={[styles.primaryButton, loading && styles.buttonDisabled]}>
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Trimite cod SMS</Text>
-                )}
-              </TouchableOpacity>
+                icon="message-text-outline"
+              />
 
               {/* Dev OTP display */}
               {otpFromServer && (
-                <View style={styles.devOtpContainer}>
+                <DSCard style={styles.devOtpCard} variant="highlighted">
                   <Text style={styles.devOtpLabel}>COD OTP (DEVELOPMENT)</Text>
                   <Text style={styles.devOtpCode}>{otpFromServer}</Text>
-                </View>
+                </DSCard>
               )}
             </>
           ) : (
             <>
               {/* Info text */}
-              <View style={styles.infoCard}>
-                <Icon name="message-text-outline" size={20} color={colors.brand.primary} />
-                <Text style={styles.infoText}>
-                  Am trimis un cod SMS la {phone}
-                </Text>
-              </View>
+              <DSCard variant="highlighted" style={styles.infoCard}>
+                <View style={styles.infoRow}>
+                  <Icon name="message-text-outline" size={20} color={colors.brand.primary} />
+                  <Text style={styles.infoText}>
+                    Am trimis un cod SMS la {phone}
+                  </Text>
+                </View>
+              </DSCard>
 
               {/* OTP Input */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>COD OTP</Text>
-                <View style={styles.inputWrapper}>
-                  <Icon
-                    name="lock-outline"
-                    size={20}
-                    color={colors.light[60]}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    ref={otpInputRef}
-                    style={styles.input}
-                    value={otpCode}
-                    onChangeText={setOtpCode}
-                    placeholder="000000"
-                    placeholderTextColor={colors.light[50]}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                  />
-                </View>
-              </View>
+              <DSTextInput
+                label="COD OTP"
+                leftIcon="lock-outline"
+                value={otpCode}
+                onChangeText={setOtpCode}
+                placeholder="000000"
+                keyboardType="number-pad"
+                maxLength={6}
+              />
 
               {/* Countdown */}
               {countdown > 0 && (
@@ -229,20 +198,14 @@ const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
               )}
 
               {/* Verify Button */}
-              <TouchableOpacity
+              <BigButton
+                title={loading ? 'Se verifica...' : 'Verifica cod'}
                 onPress={handleVerifyOtp}
+                variant="primary"
+                loading={loading}
                 disabled={loading || otpCode.length !== 6}
-                activeOpacity={0.8}
-                style={[
-                  styles.primaryButton,
-                  (loading || otpCode.length !== 6) && styles.buttonDisabled,
-                ]}>
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Verifica cod</Text>
-                )}
-              </TouchableOpacity>
+                icon="check-circle-outline"
+              />
 
               {/* Change number */}
               <TouchableOpacity
@@ -267,15 +230,12 @@ const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
           </View>
 
           {/* Email login link */}
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Login')}
-            activeOpacity={0.8}
-            style={styles.secondaryButton}>
-            <Icon name="email-outline" size={20} color={colors.light[100]} />
-            <Text style={styles.secondaryButtonText}>
-              Autentificare cu email/parola
-            </Text>
-          </TouchableOpacity>
+          <BigButton
+            title="Autentificare cu email/parola"
+            onPress={() => navigation.goBack()}
+            variant="secondary"
+            icon="email-outline"
+          />
         </View>
       </ScrollView>
 
@@ -293,16 +253,16 @@ const OtpLoginScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.dark[800],
+    backgroundColor: colors.dark[900],
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: spacing.xxl,
   },
   content: {
-    padding: spacing.lg,
-    maxWidth: 450,
+    paddingHorizontal: spacing.lg,
+    maxWidth: 420,
     alignSelf: 'center',
     width: '100%',
   },
@@ -315,17 +275,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xl,
   },
-  logo: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.light[100],
-    letterSpacing: -0.5,
+  logoSection: {
+    alignItems: 'flex-start',
     marginBottom: spacing.xxl,
-  },
-  logoReg: {
-    fontSize: 12,
-    fontWeight: '400',
-    color: colors.light[60],
   },
   title: {
     ...typography.h1,
@@ -337,82 +289,13 @@ const styles = StyleSheet.create({
     color: colors.light[60],
     marginBottom: spacing.xl,
   },
-  inputContainer: {
-    marginBottom: spacing.lg,
-  },
-  inputLabel: {
-    ...typography.labelUppercase,
-    color: colors.light[60],
-    marginBottom: spacing.sm,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.dark[600],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.dark[400],
-    paddingHorizontal: spacing.md,
-    minHeight: 56,
-  },
-  inputIcon: {
-    marginRight: spacing.sm,
-  },
-  input: {
-    flex: 1,
-    ...typography.bodyMedium,
-    color: colors.light[100],
-    paddingVertical: spacing.md,
-  },
-  primaryButton: {
-    backgroundColor: colors.brand.primary,
-    minHeight: 56,
-    borderRadius: borderRadius.pill,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  primaryButtonText: {
-    ...typography.labelLarge,
-    color: '#FFFFFF',
-  },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    minHeight: 56,
-    borderRadius: borderRadius.pill,
-    borderWidth: 1.5,
-    borderColor: colors.dark[400],
-    backgroundColor: colors.dark[700],
-  },
-  secondaryButtonText: {
-    ...typography.labelLarge,
-    color: colors.light[100],
-  },
-  linkButton: {
-    alignSelf: 'center',
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  linkButtonText: {
-    ...typography.labelMedium,
-    color: colors.brand.primary,
-  },
   infoCard: {
+    marginBottom: spacing.lg,
+  },
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.info[50],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.brand.primary,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
   },
   infoText: {
     ...typography.bodySmall,
@@ -430,13 +313,8 @@ const styles = StyleSheet.create({
     ...typography.labelMedium,
     color: colors.warning[400],
   },
-  devOtpContainer: {
+  devOtpCard: {
     marginTop: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.info[50],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.brand.primary,
     alignItems: 'center',
   },
   devOtpLabel: {
@@ -450,6 +328,14 @@ const styles = StyleSheet.create({
     color: colors.brand.primary,
     textAlign: 'center',
     letterSpacing: 6,
+  },
+  linkButton: {
+    alignSelf: 'center',
+    paddingVertical: spacing.md,
+  },
+  linkButtonText: {
+    ...typography.labelMedium,
+    color: colors.brand.primary,
   },
   divider: {
     flexDirection: 'row',

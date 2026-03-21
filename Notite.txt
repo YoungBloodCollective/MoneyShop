@@ -1,6 +1,0 @@
-Notite
-
-
-calculator : 
-- simplu pentru personae care nu sunt autentificate
-- optiunea

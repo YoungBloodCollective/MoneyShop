@@ -92,6 +92,7 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.Username).HasMaxLength(255);
             entity.Property(e => e.EmailVerified).HasDefaultValueSql("((0))");
             entity.Property(e => e.PhoneVerified).HasDefaultValueSql("((0))");
+            entity.Property(e => e.FirebaseUid).HasMaxLength(128);
         });
 
         // MoneyShop Entities Configuration

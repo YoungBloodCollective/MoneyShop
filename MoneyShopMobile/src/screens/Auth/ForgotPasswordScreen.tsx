@@ -7,22 +7,15 @@ import {
   ScrollView,
   TouchableOpacity,
   Text,
-  TextInput,
-  ActivityIndicator,
 } from 'react-native';
 import {Snackbar} from 'react-native-paper';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {AuthStackParamList} from '../../navigation/AuthNavigator';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {colors, spacing, borderRadius, typography} from '../../theme/designSystem';
-
-type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<
-  AuthStackParamList,
-  'ForgotPassword'
->;
+import {DSTextInput, BigButton} from '../../components/ui';
+import Logo from '../../components/Logo';
+import {colors, spacing, typography} from '../../theme/designSystem';
 
 interface Props {
-  navigation: ForgotPasswordScreenNavigationProp;
+  navigation: any;
 }
 
 const ForgotPasswordScreen: React.FC<Props> = ({navigation}) => {
@@ -43,10 +36,9 @@ const ForgotPasswordScreen: React.FC<Props> = ({navigation}) => {
       setLoading(true);
       setError(null);
       // TODO: Implement password reset API call
-      // await authApi.forgotPassword(email);
       setSuccess(true);
       setTimeout(() => {
-        navigation.navigate('Login');
+        navigation.goBack();
       }, 2000);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Eroare la resetarea parolei');
@@ -60,7 +52,9 @@ const ForgotPasswordScreen: React.FC<Props> = ({navigation}) => {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
           {/* Back button */}
           <TouchableOpacity
@@ -71,9 +65,9 @@ const ForgotPasswordScreen: React.FC<Props> = ({navigation}) => {
           </TouchableOpacity>
 
           {/* Logo */}
-          <Text style={styles.logo}>
-            MoneyShop<Text style={styles.logoReg}>{'\u00AE'}</Text>
-          </Text>
+          <View style={styles.logoSection}>
+            <Logo size="medium" />
+          </View>
 
           {/* Title */}
           <Text style={styles.title}>Resetare parola</Text>
@@ -83,44 +77,30 @@ const ForgotPasswordScreen: React.FC<Props> = ({navigation}) => {
           </Text>
 
           {/* Email Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>EMAIL</Text>
-            <View style={styles.inputWrapper}>
-              <Icon
-                name="email-outline"
-                size={20}
-                color={colors.light[60]}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="exemplu@email.com"
-                placeholderTextColor={colors.light[50]}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-            </View>
-          </View>
+          <DSTextInput
+            label="EMAIL"
+            leftIcon="email-outline"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="exemplu@email.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+          />
 
           {/* Reset Button */}
-          <TouchableOpacity
+          <BigButton
+            title={loading ? 'Se trimite...' : 'Trimite email'}
             onPress={handleResetPassword}
+            variant="primary"
+            loading={loading}
             disabled={loading}
-            activeOpacity={0.8}
-            style={[styles.primaryButton, loading && styles.buttonDisabled]}>
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Trimite email</Text>
-            )}
-          </TouchableOpacity>
+            icon="email-send-outline"
+          />
 
           {/* Back to login link */}
           <TouchableOpacity
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.goBack()}
             style={styles.linkButton}
             activeOpacity={0.7}>
             <Icon name="arrow-left" size={16} color={colors.brand.primary} />
@@ -151,16 +131,16 @@ const ForgotPasswordScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.dark[800],
+    backgroundColor: colors.dark[900],
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: spacing.xxl,
   },
   content: {
-    padding: spacing.lg,
-    maxWidth: 450,
+    paddingHorizontal: spacing.lg,
+    maxWidth: 420,
     alignSelf: 'center',
     width: '100%',
   },
@@ -173,17 +153,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xl,
   },
-  logo: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.light[100],
-    letterSpacing: -0.5,
+  logoSection: {
+    alignItems: 'flex-start',
     marginBottom: spacing.xxl,
-  },
-  logoReg: {
-    fontSize: 12,
-    fontWeight: '400',
-    color: colors.light[60],
   },
   title: {
     ...typography.h1,
@@ -196,54 +168,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
     lineHeight: 24,
   },
-  inputContainer: {
-    marginBottom: spacing.lg,
-  },
-  inputLabel: {
-    ...typography.labelUppercase,
-    color: colors.light[60],
-    marginBottom: spacing.sm,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.dark[600],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.dark[400],
-    paddingHorizontal: spacing.md,
-    minHeight: 56,
-  },
-  inputIcon: {
-    marginRight: spacing.sm,
-  },
-  input: {
-    flex: 1,
-    ...typography.bodyMedium,
-    color: colors.light[100],
-    paddingVertical: spacing.md,
-  },
-  primaryButton: {
-    backgroundColor: colors.brand.primary,
-    minHeight: 56,
-    borderRadius: borderRadius.pill,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  primaryButtonText: {
-    ...typography.labelLarge,
-    color: '#FFFFFF',
-  },
   linkButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
+    marginTop: spacing.md,
   },
   linkButtonText: {
     ...typography.labelMedium,

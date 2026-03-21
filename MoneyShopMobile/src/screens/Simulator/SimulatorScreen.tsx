@@ -81,7 +81,7 @@ const SimulatorScreen: React.FC<Props> = ({navigation}) => {
             <Text style={styles.featureMiniText}>Date sigure</Text>
           </View>
           <View style={styles.featureMini}>
-            <Icon name="cash-multiple" size={24} color={colors.warning[400]} />
+            <Icon name="cash-multiple" size={24} color={colors.gold[500]} />
             <Text style={styles.featureMiniText}>0 comision</Text>
           </View>
         </View>

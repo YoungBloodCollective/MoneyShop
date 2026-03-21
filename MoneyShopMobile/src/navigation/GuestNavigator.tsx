@@ -1,12 +1,13 @@
 import React from 'react';
-import {Platform} from 'react-native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import MobileLoginScreen from '../screens/Auth/MobileLoginScreen';
-import LandingScreen from '../screens/Landing/LandingScreen';
+import ForgotPasswordScreen from '../screens/Auth/ForgotPasswordScreen';
+import OtpLoginScreen from '../screens/Auth/OtpLoginScreen';
 
 export type GuestStackParamList = {
   MobileLogin: undefined;
-  Landing: undefined;
+  ForgotPassword: undefined;
+  OtpLogin: undefined;
 };
 
 const Stack = createNativeStackNavigator<GuestStackParamList>();
@@ -14,24 +15,19 @@ const Stack = createNativeStackNavigator<GuestStackParamList>();
 /**
  * GuestNavigator - Navigator for unauthenticated users
  *
- * On mobile: simple login screen that redirects to browser for auth.
- * On web: full landing page with calculator, features, etc.
+ * MobileLoginScreen has the full login form + register→browser button.
+ * ForgotPassword and OtpLogin are accessible from the login screen.
  */
 const GuestNavigator = () => {
   return (
     <Stack.Navigator
-      initialRouteName={Platform.OS === 'web' ? 'Landing' : 'MobileLogin'}
+      initialRouteName="MobileLogin"
       screenOptions={{
         headerShown: false,
       }}>
-      <Stack.Screen
-        name="MobileLogin"
-        component={MobileLoginScreen}
-      />
-      <Stack.Screen
-        name="Landing"
-        component={LandingScreen}
-      />
+      <Stack.Screen name="MobileLogin" component={MobileLoginScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen name="OtpLogin" component={OtpLoginScreen} />
     </Stack.Navigator>
   );
 };

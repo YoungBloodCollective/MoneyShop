@@ -19,6 +19,11 @@ export const authApi = {
 
   async logout(): Promise<void> {},
 
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+
   async sendEmailVerification(email?: string): Promise<{ success: boolean; message: string; otpId: string; expiresInSeconds: number }> {
     const response = await apiClient.post('/auth/send-email-verification', { email });
     return response.data;

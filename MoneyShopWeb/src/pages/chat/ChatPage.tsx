@@ -9,11 +9,21 @@ interface Message {
   timestamp: Date;
 }
 
+const suggestedQuestions = [
+  'Ce documente am nevoie pentru un credit?',
+  'Cum pot obtine cel mai bun scor de credit?',
+  'Cat de mult ma pot imprumuta?',
+  'Ce inseamna DTI?',
+  'Cum functioneaza procesul de aprobare?',
+  'Este serviciul gratuit?',
+];
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [disclaimer, setDisclaimer] = useState('');
+  const [hasUserMessage, setHasUserMessage] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,11 +49,8 @@ export default function ChatPage() {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = input.trim();
+  const sendText = async (text: string) => {
     if (!text || loading) return;
-
     const userMsg: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -52,6 +59,7 @@ export default function ChatPage() {
     };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
+    setHasUserMessage(true);
     setLoading(true);
 
     try {
@@ -72,6 +80,17 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || loading) return;
+    await sendText(text);
+  };
+
+  const handleSuggestedQuestion = (question: string) => {
+    sendText(question);
   };
 
   return (
@@ -104,6 +123,19 @@ export default function ChatPage() {
             )}
           </div>
         ))}
+        {!hasUserMessage && !loading && (
+          <div className="flex flex-wrap gap-2 px-2 pt-2">
+            {suggestedQuestions.map(q => (
+              <button
+                key={q}
+                onClick={() => handleSuggestedQuestion(q)}
+                className="bg-dark-600 hover:bg-dark-500 text-light-70 hover:text-light-90 rounded-full px-4 py-2 text-sm cursor-pointer transition-colors"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
         {loading && (
           <div className="flex gap-3">
             <div className="w-8 h-8 rounded-full bg-brand-primary/15 flex items-center justify-center">
@@ -134,12 +166,12 @@ export default function ChatPage() {
           onChange={e => setInput(e.target.value)}
           placeholder="Scrie un mesaj..."
           disabled={loading}
-          className="flex-1 h-12 px-4 rounded-full bg-dark-700 border border-dark-400 text-light-90 placeholder:text-light-50 focus:border-brand-primary focus:outline-none disabled:opacity-50 transition-colors"
+          className="flex-1 h-12 px-4 rounded-full bg-dark-700 border border-dark-400 text-light-90 placeholder:text-light-50 focus:border-brand-primary focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         />
         <button
           type="submit"
           disabled={loading || !input.trim()}
-          className="w-12 h-12 rounded-full bg-brand-primary text-white flex items-center justify-center hover:bg-brand-primary/90 disabled:opacity-50 transition-colors"
+          className="w-12 h-12 rounded-full bg-brand-primary text-white flex items-center justify-center hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Send size={18} />
         </button>
