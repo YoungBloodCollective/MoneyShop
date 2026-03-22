@@ -147,7 +147,7 @@ export default function BcReportPage() {
         {report && (
           <>
             {/* FICO Score */}
-            <FicoScoreCard score={ficoScore} explanations={parsedData?.ficoExplanationCodes} />
+            <FicoScoreCard score={ficoScore} explanations={parsedData?.ficoExplanationCodes} nrIfn={parsedData?.nonBankingIndicators?.totalAccounts} />
 
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -213,8 +213,11 @@ export default function BcReportPage() {
 
 // ── Sub-components ──
 
-function FicoScoreCard({ score, explanations }: { score?: number; explanations?: string[] }) {
+function FicoScoreCard({ score, explanations, nrIfn }: { score?: number; explanations?: string[]; nrIfn?: number }) {
   if (!score) return null;
+
+  const displayScore = score < 581 ? 581 : score;
+  const showAsterisk = score >= 500 && score <= 580 && (nrIfn ?? 0) <= 10;
 
   const getColor = (s: number) => {
     if (s >= 700) return 'text-success-400';
@@ -237,32 +240,31 @@ function FicoScoreCard({ score, explanations }: { score?: number; explanations?:
     return 'Foarte scazut';
   };
 
-  const percentage = ((score - 300) / (850 - 300)) * 100;
+  const percentage = ((displayScore - 300) / (850 - 300)) * 100;
 
   return (
-    <div className={`rounded-2xl border p-6 ${getBgColor(score)}`}>
+    <div className={`rounded-2xl border p-6 ${getBgColor(displayScore)}`}>
       <div className="flex items-start justify-between mb-4">
         <div>
           <p className="text-sm text-light-50 mb-1">FICO Score</p>
-          <p className={`text-4xl font-bold ${getColor(score)}`}>{score}</p>
-          <p className={`text-sm font-medium mt-1 ${getColor(score)}`}>{getLabel(score)}</p>
+          <p className={`text-4xl font-bold ${getColor(displayScore)}`}>{displayScore}{showAsterisk && '*'}</p>
+          <p className={`text-sm font-medium mt-1 ${getColor(displayScore)}`}>{getLabel(displayScore)}</p>
         </div>
         <div className="text-right">
           <p className="text-xs text-light-40">Interval: 300 - 850</p>
         </div>
       </div>
-
-      {/* Score bar */}
       <div className="w-full h-2 bg-dark-600 rounded-full overflow-hidden mb-4">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
-            score >= 700 ? 'bg-success-400' : score >= 550 ? 'bg-warning-400' : 'bg-error-400'
+            displayScore >= 700 ? 'bg-success-400' : displayScore >= 550 ? 'bg-warning-400' : 'bg-error-400'
           }`}
           style={{ width: `${Math.max(2, percentage)}%` }}
         />
       </div>
-
-      {/* Explanation codes */}
+      {showAsterisk && (
+        <p className="text-xs text-light-50 mb-3">* Scor FICO sub limita standard. Eligibil cu conditii speciale daca nu exista mai mult de 10 credite non-bancare.</p>
+      )}
       {explanations && explanations.length > 0 && (
         <div className="space-y-1 pt-3 border-t border-white/10">
           <p className="text-xs text-light-40 mb-2">Factori care influenteaza scorul:</p>
@@ -393,11 +395,27 @@ function AccountsTable({ accounts }: { accounts: BcAccountSummary[] }) {
 }
 
 function InquiriesSection({ inquiries }: { inquiries: { date?: string; institution?: string; purpose?: string }[] }) {
+  const now = new Date();
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+  const countInRange = (start: Date) => inquiries.filter(inq => {
+    if (!inq.date) return false;
+    const d = new Date(inq.date);
+    return d >= start && d <= now;
+  }).length;
+  const last3m = countInRange(threeMonthsAgo);
+  const last6m = countInRange(sixMonthsAgo);
+  const showWarning = last3m > 4 || last6m > 7;
   return (
     <div className="bg-dark-700 rounded-xl border border-dark-600 overflow-hidden">
       <div className="p-4 border-b border-dark-600">
-        <h3 className="text-sm font-medium text-light-100">Interogari ({inquiries.length})</h3>
+        <h3 className="text-sm font-medium text-light-100">Interogarile din ultimele 12 luni ({inquiries.length})</h3>
       </div>
+      {showWarning && (
+        <div className="mx-4 mt-4 px-4 py-3 bg-error-500/15 border border-error-500/40 rounded-xl">
+          <p className="text-sm font-semibold text-error-400">&#9888;&#65039; POSIBIL RISC LA APLICATIILE DE CREDIT</p>
+        </div>
+      )}
       <div className="divide-y divide-dark-600/50">
         {inquiries.map((inq, i) => (
           <div key={i} className="flex items-center justify-between px-4 py-3 hover:bg-dark-600/30">

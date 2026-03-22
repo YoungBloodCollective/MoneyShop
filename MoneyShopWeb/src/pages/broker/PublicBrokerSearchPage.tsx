@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Search, Users, BadgeCheck } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+
 import toast from 'react-hot-toast';
 import { brokerApi, type BrokerInfo } from '@/services/api/brokerApi';
 
 export default function PublicBrokerSearchPage() {
-  const navigate = useNavigate();
   const [brokers, setBrokers] = useState<BrokerInfo[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [hasAuth, setHasAuth] = useState(true);
 
   useEffect(() => {
     loadBrokers();
@@ -20,14 +18,8 @@ export default function PublicBrokerSearchPage() {
     try {
       const res = await brokerApi.searchBrokers(q, 50);
       setBrokers(res.brokers || []);
-      setHasAuth(true);
-    } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
-      if (status === 401 || status === 403) {
-        setHasAuth(false);
-      } else {
-        toast.error('Eroare la incarcarea brokerilor');
-      }
+    } catch {
+      toast.error('Eroare la incarcarea brokerilor');
     } finally {
       setLoading(false);
     }
@@ -49,30 +41,6 @@ export default function PublicBrokerSearchPage() {
           <p className="text-sm text-gray-500">Cauta in directorul oficial al intermediarilor de credit</p>
         </div>
       </div>
-      {!hasAuth ? (
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
-          <Users size={44} className="mx-auto text-gray-300 mb-4" />
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Director disponibil dupa autentificare</h2>
-          <p className="text-sm text-gray-500 mb-5">
-            Pentru a verifica un broker din directorul oficial, te rugam sa te conectezi sau sa creezi un cont gratuit.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              onClick={() => navigate('/auth/login')}
-              className="px-6 py-2.5 rounded-full bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
-              Conecteaza-te
-            </button>
-            <button
-              onClick={() => navigate('/auth/register')}
-              className="px-6 py-2.5 rounded-full border border-gray-300 text-gray-700 text-sm font-medium hover:border-gray-400 transition-colors"
-            >
-              Creeaza cont gratuit
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
           <form onSubmit={handleSearch} className="relative">
             <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -134,8 +102,6 @@ export default function PublicBrokerSearchPage() {
               ))}
             </div>
           )}
-        </>
-      )}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
         <p className="text-xs text-gray-500 text-center">
           Toti brokerii listati sunt autorizati de ASF (Autoritatea de Supraveghere Financiara) si

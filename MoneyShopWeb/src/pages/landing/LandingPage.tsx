@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Phone, Lock, ChevronLeft, ChevronRight, CheckCircle2, Shield, Award, Clock, Star, Users, FileCheck, Building2, ArrowRight, Menu, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInView } from '@/hooks/useInView';
+import { apiClient } from '@/services/api/apiClient';
+import toast from 'react-hot-toast';
 
 const creditOptions = [
   { key: 'NP', label: 'Credit Nevoi Personale' },
@@ -43,17 +45,28 @@ const bankLogos = [
   { name: 'ING', src: '/images/partners/ing.png' },
   { name: 'Banca Transilvania', src: '/images/partners/bt.png' },
   { name: 'UniCredit Bank', src: '/images/partners/unicredit.png' },
-  { name: 'Alpha Bank', src: '/images/partners/alpha.svg' },
-  { name: 'First Bank', src: '/images/partners/firstbank.svg' },
+  { name: 'ProCredit Bank', src: '/images/partners/procredit.svg' },
+  { name: 'Libra Bank', src: '/images/partners/libra.svg' },
   { name: 'Exim Bank', src: '/images/partners/eximbank.svg' },
   { name: 'Patria Bank', src: '/images/partners/patria.svg' },
 ];
+
+const judete = [
+  'Alba', 'Arad', 'Arges', 'Bacau', 'Bihor', 'Bistrita-Nasaud', 'Botosani', 'Braila',
+  'Brasov', 'Bucuresti', 'Buzau', 'Calarasi', 'Caras-Severin', 'Cluj', 'Constanta',
+  'Covasna', 'Dambovita', 'Dolj', 'Galati', 'Giurgiu', 'Gorj', 'Harghita', 'Hunedoara',
+  'Ialomita', 'Iasi', 'Ilfov', 'Maramures', 'Mehedinti', 'Mures', 'Neamt', 'Olt',
+  'Prahova', 'Salaj', 'Satu Mare', 'Sibiu', 'Suceava', 'Teleorman', 'Timis', 'Tulcea',
+  'Vaslui', 'Valcea', 'Vrancea',
+];
+
+const tipuriCredit = ['Credit Nevoi Personale', 'Credit Ipotecar', 'Refinantare'];
 
 const howItWorks = [
   { num: 1, title: 'Calculeaza', desc: 'Alege suma si tipul de credit', img: '/images/landing/step1.png' },
   { num: 2, title: 'Verificare 100% Online', desc: 'ANAF \u2022 Birou de Credite', img: '/images/landing/step2.png' },
   { num: 3, title: 'Compara Oferte', desc: 'Cele mai bune banci', img: '/images/landing/step3.png' },
-  { num: 4, title: 'Semneaza', desc: 'Primesti banii rapid', img: '/images/landing/step4.png' },
+  { num: 4, title: 'Semneaza', desc: 'Aplica rapid', img: '/images/landing/step4.png' },
 ];
 
 function useCountUp(end: number, duration: number, trigger: boolean) {
@@ -85,6 +98,33 @@ export default function LandingPage() {
   const [birthMonth, setBirthMonth] = useState(1);
   const [salaryNet, setSalaryNet] = useState(5000);
   const [bonuriMasa, setBonuriMasa] = useState(0);
+
+  const [showProgrameaza, setShowProgrameaza] = useState(false);
+  const [progForm, setProgForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
+  const [progLoading, setProgLoading] = useState(false);
+
+  const handleProgSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProgLoading(true);
+    try {
+      await apiClient.post('/appointments', {
+        nume: progForm.nume,
+        prenume: progForm.prenume,
+        judet: progForm.judet,
+        tipCredit: progForm.tipCredit,
+        salariuNet: Number(progForm.salariuNet),
+        telefon: progForm.telefon,
+        email: progForm.email,
+      });
+      toast.success('Cererea ta a fost inregistrata! Te vom contacta in curand.');
+      setShowProgrameaza(false);
+      setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
+    } catch {
+      toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
+    } finally {
+      setProgLoading(false);
+    }
+  };
 
   const stepsSection = useInView(0.1);
   const statsSection = useInView(0.3);
@@ -124,7 +164,6 @@ export default function LandingPage() {
             {[
               { label: 'Despre MoneyShop', path: '/despre' },
               { label: 'Verifica Broker', path: '/verifica-broker' },
-              { label: 'Legal', path: '/legal' },
             ].map(item => (
               <button key={item.label} onClick={() => navigate(item.path)} className="px-3 py-2 text-sm text-gray-700 hover:text-gray-900 font-medium transition-colors cursor-pointer">
                 {item.label}
@@ -132,8 +171,8 @@ export default function LandingPage() {
             ))}
           </nav>
           <div className="flex items-center gap-3">
-            <a href="tel:+40319000900" className="hidden md:flex items-center gap-1.5 text-sm text-gray-700 font-medium hover:text-gray-900 transition-colors">
-              <Phone size={14} /> 031 9000 900
+            <a href="tel:+40770548447" className="hidden md:flex items-center gap-1.5 text-sm text-gray-700 font-medium hover:text-gray-900 transition-colors">
+              <Phone size={14} /> 0770 548 447
             </a>
             <button
               onClick={() => navigate(isAuthenticated ? '/dashboard' : '/auth/login')}
@@ -167,8 +206,8 @@ export default function LandingPage() {
                 </button>
               ))}
               <hr className="my-3 border-gray-200" />
-              <a href="tel:+40319000900" className="flex items-center gap-2 px-4 py-3 text-base text-gray-700 font-medium">
-                <Phone size={16} /> 031 9000 900
+              <a href="tel:+40770548447" className="flex items-center gap-2 px-4 py-3 text-base text-gray-700 font-medium">
+                <Phone size={16} /> 0770 548 447
               </a>
               <button
                 onClick={() => { navigate(isAuthenticated ? '/dashboard' : '/auth/login'); setMobileMenuOpen(false); }}
@@ -443,18 +482,18 @@ export default function LandingPage() {
               </div>
               <div className="p-3.5 flex-1 flex flex-col justify-between">
                 <div>
-                  <p className="text-sm font-extrabold text-gray-900">Consultant Dedicat</p>
+                  <p className="text-sm font-extrabold text-gray-900">Broker autorizat de credite</p>
                   <p className="text-[11px] text-gray-400 mt-0.5">Programeaza un apel gratuit</p>
                 </div>
                 <div className="mt-3 space-y-1.5">
                   <button
-                    onClick={() => navigate('/programeaza-apel')}
+                    onClick={() => setShowProgrameaza(true)}
                     className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-xl text-xs transition-colors shadow-md shadow-green-500/20"
                   >
                     Programeaza
                   </button>
                   <p className="text-[10px] text-gray-400 text-center">
-                    Sau suna: <strong className="text-gray-700">031 9000 900</strong>
+                    Sau suna: <strong className="text-gray-700">0770 548 447</strong>
                   </p>
                 </div>
               </div>
@@ -556,7 +595,8 @@ export default function LandingPage() {
             <div>
               <p className="text-xs font-semibold text-white mb-3">Contact</p>
               <div className="space-y-1.5 text-[11px] text-gray-400">
-                <p className="flex items-center gap-1.5"><Phone size={11} /> 031 9000 900</p>
+                <p className="flex items-center gap-1.5"><Phone size={11} /> 0770 548 447</p>
+                <p className="flex items-center gap-1.5"><Phone size={11} /> 031 434 0940</p>
                 <p>contact@moneyshop.ro</p>
                 <p>Bucuresti, Romania</p>
                 <p>L-V: 09:00 - 18:00</p>
@@ -571,16 +611,123 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          <div className="border-t border-gray-800 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-[11px] text-gray-600">&copy; {new Date().getFullYear()} MoneyShop. Toate drepturile rezervate.</p>
-            <div className="flex items-center gap-4 text-[11px] text-gray-600">
-              <a href="/legal" className="hover:text-gray-400 transition-colors">Legal</a>
-              <a href="/despre" className="hover:text-gray-400 transition-colors">Despre</a>
-              <a href="/legal" className="hover:text-gray-400 transition-colors">GDPR</a>
+          <div className="border-t border-gray-800 pt-5 flex flex-col items-center gap-3">
+            <p className="text-[10px] text-gray-600 text-center">
+              ANPC — Autoritatea Nationala pentru Protectia Consumatorilor:{' '}
+              <a href="https://anpc.ro/ce-este-sal/" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-400 transition-colors">SAL</a>
+              {' | '}
+              <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-400 transition-colors">SOL</a>
+            </p>
+            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-[11px] text-gray-600">&copy; {new Date().getFullYear()} MoneyShop. Toate drepturile rezervate.</p>
+              <div className="flex items-center gap-4 text-[11px] text-gray-600">
+                <a href="/legal" className="hover:text-gray-400 transition-colors">Legal</a>
+                <a href="/despre" className="hover:text-gray-400 transition-colors">Despre</a>
+                <a href="/legal" className="hover:text-gray-400 transition-colors">GDPR</a>
+              </div>
             </div>
           </div>
         </div>
       </footer>
+
+      {showProgrameaza && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowProgrameaza(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Programeaza un apel</h2>
+              <button onClick={() => setShowProgrameaza(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleProgSubmit} className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Nume</label>
+                  <input
+                    type="text"
+                    required
+                    value={progForm.nume}
+                    onChange={e => setProgForm(f => ({ ...f, nume: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Prenume</label>
+                  <input
+                    type="text"
+                    required
+                    value={progForm.prenume}
+                    onChange={e => setProgForm(f => ({ ...f, prenume: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Judet</label>
+                <select
+                  required
+                  value={progForm.judet}
+                  onChange={e => setProgForm(f => ({ ...f, judet: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
+                >
+                  <option value="">Selecteaza judetul</option>
+                  {judete.map(j => <option key={j} value={j}>{j}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Tip de credit</label>
+                <select
+                  required
+                  value={progForm.tipCredit}
+                  onChange={e => setProgForm(f => ({ ...f, tipCredit: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
+                >
+                  <option value="">Selecteaza tipul</option>
+                  {tipuriCredit.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Salariu net (RON)</label>
+                <input
+                  type="number"
+                  required
+                  min={0}
+                  value={progForm.salariuNet}
+                  onChange={e => setProgForm(f => ({ ...f, salariuNet: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Numar de telefon</label>
+                <input
+                  type="text"
+                  required
+                  value={progForm.telefon}
+                  onChange={e => setProgForm(f => ({ ...f, telefon: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={progForm.email}
+                  onChange={e => setProgForm(f => ({ ...f, email: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={progLoading}
+                className="w-full bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-bold py-2.5 rounded-xl text-sm transition-colors shadow-md shadow-green-500/20"
+              >
+                {progLoading ? 'Se trimite...' : 'Trimite cererea'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }

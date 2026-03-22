@@ -11,7 +11,6 @@ export function PublicLayout() {
   const navItems = [
     { label: 'Despre MoneyShop', path: '/despre' },
     { label: 'Verifica Broker', path: '/verifica-broker' },
-    { label: 'Legal', path: '/legal' },
   ];
 
   return (
@@ -39,8 +38,8 @@ export function PublicLayout() {
             ))}
           </nav>
           <div className="flex items-center gap-3">
-            <a href="tel:+40319000900" className="hidden md:flex items-center gap-1.5 text-sm text-gray-700 font-medium hover:text-gray-900 transition-colors">
-              <Phone size={14} /> 031 9000 900
+            <a href="tel:+40770548447" className="hidden md:flex items-center gap-1.5 text-sm text-gray-700 font-medium hover:text-gray-900 transition-colors">
+              <Phone size={14} /> 0770 548 447
             </a>
             <button
               onClick={() => navigate(isAuthenticated ? '/dashboard' : '/auth/login')}
@@ -70,8 +69,8 @@ export function PublicLayout() {
                 </button>
               ))}
               <hr className="my-3 border-gray-200" />
-              <a href="tel:+40319000900" className="flex items-center gap-2 px-4 py-3 text-base text-gray-700 font-medium">
-                <Phone size={16} /> 031 9000 900
+              <a href="tel:+40770548447" className="flex items-center gap-2 px-4 py-3 text-base text-gray-700 font-medium">
+                <Phone size={16} /> 0770 548 447
               </a>
               <button
                 onClick={() => { navigate(isAuthenticated ? '/dashboard' : '/auth/login'); setMobileMenuOpen(false); }}
@@ -117,7 +116,8 @@ export function PublicLayout() {
             <div>
               <p className="text-xs font-semibold text-white mb-3">Contact</p>
               <div className="space-y-1.5 text-[11px] text-gray-400">
-                <p className="flex items-center gap-1.5"><Phone size={11} /> 031 9000 900</p>
+                <p className="flex items-center gap-1.5"><Phone size={11} /> 0770 548 447</p>
+                <p className="flex items-center gap-1.5"><Phone size={11} /> 031 434 0940</p>
                 <p>contact@moneyshop.ro</p>
                 <p>Bucuresti, Romania</p>
                 <p>L-V: 09:00 - 18:00</p>
@@ -132,12 +132,20 @@ export function PublicLayout() {
               </div>
             </div>
           </div>
-          <div className="border-t border-gray-800 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-[11px] text-gray-600">&copy; {new Date().getFullYear()} MoneyShop. Toate drepturile rezervate.</p>
-            <div className="flex items-center gap-4 text-[11px] text-gray-600">
-              <button onClick={() => navigate('/legal')} className="hover:text-gray-400 transition-colors">Legal</button>
-              <button onClick={() => navigate('/despre')} className="hover:text-gray-400 transition-colors">Despre</button>
-              <button onClick={() => navigate('/')} className="hover:text-gray-400 transition-colors">Acasa</button>
+          <div className="border-t border-gray-800 pt-5 flex flex-col items-center gap-3">
+            <p className="text-[10px] text-gray-600 text-center">
+              ANPC — Autoritatea Nationala pentru Protectia Consumatorilor:{' '}
+              <a href="https://anpc.ro/ce-este-sal/" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-400 transition-colors">SAL</a>
+              {' | '}
+              <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-400 transition-colors">SOL</a>
+            </p>
+            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-[11px] text-gray-600">&copy; {new Date().getFullYear()} MoneyShop. Toate drepturile rezervate.</p>
+              <div className="flex items-center gap-4 text-[11px] text-gray-600">
+                <button onClick={() => navigate('/legal')} className="hover:text-gray-400 transition-colors">Legal</button>
+                <button onClick={() => navigate('/despre')} className="hover:text-gray-400 transition-colors">Despre</button>
+                <button onClick={() => navigate('/')} className="hover:text-gray-400 transition-colors">Acasa</button>
+              </div>
             </div>
           </div>
         </div>
