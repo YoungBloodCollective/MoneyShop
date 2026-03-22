@@ -14,10 +14,19 @@ export default function AdminKycPage() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [stats, setStats] = useState<{ total: number; verified: number; pending: number; rejected: number } | null>(null);
 
   useEffect(() => {
     loadPending();
+    loadStats();
   }, []);
+
+  const loadStats = async () => {
+    try {
+      const data = await kycApi.getStats();
+      setStats(data);
+    } catch { /* stats are optional */ }
+  };
 
   const loadPending = async () => {
     setLoading(true);
@@ -233,22 +242,34 @@ export default function AdminKycPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-dark-700 border border-dark-400 rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <UserCheck size={18} className="text-brand-primary" />
+            <span className="text-xs text-light-60 uppercase tracking-wider">Total</span>
+          </div>
+          <p className="text-2xl font-bold text-light-100">{stats?.total ?? '-'}</p>
+        </div>
+        <div className="bg-dark-700 border border-dark-400 rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle size={18} className="text-success-500" />
+            <span className="text-xs text-light-60 uppercase tracking-wider">Verificate</span>
+          </div>
+          <p className="text-2xl font-bold text-success-400">{stats?.verified ?? '-'}</p>
+        </div>
         <div className="bg-dark-700 border border-dark-400 rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-2">
             <Clock size={18} className="text-warning-500" />
             <span className="text-xs text-light-60 uppercase tracking-wider">In asteptare</span>
           </div>
-          <p className="text-2xl font-bold text-light-100">{loading ? '-' : pendingList.length}</p>
+          <p className="text-2xl font-bold text-warning-400">{stats?.pending ?? '-'}</p>
         </div>
         <div className="bg-dark-700 border border-dark-400 rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-2">
-            <FileImage size={18} className="text-brand-primary" />
-            <span className="text-xs text-light-60 uppercase tracking-wider">Total fisiere</span>
+            <XCircle size={18} className="text-error-500" />
+            <span className="text-xs text-light-60 uppercase tracking-wider">Respinse</span>
           </div>
-          <p className="text-2xl font-bold text-light-100">
-            {loading ? '-' : pendingList.reduce((sum, item) => sum + item.fileCount, 0)}
-          </p>
+          <p className="text-2xl font-bold text-error-400">{stats?.rejected ?? '-'}</p>
         </div>
       </div>
 
