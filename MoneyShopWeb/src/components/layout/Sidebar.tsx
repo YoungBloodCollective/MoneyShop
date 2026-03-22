@@ -91,7 +91,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 space-y-1">
-        {navItems.map(item => (
+        {!isAdmin && navItems.map(item => (
           <div key={item.label}>
             {item.children ? (
               <>
@@ -122,7 +122,6 @@ export function Sidebar() {
         {/* Admin section */}
         {isAdmin && (
           <>
-            <div className="my-3 mx-4 border-t border-dark-600" />
             {adminNavItems.map(item => (
               <div key={item.label}>
                 <button
