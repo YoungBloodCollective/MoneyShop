@@ -2,7 +2,7 @@ name: CI Build Check
 
 on:
   push:
-    branches: [master]
+    branches: [master, 'feat/**', 'fix/**']
   pull_request:
     branches: [master]
 
@@ -31,3 +31,21 @@ jobs:
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_API_URL: https://moneyshop20260107220205-adbnf8c7a2fec4d4.canadacentral-01.azurewebsites.net/api
+
+  deploy-backend:
+    name: Deploy Backend to Azure
+    needs: backend
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: dotnet restore MoneyShop.Api/MoneyShop.Api.csproj -r linux-x64
+      - run: dotnet publish MoneyShop.Api/MoneyShop.Api.csproj -c Release -r linux-x64 --self-contained false -o ./publish
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: MoneyShop20260107220205
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish
