@@ -105,6 +105,9 @@ export default function LandingPage() {
   const [showProgrameaza, setShowProgrameaza] = useState(false);
   const [progForm, setProgForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
   const [progLoading, setProgLoading] = useState(false);
+  const [inlineForm, setInlineForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
+  const [inlineLoading, setInlineLoading] = useState(false);
+  const [inlineSuccess, setInlineSuccess] = useState(false);
 
   const handleProgSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +129,29 @@ export default function LandingPage() {
       toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
     } finally {
       setProgLoading(false);
+    }
+  };
+
+  const handleInlineSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInlineLoading(true);
+    try {
+      await apiClient.post('/appointments', {
+        nume: inlineForm.nume,
+        prenume: inlineForm.prenume,
+        judet: inlineForm.judet,
+        tipCredit: inlineForm.tipCredit,
+        salariuNet: Number(inlineForm.salariuNet),
+        telefon: inlineForm.telefon,
+        email: inlineForm.email,
+      });
+      setInlineSuccess(true);
+      setInlineForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
+      toast.success('Cererea ta a fost inregistrata! Te vom contacta in curand.');
+    } catch {
+      toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
+    } finally {
+      setInlineLoading(false);
     }
   };
 
@@ -451,10 +477,10 @@ export default function LandingPage() {
                     </div>
                   )}
                   <button
-                    onClick={() => navigate('/simulator')}
+                    onClick={() => setShowProgrameaza(true)}
                     className="mt-2 w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-xl text-xs sm:text-sm transition-colors shadow-lg shadow-green-500/25"
                   >
-                    Calculeaza Instant <ArrowRight size={14} />
+                    <Phone size={14} /> Vreau sa fiu sunat
                   </button>
                 </div>
               </div>
@@ -481,6 +507,72 @@ export default function LandingPage() {
             <button onClick={() => scrollCarousel('right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors">
               <ChevronRight size={16} className="text-gray-600" />
             </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════ FORMULAR CONTACT INLINE ══════════ */}
+      <section className="bg-white py-12 lg:py-16">
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-3xl border border-gray-100 shadow-sm p-6 lg:p-10">
+            <div className="text-center mb-6">
+              <h2 className="text-xl lg:text-2xl font-extrabold text-gray-900">Solicita o consultatie gratuita</h2>
+              <p className="text-sm text-gray-500 mt-1">Completeaza formularul si te vom contacta in cel mai scurt timp</p>
+            </div>
+            {inlineSuccess ? (
+              <div className="text-center py-8">
+                <CheckCircle2 size={48} className="mx-auto text-green-500 mb-3" />
+                <p className="text-lg font-bold text-gray-900">Cererea a fost trimisa!</p>
+                <p className="text-sm text-gray-500 mt-1">Te vom contacta in curand.</p>
+                <button onClick={() => setInlineSuccess(false)} className="mt-4 text-sm text-blue-600 hover:underline">Trimite alta cerere</button>
+              </div>
+            ) : (
+              <form onSubmit={handleInlineSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Nume *</label>
+                    <input type="text" required value={inlineForm.nume} onChange={e => setInlineForm(f => ({ ...f, nume: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Prenume *</label>
+                    <input type="text" required value={inlineForm.prenume} onChange={e => setInlineForm(f => ({ ...f, prenume: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Judet *</label>
+                    <select required value={inlineForm.judet} onChange={e => setInlineForm(f => ({ ...f, judet: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white">
+                      <option value="">Selecteaza judetul</option>
+                      {judete.map(j => <option key={j} value={j}>{j}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Tip de credit *</label>
+                    <select required value={inlineForm.tipCredit} onChange={e => setInlineForm(f => ({ ...f, tipCredit: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white">
+                      <option value="">Selecteaza tipul</option>
+                      {tipuriCredit.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Salariu net (RON) *</label>
+                    <input type="number" required min={0} value={inlineForm.salariuNet} onChange={e => setInlineForm(f => ({ ...f, salariuNet: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Telefon *</label>
+                    <input type="text" required value={inlineForm.telefon} onChange={e => setInlineForm(f => ({ ...f, telefon: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
+                    <input type="email" required value={inlineForm.email} onChange={e => setInlineForm(f => ({ ...f, email: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
+                  </div>
+                </div>
+                <button type="submit" disabled={inlineLoading} className="w-full bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-bold py-3 rounded-xl text-sm transition-colors shadow-md shadow-green-500/20">
+                  {inlineLoading ? 'Se trimite...' : 'Trimite cererea'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </section>

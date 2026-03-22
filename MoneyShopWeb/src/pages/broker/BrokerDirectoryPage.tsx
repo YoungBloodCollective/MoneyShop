@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Search, Users, Upload, Phone, Mail, ChevronDown, BadgeCheck, MessageCircle } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ArrowLeft, Search, Users, Upload, Phone, Mail, ChevronDown, ChevronLeft, ChevronRight, BadgeCheck, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { brokerApi, type BrokerInfo } from '@/services/api/brokerApi';
@@ -13,13 +13,23 @@ export default function BrokerDirectoryPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [showDirectory, setShowDirectory] = useState(false);
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(1);
 
   useEffect(() => { loadBrokers(); }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      loadBrokers(search || undefined);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const loadBrokers = async (q?: string) => {
     setLoading(true);
     try {
-      const res = await brokerApi.searchBrokers(q, 50);
+      const res = await brokerApi.searchBrokers(q, 500);
       setBrokers(res.brokers || []);
     } catch {
       toast.error('Eroare la incarcarea brokerilor');
@@ -28,10 +38,12 @@ export default function BrokerDirectoryPage() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
+  const paginatedBrokers = brokers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(brokers.length / PAGE_SIZE);
+
+  const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    loadBrokers(search);
-  };
+  }, []);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -195,24 +207,38 @@ export default function BrokerDirectoryPage() {
                 {search ? 'Niciun broker gasit' : 'Nu exista brokeri in director'}
               </p>
             ) : (
-              <div className="space-y-2">
-                {brokers.map(b => (
-                  <div key={b.brokerId} className="bg-dark-700 border border-dark-400 rounded-xl px-4 py-3 hover:border-brand-primary/20 transition-all duration-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-light-90">{b.fullName}</p>
-                        <p className="text-xs text-light-60 mt-0.5">
-                          {b.firmName && `${b.firmName}`}
-                          {b.firmCui && ` (CUI: ${b.firmCui})`}
-                        </p>
+              <>
+                <p className="text-xs text-light-50">{brokers.length} brokeri gasiti</p>
+                <div className="space-y-2">
+                  {paginatedBrokers.map(b => (
+                    <div key={b.brokerId} className="bg-dark-700 border border-dark-400 rounded-xl px-4 py-3 hover:border-brand-primary/20 transition-all duration-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-light-90">{b.fullName}</p>
+                          <p className="text-xs text-light-60 mt-0.5">
+                            {b.firmName && `${b.firmName}`}
+                            {b.firmCui && ` (CUI: ${b.firmCui})`}
+                          </p>
+                        </div>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                          b.status === 'active' ? 'bg-success-500/15 text-success-400' : 'bg-light-50/15 text-light-60'
+                        }`}>{b.status}</span>
                       </div>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                        b.status === 'active' ? 'bg-success-500/15 text-success-400' : 'bg-light-50/15 text-light-60'
-                      }`}>{b.status}</span>
                     </div>
+                  ))}
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-3 pt-4">
+                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm border border-dark-400 text-light-70 hover:text-light-90 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                      <ChevronLeft size={14} /> Inapoi
+                    </button>
+                    <span className="text-sm text-light-60">Pagina {page} din {totalPages}</span>
+                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm border border-dark-400 text-light-70 hover:text-light-90 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                      Inainte <ChevronRight size={14} />
+                    </button>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
         )}

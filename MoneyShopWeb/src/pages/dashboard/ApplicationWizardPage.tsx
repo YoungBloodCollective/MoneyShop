@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Search, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { applicationsApi } from '@/services/api/applicationsApi';
+import { apiClient } from '@/services/api/apiClient';
 
 const LOAN_TYPES = [
   { value: 'NP', label: 'Credit de nevoi personale' },
@@ -22,6 +23,32 @@ export default function ApplicationWizardPage() {
     term: '',
     purpose: '',
   });
+  const [brokerSearch, setBrokerSearch] = useState('');
+  const [brokerResults, setBrokerResults] = useState<Array<{ name: string; company: string; county: string }>>([]);
+  const [selectedBroker, setSelectedBroker] = useState<{ name: string; company: string; county: string } | null>(null);
+  const [brokerDropdownOpen, setBrokerDropdownOpen] = useState(false);
+  const brokerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (brokerSearch.length < 2) { setBrokerResults([]); return; }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await apiClient.get(`/broker/search?search=${encodeURIComponent(brokerSearch)}&limit=10`);
+        const data = res.data?.data?.brokers || res.data?.brokers || [];
+        setBrokerResults(data);
+        setBrokerDropdownOpen(true);
+      } catch { setBrokerResults([]); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [brokerSearch]);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (brokerRef.current && !brokerRef.current.contains(e.target as Node)) setBrokerDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
 
@@ -122,6 +149,41 @@ export default function ApplicationWizardPage() {
                 className="w-full h-12 px-4 rounded-xl bg-dark-600 border border-dark-400 text-light-90 placeholder:text-light-50 focus:border-brand-primary focus:outline-none transition-colors"
               />
             </div>
+            <div ref={brokerRef} className="relative">
+              <label className="block text-sm font-medium text-light-70 mb-1.5">Broker preferat (optional)</label>
+              {selectedBroker ? (
+                <div className="flex items-center justify-between h-12 px-4 rounded-xl bg-dark-600 border border-brand-primary/30">
+                  <span className="text-sm text-light-90">{selectedBroker.name} — {selectedBroker.company}</span>
+                  <button onClick={() => { setSelectedBroker(null); setBrokerSearch(''); }} className="text-light-50 hover:text-light-80"><X size={16} /></button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-light-50" />
+                  <input
+                    type="text"
+                    value={brokerSearch}
+                    onChange={e => setBrokerSearch(e.target.value)}
+                    onFocus={() => brokerResults.length > 0 && setBrokerDropdownOpen(true)}
+                    placeholder="Cauta broker dupa nume..."
+                    className="w-full h-12 pl-10 pr-4 rounded-xl bg-dark-600 border border-dark-400 text-light-90 placeholder:text-light-50 focus:border-brand-primary focus:outline-none transition-colors"
+                  />
+                </div>
+              )}
+              {brokerDropdownOpen && brokerResults.length > 0 && (
+                <div className="absolute z-20 top-full mt-1 w-full bg-dark-600 border border-dark-400 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                  {brokerResults.map((b, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setSelectedBroker(b); setBrokerDropdownOpen(false); setBrokerSearch(''); }}
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-dark-500 transition-colors border-b border-dark-400/50 last:border-0"
+                    >
+                      <p className="text-light-90 font-medium">{b.name}</p>
+                      <p className="text-xs text-light-50">{b.company} &middot; {b.county}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -134,6 +196,7 @@ export default function ApplicationWizardPage() {
                 { label: 'Suma', value: `${parseFloat(form.amount).toLocaleString('ro-RO')} RON` },
                 { label: 'Perioada', value: `${form.term} luni` },
                 ...(form.purpose ? [{ label: 'Scop', value: form.purpose }] : []),
+                ...(selectedBroker ? [{ label: 'Broker', value: `${selectedBroker.name} — ${selectedBroker.company}` }] : []),
               ].map(item => (
                 <div key={item.label} className="flex justify-between py-3 border-b border-dark-400 last:border-0">
                   <span className="text-sm text-light-60">{item.label}</span>
