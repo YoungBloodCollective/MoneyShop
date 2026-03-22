@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Users, Upload, FileSpreadsheet, Calendar, HardDrive, BadgeCheck, AlertCircle } from 'lucide-react';
+import { Search, Users, Upload, FileSpreadsheet, Calendar, HardDrive, BadgeCheck, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { brokerApi, type BrokerInfo, type BrokerDirectoryInfo } from '@/services/api/brokerApi';
 
@@ -11,10 +11,24 @@ export default function AdminBrokersPage() {
   const [directory, setDirectory] = useState<BrokerDirectoryInfo | null>(null);
   const [uploadNotes, setUploadNotes] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     loadAll();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      setLoading(true);
+      brokerApi.searchBrokers(search || undefined, 500)
+        .then(res => setBrokers(res.brokers || []))
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const loadAll = async () => {
     setLoading(true);
@@ -59,6 +73,8 @@ export default function AdminBrokersPage() {
   };
 
   const activeBrokers = brokers.filter(b => b.status === 'active');
+  const paginatedBrokers = brokers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(brokers.length / PAGE_SIZE);
   const fmtSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -187,6 +203,7 @@ export default function AdminBrokersPage() {
                 </p>
               </div>
             ) : (
+              <>
               <div className="bg-dark-700 border border-dark-400 rounded-2xl overflow-hidden">
                 <div className="hidden sm:grid grid-cols-12 gap-2 px-5 py-3 border-b border-dark-400 text-xs text-light-50 uppercase tracking-wider">
                   <span className="col-span-4">Nume</span>
@@ -196,7 +213,7 @@ export default function AdminBrokersPage() {
                   <span className="col-span-1 text-right">Status</span>
                 </div>
                 <div className="divide-y divide-dark-400">
-                  {brokers.map(b => (
+                  {paginatedBrokers.map(b => (
                     <div key={b.brokerId} className="grid grid-cols-1 sm:grid-cols-12 gap-1 sm:gap-2 px-5 py-3 hover:bg-dark-600/50 transition-colors">
                       <div className="sm:col-span-4 flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-brand-primary/15 flex items-center justify-center text-brand-primary text-xs font-bold flex-shrink-0">
@@ -224,7 +241,19 @@ export default function AdminBrokersPage() {
                   ))}
                 </div>
               </div>
-            )}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 py-4">
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-light-70 hover:text-light-90 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                    <ChevronLeft size={14} /> Inapoi
+                  </button>
+                  <span className="text-sm text-light-60">Pagina {page} din {totalPages}</span>
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-light-70 hover:text-light-90 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                    Inainte <ChevronRight size={14} />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
           </div>
         </>
       )}
