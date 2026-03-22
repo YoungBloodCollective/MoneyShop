@@ -13,6 +13,7 @@ const OtpLoginPage = lazy(() => import('@/pages/auth/OtpLoginPage'));
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'));
 const OnboardingPage = lazy(() => import('@/pages/onboarding/OnboardingPage'));
 const KycScanPage = lazy(() => import('@/pages/kyc/KycScanPage'));
+const FullKycPage = lazy(() => import('@/pages/kyc/FullKycPage'));
 
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
 const ApplicationListPage = lazy(() => import('@/pages/dashboard/ApplicationListPage'));
@@ -72,6 +73,8 @@ export function AppRouter() {
 
         {/* Public KYC scan page (phone browser, no layout) */}
         <Route path="/kyc/scan/:token" element={<KycScanPage />} />
+        <Route path="/kyc/verify" element={<FullKycPage />} />
+        <Route path="/kyc/verify/:sessionId" element={<FullKycPage />} />
 
         {/* Public pages (accessible to everyone, with PublicLayout) */}
         <Route element={<PublicLayout />}>
