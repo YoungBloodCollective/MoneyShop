@@ -136,19 +136,20 @@ public class BrokerDirectoryService : IBrokerDirectoryService
                 return brokers;
             }
 
-            var startRow = 2;
+            var headerRow = FindHeaderRow(worksheet);
+            var startRow = headerRow + 1;
             var endRow = worksheet.Dimension?.End.Row ?? startRow;
 
-            var denumireCol = FindColumn(worksheet, new[] { "Denumire", "Nume", "Name", "Nume complet", "Full Name", "Denumirea" });
-            var tipCol = FindColumn(worksheet, new[] { "Tip", "Tip intermediar", "Type" });
-            var creditorCol = FindColumn(worksheet, new[] { "Creditorul", "Creditor", "Creditorul/intermediarul", "Creditorul/intermediarul in numele caruia actioneaza" });
-            var numeConducereCol = FindColumn(worksheet, new[] { "Nume conducere", "Nume conducere / persoane responsabile", "Persoane responsabile", "Conducere", "Responsabile", "Nume conducere / persoane responsabile cu activitatea de intermediere credite" });
-            var statMembruCol = FindColumn(worksheet, new[] { "Statul membru", "Stat Membru", "STATUL MEMBRU", "Member State", "STATUL MEMBRU IN CARE INTERMEDIARUL DE CREDITE ISI DESFASOARA ACTIVITATEA" });
+            var denumireCol = FindColumn(worksheet, headerRow, new[] { "Denumire", "Nume", "Name", "Nume complet", "Full Name", "Denumirea" });
+            var tipCol = FindColumn(worksheet, headerRow, new[] { "Tip", "Tip intermediar", "Type" });
+            var creditorCol = FindColumn(worksheet, headerRow, new[] { "Creditorul", "Creditor", "Creditorul/intermediarul", "Creditorul/intermediarul in numele caruia actioneaza" });
+            var numeConducereCol = FindColumn(worksheet, headerRow, new[] { "Nume conducere", "Nume conducere / persoane responsabile", "Persoane responsabile", "Conducere", "Responsabile", "Nume conducere / persoane responsabile cu activitatea de intermediere credite" });
+            var statMembruCol = FindColumn(worksheet, headerRow, new[] { "Statul membru", "Stat Membru", "STATUL MEMBRU", "Member State", "STATUL MEMBRU IN CARE INTERMEDIARUL DE CREDITE ISI DESFASOARA ACTIVITATEA" });
 
-            var cuiCol = FindColumn(worksheet, new[] { "CUI", "CIF", "Tax ID", "Cod fiscal" });
-            var emailCol = FindColumn(worksheet, new[] { "Email", "E-mail", "Mail" });
-            var phoneCol = FindColumn(worksheet, new[] { "Telefon", "Phone", "Tel" });
-            var statusCol = FindColumn(worksheet, new[] { "Status", "Stare" });
+            var cuiCol = FindColumn(worksheet, headerRow, new[] { "CUI", "CIF", "Tax ID", "Cod fiscal" });
+            var emailCol = FindColumn(worksheet, headerRow, new[] { "Email", "E-mail", "Mail" });
+            var phoneCol = FindColumn(worksheet, headerRow, new[] { "Telefon", "Phone", "Tel" });
+            var statusCol = FindColumn(worksheet, headerRow, new[] { "Status", "Stare" });
 
             if (worksheet.Dimension != null)
             {
@@ -208,14 +209,30 @@ public class BrokerDirectoryService : IBrokerDirectoryService
         return brokers;
     }
 
-    private int? FindColumn(ExcelWorksheet worksheet, string[] possibleNames)
+    private int FindHeaderRow(ExcelWorksheet worksheet)
+    {
+        if (worksheet.Dimension == null) return 1;
+        for (int row = 1; row <= Math.Min(10, worksheet.Dimension.End.Row); row++)
+        {
+            int nonEmptyCols = 0;
+            for (int col = 1; col <= Math.Min(6, worksheet.Dimension.End.Column); col++)
+            {
+                var val = GetCellValue(worksheet, row, col);
+                if (!string.IsNullOrWhiteSpace(val)) nonEmptyCols++;
+            }
+            if (nonEmptyCols >= 3) return row;
+        }
+        return 1;
+    }
+
+    private int? FindColumn(ExcelWorksheet worksheet, int headerRow, string[] possibleNames)
     {
         if (worksheet.Dimension == null)
             return null;
 
         for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
         {
-            var headerValue = GetCellValue(worksheet, 1, col);
+            var headerValue = GetCellValue(worksheet, headerRow, col);
             if (string.IsNullOrWhiteSpace(headerValue))
                 continue;
 
