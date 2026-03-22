@@ -53,6 +53,7 @@ const AdminApplicationsPage = lazy(() => import('@/pages/admin/AdminApplications
 const AdminKycPage = lazy(() => import('@/pages/admin/AdminKycPage'));
 const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'));
 const AdminBrokersPage = lazy(() => import('@/pages/admin/AdminBrokersPage'));
+const AdminAppointmentsPage = lazy(() => import('@/pages/admin/AdminAppointmentsPage'));
 
 function PageLoader() {
   return (
@@ -126,6 +127,7 @@ export function AppRouter() {
           <Route path="/admin/kyc" element={<ProtectedRoute adminOnly><AdminKycPage /></ProtectedRoute>} />
           <Route path="/admin/reports" element={<ProtectedRoute adminOnly><AdminReportsPage /></ProtectedRoute>} />
           <Route path="/admin/brokers" element={<ProtectedRoute adminOnly><AdminBrokersPage /></ProtectedRoute>} />
+          <Route path="/admin/appointments" element={<ProtectedRoute adminOnly><AdminAppointmentsPage /></ProtectedRoute>} />
         </Route>
 
         {/* Catch-all */}

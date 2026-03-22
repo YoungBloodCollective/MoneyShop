@@ -98,6 +98,9 @@ export default function LandingPage() {
   const [birthMonth, setBirthMonth] = useState(1);
   const [salaryNet, setSalaryNet] = useState(5000);
   const [bonuriMasa, setBonuriMasa] = useState(0);
+  const [hasPartner, setHasPartner] = useState(false);
+  const [partnerSalary, setPartnerSalary] = useState(0);
+  const [partnerBonuri, setPartnerBonuri] = useState(0);
 
   const [showProgrameaza, setShowProgrameaza] = useState(false);
   const [progForm, setProgForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
@@ -135,7 +138,10 @@ export default function LandingPage() {
   const results = useMemo(() => {
     const termMonths = calcMaxTerm(loanType, incomeType, gender, birthYear, birthMonth);
     if (termMonths <= 0) return { amount: 0, rate: 0, termMonths: 0, error: 'Varsta depaseste limita pentru acest tip de credit.' };
-    const totalIncome = salaryNet + (incomeType === 'salariat' ? bonuriMasa : 0);
+    let totalIncome = salaryNet + (incomeType === 'salariat' ? bonuriMasa : 0);
+    if (hasPartner && loanType === 'IPOTECAR') {
+      totalIncome += partnerSalary + partnerBonuri;
+    }
     const dtiCap = totalIncome > 5700 ? 0.50 : 0.40;
     const apr = loanType === 'IPOTECAR' ? 0.065 : 0.059;
     const maxPayment = totalIncome * dtiCap;
@@ -143,7 +149,7 @@ export default function LandingPage() {
     const factor = monthlyRate > 0 ? (1 - Math.pow(1 + monthlyRate, -termMonths)) / monthlyRate : termMonths;
     const maxLoan = Math.round(maxPayment * factor);
     return { amount: maxLoan, rate: apr * 100, termMonths, error: null };
-  }, [loanType, gender, incomeType, birthYear, birthMonth, salaryNet, bonuriMasa]);
+  }, [loanType, gender, incomeType, birthYear, birthMonth, salaryNet, bonuriMasa, hasPartner, partnerSalary, partnerBonuri]);
 
   const fmt = (v: number) => v.toLocaleString('ro-RO', { maximumFractionDigits: 0 });
 
@@ -155,7 +161,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       {/* ══════════ HEADER ══════════ */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
+      <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50 relative">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <button onClick={() => navigate('/')} className="flex items-center">
             <img src="/images/logo/logo-trimmed.png" alt="MoneyShop" className="h-8 sm:h-9 object-contain" />
@@ -190,12 +196,11 @@ export default function LandingPage() {
           </div>
         </div>
         {mobileMenuOpen && (
-          <div className="lg:hidden fixed inset-0 top-16 z-40 bg-white overflow-y-auto">
-            <div className="flex flex-col p-6 gap-2">
+          <div className="lg:hidden fixed left-0 right-0 top-16 z-[9999] bg-white border-b border-gray-200 shadow-2xl">
+            <div className="flex flex-col p-4 gap-1">
               {[
                 { label: 'Despre MoneyShop', path: '/despre' },
                 { label: 'Verifica Broker', path: '/verifica-broker' },
-                { label: 'Legal', path: '/legal' },
               ].map(item => (
                 <button
                   key={item.label}
@@ -205,15 +210,25 @@ export default function LandingPage() {
                   {item.label}
                 </button>
               ))}
-              <hr className="my-3 border-gray-200" />
+              <hr className="my-2 border-gray-200" />
               <a href="tel:+40770548447" className="flex items-center gap-2 px-4 py-3 text-base text-gray-700 font-medium">
                 <Phone size={16} /> 0770 548 447
               </a>
+              <a href="tel:+40314340940" className="flex items-center gap-2 px-4 py-3 text-sm text-gray-500 font-medium">
+                <Phone size={14} /> 031 434 0940
+              </a>
+              <hr className="my-2 border-gray-200" />
               <button
                 onClick={() => { navigate(isAuthenticated ? '/dashboard' : '/auth/login'); setMobileMenuOpen(false); }}
-                className="flex items-center gap-2 px-4 py-3 text-base text-gray-700 hover:text-gray-900 font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-3 text-base font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               >
-                <Lock size={16} /> {isAuthenticated ? 'Dashboard' : 'Login'}
+                <Lock size={16} /> {isAuthenticated ? 'Dashboard' : 'Autentificare'}
+              </button>
+              <button
+                onClick={() => { navigate('/legal'); setMobileMenuOpen(false); }}
+                className="text-left px-4 py-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                Legal &amp; GDPR
               </button>
             </div>
           </div>
@@ -267,7 +282,7 @@ export default function LandingPage() {
                   {creditOptions.map(opt => (
                     <button
                       key={opt.key}
-                      onClick={() => setLoanType(opt.key)}
+                      onClick={() => { setLoanType(opt.key); if (opt.key !== 'IPOTECAR') { setHasPartner(false); setPartnerSalary(0); setPartnerBonuri(0); } }}
                       className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] sm:text-xs font-semibold transition-all ${
                         loanType === opt.key
                           ? 'bg-blue-600 text-white shadow-sm'
@@ -369,6 +384,52 @@ export default function LandingPage() {
                       }`}
                     />
                   </div>
+                  {loanType === 'IPOTECAR' && (
+                    <div className="col-span-2">
+                      <button
+                        type="button"
+                        onClick={() => { setHasPartner(!hasPartner); if (hasPartner) { setPartnerSalary(0); setPartnerBonuri(0); } }}
+                        className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
+                          hasPartner
+                            ? 'bg-blue-50 border-blue-300 text-blue-700'
+                            : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Users size={13} />
+                        {hasPartner ? 'Partener adaugat' : 'Adauga partener (co-debitor)'}
+                      </button>
+                    </div>
+                  )}
+                  {hasPartner && loanType === 'IPOTECAR' && (
+                    <>
+                      <div>
+                        <label className="text-[10px] font-medium text-blue-500 mb-0.5 block">Salariu Net Partener (RON)</label>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={50000}
+                          value={partnerSalary || ''}
+                          onChange={e => setPartnerSalary(Math.min(50000, Math.max(0, parseInt(e.target.value) || 0)))}
+                          placeholder="0"
+                          className="w-full bg-blue-50/50 border border-blue-200 rounded-lg px-2.5 py-1.5 text-[11px] text-gray-900 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-medium text-blue-500 mb-0.5 block">Bonuri Partener (RON/luna)</label>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={2000}
+                          value={partnerBonuri || ''}
+                          onChange={e => setPartnerBonuri(Math.min(2000, Math.max(0, parseInt(e.target.value) || 0)))}
+                          placeholder="0"
+                          className="w-full bg-blue-50/50 border border-blue-200 rounded-lg px-2.5 py-1.5 text-[11px] text-gray-900 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100/60 rounded-xl p-3 border border-blue-200/40">
                   {results.error ? (

@@ -146,7 +146,7 @@ export default function OnboardingPage() {
 
       // Desktop: show QR code + poll for completion
       setKycToken(res.accessToken);
-      setKycQrUrl(`https://gentle-tree-0f5cdaa03.1.azurestaticapps.net/kyc/${res.externalSessionId}?token=${res.externalToken}`);
+      setKycQrUrl(`${window.location.origin}/kyc/scan/${res.accessToken}?returnTo=/onboarding`);
       setKycStatus('pending');
       pollRef.current = setInterval(async () => {
         try {
