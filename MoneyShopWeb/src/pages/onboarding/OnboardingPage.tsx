@@ -142,15 +142,17 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Mobile: navigate directly to the scan page (skip QR)
+      const kycExternalUrl = `https://black-grass-037518603.6.azurestaticapps.net/kyc/scan/${res.accessToken}`;
+
+      // Mobile: navigate directly to the external KYC page
       if (!isDesktop) {
-        navigate(`/kyc/scan/${res.accessToken}?returnTo=/onboarding`);
+        window.location.href = kycExternalUrl;
         return;
       }
 
-      // Desktop: show QR code + poll for completion
+      // Desktop: show QR code pointing to external KYC + poll for completion
       setKycToken(res.accessToken);
-      setKycQrUrl(`${window.location.origin}/kyc/scan/${res.accessToken}?returnTo=/onboarding`);
+      setKycQrUrl(kycExternalUrl);
       setKycStatus('pending');
       pollRef.current = setInterval(async () => {
         try {
