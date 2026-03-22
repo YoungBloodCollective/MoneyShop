@@ -19,8 +19,13 @@ export function ProtectedRoute({ children, adminOnly, skipOnboardingCheck }: Pro
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Redirect to onboarding if registration is incomplete
-  if (!skipOnboardingCheck && user) {
+  // Admin users go to admin panel, not user dashboard
+  if (isAdmin && !adminOnly && !location.pathname.startsWith('/admin')) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  // Redirect to onboarding if registration is incomplete (skip for admins)
+  if (!skipOnboardingCheck && user && !isAdmin) {
     const onboardingComplete = user.emailVerified && user.phoneVerified && user.kycStatus === 'verified';
     if (!onboardingComplete) {
       return <Navigate to="/onboarding" replace />;

@@ -12,6 +12,6 @@ export const useAuth = () => {
     loginWithToken,
     logout,
     setUser,
-    isAdmin: user?.role === 'Admin',
+    isAdmin: user?.role === 'Admin' || user?.role === 'Administrator',
   };
 };
