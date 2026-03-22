@@ -45,8 +45,8 @@ const bankLogos = [
   { name: 'ING', src: '/images/partners/ing.png' },
   { name: 'Banca Transilvania', src: '/images/partners/bt.png' },
   { name: 'UniCredit Bank', src: '/images/partners/unicredit.png' },
-  { name: 'ProCredit Bank', src: '/images/partners/procredit.svg' },
-  { name: 'Libra Bank', src: '/images/partners/libra.svg' },
+  { name: 'ProCredit Bank', src: '/images/partners/procredit.png' },
+  { name: 'Libra Bank', src: '/images/partners/libra.png' },
   { name: 'Exim Bank', src: '/images/partners/eximbank.svg' },
   { name: 'Patria Bank', src: '/images/partners/patria.svg' },
 ];
@@ -237,16 +237,16 @@ export default function LandingPage() {
 
       {/* ══════════ HERO ══════════ */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-50/80 via-white to-white lg:min-h-[calc(100dvh-4rem)]">
-        <div className="hidden lg:block absolute top-0 right-0 w-[60%] h-full">
+        <div className="hidden lg:block absolute inset-y-0 right-0 w-[55%] xl:w-[58%] 2xl:w-[62%]">
           <img src="/images/landing/family.png" alt="Familie fericita" className="w-full h-full object-cover object-[55%_center] animate-fade-in" />
-          <div className="absolute inset-y-0 left-0 w-[45%] bg-gradient-to-r from-white via-white/80 to-transparent" />
+          <div className="absolute inset-y-0 left-0 w-[40%] bg-gradient-to-r from-white via-white/80 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-white/80" />
         </div>
         <div className="lg:hidden w-full h-52 sm:h-64 relative overflow-hidden">
           <img src="/images/landing/family.png" alt="Familie fericita" className="w-full h-full object-cover object-[center_30%]" />
           <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent" />
         </div>
-        <div className="relative z-10 max-w-7xl mx-auto px-4 py-3 pb-6 lg:py-0 lg:pb-0 lg:flex lg:items-center lg:h-full">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 py-3 pb-6 lg:py-0 lg:pb-0 lg:flex lg:items-center lg:min-h-[calc(100dvh-4rem)]">
           <div className="max-w-xl w-full">
             <h1 className="text-2xl sm:text-3xl lg:text-[2.8rem] font-extrabold text-gray-900 leading-[1.15] tracking-tight animate-slide-up">
               Gaseste cel mai bun credit
@@ -491,7 +491,7 @@ export default function LandingPage() {
           <h2 className="text-center text-2xl lg:text-3xl font-extrabold text-gray-900 mb-10 lg:mb-14">
             <span className="border-b-4 border-blue-600 pb-2">Cum functioneaza?</span>
           </h2>
-          <div ref={stepsSection.ref} className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-7 items-stretch">
+          <div ref={stepsSection.ref} className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-5 items-stretch">
             {howItWorks.map((step, i) => (
               <div
                 key={step.num}
@@ -529,27 +529,23 @@ export default function LandingPage() {
                 )}
               </div>
             ))}
-            {/* Consultant Dedicat — Alex */}
+            {/* Broker autorizat — 5th card */}
             <div
               className={`col-span-2 lg:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-700 ease-out overflow-hidden flex flex-col h-full ${stepsSection.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
               style={{ transitionDelay: '600ms' }}
             >
-              <div className="aspect-[4/3] lg:aspect-auto lg:h-32 overflow-hidden bg-gray-100">
-                <img
-                  src="/images/landing/alex.jpeg"
-                  alt="Consultant dedicat"
-                  className="w-full h-full object-cover object-top"
-                />
+              <div className="aspect-[4/3] overflow-hidden bg-gray-100">
+                <img src="/images/landing/alex.jpeg" alt="Broker autorizat" className="w-full h-full object-cover object-top" />
               </div>
-              <div className="p-3.5 flex-1 flex flex-col justify-between">
+              <div className="px-3.5 pb-3.5 pt-2 flex-1 flex flex-col justify-between">
                 <div>
-                  <p className="text-sm font-extrabold text-gray-900">Broker autorizat de credite</p>
+                  <p className="text-xs sm:text-sm font-bold text-gray-900 leading-tight">Broker autorizat de credite</p>
                   <p className="text-[11px] text-gray-400 mt-0.5">Programeaza un apel gratuit</p>
                 </div>
-                <div className="mt-3 space-y-1.5">
+                <div className="mt-2 space-y-1">
                   <button
                     onClick={() => setShowProgrameaza(true)}
-                    className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-xl text-xs transition-colors shadow-md shadow-green-500/20"
+                    className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-1.5 rounded-xl text-xs transition-colors shadow-md shadow-green-500/20"
                   >
                     Programeaza
                   </button>
@@ -672,13 +668,26 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          <div className="border-t border-gray-800 pt-5 flex flex-col items-center gap-3">
-            <p className="text-[10px] text-gray-600 text-center">
-              ANPC — Autoritatea Nationala pentru Protectia Consumatorilor:{' '}
-              <a href="https://anpc.ro/ce-este-sal/" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-400 transition-colors">SAL</a>
-              {' | '}
-              <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-400 transition-colors">SOL</a>
-            </p>
+          <div className="border-t border-gray-800 pt-6 flex flex-col items-center gap-5">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <a href="https://anpc.ro/ce-este-sal/" target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-3 border-2 border-[#1a1a6b] rounded-full px-5 py-2.5 bg-white hover:bg-gray-50 transition-colors">
+                <img src="/images/anpc-logo.png" alt="ANPC" className="h-8 object-contain" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <div className="text-left">
+                  <p className="text-[10px] font-bold text-[#1a1a6b] leading-tight uppercase">Solutionarea Alternativa</p>
+                  <p className="text-[10px] font-bold text-[#1a1a6b] leading-tight uppercase">a Litigiilor</p>
+                  <span className="inline-block mt-0.5 bg-[#1a1a6b] text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase">Detalii</span>
+                </div>
+              </a>
+              <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-3 border-2 border-[#1a1a6b] rounded-full px-5 py-2.5 bg-white hover:bg-gray-50 transition-colors">
+                <div className="text-center">
+                  <p className="text-[10px] font-bold text-[#1a1a6b] leading-tight uppercase">Solutionarea Online</p>
+                  <p className="text-[10px] font-bold text-[#1a1a6b] leading-tight uppercase">a Litigiilor</p>
+                  <span className="inline-block mt-0.5 bg-[#1a1a6b] text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase">Detalii</span>
+                </div>
+              </a>
+            </div>
             <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
               <p className="text-[11px] text-gray-600">&copy; {new Date().getFullYear()} MoneyShop. Toate drepturile rezervate.</p>
               <div className="flex items-center gap-4 text-[11px] text-gray-600">
