@@ -15,11 +15,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - run: dotnet restore MoneyShop.Api/MoneyShop.Api.csproj
-      - run: dotnet build MoneyShop.Api/MoneyShop.Api.csproj -c Release --no-restore
-      - run: dotnet publish MoneyShop.Api/MoneyShop.Api.csproj -c Release -r linux-x64 --self-contained false --no-build -o ./publish
-      - name: Verify publish output
-        run: test -f ./publish/MoneyShop.Api.dll && echo "Build OK" || exit 1
+      - run: dotnet restore MoneyShop.Api/MoneyShop.Api.csproj -r linux-x64
+      - run: dotnet publish MoneyShop.Api/MoneyShop.Api.csproj -c Release -r linux-x64 --self-contained false -o ./publish
 
   frontend:
     name: Frontend (Vite + TypeScript)
