@@ -1,0 +1,36 @@
+name: CI Build Check
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  backend:
+    name: Backend (.NET 8)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: dotnet restore MoneyShop.Api/MoneyShop.Api.csproj
+      - run: dotnet build MoneyShop.Api/MoneyShop.Api.csproj -c Release --no-restore
+      - run: dotnet publish MoneyShop.Api/MoneyShop.Api.csproj -c Release -r linux-x64 --self-contained false --no-build -o ./publish
+      - name: Verify publish output
+        run: test -f ./publish/MoneyShop.Api.dll && echo "Build OK" || exit 1
+
+  frontend:
+    name: Frontend (Vite + TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: cd MoneyShopWeb && npm ci
+      - run: cd MoneyShopWeb && npm run build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_API_URL: https://moneyshop20260107220205-adbnf8c7a2fec4d4.canadacentral-01.azurewebsites.net/api
