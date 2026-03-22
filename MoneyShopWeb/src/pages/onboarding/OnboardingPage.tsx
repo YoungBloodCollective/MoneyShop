@@ -29,6 +29,7 @@ export default function OnboardingPage() {
   const [otpId, setOtpId] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [phoneInput, setPhoneInput] = useState(user?.phone || '');
   const [kycToken, setKycToken] = useState('');
   const [kycQrUrl, setKycQrUrl] = useState('');
   const [kycStatus, setKycStatus] = useState('');
@@ -95,10 +96,13 @@ export default function OnboardingPage() {
   // ── Phone Verification ──
 
   const sendPhoneOtp = async () => {
+    const phone = phoneInput || user?.phone;
+    if (!phone || phone.length < 10) { toast.error('Introdu un numar de telefon valid'); return; }
     setLoading(true);
     try {
-      const res = await authApi.sendPhoneVerification(user?.phone);
+      const res = await authApi.sendPhoneVerification(phone);
       setOtpId(res.otpId);
+      if (user) setUser({ ...user, phone });
       toast.success('Cod trimis pe telefon');
     } catch {
       toast.error('Eroare la trimiterea codului');
@@ -209,6 +213,12 @@ export default function OnboardingPage() {
           ))}
         </div>
 
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => navigate('/')} className="text-sm text-light-50 hover:text-light-70 flex items-center gap-1 transition-colors">
+            ← Inapoi la pagina principala
+          </button>
+        </div>
+
         <div className="bg-dark-700 border border-dark-400 rounded-2xl p-8">
           {/* ── Email Step ── */}
           {step === 'email' && (
@@ -257,15 +267,26 @@ export default function OnboardingPage() {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-light-100">Verifica telefonul</h1>
-                  <p className="text-sm text-light-60">{user?.phone}</p>
+                  <p className="text-sm text-light-60">{user?.phone || 'Introdu numarul de telefon'}</p>
                 </div>
               </div>
 
               {!otpId ? (
-                <button onClick={sendPhoneOtp} disabled={loading}
-                  className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-brand-primary/25">
-                  {loading ? 'Se trimite...' : 'Trimite codul SMS'}
-                </button>
+                <div className="space-y-3">
+                  {!user?.phone && (
+                    <input
+                      type="tel"
+                      value={phoneInput}
+                      onChange={e => setPhoneInput(e.target.value.replace(/[^\d+]/g, '').slice(0, 15))}
+                      placeholder="07XXXXXXXX"
+                      className="w-full h-12 rounded-xl bg-dark-600 border border-dark-400 text-light-90 px-4 text-base placeholder:text-light-50 focus:border-brand-primary focus:outline-none"
+                    />
+                  )}
+                  <button onClick={sendPhoneOtp} disabled={loading || (!user?.phone && phoneInput.length < 10)}
+                    className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-brand-primary/25">
+                    {loading ? 'Se trimite...' : 'Trimite codul SMS'}
+                  </button>
+                </div>
               ) : (
                 <form onSubmit={verifyPhone} className="space-y-4">
                   <input type="text" value={code}

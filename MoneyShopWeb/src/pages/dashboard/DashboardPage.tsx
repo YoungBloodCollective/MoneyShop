@@ -131,6 +131,24 @@ export default function DashboardPage() {
         <p className="text-light-60 text-sm mt-0.5">Iata un sumar al situatiei tale financiare</p>
       </div>
 
+      {/* Verification banner */}
+      {user && (!user.emailVerified || !user.phoneVerified || user.kycStatus !== 'verified') && (
+        <div className="bg-warning-500/10 border border-warning-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-warning-400">Contul tau nu este complet verificat</p>
+            <p className="text-xs text-light-60 mt-0.5">
+              {!user.emailVerified && 'Email neverificat. '}
+              {!user.phoneVerified && 'Telefon neverificat. '}
+              {user.kycStatus !== 'verified' && 'KYC incomplet. '}
+              Finalizeaza verificarea pentru acces complet.
+            </p>
+          </div>
+          <button onClick={() => navigate('/onboarding')} className="shrink-0 px-4 py-2 bg-warning-500 text-dark-900 text-xs font-bold rounded-lg hover:bg-warning-400 transition-colors">
+            Verifica acum
+          </button>
+        </div>
+      )}
+
       {/* 4-box grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {loading ? (
