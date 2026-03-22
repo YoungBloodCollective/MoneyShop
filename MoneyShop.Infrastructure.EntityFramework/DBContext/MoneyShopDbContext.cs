@@ -63,6 +63,9 @@ public class MoneyShopDbContext : DbContext
     public virtual DbSet<LeadCapture> LeadCaptures { get; set; }
     public virtual DbSet<LeadSession> LeadSessions { get; set; }
 
+    // Appointments
+    public virtual DbSet<Appointment> Appointments { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Roluri>(entity =>
