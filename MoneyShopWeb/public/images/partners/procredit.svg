@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">
+  <rect width="200" height="60" fill="white"/>
+  <text x="100" y="28" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#006633" text-anchor="middle" dominant-baseline="central">ProCredit</text>
+  <text x="100" y="46" font-family="Arial, sans-serif" font-size="10" fill="#006633" text-anchor="middle" dominant-baseline="central">BANK</text>
+</svg>

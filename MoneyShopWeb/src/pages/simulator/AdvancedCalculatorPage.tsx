@@ -89,6 +89,11 @@ export default function AdvancedCalculatorPage() {
   const [sal3, setSal3] = useState('');
   const [mealTickets, setMealTickets] = useState('');
   const [savingSalaries, setSavingSalaries] = useState(false);
+  const [hasPartner, setHasPartner] = useState(false);
+  const [partnerSal1, setPartnerSal1] = useState('');
+  const [partnerSal2, setPartnerSal2] = useState('');
+  const [partnerSal3, setPartnerSal3] = useState('');
+  const [partnerMealTickets, setPartnerMealTickets] = useState('');
 
   const [termMonths, setTermMonths] = useState(60);
   const [desiredAmount, setDesiredAmount] = useState('');
@@ -134,9 +139,16 @@ export default function AdvancedCalculatorPage() {
     const s1 = parseFloat(sal1) || 0;
     const s2 = parseFloat(sal2) || 0;
     const s3 = parseFloat(sal3) || 0;
-    if (s1 > 0 && s2 > 0 && s3 > 0) return Math.round((s1 + s2 + s3) / 3);
-    return 0;
-  }, [sal1, sal2, sal3]);
+    if (s1 <= 0 || s2 <= 0 || s3 <= 0) return 0;
+    let avg = Math.round((s1 + s2 + s3) / 3);
+    if (hasPartner) {
+      const ps1 = parseFloat(partnerSal1) || 0;
+      const ps2 = parseFloat(partnerSal2) || 0;
+      const ps3 = parseFloat(partnerSal3) || 0;
+      if (ps1 > 0 && ps2 > 0 && ps3 > 0) avg += Math.round((ps1 + ps2 + ps3) / 3);
+    }
+    return avg;
+  }, [sal1, sal2, sal3, hasPartner, partnerSal1, partnerSal2, partnerSal3]);
 
   const canContinueStep2 = hasBc && avgSalary > 0;
 
@@ -163,7 +175,7 @@ export default function AdvancedCalculatorPage() {
     const input: AdvancedCalcInput = {
       loanType,
       avgSalary,
-      mealTickets: parseFloat(mealTickets) || 0,
+      mealTickets: (parseFloat(mealTickets) || 0) + (hasPartner ? (parseFloat(partnerMealTickets) || 0) : 0),
       ficoScore: bcData.ficoScore ?? undefined,
       existingObligations: bcData.existingMonthlyObligations ?? 0,
       dpd30Count: bcData.dpd30Count ?? 0,
@@ -178,7 +190,7 @@ export default function AdvancedCalculatorPage() {
       incomeSource: loanType === 'IPOTECAR' ? incomeSource : undefined,
     };
     setResult(calculateAdvanced(input));
-  }, [bcData, loanType, avgSalary, mealTickets, termMonths, desiredAmount, propertyValue, isFirstHome, incomeSource]);
+  }, [bcData, loanType, avgSalary, mealTickets, hasPartner, partnerMealTickets, termMonths, desiredAmount, propertyValue, isFirstHome, incomeSource]);
 
   const goToResults = () => {
     runCalculation();
@@ -190,7 +202,7 @@ export default function AdvancedCalculatorPage() {
     const input: AdvancedCalcInput = {
       loanType,
       avgSalary,
-      mealTickets: parseFloat(mealTickets) || 0,
+      mealTickets: (parseFloat(mealTickets) || 0) + (hasPartner ? (parseFloat(partnerMealTickets) || 0) : 0),
       ficoScore: bcData.ficoScore ?? undefined,
       existingObligations: bcData.existingMonthlyObligations ?? 0,
       dpd30Count: bcData.dpd30Count ?? 0,
@@ -205,7 +217,7 @@ export default function AdvancedCalculatorPage() {
       incomeSource: loanType === 'IPOTECAR' ? incomeSource : undefined,
     };
     try { return calculateAdvanced(input); } catch { return null; }
-  }, [bcData, loanType, avgSalary, mealTickets, termMonths, desiredAmount, propertyValue, isFirstHome, incomeSource]);
+  }, [bcData, loanType, avgSalary, mealTickets, hasPartner, partnerMealTickets, termMonths, desiredAmount, propertyValue, isFirstHome, incomeSource]);
 
   const ratingInfo = result ? ratingConfig[result.rating] : null;
 
@@ -301,6 +313,37 @@ export default function AdvancedCalculatorPage() {
                     {savingSalaries ? <Loader2 size={16} className="animate-spin" /> : null}
                     Salveaza salariile
                   </button>
+                )}
+                {loanType === 'IPOTECAR' && (
+                  <div className="mt-4 pt-4 border-t border-dark-400">
+                    <label className="flex items-center gap-2 cursor-pointer mb-3">
+                      <input type="checkbox" checked={hasPartner} onChange={e => setHasPartner(e.target.checked)} className="w-4 h-4 rounded border-dark-400 bg-dark-800 text-brand-primary focus:ring-brand-primary/50" />
+                      <span className="text-sm text-light-80">Aplic impreuna cu partenerul/partenera</span>
+                    </label>
+                    {hasPartner && (
+                      <div className="space-y-3">
+                        <p className="text-xs text-light-50">Salariile nete ale partenerului (ultimele 3 luni)</p>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className="text-xs text-light-50 mb-1 block">Salariu 1</label>
+                            <input type="number" value={partnerSal1} onChange={e => setPartnerSal1(e.target.value)} placeholder="0" className="w-full h-10 bg-dark-800 border border-dark-400 rounded-xl px-3 text-sm text-light-100 placeholder:text-light-50 focus:outline-none focus:border-brand-primary/50" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-light-50 mb-1 block">Salariu 2</label>
+                            <input type="number" value={partnerSal2} onChange={e => setPartnerSal2(e.target.value)} placeholder="0" className="w-full h-10 bg-dark-800 border border-dark-400 rounded-xl px-3 text-sm text-light-100 placeholder:text-light-50 focus:outline-none focus:border-brand-primary/50" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-light-50 mb-1 block">Salariu 3</label>
+                            <input type="number" value={partnerSal3} onChange={e => setPartnerSal3(e.target.value)} placeholder="0" className="w-full h-10 bg-dark-800 border border-dark-400 rounded-xl px-3 text-sm text-light-100 placeholder:text-light-50 focus:outline-none focus:border-brand-primary/50" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs text-light-50 mb-1 block">Bonuri de masa partener (lunar, optional)</label>
+                          <input type="number" value={partnerMealTickets} onChange={e => setPartnerMealTickets(e.target.value)} placeholder="0" className="w-full h-10 bg-dark-800 border border-dark-400 rounded-xl px-3 text-sm text-light-100 placeholder:text-light-50 focus:outline-none focus:border-brand-primary/50" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}
