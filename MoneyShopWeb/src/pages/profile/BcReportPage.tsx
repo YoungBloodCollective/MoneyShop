@@ -216,7 +216,7 @@ export default function BcReportPage() {
 function FicoScoreCard({ score, explanations, nrIfn }: { score?: number; explanations?: string[]; nrIfn?: number }) {
   if (!score) return null;
 
-  const displayScore = score < 581 ? 581 : score;
+  const displayScore = score;
   const showAsterisk = score >= 500 && score <= 580 && (nrIfn ?? 0) <= 10;
 
   const getColor = (s: number) => {
