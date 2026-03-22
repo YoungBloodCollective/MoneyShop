@@ -24,13 +24,8 @@ export function ProtectedRoute({ children, adminOnly, skipOnboardingCheck }: Pro
     return <Navigate to="/admin" replace />;
   }
 
-  // Redirect to onboarding if registration is incomplete (skip for admins)
-  if (!skipOnboardingCheck && user && !isAdmin) {
-    const onboardingComplete = user.emailVerified && user.phoneVerified && user.kycStatus === 'verified';
-    if (!onboardingComplete) {
-      return <Navigate to="/onboarding" replace />;
-    }
-  }
+  // No longer force redirect to onboarding — users can access the app
+  // and will see verification prompts inside the dashboard
 
   return <>{children}</>;
 }

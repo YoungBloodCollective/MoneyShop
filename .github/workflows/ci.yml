@@ -35,7 +35,7 @@ jobs:
   deploy-backend:
     name: Deploy Backend to Azure
     needs: backend
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push' && contains(join(github.event.commits.*.modified, ','), 'MoneyShop.')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
