@@ -89,6 +89,7 @@ namespace MoneyShop.Api.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("search")]
         public IActionResult SearchBrokers([FromQuery] string? search = null, [FromQuery] int? limit = null)
         {

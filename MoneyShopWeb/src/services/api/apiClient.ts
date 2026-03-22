@@ -50,7 +50,7 @@ class ApiClient {
         return response;
       },
       (error: AxiosError) => {
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 && tokenStorage.getToken()) {
           tokenStorage.removeToken();
           window.location.href = '/auth/login';
         }
