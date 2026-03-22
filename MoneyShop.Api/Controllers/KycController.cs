@@ -165,6 +165,27 @@ namespace MoneyShop.Api.Controllers
             }
         }
 
+        [HttpGet("stats")]
+        [Authorize(Roles = "Administrator")]
+        public IActionResult GetKycStats()
+        {
+            try
+            {
+                var sessions = _kycSessionRepository.Get().Where(k => k.KycType == "USER_KYC").ToList();
+                return Ok(new
+                {
+                    total = sessions.Count,
+                    verified = sessions.Count(s => s.Status == "verified"),
+                    pending = sessions.Count(s => s.Status == "pending"),
+                    rejected = sessions.Count(s => s.Status == "rejected"),
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpGet("pending")]
         [Authorize(Roles = "Administrator")]
         public IActionResult GetAllPendingKyc()

@@ -216,7 +216,12 @@ export const kycApi = {
     return response.data;
   },
 
-  // Legacy admin endpoints
+  // Admin endpoints
+  getStats: async (): Promise<{ total: number; verified: number; pending: number; rejected: number }> => {
+    const response = await apiClient.get('/kyc/stats');
+    return response.data;
+  },
+
   getAllPending: async (): Promise<KycPending[]> => {
     const response = await apiClient.get('/kyc/pending');
     return Array.isArray(response.data) ? response.data : [];
