@@ -159,7 +159,7 @@ export default function LandingPage() {
   const statsSection = useInView(0.3);
 
   const clientCount = useCountUp(200000, 1800, statsSection.isVisible);
-  const bankCount = useCountUp(50, 1200, statsSection.isVisible);
+  const bankCount = useCountUp(10, 1200, statsSection.isVisible);
 
   const results = useMemo(() => {
     const termMonths = calcMaxTerm(loanType, incomeType, gender, birthYear, birthMonth);
@@ -702,7 +702,7 @@ export default function LandingPage() {
               <Award size={22} className="text-blue-400 shrink-0" />
               <div>
                 <p className="text-[10px] text-gray-400">Autorizat</p>
-                <p className="text-xs font-bold text-white">BNR</p>
+                <p className="text-xs font-bold text-white">ANPC</p>
               </div>
             </div>
           </div>
@@ -718,7 +718,7 @@ export default function LandingPage() {
                 <img src="/images/logo/logo-trimmed.png" alt="MoneyShop" className="h-8 brightness-0 invert object-contain" />
               </div>
               <p className="text-[11px] text-gray-500 leading-relaxed">
-                Broker de credite autorizat BNR. Comparam ofertele tuturor bancilor pentru tine, complet gratuit.
+                Broker de credite autorizat ANPC. Comparam ofertele tuturor bancilor pentru tine, complet gratuit.
               </p>
             </div>
             <div>
