@@ -516,7 +516,7 @@ export default function LandingPage() {
         <div className="max-w-3xl mx-auto px-4">
           <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-3xl border border-gray-100 shadow-sm p-6 lg:p-10">
             <div className="text-center mb-6">
-              <h2 className="text-xl lg:text-2xl font-extrabold text-gray-900">Solicita o consultatie gratuita</h2>
+              <h2 className="text-xl lg:text-2xl font-extrabold text-gray-900">Solicită o analiză gratuită a situației tale financiare</h2>
               <p className="text-sm text-gray-500 mt-1">Completeaza formularul si te vom contacta in cel mai scurt timp</p>
             </div>
             {inlineSuccess ? (
@@ -751,7 +751,7 @@ export default function LandingPage() {
                 <p>L-V: 09:00 - 18:00</p>
               </div>
               <div className="mt-3">
-                <p className="text-[10px] text-gray-500 mb-1.5">Inregistrat ASF &bull; Autorizat BNR</p>
+                <p className="text-[10px] text-gray-500 mb-1.5">Autorizat ANPC</p>
                 <div className="flex gap-2">
                   <FileCheck size={14} className="text-gray-600" />
                   <Shield size={14} className="text-gray-600" />
