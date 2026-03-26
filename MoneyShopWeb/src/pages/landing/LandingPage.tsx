@@ -158,7 +158,7 @@ export default function LandingPage() {
   const stepsSection = useInView(0.1);
   const statsSection = useInView(0.3);
 
-  const clientCount = useCountUp(5000, 1800, statsSection.isVisible);
+  const clientCount = useCountUp(5000, 800, statsSection.isVisible);
   const bankCount = useCountUp(10, 1200, statsSection.isVisible);
 
   const results = useMemo(() => {
