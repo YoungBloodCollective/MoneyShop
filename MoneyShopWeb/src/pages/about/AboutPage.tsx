@@ -13,15 +13,15 @@ const reviews = [
 
 const features = [
   { icon: Calculator, title: 'Simulator instant', desc: 'Afla in 2 minute cat poti imprumuta si la ce rata lunara.' },
-  { icon: Shield, title: '100% sigur', desc: 'Date criptate, brokeri autorizati ASF, conformitate GDPR.' },
+  { icon: Shield, title: '100% sigur', desc: 'Date criptate, brokeri autorizati ANPC, conformitate GDPR.' },
   { icon: Clock, title: 'Raspuns rapid', desc: 'Primesti oferte personalizate in maxim 24 de ore.' },
-  { icon: Users, title: 'Broker dedicat', desc: 'Un specialist financiar te ghideaza de la simulare pana la semnare.' },
+  { icon: Users, title: 'Broker autorizat de credite', desc: 'Un specialist financiar te ghideaza de la simulare pana la semnare.' },
 ];
 
 const stats = [
   { value: '5.000+', label: 'Clienti multumiti' },
   { value: '120M+', label: 'RON credite intermediate' },
-  { value: '15+', label: 'Banci partenere' },
+  { value: '10+', label: 'Banci partenere' },
   { value: '98%', label: 'Rata de aprobare' },
 ];
 
@@ -47,11 +47,10 @@ export default function AboutPage() {
       <RevealSection>
         <div className="text-center space-y-4">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
-            Despre <span className="text-blue-600">MoneyShop</span>
+            Despre <span className="text-blue-600">MoneyShop</span><sup className="text-lg text-gray-400">&reg;</sup>
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Suntem platforma de intermediere financiara care iti gaseste cel mai bun credit, fara comision.
-            Comparam ofertele a peste 15 banci pentru tine.
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            MoneyShop&reg; este o platform&#259; digital&#259; de analiz&#259; &#537;i intermediere financiar&#259;, care faciliteaz&#259; accesul utilizatorilor la informa&#539;ii privind op&#539;iunile de credit disponibile &#238;n pia&#539;&#259;.
           </p>
         </div>
       </RevealSection>
@@ -71,14 +70,28 @@ export default function AboutPage() {
         <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-4">
           <h2 className="text-xl font-bold text-gray-900">Cine suntem</h2>
           <p className="text-gray-600 leading-relaxed">
-            MoneyShop.ro este o platforma inovatoare de intermediere financiara, fondata cu scopul de a simplifica
-            procesul de obtinere a unui credit. Echipa noastra de brokeri autorizati ASF compara in timp real
-            ofertele bancilor partenere pentru a-ti gasi cea mai avantajoasa solutie financiara.
+            Prin intermediul platformei, utilizatorii pot ob&#539;ine o evaluare orientativ&#259; a eligibilit&#259;&#539;ii pentru produse de creditare, pe baza datelor furnizate &#537;i, dup&#259; caz, a informa&#539;iilor ob&#539;inute cu acordul acestora de la institu&#539;ii relevante.
           </p>
           <p className="text-gray-600 leading-relaxed">
-            Fie ca ai nevoie de un credit de nevoi personale, un credit ipotecar sau vrei sa refinantezi un
-            imprumut existent, MoneyShop te conecteaza cu oferta perfecta — totul fara niciun comision din partea ta.
+            MoneyShop&reg; nu este institu&#539;ie de credit &#537;i nu acord&#259; &#238;mprumuturi. Platforma nu emite oferte ferme de credit &#537;i nu garanteaz&#259; aprobarea finan&#539;&#259;rii.
           </p>
+          <p className="text-gray-600 leading-relaxed">
+            Serviciile oferite au caracter informativ &#537;i de intermediere, iar condi&#539;iile finale de creditare sunt stabilite exclusiv de c&#259;tre institu&#539;iile financiare partenere, &#238;n urma analizei proprii.
+          </p>
+          <p className="text-gray-600 leading-relaxed">
+            Transmiterea datelor c&#259;tre brokeri sau institu&#539;ii financiare se realizeaz&#259; doar cu acordul expres al utilizatorului.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <div className="flex items-center gap-2 text-green-600 font-medium text-sm">
+              <CheckCircle size={18} /> F&#259;r&#259; costuri pentru serviciile de intermediere
+            </div>
+            <div className="flex items-center gap-2 text-green-600 font-medium text-sm">
+              <CheckCircle size={18} /> Proces digital de analiz&#259; preliminar&#259;
+            </div>
+            <div className="flex items-center gap-2 text-green-600 font-medium text-sm">
+              <CheckCircle size={18} /> Conectare c&#259;tre brokeri autoriza&#539;i
+            </div>
+          </div>
         </div>
       </RevealSection>
       <RevealSection>
@@ -106,7 +119,7 @@ export default function AboutPage() {
           <h2 className="text-xl font-bold text-gray-900 text-center mb-6">Certificari si conformitate</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { label: 'Broker autorizat ASF', sub: 'Intermediar de credit autorizat' },
+              { label: 'Autorizat ANPC', sub: 'Intermediar de credit autorizat' },
               { label: 'Conformitate GDPR', sub: 'Date protejate conform UE 2016/679' },
               { label: 'Securitate bancara', sub: 'Criptare AES-256, TLS 1.3' },
             ].map(b => (
