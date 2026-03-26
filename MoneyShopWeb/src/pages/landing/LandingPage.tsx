@@ -195,7 +195,7 @@ export default function LandingPage() {
           <nav className="hidden lg:flex items-center gap-1">
             {[
               { label: 'Despre MoneyShop', path: '/despre' },
-              { label: 'Verifica Broker', path: '/verifica-broker' },
+              // { label: 'Verifica Broker', path: '/verifica-broker' },
             ].map(item => (
               <button key={item.label} onClick={() => navigate(item.path)} className="px-3 py-2 text-sm text-gray-700 hover:text-gray-900 font-medium transition-colors cursor-pointer">
                 {item.label}
@@ -735,7 +735,7 @@ export default function LandingPage() {
               <p className="text-xs font-semibold text-white mb-3">Companie</p>
               <div className="space-y-1.5 text-[11px] text-gray-400">
                 <p className="hover:text-white cursor-pointer transition-colors" onClick={() => navigate('/despre')}>Despre MoneyShop</p>
-                <p className="hover:text-white cursor-pointer transition-colors" onClick={() => navigate('/verifica-broker')}>Verifica un broker</p>
+                {/* <p className="hover:text-white cursor-pointer transition-colors" onClick={() => navigate('/verifica-broker')}>Verifica un broker</p> */}
                 <p className="hover:text-white cursor-pointer transition-colors" onClick={() => navigate('/legal')}>Termeni si conditii</p>
                 <p className="hover:text-white cursor-pointer transition-colors" onClick={() => navigate('/legal')}>Politica de confidentialitate</p>
                 <p className="hover:text-white cursor-pointer transition-colors">Blog</p>
