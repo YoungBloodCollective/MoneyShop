@@ -169,12 +169,13 @@ export default function LandingPage() {
       totalIncome += partnerSalary + partnerBonuri;
     }
     const dtiCap = totalIncome > 5700 ? 0.50 : 0.40;
-    const apr = loanType === 'IPOTECAR' ? 0.065 : 0.059;
+    const apr = 0.08;
+    const displayRate = loanType === 'IPOTECAR' ? 4.59 : 5.9;
     const maxPayment = totalIncome * dtiCap;
     const monthlyRate = apr / 12;
     const factor = monthlyRate > 0 ? (1 - Math.pow(1 + monthlyRate, -termMonths)) / monthlyRate : termMonths;
     const maxLoan = Math.round(maxPayment * factor);
-    return { amount: maxLoan, rate: apr * 100, termMonths, error: null };
+    return { amount: maxLoan, rate: displayRate, termMonths, error: null };
   }, [loanType, gender, incomeType, birthYear, birthMonth, salaryNet, bonuriMasa, hasPartner, partnerSalary, partnerBonuri]);
 
   const fmt = (v: number) => v.toLocaleString('ro-RO', { maximumFractionDigits: 0 });
