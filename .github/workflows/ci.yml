@@ -16,6 +16,8 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - run: dotnet restore MoneyShop.Api/MoneyShop.Api.csproj -r linux-x64
+      - run: dotnet restore MoneyShop.Tests/MoneyShop.Tests.csproj
+      - run: dotnet test MoneyShop.Tests/MoneyShop.Tests.csproj --no-restore --verbosity normal
       - run: dotnet publish MoneyShop.Api/MoneyShop.Api.csproj -c Release -r linux-x64 --self-contained false -o ./publish
 
   frontend:
