@@ -14,7 +14,11 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "distribution": "store",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://moneyshop20260107220205-adbnf8c7a2fec4d4.canadacentral-01.azurewebsites.net/api"
+      }
     }
   },
   "submit": {
@@ -26,7 +30,7 @@
       },
       "android": {
         "serviceAccountKeyPath": "",
-        "track": "internal"
+        "track": "production"
       }
     }
   }

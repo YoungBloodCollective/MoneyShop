@@ -3,17 +3,18 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 expo start",
+    "start": "expo start",
+    "start:dev": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 expo start",
     "start:offline": "expo start --offline",
-    "android": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 expo start --android",
-    "ios": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 expo start --ios",
-    "web": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 expo start --web",
-    "build:web": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 expo export --platform web",
-    "export:web": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 expo export --platform web",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "build:web": "expo export --platform web",
+    "export:web": "expo export --platform web",
     "lint": "eslint .",
     "test": "jest",
     "type-check": "tsc --noEmit",
-    "prebuild": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 expo prebuild"
+    "prebuild": "expo prebuild"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

@@ -15,14 +15,22 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "privacy": "public",
+    "description": "MoneyShop - Platforma digitala de intermediere credite. Compara ofertele de la 10+ banci, verifica eligibilitatea si aplica online. Broker autorizat ANPC.",
+    "githubUrl": "https://github.com/YoungBloodCollective/MoneyShop",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.moneyshop.mobile",
       "buildNumber": "1",
       "icon": "./assets/images/icon-ios.png",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
-        "NSCameraUsageDescription": "Această aplicație are nevoie de acces la cameră pentru a încărca poze cu buletinul pentru verificare KYC.",
-        "NSPhotoLibraryUsageDescription": "Această aplicație are nevoie de acces la galeria foto pentru a încărca poze cu buletinul pentru verificare KYC."
+        "NSCameraUsageDescription": "MoneyShop necesita acces la camera pentru verificarea identitatii (KYC) prin fotografierea actului de identitate.",
+        "NSPhotoLibraryUsageDescription": "MoneyShop necesita acces la galeria foto pentru incarcarea documentelor necesare verificarii identitatii.",
+        "NSFaceIDUsageDescription": "MoneyShop foloseste Face ID pentru autentificare rapida si sigura.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -45,6 +53,10 @@
           "include": ["@tanstack/react-query"]
         }
       }
+    },
+    "extra": {
+      "privacyPolicyUrl": "https://moneyshop.ro/legal",
+      "termsOfServiceUrl": "https://moneyshop.ro/legal"
     }
   }
 }
