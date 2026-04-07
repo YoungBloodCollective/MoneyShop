@@ -184,7 +184,7 @@ const MainNavigator = () => {
           if (route.name === 'Dashboard') {
             iconName = focused ? 'view-dashboard' : 'view-dashboard-outline';
           } else if (route.name === 'Simulator') {
-            iconName = focused ? 'calculator' : 'calculator-outline';
+            iconName = focused ? 'calculator-variant' : 'calculator-variant-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'account' : 'account-outline';
           } else if (route.name === 'Chat') {

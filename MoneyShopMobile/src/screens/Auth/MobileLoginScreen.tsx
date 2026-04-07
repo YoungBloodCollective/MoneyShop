@@ -21,7 +21,7 @@ import type {GuestStackParamList} from '../../navigation/GuestNavigator';
 
 const WEB_APP_URL = 'https://moneyshop.ro';
 const REGISTER_URL = `${WEB_APP_URL}/Account/Register`;
-const logoImage = require('../../assets/images/logo/Logo.PNG');
+const logoImage = require('../../../assets/images/logo/Logo.PNG');
 
 type Props = {
   navigation: NativeStackNavigationProp<GuestStackParamList, 'MobileLogin'>;
