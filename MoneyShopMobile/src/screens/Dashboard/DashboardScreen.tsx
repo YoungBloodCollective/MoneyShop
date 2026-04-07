@@ -148,6 +148,27 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
             </TouchableOpacity>
           )}
 
+          {/* Financial Mini Cards */}
+          {financialData?.ficoScore != null && financialData.ficoScore > 0 && (
+            <TouchableOpacity
+              style={styles.miniCardsRow}
+              activeOpacity={0.7}
+              onPress={() => navigation.getParent()?.navigate('Profile', { screen: 'FinancialData', initial: false })}>
+              <View style={styles.miniCard}>
+                <Text style={styles.miniCardValue}>{financialData.salariuNet ? fmt(financialData.salariuNet) : '-'}</Text>
+                <Text style={styles.miniCardLabel}>Salariu net</Text>
+              </View>
+              <View style={[styles.miniCard, {borderColor: colors.warning[400]}]}>
+                <Text style={[styles.miniCardValue, {color: colors.warning[500]}]}>{financialData.rataTotalaLunara ? fmt(financialData.rataTotalaLunara) : '0'}</Text>
+                <Text style={styles.miniCardLabel}>Rata lunara</Text>
+              </View>
+              <View style={[styles.miniCard, {borderColor: financialData.dti && financialData.dti > 0.4 ? colors.error[400] : colors.success[400]}]}>
+                <Text style={[styles.miniCardValue, {color: financialData.dti && financialData.dti > 0.4 ? colors.error[500] : colors.success[500]}]}>{financialData.dti != null ? `${(financialData.dti * 100).toFixed(0)}%` : '-'}</Text>
+                <Text style={styles.miniCardLabel}>DTI</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
           {/* Primary CTA */}
           <TouchableOpacity
             style={styles.ctaButton}
@@ -315,6 +336,32 @@ const styles = StyleSheet.create({
     color: colors.light[100],
   },
   ficoEmptyDesc: {
+    ...typography.caption,
+    color: colors.light[60],
+    marginTop: 2,
+  },
+  miniCardsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  miniCard: {
+    flex: 1,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    borderTopWidth: 3,
+  },
+  miniCardValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.light[100],
+  },
+  miniCardLabel: {
     ...typography.caption,
     color: colors.light[60],
     marginTop: 2,
