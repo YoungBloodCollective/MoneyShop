@@ -5,26 +5,16 @@
 
 // Set this to your computer's local IP when testing on physical device
 // Leave empty to use localhost (works for web/simulator only)
-const LOCAL_IP = ''; // Example: '10.67.144.35' or leave empty for localhost
+const LOCAL_IP = ''; // Example: '10.67.144.35' or leave empty for production API
 
 const getApiBaseUrl = () => {
-  // Check for production API URL from environment variable
   if (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
-
-  // Production fallback (if not in dev mode)
-  if (!__DEV__) {
-    return 'https://moneyshop20260107220205-adbnf8c7a2fec4d4.azurewebsites.net/api';
-  }
-
-  // If LOCAL_IP is set, use it (for physical devices)
   if (LOCAL_IP) {
     return `http://${LOCAL_IP}:5259/api`;
   }
-
-  // Local dev: use HTTP so React Native doesn't cancel requests (HTTPS dev cert is untrusted)
-  return 'http://localhost:5259/api';
+  return 'https://moneyshop20260107220205-adbnf8c7a2fec4d4.canadacentral-01.azurewebsites.net/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

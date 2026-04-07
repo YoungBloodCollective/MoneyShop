@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, StyleSheet, Text, Platform} from 'react-native';
+import {View, StyleSheet, Text, Image} from 'react-native';
 import {colors} from '../theme/designSystem';
 
 interface LogoProps {
@@ -7,24 +7,24 @@ interface LogoProps {
   showTagline?: boolean;
 }
 
+const logoImage = require('../../assets/images/logo/Logo.PNG');
+
 const Logo: React.FC<LogoProps> = ({size = 'medium', showTagline = false}) => {
-  const sizeStyles = {
-    small: {fontSize: 18, iconSize: 24},
-    medium: {fontSize: 24, iconSize: 32},
-    large: {fontSize: 32, iconSize: 40},
+  const sizeMap = {
+    small: { width: 140, height: 40 },
+    medium: { width: 200, height: 56 },
+    large: { width: 260, height: 72 },
   };
 
-  const currentSize = sizeStyles[size];
+  const currentSize = sizeMap[size];
 
   return (
     <View style={styles.container}>
-      <View style={styles.logoContainer}>
-        <Text style={[styles.logoText, {fontSize: currentSize.fontSize}]}>
-          <Text style={styles.money}>Money</Text>
-          <Text style={styles.shop}>Shop</Text>
-          <Text style={styles.registered}>®</Text>
-        </Text>
-      </View>
+      <Image
+        source={logoImage}
+        style={{ width: currentSize.width, height: currentSize.height }}
+        resizeMode="contain"
+      />
       {showTagline && (
         <Text style={styles.tagline}>Simplu. Rapid. Transparent.</Text>
       )}
@@ -36,25 +36,6 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoText: {
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  money: {
-    color: colors.brand.primary, // Brand blue
-  },
-  shop: {
-    color: colors.brand.gold,
-  },
-  registered: {
-    color: colors.light[60],
-    fontSize: 10,
-    ...(Platform.OS === 'web' ? {verticalAlign: 'super' as any} : {}),
   },
   tagline: {
     marginTop: 6,
