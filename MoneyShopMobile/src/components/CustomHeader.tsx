@@ -21,7 +21,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
 }) => {
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor={colors.dark[800]} />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.dark[800]} />
       <View
         style={[
           styles.header,

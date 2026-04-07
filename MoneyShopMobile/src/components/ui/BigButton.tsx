@@ -80,7 +80,7 @@ const BigButton: React.FC<BigButtonProps> = ({
         return {
           container: styles.goldContainer,
           text: styles.goldText,
-          iconColor: colors.dark[900],
+          iconColor: '#111827',
         };
       default:
         return {
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     ...shadows.glowGold,
   },
   goldText: {
-    color: colors.dark[900],
+    color: '#111827',
   },
 });
 

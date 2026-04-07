@@ -69,7 +69,7 @@ const MobileLoginScreen: React.FC<Props> = ({navigation}) => {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.dark[900]} />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.dark[900]} />
 
       {/* Background accents */}
       <View style={styles.bgAccent1} />
