@@ -1,5 +1,5 @@
-import React from 'react';
-import {View, StyleSheet, ScrollView, RefreshControl} from 'react-native';
+import React, {useState} from 'react';
+import {View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity} from 'react-native';
 import {
   Text,
   ActivityIndicator,
@@ -30,8 +30,13 @@ const FinancialDataScreen = ({navigation}: any) => {
     retry: false,
   });
 
+  const [showSalaries, setShowSalaries] = useState(false);
+  const [showCredits, setShowCredits] = useState(false);
+
   const accounts = bcReport?.parsedData?.accounts || [];
-  const activeAccounts = accounts.filter(a => a.isActive);
+  const activeAccounts = accounts
+    .filter(a => a.isActive && a.currentBalance > 0 && !!a.creditor)
+    .filter((a, i, arr) => arr.findIndex(x => x.creditor === a.creditor && x.currentBalance === a.currentBalance) === i);
 
   const formatCurrency = (value?: number) => {
     if (value == null) return 'N/A';
@@ -155,84 +160,104 @@ const FinancialDataScreen = ({navigation}: any) => {
           )}
 
           {/* Venituri Section */}
-          <View style={styles.card}>
+          <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={() => setShowSalaries(!showSalaries)}>
             <View style={styles.cardHeader}>
               <Icon name="cash-multiple" size={24} color={colors.success[400]} />
-              <Text style={styles.cardTitle}>
-                Venituri
-              </Text>
+              <Text style={styles.cardTitle}>Venituri</Text>
+              <View style={{flex: 1}} />
+              <Text style={{...typography.h4, color: colors.success[500]}}>{formatCurrency(financialData.venitTotal)}</Text>
+              <Icon name={showSalaries ? 'chevron-up' : 'chevron-down'} size={20} color={colors.light[50]} style={{marginLeft: 8}} />
             </View>
-            <View style={styles.divider} />
-            <View style={styles.dataRow}>
-              <Text style={styles.label}>
-                Salariu Net
-              </Text>
-              <Text style={styles.value}>
-                {formatCurrency(financialData.salariuNet)}
-              </Text>
-            </View>
-            {financialData.bonuriMasa && (
+          </TouchableOpacity>
+          {showSalaries && (
+            <View style={[styles.card, {marginTop: -spacing.sm, borderTopLeftRadius: 0, borderTopRightRadius: 0}]}>
               <View style={styles.dataRow}>
-                <Text style={styles.label}>
-                  Bonuri de masă
-                </Text>
-                <Text style={styles.value}>
-                  {formatCurrency(financialData.sumaBonuriMasa)}
-                </Text>
+                <Text style={styles.label}>Salariu Net</Text>
+                <Text style={styles.value}>{formatCurrency(financialData.salariuNet)}</Text>
               </View>
-            )}
-            <View style={[styles.dataRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>
-                Venit Total
-              </Text>
-              <Text style={styles.totalValue}>
-                {formatCurrency(financialData.venitTotal)}
-              </Text>
+              {financialData.bonuriMasa && (
+                <View style={styles.dataRow}>
+                  <Text style={styles.label}>Bonuri de masa</Text>
+                  <Text style={styles.value}>{formatCurrency(financialData.sumaBonuriMasa)}</Text>
+                </View>
+              )}
+              {(financialData.salariu1 || financialData.salariu2 || financialData.salariu3) && (
+                <>
+                  <View style={styles.divider} />
+                  <Text style={{...typography.labelSmall, color: colors.light[60], marginBottom: spacing.sm}}>Ultimele 3 salarii</Text>
+                  {[
+                    { label: 'Luna 1 (recent)', value: financialData.salariu1 },
+                    { label: 'Luna 2', value: financialData.salariu2 },
+                    { label: 'Luna 3', value: financialData.salariu3 },
+                  ].filter(s => s.value).map((s, i) => (
+                    <View key={i} style={styles.dataRow}>
+                      <Text style={styles.label}>{s.label}</Text>
+                      <Text style={styles.value}>{formatCurrency(s.value)}</Text>
+                    </View>
+                  ))}
+                </>
+              )}
+              <View style={[styles.dataRow, styles.totalRow]}>
+                <Text style={styles.totalLabel}>Venit Total</Text>
+                <Text style={styles.totalValue}>{formatCurrency(financialData.venitTotal)}</Text>
+              </View>
             </View>
-          </View>
+          )}
 
           {/* Credite Section */}
-          <View style={styles.card}>
+          <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={() => setShowCredits(!showCredits)}>
             <View style={styles.cardHeader}>
               <Icon name="credit-card" size={24} color={colors.warning[400]} />
-              <Text style={styles.cardTitle}>
-                Credite Existente
-              </Text>
+              <Text style={styles.cardTitle}>Credite Existente</Text>
+              <View style={{flex: 1}} />
+              <Text style={{...typography.labelMedium, color: colors.light[100]}}>{financialData.nrCrediteBanci ?? 0}</Text>
+              <Icon name={showCredits ? 'chevron-up' : 'chevron-down'} size={20} color={colors.light[50]} style={{marginLeft: 8}} />
             </View>
-            <View style={styles.divider} />
-            <View style={styles.dataRow}>
-              <Text style={styles.label}>
-                Sold Total
-              </Text>
-              <Text style={styles.value}>
-                {formatCurrency(financialData.soldTotal)}
-              </Text>
+          </TouchableOpacity>
+          {showCredits && (
+            <View style={[styles.card, {marginTop: -spacing.sm, borderTopLeftRadius: 0, borderTopRightRadius: 0}]}>
+              <View style={styles.dataRow}>
+                <Text style={styles.label}>Sold Total</Text>
+                <Text style={styles.value}>{formatCurrency(financialData.soldTotal)}</Text>
+              </View>
+              <View style={styles.dataRow}>
+                <Text style={styles.label}>Rata Totala Lunara</Text>
+                <Text style={styles.value}>{formatCurrency(financialData.rataTotalaLunara)}</Text>
+              </View>
+              <View style={styles.dataRow}>
+                <Text style={styles.label}>Credite Banci</Text>
+                <Text style={styles.value}>{financialData.nrCrediteBanci ?? 'N/A'}</Text>
+              </View>
+              <View style={styles.dataRow}>
+                <Text style={styles.label}>IFN-uri</Text>
+                <Text style={styles.value}>{financialData.nrIfn ?? 'N/A'}</Text>
+              </View>
+              {activeAccounts.length > 0 && (
+                <>
+                  <View style={styles.divider} />
+                  <Text style={{...typography.labelSmall, color: colors.light[60], marginBottom: spacing.sm}}>Detalii credite active</Text>
+                  {activeAccounts.map((acc, i) => (
+                    <View key={i} style={[styles.creditItem, i < activeAccounts.length - 1 && {borderBottomWidth: 1, borderBottomColor: colors.dark[400], paddingBottom: spacing.sm, marginBottom: spacing.sm}]}>
+                      <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <Text style={{...typography.labelMedium, color: colors.light[100], flex: 1}} numberOfLines={1}>
+                          {acc.creditor}
+                        </Text>
+                        {acc.arrearsAmount > 0 && (
+                          <View style={{backgroundColor: colors.error[50], paddingHorizontal: 8, paddingVertical: 2, borderRadius: borderRadius.pill}}>
+                            <Text style={{...typography.caption, color: colors.error[500], fontWeight: '600'}}>Intarziere</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={{flexDirection: 'row', justifyContent: 'space-between', marginTop: 4}}>
+                        <Text style={{...typography.caption, color: colors.light[60]}}>Sold: {formatCurrency(acc.currentBalance)}</Text>
+                        <Text style={{...typography.caption, color: colors.light[60]}}>{acc.accountType || 'Credit'}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              )}
             </View>
-            <View style={styles.dataRow}>
-              <Text style={styles.label}>
-                Rata Totală Lunară
-              </Text>
-              <Text style={styles.value}>
-                {formatCurrency(financialData.rataTotalaLunara)}
-              </Text>
-            </View>
-            <View style={styles.dataRow}>
-              <Text style={styles.label}>
-                Număr Credite Bănci
-              </Text>
-              <Text style={styles.value}>
-                {financialData.nrCrediteBanci ?? 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.dataRow}>
-              <Text style={styles.label}>
-                Număr IFN
-              </Text>
-              <Text style={styles.value}>
-                {financialData.nrIfn ?? 'N/A'}
-              </Text>
-            </View>
-          </View>
+          )}
 
           {/* Scoring Section */}
           <View style={styles.card}>
@@ -321,62 +346,6 @@ const FinancialDataScreen = ({navigation}: any) => {
               </View>
             </View>
           </View>
-
-          {/* Salary History */}
-          {(financialData.salariu1 || financialData.salariu2 || financialData.salariu3) && (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Icon name="cash" size={24} color={colors.brand.primary} />
-                <Text style={styles.cardTitle}>Ultimele 3 Salarii</Text>
-              </View>
-              <View style={styles.divider} />
-              {[
-                { label: 'Luna 1 (cel mai recent)', value: financialData.salariu1 },
-                { label: 'Luna 2', value: financialData.salariu2 },
-                { label: 'Luna 3', value: financialData.salariu3 },
-              ].filter(s => s.value).map((s, i) => (
-                <View key={i} style={styles.dataRow}>
-                  <Text style={styles.label}>{s.label}</Text>
-                  <Text style={styles.value}>{formatCurrency(s.value)}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Active Credits List */}
-          {activeAccounts.length > 0 && (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Icon name="bank" size={24} color={colors.warning[400]} />
-                <Text style={styles.cardTitle}>
-                  Credite Active ({activeAccounts.length})
-                </Text>
-              </View>
-              <View style={styles.divider} />
-              {activeAccounts.map((acc, i) => (
-                <View key={i} style={[styles.creditItem, i < activeAccounts.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.dark[400], paddingBottom: spacing.sm, marginBottom: spacing.sm }]}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ ...typography.labelMedium, color: colors.light[100], flex: 1 }} numberOfLines={1}>
-                      {acc.creditor || `Credit #${acc.accountIndex}`}
-                    </Text>
-                    {acc.arrearsAmount > 0 && (
-                      <View style={{ backgroundColor: colors.error[50], paddingHorizontal: 8, paddingVertical: 2, borderRadius: borderRadius.pill }}>
-                        <Text style={{ ...typography.caption, color: colors.error[500], fontWeight: '600' }}>Intarziere</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                    <Text style={{ ...typography.caption, color: colors.light[60] }}>
-                      Sold: {formatCurrency(acc.currentBalance)}
-                    </Text>
-                    <Text style={{ ...typography.caption, color: colors.light[60] }}>
-                      {acc.accountType || 'Credit'}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
 
           {/* Last Updated */}
           {financialData.lastUpdated && (
