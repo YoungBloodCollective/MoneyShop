@@ -188,9 +188,9 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   logo: {
-    width: 220,
-    height: 60,
-    marginBottom: spacing.lg,
+    width: 300,
+    height: 94,
+    marginBottom: spacing.md,
   },
   heroTitle: {
     fontSize: 24,

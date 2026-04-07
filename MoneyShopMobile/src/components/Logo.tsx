@@ -11,9 +11,9 @@ const logoImage = require('../../assets/images/logo/Logo.PNG');
 
 const Logo: React.FC<LogoProps> = ({size = 'medium', showTagline = false}) => {
   const sizeMap = {
-    small: { width: 140, height: 40 },
-    medium: { width: 200, height: 56 },
-    large: { width: 260, height: 72 },
+    small: { width: 160, height: 50 },
+    medium: { width: 240, height: 75 },
+    large: { width: 300, height: 94 },
   };
 
   const currentSize = sizeMap[size];
