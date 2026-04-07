@@ -6,6 +6,7 @@ import {
 } from 'react-native-paper';
 import {useQuery} from '@tanstack/react-query';
 import {userFinancialDataApi} from '../../services/api/userFinancialDataApi';
+import {bcReportApi, type BcAccountSummary} from '../../services/api/bcReportApi';
 import CustomHeader from '../../components/CustomHeader';
 import {FicoGauge} from '../../components/ui';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -22,6 +23,15 @@ const FinancialDataScreen = ({navigation}: any) => {
     queryFn: userFinancialDataApi.getMyData,
     retry: false,
   });
+
+  const {data: bcReport} = useQuery({
+    queryKey: ['bcReportLatest'],
+    queryFn: bcReportApi.getLatest,
+    retry: false,
+  });
+
+  const accounts = bcReport?.parsedData?.accounts || [];
+  const activeAccounts = accounts.filter(a => a.isActive);
 
   const formatCurrency = (value?: number) => {
     if (value == null) return 'N/A';
@@ -312,6 +322,62 @@ const FinancialDataScreen = ({navigation}: any) => {
             </View>
           </View>
 
+          {/* Salary History */}
+          {(financialData.salariu1 || financialData.salariu2 || financialData.salariu3) && (
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Icon name="cash" size={24} color={colors.brand.primary} />
+                <Text style={styles.cardTitle}>Ultimele 3 Salarii</Text>
+              </View>
+              <View style={styles.divider} />
+              {[
+                { label: 'Luna 1 (cel mai recent)', value: financialData.salariu1 },
+                { label: 'Luna 2', value: financialData.salariu2 },
+                { label: 'Luna 3', value: financialData.salariu3 },
+              ].filter(s => s.value).map((s, i) => (
+                <View key={i} style={styles.dataRow}>
+                  <Text style={styles.label}>{s.label}</Text>
+                  <Text style={styles.value}>{formatCurrency(s.value)}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Active Credits List */}
+          {activeAccounts.length > 0 && (
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Icon name="bank" size={24} color={colors.warning[400]} />
+                <Text style={styles.cardTitle}>
+                  Credite Active ({activeAccounts.length})
+                </Text>
+              </View>
+              <View style={styles.divider} />
+              {activeAccounts.map((acc, i) => (
+                <View key={i} style={[styles.creditItem, i < activeAccounts.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.dark[400], paddingBottom: spacing.sm, marginBottom: spacing.sm }]}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ ...typography.labelMedium, color: colors.light[100], flex: 1 }} numberOfLines={1}>
+                      {acc.creditor || `Credit #${acc.accountIndex}`}
+                    </Text>
+                    {acc.arrearsAmount > 0 && (
+                      <View style={{ backgroundColor: colors.error[50], paddingHorizontal: 8, paddingVertical: 2, borderRadius: borderRadius.pill }}>
+                        <Text style={{ ...typography.caption, color: colors.error[500], fontWeight: '600' }}>Intarziere</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                    <Text style={{ ...typography.caption, color: colors.light[60] }}>
+                      Sold: {formatCurrency(acc.currentBalance)}
+                    </Text>
+                    <Text style={{ ...typography.caption, color: colors.light[60] }}>
+                      {acc.accountType || 'Credit'}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
           {/* Last Updated */}
           {financialData.lastUpdated && (
             <Text style={styles.lastUpdated}>
@@ -438,6 +504,9 @@ const styles = StyleSheet.create({
   scoringBadgeText: {
     ...typography.labelSmall,
     fontWeight: '600',
+  },
+  creditItem: {
+    paddingVertical: spacing.xs,
   },
   lastUpdated: {
     ...typography.caption,
