@@ -37,31 +37,16 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
     enabled: !!user,
   });
 
-  // Onboarding chain: Email verification → Phone verification → KYC
   const runOnboardingChecks = useCallback(async () => {
     if (!user || user.role === 'Administrator') return;
-
-    // 1. Check email verification
     if (!user.emailVerified) {
-      navigation.navigate('Verification', {
-        type: 'email',
-        email: user.email,
-        onComplete: 'phone_verification',
-      });
+      navigation.navigate('Verification', { type: 'email', email: user.email, onComplete: 'phone_verification' });
       return;
     }
-
-    // 2. Check phone verification
     if (!user.phoneVerified) {
-      navigation.navigate('Verification', {
-        type: 'phone',
-        phone: user.phone,
-        onComplete: 'dashboard',
-      });
+      navigation.navigate('Verification', { type: 'phone', phone: user.phone, onComplete: 'dashboard' });
       return;
     }
-
-    // 3. Check KYC status
     try {
       const kycStatus = await kycApi.getStatus();
       if (!kycStatus || kycStatus.status !== 'verified') {
@@ -74,7 +59,6 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
     }
   }, [user, navigation]);
 
-  // Run onboarding checks after navigator transition completes
   useEffect(() => {
     if (user != null) {
       const task = InteractionManager.runAfterInteractions(() => {
@@ -112,6 +96,8 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
     }
   };
 
+  const fmt = (v: number) => v.toLocaleString('ro-RO', { maximumFractionDigits: 0 });
+
   if (isLoading) {
     return (
       <View style={styles.center}>
@@ -126,164 +112,133 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={colors.brand.primary}
-          />
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.brand.primary} />
         }>
         <View style={styles.content}>
-          {/* Welcome */}
-          <View style={styles.headerSection}>
-            <Text style={styles.greeting}>
-              Bine ai venit, {user?.name?.split(' ')[0]}!
-            </Text>
-            <Text style={styles.subtitle}>
-              Iata un rezumat al activitatii tale
-            </Text>
-          </View>
+          <Text style={styles.greeting}>
+            Buna, {user?.name?.split(' ')[0]}! 👋
+          </Text>
+          <Text style={styles.subtitle}>Iata un rezumat al contului tau</Text>
 
           {/* FICO Score Hero */}
-          {financialData?.ficoScore != null && financialData.ficoScore > 0 && (
-            <View style={styles.ficoHero}>
-              <FicoGauge score={financialData.ficoScore} size={140} />
-              <View style={styles.ficoDetails}>
+          {financialData?.ficoScore != null && financialData.ficoScore > 0 ? (
+            <View style={styles.ficoCard}>
+              <FicoGauge score={financialData.ficoScore} size={120} />
+              <View style={styles.ficoInfo}>
                 <Text style={styles.ficoLabel}>SCOR FICO</Text>
-                <Text style={styles.ficoSublabel}>
-                  {financialData.venitTotal
-                    ? `Venit: ${financialData.venitTotal.toLocaleString('ro-RO')} lei`
-                    : 'Actualizat recent'}
-                </Text>
+                {financialData.venitTotal ? (
+                  <Text style={styles.ficoDetail}>Venit: {fmt(financialData.venitTotal)} lei</Text>
+                ) : null}
+                {financialData.dti != null ? (
+                  <Text style={styles.ficoDetail}>DTI: {(financialData.dti * 100).toFixed(1)}%</Text>
+                ) : null}
               </View>
             </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.ficoEmptyCard}
+              activeOpacity={0.7}
+              onPress={() => navigation.getParent()?.navigate('Simulator')}>
+              <Icon name="chart-arc" size={40} color={colors.brand.primary} />
+              <View style={{flex: 1, marginLeft: spacing.md}}>
+                <Text style={styles.ficoEmptyTitle}>Afla scorul tau FICO</Text>
+                <Text style={styles.ficoEmptyDesc}>Completeaza simulatorul pentru a vedea eligibilitatea ta</Text>
+              </View>
+              <Icon name="chevron-right" size={24} color={colors.light[50]} />
+            </TouchableOpacity>
           )}
 
-          {/* Simulator Card - Gradient accent */}
+          {/* Primary CTA */}
           <TouchableOpacity
-            style={styles.simulatorCard}
+            style={styles.ctaButton}
             activeOpacity={0.85}
-            onPress={() => navigation.getParent()?.navigate('Simulator')}>
-            <View style={styles.simulatorGradientBar} />
-            <View style={styles.simulatorContent}>
-              <View style={styles.simulatorIconContainer}>
-                <Icon name="calculator-variant" size={32} color="#FFFFFF" />
-              </View>
-              <View style={styles.simulatorTextContainer}>
-                <Text style={styles.simulatorTitle}>Simulator Credit</Text>
-                <Text style={styles.simulatorDescription}>
-                  Calculeaza rata ta lunara si vezi ofertele disponibile
-                </Text>
-              </View>
-              <Icon name="chevron-right" size={24} color={colors.light[60]} />
+            onPress={() => navigation.navigate('ApplicationWizard')}>
+            <View style={styles.ctaIcon}>
+              <Icon name="plus" size={24} color="#FFFFFF" />
             </View>
+            <View style={{flex: 1}}>
+              <Text style={styles.ctaTitle}>Aplica pentru credit</Text>
+              <Text style={styles.ctaDesc}>Depune o cerere noua</Text>
+            </View>
+            <Icon name="arrow-right" size={20} color="#FFFFFF" />
           </TouchableOpacity>
 
-          {/* Stats Grid */}
-          <View style={styles.statsGrid}>
+          {/* Quick Stats */}
+          <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <View style={[styles.statIconContainer, {backgroundColor: colors.info[50]}]}>
-                <Icon name="file-document" size={22} color={colors.brand.primary} />
-              </View>
               <Text style={styles.statNumber}>{activeApplications.length}</Text>
               <Text style={styles.statLabel}>Cereri active</Text>
             </View>
-
             <View style={styles.statCard}>
-              <View style={[styles.statIconContainer, {backgroundColor: colors.success[50]}]}>
-                <Icon name="check-circle" size={22} color={colors.success[500]} />
-              </View>
-              <Text style={styles.statNumber}>
+              <Text style={[styles.statNumber, {color: colors.success[500]}]}>
                 {applicationsList.filter(app => app.status === 'PREAPROBAT').length}
               </Text>
               <Text style={styles.statLabel}>Preaprobate</Text>
             </View>
+            <View style={styles.statCard}>
+              <Text style={[styles.statNumber, {color: colors.brand.primary}]}>
+                {applicationsList.filter(app => app.status === 'DISBURSAT').length}
+              </Text>
+              <Text style={styles.statLabel}>Finalizate</Text>
+            </View>
           </View>
 
           {/* Quick Actions */}
-          <View style={styles.quickActionsSection}>
-            <Text style={styles.sectionTitle}>Actiuni rapide</Text>
-            <View style={styles.quickActionsGrid}>
-              <TouchableOpacity
-                style={styles.quickActionCard}
-                activeOpacity={0.7}
-                onPress={() => navigation.navigate('ApplicationWizard')}>
-                <View style={[styles.quickActionIcon, {backgroundColor: colors.success[50]}]}>
-                  <Icon name="plus-circle" size={26} color={colors.success[500]} />
+          <Text style={styles.sectionTitle}>Actiuni rapide</Text>
+          <View style={styles.actionsRow}>
+            <TouchableOpacity style={styles.actionCard} activeOpacity={0.7} onPress={() => navigation.getParent()?.navigate('Simulator')}>
+              <View style={[styles.actionIcon, {backgroundColor: colors.info[50]}]}>
+                <Icon name="calculator-variant" size={22} color={colors.brand.primary} />
+              </View>
+              <Text style={styles.actionText}>Simulator</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionCard} activeOpacity={0.7} onPress={() => navigation.navigate('ApplicationList')}>
+              <View style={[styles.actionIcon, {backgroundColor: colors.success[50]}]}>
+                <Icon name="file-document-multiple" size={22} color={colors.success[500]} />
+              </View>
+              <Text style={styles.actionText}>Cereri</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionCard} activeOpacity={0.7} onPress={() => navigation.getParent()?.navigate('Profile')}>
+              <View style={[styles.actionIcon, {backgroundColor: colors.gold[50]}]}>
+                <Icon name="account" size={22} color={colors.gold[600]} />
+              </View>
+              <Text style={styles.actionText}>Profil</Text>
+            </TouchableOpacity>
+            {user?.role === 'Administrator' && (
+              <TouchableOpacity style={styles.actionCard} activeOpacity={0.7} onPress={() => navigation.navigate('KycAdmin')}>
+                <View style={[styles.actionIcon, {backgroundColor: colors.error[50]}]}>
+                  <Icon name="shield-check" size={22} color={colors.error[500]} />
                 </View>
-                <Text style={styles.quickActionText}>Cerere noua</Text>
+                <Text style={styles.actionText}>KYC</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickActionCard}
-                activeOpacity={0.7}
-                onPress={() => navigation.navigate('ApplicationList')}>
-                <View style={[styles.quickActionIcon, {backgroundColor: colors.info[50]}]}>
-                  <Icon name="file-document-multiple" size={26} color={colors.brand.primary} />
-                </View>
-                <Text style={styles.quickActionText}>Toate cererile</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickActionCard}
-                activeOpacity={0.7}
-                onPress={() => navigation.getParent()?.navigate('Profile')}>
-                <View style={[styles.quickActionIcon, {backgroundColor: colors.info[50]}]}>
-                  <Icon name="account" size={26} color={colors.brand.purple} />
-                </View>
-                <Text style={styles.quickActionText}>Profil</Text>
-              </TouchableOpacity>
-
-              {user?.role === 'Administrator' && (
-                <TouchableOpacity
-                  style={styles.quickActionCard}
-                  activeOpacity={0.7}
-                  onPress={() => navigation.navigate('KycAdmin')}>
-                  <View style={[styles.quickActionIcon, {backgroundColor: colors.error[50]}]}>
-                    <Icon name="shield-check" size={26} color={colors.error[500]} />
-                  </View>
-                  <Text style={styles.quickActionText}>KYC Admin</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            )}
           </View>
 
           {/* Recent Applications */}
           {activeApplications.length > 0 && (
-            <View style={styles.section}>
+            <>
               <Text style={styles.sectionTitle}>Cereri recente</Text>
               {activeApplications.slice(0, 3).map(app => (
                 <TouchableOpacity
                   key={app.id}
-                  style={styles.applicationCard}
+                  style={styles.appCard}
                   activeOpacity={0.7}
-                  onPress={() =>
-                    navigation.navigate('ApplicationList', {applicationId: app.id})
-                  }>
-                  <View style={styles.applicationHeader}>
-                    <View style={styles.applicationInfo}>
-                      <Text style={styles.applicationType}>
-                        {app.typeCredit === 'ipotecar'
-                          ? 'Credit Ipotecar'
-                          : 'Credit Nevoi Personale'}
-                      </Text>
-                      <Text style={styles.dateText}>
-                        {new Date(app.createdAt).toLocaleDateString('ro-RO')}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        {backgroundColor: `${getStatusColor(app.status)}20`},
-                      ]}>
-                      <View style={[styles.statusDot, {backgroundColor: getStatusColor(app.status)}]} />
-                      <Text style={[styles.statusText, {color: getStatusColor(app.status)}]}>
-                        {app.status}
-                      </Text>
-                    </View>
+                  onPress={() => navigation.navigate('ApplicationList', {applicationId: app.id})}>
+                  <View style={{flex: 1}}>
+                    <Text style={styles.appType}>
+                      {app.typeCredit === 'ipotecar' ? 'Credit Ipotecar' : 'Credit Nevoi Personale'}
+                    </Text>
+                    <Text style={styles.appDate}>
+                      {new Date(app.createdAt).toLocaleDateString('ro-RO')}
+                    </Text>
+                  </View>
+                  <View style={[styles.statusBadge, {backgroundColor: `${getStatusColor(app.status)}15`}]}>
+                    <View style={[styles.statusDot, {backgroundColor: getStatusColor(app.status)}]} />
+                    <Text style={[styles.statusText, {color: getStatusColor(app.status)}]}>{app.status}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
-            </View>
+            </>
           )}
         </View>
       </ScrollView>
@@ -296,9 +251,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.dark[800],
   },
-  scrollView: {
-    flex: 1,
-  },
+  scrollView: { flex: 1 },
   content: {
     padding: spacing.lg,
     paddingBottom: spacing.xxxl,
@@ -309,188 +262,165 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.dark[800],
   },
-  headerSection: {
-    marginBottom: spacing.lg,
-    paddingTop: spacing.sm,
-  },
   greeting: {
-    ...typography.h2,
+    fontSize: 28,
+    fontWeight: '700',
     color: colors.light[100],
-    marginBottom: spacing.xs,
+    marginBottom: 4,
+    marginTop: spacing.sm,
   },
   subtitle: {
     ...typography.bodyMedium,
     color: colors.light[60],
+    marginBottom: spacing.lg,
   },
-
-  // FICO Hero
-  ficoHero: {
+  ficoCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.dark[700],
-    borderRadius: borderRadius.xl,
+    borderRadius: borderRadius.xxl,
     padding: spacing.lg,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.gold[500],
-    ...shadows.glowGold,
+    ...shadows.md,
   },
-  ficoDetails: {
+  ficoInfo: {
     flex: 1,
     marginLeft: spacing.lg,
   },
   ficoLabel: {
     ...typography.labelUppercase,
-    color: colors.gold[500],
+    color: colors.gold[600],
     marginBottom: spacing.xs,
   },
-  ficoSublabel: {
+  ficoDetail: {
     ...typography.bodySmall,
     color: colors.light[60],
+    marginTop: 2,
   },
-
-  // Simulator Card
-  simulatorCard: {
-    backgroundColor: colors.dark[700],
-    borderRadius: borderRadius.xl,
-    marginBottom: spacing.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.dark[400],
-    ...shadows.md,
-  },
-  simulatorGradientBar: {
-    height: 3,
-    backgroundColor: colors.brand.primary,
-  },
-  simulatorContent: {
+  ficoEmptyCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xxl,
     padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+    ...shadows.sm,
   },
-  simulatorIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.lg,
+  ficoEmptyTitle: {
+    ...typography.labelLarge,
+    color: colors.light[100],
+  },
+  ficoEmptyDesc: {
+    ...typography.caption,
+    color: colors.light[60],
+    marginTop: 2,
+  },
+  ctaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.brand.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    ...shadows.glow,
+  },
+  ctaIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
   },
-  simulatorTextContainer: {
-    flex: 1,
+  ctaTitle: {
+    ...typography.labelLarge,
+    color: '#FFFFFF',
   },
-  simulatorTitle: {
-    ...typography.h4,
-    color: colors.light[100],
-    marginBottom: 4,
+  ctaDesc: {
+    ...typography.caption,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
   },
-  simulatorDescription: {
-    ...typography.bodySmall,
-    color: colors.light[60],
-  },
-
-  // Stats Grid
-  statsGrid: {
+  statsRow: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: spacing.sm,
     marginBottom: spacing.lg,
   },
   statCard: {
     flex: 1,
     backgroundColor: colors.dark[700],
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.dark[400],
   },
-  statIconContainer: {
+  statNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.light[100],
+  },
+  statLabel: {
+    ...typography.caption,
+    color: colors.light[60],
+    marginTop: 2,
+  },
+  sectionTitle: {
+    ...typography.labelUppercase,
+    color: colors.light[60],
+    marginBottom: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  actionCard: {
+    flex: 1,
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.dark[400],
+  },
+  actionIcon: {
     width: 44,
     height: 44,
     borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
-  statNumber: {
-    ...typography.h2,
-    color: colors.light[100],
-    marginBottom: 2,
-  },
-  statLabel: {
-    ...typography.caption,
-    color: colors.light[60],
+  actionText: {
+    ...typography.labelSmall,
+    color: colors.light[80],
     textAlign: 'center',
   },
-
-  // Quick Actions
-  quickActionsSection: {
-    marginBottom: spacing.lg,
-  },
-  quickActionsGrid: {
+  appCard: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-  },
-  quickActionCard: {
-    width: '47%',
-    backgroundColor: colors.dark[700],
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
     alignItems: 'center',
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.dark[400],
   },
-  quickActionIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: borderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  quickActionText: {
+  appType: {
     ...typography.labelMedium,
-    color: colors.light[90],
-    textAlign: 'center',
-  },
-
-  // Sections
-  section: {
-    marginTop: spacing.sm,
-  },
-  sectionTitle: {
-    ...typography.labelUppercase,
-    color: colors.light[60],
-    marginBottom: spacing.md,
-  },
-
-  // Application Cards
-  applicationCard: {
-    backgroundColor: colors.dark[700],
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.dark[400],
-  },
-  applicationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  applicationInfo: {
-    flex: 1,
-  },
-  applicationType: {
-    ...typography.labelLarge,
     color: colors.light[100],
-    marginBottom: 4,
   },
-  dateText: {
+  appDate: {
     ...typography.caption,
     color: colors.light[50],
+    marginTop: 2,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -498,7 +428,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.pill,
-    gap: 6,
+    gap: 5,
   },
   statusDot: {
     width: 6,
@@ -506,7 +436,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,

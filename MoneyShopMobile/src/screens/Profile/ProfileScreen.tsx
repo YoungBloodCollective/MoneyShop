@@ -41,6 +41,12 @@ const ProfileScreen = ({navigation}: Props) => {
       .substring(0, 2);
   };
 
+  const completionSteps = [
+    { done: !!user?.emailVerified, label: 'Email verificat' },
+    { done: !!user?.phoneVerified, label: 'Telefon verificat' },
+  ];
+  const completionPercent = Math.round((completionSteps.filter(s => s.done).length / completionSteps.length) * 100);
+
   return (
     <ScrollView
       style={styles.container}
@@ -69,6 +75,17 @@ const ProfileScreen = ({navigation}: Props) => {
               color={colors.brand.primary}
             />
             <Text style={styles.roleText}>{user.role}</Text>
+          </View>
+        )}
+        {completionPercent < 100 && (
+          <View style={{width: '100%', marginTop: spacing.md}}>
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4}}>
+              <Text style={{...typography.caption, color: colors.light[60]}}>Profil complet</Text>
+              <Text style={{...typography.labelSmall, color: colors.brand.primary}}>{completionPercent}%</Text>
+            </View>
+            <View style={{height: 6, backgroundColor: colors.dark[500], borderRadius: 3}}>
+              <View style={{height: 6, backgroundColor: colors.brand.primary, borderRadius: 3, width: `${completionPercent}%`}} />
+            </View>
           </View>
         )}
       </View>

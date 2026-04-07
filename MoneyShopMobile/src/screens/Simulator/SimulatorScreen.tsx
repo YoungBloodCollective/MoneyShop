@@ -2,7 +2,10 @@ import React from 'react';
 import {View, StyleSheet, ScrollView, TouchableOpacity, Text} from 'react-native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useAuthStore} from '../../store/authStore';
+import {useQuery} from '@tanstack/react-query';
+import {userFinancialDataApi} from '../../services/api/userFinancialDataApi';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {FicoGauge} from '../../components/ui';
 import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
 
 type SimulatorScreenNavigationProp = NativeStackNavigationProp<any, 'Simulator'>;
@@ -14,101 +17,98 @@ interface Props {
 const SimulatorScreen: React.FC<Props> = ({navigation}) => {
   const {isAuthenticated} = useAuthStore();
 
+  const {data: financialData} = useQuery({
+    queryKey: ['userFinancialData'],
+    queryFn: userFinancialDataApi.getMyData,
+    retry: false,
+    enabled: isAuthenticated,
+  });
+
+  const fmt = (v: number) => v.toLocaleString('ro-RO', { maximumFractionDigits: 0 });
+  const hasFico = financialData?.ficoScore != null && financialData.ficoScore > 0;
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        {/* Header */}
-        <View style={styles.headerSection}>
-          <Text style={styles.brandName}>
-            MoneyShop<Text style={styles.superscript}>®</Text>
-          </Text>
-          <Text style={styles.tagline}>Simplu. Rapid. Transparent.</Text>
-          <Text style={styles.description}>
-            Platforma digitala de intermediere credite. Analizeaza eligibilitatea
-            ta de credit in cateva minute, cu transparenta totala.
-          </Text>
-        </View>
+        <Text style={styles.pageTitle}>Simulator Credit</Text>
+        <Text style={styles.pageSubtitle}>Calculeaza eligibilitatea ta in cateva minute</Text>
 
-        {/* Simulator Card */}
+        {/* Financial Summary if available */}
+        {hasFico && (
+          <View style={styles.summaryCard}>
+            <FicoGauge score={financialData!.ficoScore!} size={90} />
+            <View style={styles.summaryInfo}>
+              <Text style={styles.summaryLabel}>Datele tale financiare</Text>
+              {financialData?.salariuNet ? (
+                <Text style={styles.summaryDetail}>Salariu: {fmt(financialData.salariuNet)} lei</Text>
+              ) : null}
+              {financialData?.venitTotal ? (
+                <Text style={styles.summaryDetail}>Venit total: {fmt(financialData.venitTotal)} lei</Text>
+              ) : null}
+              <Text style={styles.summaryHint}>Datele se preiau automat in simulator</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Calculator CTA */}
         <TouchableOpacity
-          style={styles.simulatorCard}
+          style={styles.calculatorCard}
           activeOpacity={0.85}
           onPress={() => navigation.navigate('SimulatorForm')}>
-          <View style={styles.simulatorGradientBar} />
-          <View style={styles.simulatorCardContent}>
-            <View style={styles.simulatorHeader}>
-              <View style={styles.simulatorIconContainer}>
-                <Icon name="calculator-variant" size={36} color="#FFFFFF" />
-              </View>
-              <View style={styles.simulatorTextContainer}>
-                <Text style={styles.simulatorTitle}>Simulator Credit</Text>
-                <Text style={styles.simulatorDescription}>
-                  Calculeaza rata ta lunara si vezi ofertele disponibile
-                </Text>
-              </View>
-            </View>
-            <View style={styles.simulatorFooter}>
-              <Text style={styles.simulatorActionText}>Incepe simularea</Text>
-              <Icon name="arrow-right" size={20} color={colors.brand.primary} />
-            </View>
+          <View style={styles.calculatorIcon}>
+            <Icon name="calculator-variant" size={32} color="#FFFFFF" />
           </View>
+          <View style={{flex: 1}}>
+            <Text style={styles.calculatorTitle}>Calculator Avansat</Text>
+            <Text style={styles.calculatorDesc}>Analiza completa cu toate datele tale financiare</Text>
+          </View>
+          <Icon name="arrow-right" size={22} color="#FFFFFF" />
         </TouchableOpacity>
 
-        {/* Info Card */}
+        {/* Features */}
+        <View style={styles.featuresGrid}>
+          {[
+            { icon: 'clock-fast', label: 'Sub 2 minute', color: colors.success[500], bg: colors.success[50] },
+            { icon: 'shield-check', label: 'Date sigure', color: colors.brand.primary, bg: colors.info[50] },
+            { icon: 'cash-multiple', label: '0 comision', color: colors.gold[600], bg: colors.gold[50] },
+            { icon: 'bank', label: '10+ banci', color: colors.brand.purple, bg: 'rgba(110,76,229,0.08)' },
+          ].map((f, i) => (
+            <View key={i} style={styles.featureItem}>
+              <View style={[styles.featureIcon, {backgroundColor: f.bg}]}>
+                <Icon name={f.icon} size={22} color={f.color} />
+              </View>
+              <Text style={styles.featureText}>{f.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Info */}
         <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoIconContainer}>
-              <Icon name="information-outline" size={22} color={colors.brand.primary} />
-            </View>
-            <View style={styles.infoTextContainer}>
-              <Text style={styles.infoTitle}>Gratuit si fara inregistrare</Text>
-              <Text style={styles.infoText}>
-                Simulatorul este complet gratuit. Pentru a salva datele si a vedea
-                istoricul, te poti autentifica.
-              </Text>
-            </View>
-          </View>
+          <Icon name="information-outline" size={20} color={colors.brand.primary} />
+          <Text style={styles.infoText}>
+            Simulatorul foloseste datele tale din Biroul de Credit si ANAF pentru a calcula eligibilitatea reala. Rezultatele sunt orientative.
+          </Text>
         </View>
 
-        {/* Features mini */}
-        <View style={styles.featuresRow}>
-          <View style={styles.featureMini}>
-            <Icon name="clock-fast" size={24} color={colors.success[400]} />
-            <Text style={styles.featureMiniText}>Sub 2 minute</Text>
-          </View>
-          <View style={styles.featureMini}>
-            <Icon name="shield-check" size={24} color={colors.brand.primary} />
-            <Text style={styles.featureMiniText}>Date sigure</Text>
-          </View>
-          <View style={styles.featureMini}>
-            <Icon name="cash-multiple" size={24} color={colors.gold[500]} />
-            <Text style={styles.featureMiniText}>0 comision</Text>
-          </View>
-        </View>
-
-        {/* Auth Actions for non-authenticated users */}
+        {/* Auth prompt for guests */}
         {!isAuthenticated && (
-          <View style={styles.authSection}>
-            <Text style={styles.authSectionTitle}>Ai deja cont?</Text>
+          <View style={styles.authCard}>
+            <Text style={styles.authTitle}>Autentifica-te pentru rezultate exacte</Text>
+            <Text style={styles.authDesc}>Cu un cont, simulatorul preia automat datele tale financiare.</Text>
             <View style={styles.authButtons}>
               <TouchableOpacity
-                style={styles.authCard}
+                style={styles.authBtn}
                 activeOpacity={0.7}
                 onPress={() => (navigation as any).navigate('Auth', {screen: 'Login'})}>
-                <View style={[styles.authIcon, {backgroundColor: colors.info[50]}]}>
-                  <Icon name="login" size={26} color={colors.brand.primary} />
-                </View>
-                <Text style={styles.authCardText}>Autentificare</Text>
+                <Icon name="login" size={18} color={colors.brand.primary} />
+                <Text style={styles.authBtnText}>Login</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
-                style={styles.authCard}
+                style={[styles.authBtn, {backgroundColor: colors.success[50]}]}
                 activeOpacity={0.7}
                 onPress={() => (navigation as any).navigate('Auth', {screen: 'Register'})}>
-                <View style={[styles.authIcon, {backgroundColor: colors.success[50]}]}>
-                  <Icon name="account-plus" size={26} color={colors.success[500]} />
-                </View>
-                <Text style={styles.authCardText}>Inregistrare</Text>
+                <Icon name="account-plus" size={18} color={colors.success[500]} />
+                <Text style={[styles.authBtnText, {color: colors.success[500]}]}>Cont nou</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -127,184 +127,153 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: spacing.xxxl,
   },
-  headerSection: {
-    marginBottom: spacing.xl,
-    paddingTop: spacing.sm,
-    alignItems: 'center',
-  },
-  brandName: {
-    ...typography.h1,
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: '700',
     color: colors.light[100],
-    marginBottom: spacing.sm,
-    textAlign: 'center',
+    marginTop: spacing.sm,
   },
-  superscript: {
-    fontSize: 16,
-    fontWeight: '400',
-    color: colors.light[60],
-  },
-  tagline: {
-    ...typography.labelLarge,
-    color: colors.brand.primary,
-    marginBottom: spacing.md,
-    textAlign: 'center',
-  },
-  description: {
+  pageSubtitle: {
     ...typography.bodyMedium,
     color: colors.light[60],
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-
-  // Simulator Card
-  simulatorCard: {
-    backgroundColor: colors.dark[700],
-    borderRadius: borderRadius.xl,
     marginBottom: spacing.lg,
-    overflow: 'hidden',
+    marginTop: 4,
+  },
+  summaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dark[700],
+    borderRadius: borderRadius.xxl,
+    padding: spacing.md,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.dark[400],
-    ...shadows.md,
+    ...shadows.sm,
   },
-  simulatorGradientBar: {
-    height: 3,
-    backgroundColor: colors.brand.primary,
-  },
-  simulatorCardContent: {
-    padding: spacing.lg,
-  },
-  simulatorHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  simulatorIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.brand.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  simulatorTextContainer: {
+  summaryInfo: {
     flex: 1,
+    marginLeft: spacing.md,
   },
-  simulatorTitle: {
-    ...typography.h3,
+  summaryLabel: {
+    ...typography.labelMedium,
     color: colors.light[100],
-    marginBottom: 4,
   },
-  simulatorDescription: {
-    ...typography.bodySmall,
+  summaryDetail: {
+    ...typography.caption,
     color: colors.light[60],
+    marginTop: 2,
   },
-  simulatorFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: colors.dark[400],
-    paddingTop: spacing.md,
-  },
-  simulatorActionText: {
-    ...typography.labelLarge,
+  summaryHint: {
+    ...typography.caption,
     color: colors.brand.primary,
+    marginTop: spacing.xs,
+    fontStyle: 'italic',
   },
-
-  // Info Card
-  infoCard: {
-    backgroundColor: colors.dark[700],
+  calculatorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.brand.primary,
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.dark[400],
+    ...shadows.glow,
   },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  infoIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.info[50],
+  calculatorIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
   },
-  infoTextContainer: {
-    flex: 1,
+  calculatorTitle: {
+    ...typography.h4,
+    color: '#FFFFFF',
+    marginBottom: 2,
   },
-  infoTitle: {
-    ...typography.labelLarge,
-    color: colors.light[100],
-    marginBottom: 4,
+  calculatorDesc: {
+    ...typography.caption,
+    color: 'rgba(255,255,255,0.7)',
   },
-  infoText: {
-    ...typography.bodySmall,
-    color: colors.light[60],
-    lineHeight: 20,
-  },
-
-  // Features Mini
-  featuresRow: {
+  featuresGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
-  featureMini: {
-    flex: 1,
+  featureItem: {
+    width: '48%',
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.dark[700],
     borderRadius: borderRadius.lg,
     padding: spacing.md,
-    alignItems: 'center',
-    gap: spacing.sm,
     borderWidth: 1,
     borderColor: colors.dark[400],
+    gap: spacing.sm,
   },
-  featureMiniText: {
+  featureIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  featureText: {
     ...typography.labelSmall,
     color: colors.light[80],
-    textAlign: 'center',
+    flex: 1,
   },
-
-  // Auth Section
-  authSection: {
-    marginTop: spacing.sm,
-  },
-  authSectionTitle: {
-    ...typography.h4,
-    color: colors.light[100],
-    marginBottom: spacing.md,
-    textAlign: 'center',
-  },
-  authButtons: {
+  infoCard: {
     flexDirection: 'row',
-    gap: spacing.md,
+    alignItems: 'flex-start',
+    backgroundColor: colors.info[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  infoText: {
+    ...typography.caption,
+    color: colors.light[70],
+    flex: 1,
+    lineHeight: 18,
   },
   authCard: {
-    flex: 1,
     backgroundColor: colors.dark[700],
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
-    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.dark[400],
   },
-  authIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: borderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
+  authTitle: {
+    ...typography.labelLarge,
+    color: colors.light[100],
+    marginBottom: 4,
   },
-  authCardText: {
+  authDesc: {
+    ...typography.caption,
+    color: colors.light[60],
+    marginBottom: spacing.md,
+  },
+  authButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  authBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.info[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  authBtnText: {
     ...typography.labelMedium,
-    color: colors.light[90],
-    textAlign: 'center',
+    color: colors.brand.primary,
   },
 });
 

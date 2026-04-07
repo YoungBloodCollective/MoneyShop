@@ -1,4 +1,4 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   View,
   StyleSheet,
@@ -16,6 +16,7 @@ import {
 import {useQuery, useMutation} from '@tanstack/react-query';
 import {simulatorApi} from '../../services/api/simulatorApi';
 import {banksApi} from '../../services/api/banksApi';
+import {userFinancialDataApi} from '../../services/api/userFinancialDataApi';
 import {ScoringRequest, CardCreditData, OverdraftData, CodebitorData} from '../../types/application.types';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -54,6 +55,12 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
     queryFn: banksApi.getAll,
   });
 
+  const {data: financialData} = useQuery({
+    queryKey: ['userFinancialData'],
+    queryFn: userFinancialDataApi.getMyData,
+    retry: false,
+  });
+
   // State-uri pentru date
   const [salariuNet, setSalariuNet] = useState('');
   const [bonuriMasa, setBonuriMasa] = useState(false);
@@ -77,6 +84,22 @@ const SimulatorFormScreen: React.FC<Props> = ({navigation}) => {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 5;
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (financialData) {
+      if (financialData.salariuNet) setSalariuNet(String(financialData.salariuNet));
+      if (financialData.bonuriMasa) {
+        setBonuriMasa(true);
+        if (financialData.sumaBonuriMasa) setSumaBonuriMasa(String(financialData.sumaBonuriMasa));
+      }
+      if (financialData.nrCrediteBanci != null) setNrCrediteBanci(String(financialData.nrCrediteBanci));
+      if (financialData.nrIfn != null) setNrIfn(String(financialData.nrIfn));
+      if (financialData.soldTotal) setSoldTotal(String(financialData.soldTotal));
+      if (financialData.poprire != null) setPoprire(financialData.poprire);
+      if (financialData.intarzieri != null) setIntarzieri(financialData.intarzieri);
+      if (financialData.intarzieriNumar != null) setIntarzieriNumar(String(financialData.intarzieriNumar));
+    }
+  }, [financialData]);
 
   const calculateMutation = useMutation({
     mutationFn: (request: ScoringRequest) => simulatorApi.calculateScoring(request),
