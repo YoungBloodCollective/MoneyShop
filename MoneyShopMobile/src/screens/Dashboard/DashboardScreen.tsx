@@ -123,7 +123,7 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
           {/* FICO Score Hero */}
           {financialData?.ficoScore != null && financialData.ficoScore > 0 ? (
             <TouchableOpacity style={styles.ficoCard} activeOpacity={0.7} onPress={() => navigation.getParent()?.navigate('Profile', { screen: 'FinancialData', initial: false })}>
-              <FicoGauge score={financialData.ficoScore} size={120} />
+              <FicoGauge score={financialData.ficoScore} size={160} animated />
               <View style={styles.ficoInfo}>
                 <Text style={styles.ficoLabel}>SCOR FICO</Text>
                 {financialData.venitTotal ? (

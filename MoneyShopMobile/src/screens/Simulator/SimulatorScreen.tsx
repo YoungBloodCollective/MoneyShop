@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, StyleSheet, ScrollView, TouchableOpacity, Text} from 'react-native';
+import {View, StyleSheet, ScrollView, TouchableOpacity, Text, Image} from 'react-native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useAuthStore} from '../../store/authStore';
 import {useQuery} from '@tanstack/react-query';
@@ -65,19 +65,19 @@ const SimulatorScreen: React.FC<Props> = ({navigation}) => {
           <Icon name="arrow-right" size={22} color="#FFFFFF" />
         </TouchableOpacity>
 
-        {/* Features */}
-        <View style={styles.featuresGrid}>
+        {/* How it works - with AI icons */}
+        <Text style={styles.sectionTitle}>Cum functioneaza?</Text>
+        <View style={styles.stepsGrid}>
           {[
-            { icon: 'clock-fast', label: 'Sub 2 minute', color: colors.success[500], bg: colors.success[50] },
-            { icon: 'shield-check', label: 'Date sigure', color: colors.brand.primary, bg: colors.info[50] },
-            { icon: 'cash-multiple', label: '0 comision', color: colors.gold[600], bg: colors.gold[50] },
-            { icon: 'bank', label: '10+ banci', color: colors.brand.purple, bg: 'rgba(110,76,229,0.08)' },
-          ].map((f, i) => (
-            <View key={i} style={styles.featureItem}>
-              <View style={[styles.featureIcon, {backgroundColor: f.bg}]}>
-                <Icon name={f.icon} size={22} color={f.color} />
-              </View>
-              <Text style={styles.featureText}>{f.label}</Text>
+            { img: require('../../../assets/images/icons/calculator.png'), label: 'Calculeaza', desc: 'Introdu datele tale' },
+            { img: require('../../../assets/images/icons/verify.png'), label: 'Verificare', desc: 'ANAF + Birou Credit' },
+            { img: require('../../../assets/images/icons/compare.png'), label: 'Compara', desc: 'Oferte de la 10+ banci' },
+            { img: require('../../../assets/images/icons/apply.png'), label: 'Aplica', desc: 'Rapid si 100% online' },
+          ].map((step, i) => (
+            <View key={i} style={styles.stepItem}>
+              <Image source={step.img} style={styles.stepImage} resizeMode="contain" />
+              <Text style={styles.stepLabel}>{step.label}</Text>
+              <Text style={styles.stepDesc}>{step.desc}</Text>
             </View>
           ))}
         </View>
@@ -196,34 +196,41 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: 'rgba(255,255,255,0.7)',
   },
-  featuresGrid: {
+  sectionTitle: {
+    ...typography.labelUppercase,
+    color: colors.light[60],
+    marginBottom: spacing.sm,
+  },
+  stepsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
     marginBottom: spacing.lg,
   },
-  featureItem: {
+  stepItem: {
     width: '48%',
-    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.dark[700],
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.dark[400],
-    gap: spacing.sm,
   },
-  featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
+  stepImage: {
+    width: 64,
+    height: 64,
+    marginBottom: spacing.sm,
   },
-  featureText: {
-    ...typography.labelSmall,
-    color: colors.light[80],
-    flex: 1,
+  stepLabel: {
+    ...typography.labelMedium,
+    color: colors.light[100],
+    textAlign: 'center',
+  },
+  stepDesc: {
+    ...typography.caption,
+    color: colors.light[60],
+    textAlign: 'center',
+    marginTop: 2,
   },
   infoCard: {
     flexDirection: 'row',
