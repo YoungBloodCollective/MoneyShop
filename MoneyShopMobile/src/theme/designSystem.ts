@@ -34,9 +34,9 @@ export const colors = {
   },
   dark: {
     900: '#FFFFFF',
-    800: '#F8F9FB',
+    800: '#F5F6F8',
     700: '#FFFFFF',
-    600: '#F3F4F6',
+    600: '#F0F1F3',
     500: '#E5E7EB',
     400: '#D1D5DB',
     300: '#9CA3AF',
@@ -250,6 +250,11 @@ export const componentStyles = {
     padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.dark[400],
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   cardHighlighted: {
     backgroundColor: colors.dark[700],
