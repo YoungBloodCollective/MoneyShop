@@ -3,7 +3,7 @@ import {View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text} from 'react
 import {useAuthStore} from '../../store/authStore';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {DSMenuItem} from '../../components/ui';
+import {DSMenuItem, AnimatedCard} from '../../components/ui';
 import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<any, 'Profile'>;
@@ -112,6 +112,7 @@ const ProfileScreen = ({navigation}: Props) => {
       </View>
 
       {/* Main Menu - Account */}
+      <AnimatedCard delay={100}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>CONTUL TAU</Text>
         <DSMenuItem
@@ -139,8 +140,10 @@ const ProfileScreen = ({navigation}: Props) => {
           iconBgColor={colors.warning[50]}
         />
       </View>
+      </AnimatedCard>
 
       {/* Verification Section */}
+      <AnimatedCard delay={200}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>VERIFICARI</Text>
         {user?.role !== 'Administrator' && (
@@ -202,7 +205,10 @@ const ProfileScreen = ({navigation}: Props) => {
         </View>
       )}
 
+      </AnimatedCard>
+
       {/* Resources Section */}
+      <AnimatedCard delay={300}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>RESURSE</Text>
         <DSMenuItem
@@ -222,8 +228,10 @@ const ProfileScreen = ({navigation}: Props) => {
           iconBgColor={colors.info[50]}
         />
       </View>
+      </AnimatedCard>
 
       {/* Settings Section */}
+      <AnimatedCard delay={400}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>APLICATIE</Text>
         <DSMenuItem
@@ -252,6 +260,7 @@ const ProfileScreen = ({navigation}: Props) => {
           rightElement={null}
         />
       </View>
+      </AnimatedCard>
 
       {/* Logout Button */}
       <View style={styles.logoutSection}>
@@ -289,11 +298,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.xxl,
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.dark[700],
-    borderBottomLeftRadius: borderRadius.xxl,
-    borderBottomRightRadius: borderRadius.xxl,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark[400],
+    backgroundColor: '#FFFFFF',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   avatarContainer: {
     position: 'relative',

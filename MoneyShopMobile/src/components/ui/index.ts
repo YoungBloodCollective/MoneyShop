@@ -7,4 +7,5 @@ export { default as DSTextInput } from './DSTextInput';
 export { default as DSCard } from './DSCard';
 export { default as DSMenuItem } from './DSMenuItem';
 export { default as FicoGauge } from './FicoGauge';
+export { default as AnimatedCard } from './AnimatedCard';
 

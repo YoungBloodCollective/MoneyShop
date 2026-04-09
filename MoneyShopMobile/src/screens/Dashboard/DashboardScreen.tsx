@@ -7,7 +7,7 @@ import {kycApi} from '../../services/api/kycApi';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useAuthStore} from '../../store/authStore';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {FicoGauge} from '../../components/ui';
+import {FicoGauge, AnimatedCard} from '../../components/ui';
 import {colors, spacing, borderRadius, typography, shadows} from '../../theme/designSystem';
 
 type DashboardScreenNavigationProp = NativeStackNavigationProp<any, 'DashboardHome'>;
@@ -115,12 +115,15 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.brand.primary} />
         }>
         <View style={styles.content}>
-          <Text style={styles.greeting}>
-            Buna, {user?.name?.split(' ')[0]}! 👋
-          </Text>
-          <Text style={styles.subtitle}>Iata un rezumat al contului tau</Text>
+          <AnimatedCard delay={0} slideFrom="none">
+            <Text style={styles.greeting}>
+              Buna, {user?.name?.split(' ')[0]}! 👋
+            </Text>
+            <Text style={styles.subtitle}>Iata un rezumat al contului tau</Text>
+          </AnimatedCard>
 
           {/* FICO Score Hero */}
+          <AnimatedCard delay={100}>
           {financialData?.ficoScore != null && financialData.ficoScore > 0 ? (
             <TouchableOpacity style={styles.ficoCard} activeOpacity={0.7} onPress={() => navigation.getParent()?.navigate('Profile', { screen: 'FinancialData', initial: false })}>
               <FicoGauge score={financialData.ficoScore} size={160} animated />
@@ -147,6 +150,7 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
               <Icon name="chevron-right" size={24} color={colors.light[50]} />
             </TouchableOpacity>
           )}
+          </AnimatedCard>
 
           {/* Financial Mini Cards */}
           {financialData?.ficoScore != null && financialData.ficoScore > 0 && (
@@ -170,6 +174,7 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
           )}
 
           {/* Primary CTA */}
+          <AnimatedCard delay={300}>
           <TouchableOpacity
             style={styles.ctaButton}
             activeOpacity={0.85}
@@ -183,8 +188,10 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
             </View>
             <Icon name="arrow-right" size={20} color="#FFFFFF" />
           </TouchableOpacity>
+          </AnimatedCard>
 
           {/* Quick Stats */}
+          <AnimatedCard delay={400}>
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Text style={styles.statNumber}>{activeApplications.length}</Text>
@@ -203,8 +210,10 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
               <Text style={styles.statLabel}>Finalizate</Text>
             </View>
           </View>
+          </AnimatedCard>
 
           {/* Quick Actions */}
+          <AnimatedCard delay={500}>
           <Text style={styles.sectionTitle}>Actiuni rapide</Text>
           <View style={styles.actionsRow}>
             <TouchableOpacity style={styles.actionCard} activeOpacity={0.7} onPress={() => navigation.getParent()?.navigate('Simulator')}>
@@ -234,6 +243,7 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
               </TouchableOpacity>
             )}
           </View>
+          </AnimatedCard>
 
           {/* Recent Applications */}
           {activeApplications.length > 0 && (
