@@ -57,14 +57,19 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: colors.dark[800],
+    backgroundColor: '#FFFFFF',
     height: Platform.OS === 'ios' ? 96 : 64,
     paddingTop: Platform.OS === 'ios' ? 48 : 16,
     paddingHorizontal: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: colors.dark[400],
+    borderBottomColor: '#ECECEE',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   transparentHeader: {
     backgroundColor: 'transparent',
@@ -80,6 +85,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoText: {
+    fontFamily: 'Inter_700Bold',
     fontSize: 22,
     fontWeight: '700',
     color: colors.light[100],

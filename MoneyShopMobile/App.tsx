@@ -1,7 +1,9 @@
 import React from 'react';
+import {View, ActivityIndicator} from 'react-native';
 import {NavigationContainer, DefaultTheme} from '@react-navigation/native';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {PaperProvider, MD3LightTheme} from 'react-native-paper';
+import {useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold} from '@expo-google-fonts/inter';
 import AppNavigator from './src/navigation/AppNavigator';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import {colors} from './src/theme/designSystem';
@@ -30,6 +32,24 @@ const navigationTheme = {
 
 const paperTheme = {
   ...MD3LightTheme,
+  fonts: {
+    ...MD3LightTheme.fonts,
+    bodyLarge: { ...MD3LightTheme.fonts.bodyLarge, fontFamily: 'Inter_400Regular' },
+    bodyMedium: { ...MD3LightTheme.fonts.bodyMedium, fontFamily: 'Inter_400Regular' },
+    bodySmall: { ...MD3LightTheme.fonts.bodySmall, fontFamily: 'Inter_400Regular' },
+    labelLarge: { ...MD3LightTheme.fonts.labelLarge, fontFamily: 'Inter_600SemiBold' },
+    labelMedium: { ...MD3LightTheme.fonts.labelMedium, fontFamily: 'Inter_500Medium' },
+    labelSmall: { ...MD3LightTheme.fonts.labelSmall, fontFamily: 'Inter_500Medium' },
+    titleLarge: { ...MD3LightTheme.fonts.titleLarge, fontFamily: 'Inter_700Bold' },
+    titleMedium: { ...MD3LightTheme.fonts.titleMedium, fontFamily: 'Inter_600SemiBold' },
+    titleSmall: { ...MD3LightTheme.fonts.titleSmall, fontFamily: 'Inter_600SemiBold' },
+    headlineLarge: { ...MD3LightTheme.fonts.headlineLarge, fontFamily: 'Inter_700Bold' },
+    headlineMedium: { ...MD3LightTheme.fonts.headlineMedium, fontFamily: 'Inter_700Bold' },
+    headlineSmall: { ...MD3LightTheme.fonts.headlineSmall, fontFamily: 'Inter_600SemiBold' },
+    displayLarge: { ...MD3LightTheme.fonts.displayLarge, fontFamily: 'Inter_800ExtraBold' },
+    displayMedium: { ...MD3LightTheme.fonts.displayMedium, fontFamily: 'Inter_700Bold' },
+    displaySmall: { ...MD3LightTheme.fonts.displaySmall, fontFamily: 'Inter_600SemiBold' },
+  },
   colors: {
     ...MD3LightTheme.colors,
     primary: colors.brand.primary,
@@ -57,6 +77,22 @@ const paperTheme = {
 };
 
 const App = () => {
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.dark[800]}}>
+        <ActivityIndicator size="large" color={colors.brand.primary} />
+      </View>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>

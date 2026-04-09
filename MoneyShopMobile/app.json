@@ -50,13 +50,18 @@
       "bundler": "metro",
       "build": {
         "babel": {
-          "include": ["@tanstack/react-query"]
+          "include": [
+            "@tanstack/react-query"
+          ]
         }
       }
     },
     "extra": {
       "privacyPolicyUrl": "https://moneyshop.ro/legal",
       "termsOfServiceUrl": "https://moneyshop.ro/legal"
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

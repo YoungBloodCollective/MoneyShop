@@ -194,23 +194,17 @@ const MainNavigator = () => {
           }
 
           return (
-            <View style={{alignItems: 'center'}}>
-              {focused && (
-                <View style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: colors.brand.primary,
-                  marginBottom: 4,
-                }} />
-              )}
+            <View style={{alignItems: 'center', justifyContent: 'center'}}>
               <View style={focused ? {
-                backgroundColor: 'rgba(45, 45, 240, 0.12)',
-                borderRadius: 12,
-                paddingHorizontal: 12,
-                paddingVertical: 4,
-              } : undefined}>
-                <Icon name={iconName} size={size} color={color} />
+                backgroundColor: 'rgba(45, 45, 240, 0.10)',
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 6,
+              } : {
+                paddingHorizontal: 16,
+                paddingVertical: 6,
+              }}>
+                <Icon name={iconName} size={24} color={color} />
               </View>
             </View>
           );
@@ -220,22 +214,23 @@ const MainNavigator = () => {
         headerShown: false,
         tabBarStyle: {
           display: 'flex',
-          backgroundColor: colors.dark[800],
+          backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
-          borderTopColor: colors.dark[400],
-          elevation: 0,
+          borderTopColor: '#ECECEE',
+          elevation: 8,
           shadowColor: '#000000',
-          shadowOffset: {width: 0, height: -2},
-          shadowOpacity: 0.06,
+          shadowOffset: {width: 0, height: -3},
+          shadowOpacity: 0.08,
           shadowRadius: 12,
-          height: 80,
-          paddingBottom: 14,
+          height: 85,
+          paddingBottom: 16,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
+          fontFamily: 'Inter_500Medium',
           fontSize: 11,
-          fontWeight: '600',
-          letterSpacing: 0.3,
+          fontWeight: '500',
+          letterSpacing: 0.2,
           marginTop: 2,
         },
       })}>

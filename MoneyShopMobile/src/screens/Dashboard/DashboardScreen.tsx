@@ -284,6 +284,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dark[800],
   },
   greeting: {
+    fontFamily: 'Inter_700Bold',
     fontSize: 28,
     fontWeight: '700',
     color: colors.light[100],

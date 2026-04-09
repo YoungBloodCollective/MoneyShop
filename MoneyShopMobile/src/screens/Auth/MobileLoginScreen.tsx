@@ -193,6 +193,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   heroTitle: {
+    fontFamily: 'Inter_700Bold',
     fontSize: 24,
     fontWeight: '700',
     color: colors.light[100],
