@@ -781,12 +781,18 @@ export default function LandingPage() {
                 </div>
               </a>
             </div>
-            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
-              <p className="text-[11px] text-gray-600">&copy; {new Date().getFullYear()} MoneyShop. Toate drepturile rezervate.</p>
-              <div className="flex items-center gap-4 text-[11px] text-gray-600">
-                <a href="/legal" className="hover:text-gray-400 transition-colors">Legal</a>
-                <a href="/despre" className="hover:text-gray-400 transition-colors">Despre</a>
-                <a href="/legal" className="hover:text-gray-400 transition-colors">GDPR</a>
+            <div className="w-full text-center sm:text-left space-y-2 mt-4 pt-4 border-t border-gray-200">
+              <p className="text-[11px] text-gray-600 font-medium">MONEYSHOP FINTECH SRL</p>
+              <p className="text-[10px] text-gray-500">CUI: 53986951 &bull; ONRC: J2026010941009 &bull; EUID: ROONRC.J2026010941009</p>
+              <p className="text-[10px] text-gray-500">Adresa: Str. Constantin Brancusi, nr.8, Rm. Valcea, Jud. Valcea</p>
+              <p className="text-[10px] text-gray-500">E-mail: <a href="mailto:office@moneyshop.ro" className="text-blue-600 hover:underline">office@moneyshop.ro</a></p>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-2">
+                <p className="text-[10px] text-gray-400">&copy; {new Date().getFullYear()} MoneyShop. Toate drepturile rezervate.</p>
+                <div className="flex items-center gap-4 text-[10px] text-gray-500">
+                  <a href="/legal" className="hover:text-gray-700 transition-colors">Legal</a>
+                  <a href="/despre" className="hover:text-gray-700 transition-colors">Despre</a>
+                  <a href="/legal" className="hover:text-gray-700 transition-colors">GDPR</a>
+                </div>
               </div>
             </div>
           </div>

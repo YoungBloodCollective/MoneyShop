@@ -139,12 +139,17 @@ export function PublicLayout() {
               {' | '}
               <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-400 transition-colors">SOL</a>
             </p>
-            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
-              <p className="text-[11px] text-gray-600">&copy; {new Date().getFullYear()} MoneyShop. Toate drepturile rezervate.</p>
-              <div className="flex items-center gap-4 text-[11px] text-gray-600">
-                <button onClick={() => navigate('/legal')} className="hover:text-gray-400 transition-colors">Legal</button>
-                <button onClick={() => navigate('/despre')} className="hover:text-gray-400 transition-colors">Despre</button>
-                <button onClick={() => navigate('/')} className="hover:text-gray-400 transition-colors">Acasa</button>
+            <div className="w-full text-center sm:text-left space-y-1 mt-3 pt-3 border-t border-gray-200">
+              <p className="text-[11px] text-gray-600 font-medium">MONEYSHOP FINTECH SRL</p>
+              <p className="text-[10px] text-gray-500">CUI: 53986951 &bull; ONRC: J2026010941009 &bull; EUID: ROONRC.J2026010941009</p>
+              <p className="text-[10px] text-gray-500">Adresa: Str. Constantin Brancusi, nr.8, Rm. Valcea, Jud. Valcea &bull; E-mail: office@moneyshop.ro</p>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-1">
+                <p className="text-[10px] text-gray-400">&copy; {new Date().getFullYear()} MoneyShop. Toate drepturile rezervate.</p>
+                <div className="flex items-center gap-4 text-[10px] text-gray-500">
+                  <button onClick={() => navigate('/legal')} className="hover:text-gray-700 transition-colors">Legal</button>
+                  <button onClick={() => navigate('/despre')} className="hover:text-gray-700 transition-colors">Despre</button>
+                  <button onClick={() => navigate('/')} className="hover:text-gray-700 transition-colors">Acasa</button>
+                </div>
               </div>
             </div>
           </div>
