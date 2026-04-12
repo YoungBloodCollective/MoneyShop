@@ -46,6 +46,7 @@ const InvoicingPage = lazy(() => import('@/pages/invoicing/InvoicingPage'));
 // Public pages (no auth required)
 const AboutPage = lazy(() => import('@/pages/about/AboutPage'));
 const LegalAllPage = lazy(() => import('@/pages/legal/LegalAllPage'));
+const ThankYouPage = lazy(() => import('@/pages/public/ThankYouPage'));
 const LegalMenuPage = lazy(() => import('@/pages/legal/LegalMenuPage'));
 const PublicBrokerSearchPage = lazy(() => import('@/pages/broker/PublicBrokerSearchPage'));
 
@@ -75,6 +76,9 @@ export function AppRouter() {
         <Route path="/kyc/scan/:token" element={<KycScanPage />} />
         <Route path="/kyc/verify" element={<FullKycPage />} />
         <Route path="/kyc/verify/:sessionId" element={<FullKycPage />} />
+
+        {/* Thank you page for Google Ads conversion tracking */}
+        <Route path="/multumim" element={<ThankYouPage />} />
 
         {/* Public pages (accessible to everyone, with PublicLayout) */}
         <Route element={<PublicLayout />}>

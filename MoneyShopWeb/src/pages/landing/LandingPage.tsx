@@ -122,9 +122,9 @@ export default function LandingPage() {
         telefon: progForm.telefon,
         email: progForm.email,
       });
-      toast.success('Cererea ta a fost inregistrata! Te vom contacta in curand.');
       setShowProgrameaza(false);
       setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
+      navigate('/multumim');
     } catch {
       toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
     } finally {
