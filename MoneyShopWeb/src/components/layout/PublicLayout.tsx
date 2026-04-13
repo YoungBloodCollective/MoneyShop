@@ -93,7 +93,7 @@ export function PublicLayout() {
                 <img src="/images/logo/logo-trimmed.png" alt="MoneyShop" className="h-8 brightness-0 invert object-contain" />
               </div>
               <p className="text-[11px] text-gray-500 leading-relaxed">
-                Broker de credite autorizat BNR. Comparam ofertele tuturor bancilor pentru tine, complet gratuit.
+                Broker de credite autorizat ANPC. Comparam ofertele tuturor bancilor pentru tine, complet gratuit.
               </p>
             </div>
             <div>
@@ -101,6 +101,8 @@ export function PublicLayout() {
               <div className="space-y-1.5 text-[11px] text-gray-400">
                 <p className="hover:text-white cursor-pointer transition-colors">Nevoi Personale</p>
                 <p className="hover:text-white cursor-pointer transition-colors">Credit Ipotecar</p>
+                <p className="hover:text-white cursor-pointer transition-colors">Credit Auto</p>
+                <p className="hover:text-white cursor-pointer transition-colors">Credit Business</p>
                 <p className="hover:text-white cursor-pointer transition-colors">Refinantare</p>
               </div>
             </div>
@@ -108,9 +110,9 @@ export function PublicLayout() {
               <p className="text-xs font-semibold text-white mb-3">Companie</p>
               <div className="space-y-1.5 text-[11px] text-gray-400">
                 <p className="hover:text-white cursor-pointer transition-colors" onClick={() => navigate('/despre')}>Despre MoneyShop</p>
-                <p className="hover:text-white cursor-pointer transition-colors" onClick={() => navigate('/verifica-broker')}>Verifica un broker</p>
                 <p className="hover:text-white cursor-pointer transition-colors" onClick={() => navigate('/legal')}>Termeni si conditii</p>
                 <p className="hover:text-white cursor-pointer transition-colors" onClick={() => navigate('/legal')}>Politica de confidentialitate</p>
+                <p className="hover:text-white cursor-pointer transition-colors">Blog</p>
               </div>
             </div>
             <div>
@@ -118,12 +120,17 @@ export function PublicLayout() {
               <div className="space-y-1.5 text-[11px] text-gray-400">
                 <p className="flex items-center gap-1.5"><Phone size={11} /> 0770 548 447</p>
                 <p className="flex items-center gap-1.5"><Phone size={11} /> 031 434 0940</p>
-                <p>contact@moneyshop.ro</p>
-                <p>Bucuresti, Romania</p>
+                <p><a href="mailto:alex.moore@moneyshop.ro" className="hover:text-white transition-colors">alex.moore@moneyshop.ro</a></p>
                 <p>L-V: 09:00 - 18:00</p>
               </div>
+              <div className="mt-4 space-y-1 text-[10px] text-gray-500">
+                <p className="text-[11px] text-gray-400 font-medium">MONEYSHOP FINTECH SRL</p>
+                <p>CUI: 53986951 &bull; ONRC: J2026010941009</p>
+                <p>EUID: ROONRC.J2026010941009</p>
+                <p>Str. Constantin Brancusi, nr.8, Rm. Valcea, Jud. Valcea</p>
+              </div>
               <div className="mt-3">
-                <p className="text-[10px] text-gray-500 mb-1.5">Inregistrat ASF &bull; Autorizat BNR</p>
+                <p className="text-[10px] text-gray-500 mb-1.5">Autorizat ANPC</p>
                 <div className="flex gap-2">
                   <FileCheck size={14} className="text-gray-600" />
                   <Shield size={14} className="text-gray-600" />
@@ -132,24 +139,32 @@ export function PublicLayout() {
               </div>
             </div>
           </div>
-          <div className="border-t border-gray-800 pt-5 flex flex-col items-center gap-3">
-            <p className="text-[10px] text-gray-600 text-center">
-              ANPC — Autoritatea Nationala pentru Protectia Consumatorilor:{' '}
-              <a href="https://anpc.ro/ce-este-sal/" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-400 transition-colors">SAL</a>
-              {' | '}
-              <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-400 transition-colors">SOL</a>
-            </p>
-            <div className="w-full text-center sm:text-left space-y-1 mt-3 pt-3 border-t border-gray-200">
-              <p className="text-[11px] text-gray-600 font-medium">MONEYSHOP FINTECH SRL</p>
-              <p className="text-[10px] text-gray-500">CUI: 53986951 &bull; ONRC: J2026010941009 &bull; EUID: ROONRC.J2026010941009</p>
-              <p className="text-[10px] text-gray-500">Adresa: Str. Constantin Brancusi, nr.8, Rm. Valcea, Jud. Valcea &bull; E-mail: office@moneyshop.ro</p>
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-1">
-                <p className="text-[10px] text-gray-400">&copy; {new Date().getFullYear()} MoneyShop. Toate drepturile rezervate.</p>
-                <div className="flex items-center gap-4 text-[10px] text-gray-500">
-                  <button onClick={() => navigate('/legal')} className="hover:text-gray-700 transition-colors">Legal</button>
-                  <button onClick={() => navigate('/despre')} className="hover:text-gray-700 transition-colors">Despre</button>
-                  <button onClick={() => navigate('/')} className="hover:text-gray-700 transition-colors">Acasa</button>
+          <div className="border-t border-gray-800 pt-6 flex flex-col items-center gap-5">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <a href="https://anpc.ro/ce-este-sal/" target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-3 border-2 border-[#1a1a6b] rounded-full px-5 py-2.5 bg-white hover:bg-gray-50 transition-colors">
+                <img src="/images/anpc-logo.png" alt="ANPC" className="h-8 object-contain" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <div className="text-left">
+                  <p className="text-[10px] font-bold text-[#1a1a6b] leading-tight uppercase">Solutionarea Alternativa</p>
+                  <p className="text-[10px] font-bold text-[#1a1a6b] leading-tight uppercase">a Litigiilor</p>
+                  <span className="inline-block mt-0.5 bg-[#1a1a6b] text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase">Detalii</span>
                 </div>
+              </a>
+              <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-3 border-2 border-[#1a1a6b] rounded-full px-5 py-2.5 bg-white hover:bg-gray-50 transition-colors">
+                <div className="text-center">
+                  <p className="text-[10px] font-bold text-[#1a1a6b] leading-tight uppercase">Solutionarea Online</p>
+                  <p className="text-[10px] font-bold text-[#1a1a6b] leading-tight uppercase">a Litigiilor</p>
+                  <span className="inline-block mt-0.5 bg-[#1a1a6b] text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase">Detalii</span>
+                </div>
+              </a>
+            </div>
+            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-2 mt-4 pt-4 border-t border-gray-800">
+              <p className="text-[10px] text-gray-400">&copy; {new Date().getFullYear()} MoneyShop. Toate drepturile rezervate.</p>
+              <div className="flex items-center gap-4 text-[10px] text-gray-500">
+                <a href="/legal" className="hover:text-gray-700 transition-colors">Legal</a>
+                <a href="/despre" className="hover:text-gray-700 transition-colors">Despre</a>
+                <a href="/legal" className="hover:text-gray-700 transition-colors">GDPR</a>
               </div>
             </div>
           </div>

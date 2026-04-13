@@ -747,9 +747,14 @@ export default function LandingPage() {
               <div className="space-y-1.5 text-[11px] text-gray-400">
                 <p className="flex items-center gap-1.5"><Phone size={11} /> 0770 548 447</p>
                 <p className="flex items-center gap-1.5"><Phone size={11} /> 031 434 0940</p>
-                <p>contact@moneyshop.ro</p>
-                <p>Bucuresti, Romania</p>
+                <p><a href="mailto:alex.moore@moneyshop.ro" className="hover:text-white transition-colors">alex.moore@moneyshop.ro</a></p>
                 <p>L-V: 09:00 - 18:00</p>
+              </div>
+              <div className="mt-4 space-y-1 text-[10px] text-gray-500">
+                <p className="text-[11px] text-gray-400 font-medium">MONEYSHOP FINTECH SRL</p>
+                <p>CUI: 53986951 &bull; ONRC: J2026010941009</p>
+                <p>EUID: ROONRC.J2026010941009</p>
+                <p>Str. Constantin Brancusi, nr.8, Rm. Valcea, Jud. Valcea</p>
               </div>
               <div className="mt-3">
                 <p className="text-[10px] text-gray-500 mb-1.5">Autorizat ANPC</p>
@@ -781,18 +786,12 @@ export default function LandingPage() {
                 </div>
               </a>
             </div>
-            <div className="w-full text-center sm:text-left space-y-2 mt-4 pt-4 border-t border-gray-200">
-              <p className="text-[11px] text-gray-600 font-medium">MONEYSHOP FINTECH SRL</p>
-              <p className="text-[10px] text-gray-500">CUI: 53986951 &bull; ONRC: J2026010941009 &bull; EUID: ROONRC.J2026010941009</p>
-              <p className="text-[10px] text-gray-500">Adresa: Str. Constantin Brancusi, nr.8, Rm. Valcea, Jud. Valcea</p>
-              <p className="text-[10px] text-gray-500">E-mail: <a href="mailto:office@moneyshop.ro" className="text-blue-600 hover:underline">office@moneyshop.ro</a></p>
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-2">
-                <p className="text-[10px] text-gray-400">&copy; {new Date().getFullYear()} MoneyShop. Toate drepturile rezervate.</p>
-                <div className="flex items-center gap-4 text-[10px] text-gray-500">
-                  <a href="/legal" className="hover:text-gray-700 transition-colors">Legal</a>
-                  <a href="/despre" className="hover:text-gray-700 transition-colors">Despre</a>
-                  <a href="/legal" className="hover:text-gray-700 transition-colors">GDPR</a>
-                </div>
+            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-2 mt-4 pt-4 border-t border-gray-800">
+              <p className="text-[10px] text-gray-400">&copy; {new Date().getFullYear()} MoneyShop. Toate drepturile rezervate.</p>
+              <div className="flex items-center gap-4 text-[10px] text-gray-500">
+                <a href="/legal" className="hover:text-gray-700 transition-colors">Legal</a>
+                <a href="/despre" className="hover:text-gray-700 transition-colors">Despre</a>
+                <a href="/legal" className="hover:text-gray-700 transition-colors">GDPR</a>
               </div>
             </div>
           </div>
