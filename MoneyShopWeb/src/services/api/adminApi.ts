@@ -126,6 +126,11 @@ export const adminApi = {
     await apiClient.put(`/admin/leads/${id}/notes`, { notes });
   },
 
+  async convertAppointmentToLead(appointmentId: number): Promise<{ leadId: number }> {
+    const response = await apiClient.post<{ leadId: number; message: string }>(`/admin/leads/from-appointment/${appointmentId}`);
+    return response.data;
+  },
+
   async exportReport(request: ExportReportRequest): Promise<MonthlyReportItem[]> {
     try {
       const response = await apiClient.post<MonthlyReportItem[]>('/admin/reports/export', request);

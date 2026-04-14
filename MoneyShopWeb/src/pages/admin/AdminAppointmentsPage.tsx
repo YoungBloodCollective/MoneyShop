@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Phone, Mail, MapPin, CreditCard, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Phone, Mail, MapPin, CreditCard, Clock, CheckCircle, XCircle, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api/apiClient';
+import { adminApi } from '@/services/api/adminApi';
 import toast from 'react-hot-toast';
 
 interface Appointment {
@@ -27,9 +29,11 @@ const statusColors: Record<string, string> = {
 };
 
 export default function AdminAppointmentsPage() {
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
+  const [converting, setConverting] = useState<number | null>(null);
 
   useEffect(() => {
     apiClient.get('/appointments').then(r => setAppointments(r.data)).finally(() => setLoading(false));
@@ -42,6 +46,23 @@ export default function AdminAppointmentsPage() {
       toast.success(`Status actualizat: ${status}`);
     } catch {
       toast.error('Eroare la actualizare');
+    }
+  };
+
+  const convertToLead = async (id: number) => {
+    setConverting(id);
+    try {
+      const result = await adminApi.convertAppointmentToLead(id);
+      toast.success('Lead creat! Redirectionare...');
+      navigate('/admin/leads');
+    } catch (err: any) {
+      if (err?.response?.status === 409) {
+        toast.error('Lead-ul exista deja');
+      } else {
+        toast.error('Eroare la conversie');
+      }
+    } finally {
+      setConverting(null);
     }
   };
 
@@ -92,13 +113,23 @@ export default function AdminAppointmentsPage() {
                   </div>
                   <p className="text-[10px] text-light-40 mt-1">{new Date(a.createdAt).toLocaleString('ro-RO')}</p>
                 </div>
-                <select
-                  value={a.status}
-                  onChange={e => updateStatus(a.id, e.target.value)}
-                  className="text-xs bg-dark-600 border border-dark-500 text-light-80 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-primary"
-                >
-                  {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => convertToLead(a.id)}
+                    disabled={converting === a.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-success-500/15 text-success-400 border border-success-500/30 hover:bg-success-500/25 transition-colors disabled:opacity-50"
+                    title="Converteste in lead"
+                  >
+                    <UserPlus size={13} /> {converting === a.id ? '...' : 'Lead'}
+                  </button>
+                  <select
+                    value={a.status}
+                    onChange={e => updateStatus(a.id, e.target.value)}
+                    className="text-xs bg-dark-600 border border-dark-500 text-light-80 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                  >
+                    {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
           ))}

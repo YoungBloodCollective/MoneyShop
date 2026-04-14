@@ -4,6 +4,8 @@ using MoneyShop.ServiceInterface.Interfaces.Application;
 using MoneyShop.DomainServices.RepositoryInterfaces.Application;
 using MoneyShop.DomainServices.RepositoryInterfaces.Lead;
 using MoneyShop.DomainModel.Entities;
+using MoneyShop.Infrastructure.EntityFramework.DBContext;
+using Microsoft.EntityFrameworkCore;
 using System.Linq;
 
 namespace MoneyShop.Api.Controllers
@@ -16,15 +18,18 @@ namespace MoneyShop.Api.Controllers
         private readonly IApplicationService _applicationService;
         private readonly IApplicationRepository _applicationRepository;
         private readonly ILeadCaptureRepository _leadCaptureRepository;
+        private readonly MoneyShopDbContext _context;
 
         public AdminController(
             IApplicationService applicationService,
             IApplicationRepository applicationRepository,
-            ILeadCaptureRepository leadCaptureRepository)
+            ILeadCaptureRepository leadCaptureRepository,
+            MoneyShopDbContext context)
         {
             _applicationService = applicationService;
             _applicationRepository = applicationRepository;
             _leadCaptureRepository = leadCaptureRepository;
+            _context = context;
         }
 
         /// <summary>
@@ -172,6 +177,34 @@ namespace MoneyShop.Api.Controllers
                 })
                 .ToList();
             return Ok(leads);
+        }
+
+        [HttpPost("leads/from-appointment/{appointmentId}")]
+        public async Task<IActionResult> ConvertAppointmentToLead(int appointmentId)
+        {
+            var appointment = await _context.Appointments.FindAsync(appointmentId);
+            if (appointment == null)
+                return NotFound(new { message = "Appointment not found" });
+            var existing = _leadCaptureRepository.Get().FirstOrDefault(l => l.Telefon == appointment.Telefon && l.Email == appointment.Email);
+            if (existing != null)
+                return Conflict(new { message = "Lead-ul exista deja", leadId = existing.Id });
+            var lead = new LeadCapture
+            {
+                NumePrenume = $"{appointment.Nume} {appointment.Prenume}".Trim(),
+                Telefon = appointment.Telefon,
+                Email = appointment.Email,
+                Oras = appointment.Judet,
+                VenitNetLunar = appointment.SalariuNet,
+                CrediteActive = false,
+                Intarzieri = false,
+                PoprireSauExecutorUltimii5Ani = false,
+                Source = "appointment",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+            _leadCaptureRepository.Insert(lead);
+            await _leadCaptureRepository.SaveChangesAsync();
+            return Ok(new { message = "Lead creat cu succes", leadId = lead.Id });
         }
 
         [HttpPut("leads/{id}/notes")]
