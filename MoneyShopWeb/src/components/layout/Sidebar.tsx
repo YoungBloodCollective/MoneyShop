@@ -59,6 +59,7 @@ const adminNavItems: NavItem[] = [
       { label: 'Rapoarte', path: '/admin/reports' },
       { label: 'Brokeri', path: '/admin/brokers' },
       { label: 'Programari', path: '/admin/appointments' },
+      { label: 'Lead-uri', path: '/admin/leads' },
     ],
   },
 ];

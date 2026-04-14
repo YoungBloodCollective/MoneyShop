@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Application;
 using MoneyShop.DomainServices.RepositoryInterfaces.Application;
+using MoneyShop.DomainServices.RepositoryInterfaces.Lead;
 using MoneyShop.DomainModel.Entities;
 using System.Linq;
 
@@ -14,11 +15,16 @@ namespace MoneyShop.Api.Controllers
     {
         private readonly IApplicationService _applicationService;
         private readonly IApplicationRepository _applicationRepository;
+        private readonly ILeadCaptureRepository _leadCaptureRepository;
 
-        public AdminController(IApplicationService applicationService, IApplicationRepository applicationRepository)
+        public AdminController(
+            IApplicationService applicationService,
+            IApplicationRepository applicationRepository,
+            ILeadCaptureRepository leadCaptureRepository)
         {
             _applicationService = applicationService;
             _applicationRepository = applicationRepository;
+            _leadCaptureRepository = leadCaptureRepository;
         }
 
         /// <summary>
@@ -138,6 +144,53 @@ namespace MoneyShop.Api.Controllers
 
             return Ok(data);
         }
+
+        [HttpGet("leads")]
+        public IActionResult GetAllLeads()
+        {
+            var leads = _leadCaptureRepository.Get()
+                .OrderByDescending(l => l.CreatedAt)
+                .Select(l => new
+                {
+                    l.Id,
+                    l.NumePrenume,
+                    l.Telefon,
+                    l.Email,
+                    l.Oras,
+                    l.CrediteActive,
+                    l.SoldTotalAprox,
+                    l.TipCreditor,
+                    l.Intarzieri,
+                    l.IntarzieriZileMax,
+                    l.VenitNetLunar,
+                    l.BonuriMasaAprox,
+                    l.PoprireSauExecutorUltimii5Ani,
+                    l.SituatiePoprireInchisa,
+                    l.Source,
+                    l.AdminNotes,
+                    l.CreatedAt
+                })
+                .ToList();
+            return Ok(leads);
+        }
+
+        [HttpPut("leads/{id}/notes")]
+        public async Task<IActionResult> UpdateLeadNotes(int id, [FromBody] UpdateLeadNotesRequest request)
+        {
+            var lead = _leadCaptureRepository.Get().FirstOrDefault(l => l.Id == id);
+            if (lead == null)
+                return NotFound(new { message = "Lead not found" });
+            lead.AdminNotes = request.Notes?.Length > 1000 ? request.Notes[..1000] : request.Notes;
+            lead.UpdatedAt = DateTime.UtcNow;
+            _leadCaptureRepository.Update(lead);
+            await _leadCaptureRepository.SaveChangesAsync();
+            return Ok(new { message = "Notes updated successfully" });
+        }
+    }
+
+    public class UpdateLeadNotesRequest
+    {
+        public string? Notes { get; set; }
     }
 
     public class UpdateStatusRequest

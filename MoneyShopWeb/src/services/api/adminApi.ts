@@ -33,6 +33,26 @@ export interface MonthlyReportParams {
   status?: string;
 }
 
+export interface LeadItem {
+  id: number;
+  numePrenume: string;
+  telefon: string;
+  email: string;
+  oras: string;
+  crediteActive: boolean;
+  soldTotalAprox?: number;
+  tipCreditor?: string;
+  intarzieri: boolean;
+  intarzieriZileMax?: number;
+  venitNetLunar: number;
+  bonuriMasaAprox?: number;
+  poprireSauExecutorUltimii5Ani: boolean;
+  situatiePoprireInchisa?: boolean;
+  source: string;
+  adminNotes?: string;
+  createdAt: string;
+}
+
 export const adminApi = {
   /**
    * Get all applications (admin only)
@@ -92,6 +112,20 @@ export const adminApi = {
    * Export report data (admin only)
    * POST /api/admin/reports/export
    */
+  async getLeads(): Promise<LeadItem[]> {
+    try {
+      const response = await apiClient.get<LeadItem[]>('/admin/leads');
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+      return [];
+    }
+  },
+
+  async updateLeadNotes(id: number, notes: string): Promise<void> {
+    await apiClient.put(`/admin/leads/${id}/notes`, { notes });
+  },
+
   async exportReport(request: ExportReportRequest): Promise<MonthlyReportItem[]> {
     try {
       const response = await apiClient.post<MonthlyReportItem[]>('/admin/reports/export', request);

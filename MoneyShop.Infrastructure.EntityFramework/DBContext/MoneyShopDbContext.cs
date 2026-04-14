@@ -539,6 +539,7 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.VenitNetLunar).HasColumnType("decimal(18,2)").IsRequired();
             entity.Property(e => e.BonuriMasaAprox).HasColumnType("decimal(18,2)");
             entity.Property(e => e.Source).HasMaxLength(50).HasDefaultValue("api");
+            entity.Property(e => e.AdminNotes).HasMaxLength(1000);
             entity.Property(e => e.CreatedAt).HasColumnType("datetime2").HasDefaultValueSql("GETUTCDATE()");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime2").HasDefaultValueSql("GETUTCDATE()");
             entity.HasIndex(e => e.UserId);

@@ -26,6 +26,7 @@ namespace MoneyShop.DomainModel.Entities
         public bool? SituatiePoprireInchisa { get; set; }
 
         public string Source { get; set; } = "api"; // api, chat_state_machine
+        public string? AdminNotes { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
