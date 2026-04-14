@@ -12,7 +12,7 @@ namespace MoneyShop.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrator")]
     public class AdminController : BaseController
     {
         private readonly IApplicationService _applicationService;
