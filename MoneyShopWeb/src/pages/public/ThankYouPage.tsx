@@ -12,7 +12,7 @@ export default function ThankYouPage() {
   useEffect(() => {
     if (window.gtag) {
       window.gtag('event', 'conversion', {
-        send_to: 'AW-18083608146/lead_form_submit',
+        send_to: 'AW-18083608146/HriFCOibyZocENLs965D',
         value: 1.0,
         currency: 'RON',
       });

@@ -124,7 +124,7 @@ export default function LandingPage() {
       });
       if ((window as any).gtag) {
         (window as any).gtag('event', 'conversion', {
-          send_to: 'AW-18083608146/lead_form_submit',
+          send_to: 'AW-18083608146/HriFCOibyZocENLs965D',
           value: 1.0,
           currency: 'RON',
         });
@@ -154,7 +154,7 @@ export default function LandingPage() {
       });
       if ((window as any).gtag) {
         (window as any).gtag('event', 'conversion', {
-          send_to: 'AW-18083608146/lead_form_submit',
+          send_to: 'AW-18083608146/HriFCOibyZocENLs965D',
           value: 1.0,
           currency: 'RON',
         });
