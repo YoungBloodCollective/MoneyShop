@@ -1,8 +1,23 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 
+declare global {
+  interface Window { gtag?: (...args: unknown[]) => void; }
+}
+
 export default function ThankYouPage() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (window.gtag) {
+      window.gtag('event', 'conversion', {
+        send_to: 'AW-18083608146/lead_form_submit',
+        value: 1.0,
+        currency: 'RON',
+      });
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4">

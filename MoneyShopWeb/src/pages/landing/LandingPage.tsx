@@ -122,6 +122,13 @@ export default function LandingPage() {
         telefon: progForm.telefon,
         email: progForm.email,
       });
+      if ((window as any).gtag) {
+        (window as any).gtag('event', 'conversion', {
+          send_to: 'AW-18083608146/lead_form_submit',
+          value: 1.0,
+          currency: 'RON',
+        });
+      }
       setShowProgrameaza(false);
       setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
       navigate('/multumim');
@@ -145,6 +152,13 @@ export default function LandingPage() {
         telefon: inlineForm.telefon,
         email: inlineForm.email,
       });
+      if ((window as any).gtag) {
+        (window as any).gtag('event', 'conversion', {
+          send_to: 'AW-18083608146/lead_form_submit',
+          value: 1.0,
+          currency: 'RON',
+        });
+      }
       setInlineSuccess(true);
       setInlineForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
       toast.success('Cererea ta a fost inregistrata! Te vom contacta in curand.');
