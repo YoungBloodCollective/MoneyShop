@@ -576,7 +576,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Telefon *</label>
-                    <input type="text" required value={inlineForm.telefon} onChange={e => setInlineForm(f => ({ ...f, telefon: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
+                    <input type="tel" required pattern="[0-9+\s\-]{8,15}" value={inlineForm.telefon} onChange={e => { const v = e.target.value.replace(/[^0-9+\s\-]/g, ''); setInlineForm(f => ({ ...f, telefon: v })); }} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
@@ -882,10 +882,11 @@ export default function LandingPage() {
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Numar de telefon</label>
                 <input
-                  type="text"
+                  type="tel"
                   required
+                  pattern="[0-9+\s\-]{8,15}"
                   value={progForm.telefon}
-                  onChange={e => setProgForm(f => ({ ...f, telefon: e.target.value }))}
+                  onChange={e => { const v = e.target.value.replace(/[^0-9+\s\-]/g, ''); setProgForm(f => ({ ...f, telefon: v })); }}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                 />
               </div>
