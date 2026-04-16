@@ -642,7 +642,7 @@ export default function LandingPage() {
               style={{ transitionDelay: '600ms' }}
             >
               <div className="aspect-[4/3] overflow-hidden bg-gray-100">
-                <img src="/images/landing/alex.jpeg" alt="Broker autorizat" className="w-full h-full object-cover object-top" />
+                <img src="/images/landing/new_broker.png" alt="Broker autorizat" className="w-full h-full object-cover object-top" />
               </div>
               <div className="px-3.5 pb-3.5 pt-2 flex-1 flex flex-col justify-between">
                 <div>
