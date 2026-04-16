@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MoneyShop.DomainModel.Entities;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
+using MoneyShop.ServiceAdapters.Services.Otp;
 
 namespace MoneyShop.Api.Controllers
 {
@@ -12,11 +13,14 @@ namespace MoneyShop.Api.Controllers
     {
         private readonly MoneyShopDbContext _db;
         private readonly ILogger<AppointmentsController> _logger;
+        private readonly EmailService _emailService;
+        private const string NotificationEmail = "alex.moore@moneyshop.ro";
 
-        public AppointmentsController(MoneyShopDbContext db, ILogger<AppointmentsController> logger)
+        public AppointmentsController(MoneyShopDbContext db, ILogger<AppointmentsController> logger, EmailService emailService)
         {
             _db = db;
             _logger = logger;
+            _emailService = emailService;
         }
 
         [HttpPost]
@@ -44,6 +48,18 @@ namespace MoneyShop.Api.Controllers
             await _db.SaveChangesAsync();
 
             _logger.LogInformation("New appointment created: {Id} - {Nume} {Prenume}", appointment.Id, appointment.Nume, appointment.Prenume);
+
+            _ = _emailService.SendAppointmentNotificationAsync(
+                NotificationEmail,
+                appointment.Id,
+                appointment.Nume,
+                appointment.Prenume,
+                appointment.Telefon,
+                appointment.Judet,
+                appointment.TipCredit,
+                appointment.SalariuNet,
+                appointment.Email
+            );
 
             return Ok(new { message = "Programare inregistrata cu succes.", id = appointment.Id });
         }
