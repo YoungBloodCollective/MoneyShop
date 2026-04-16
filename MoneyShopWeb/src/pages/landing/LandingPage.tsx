@@ -641,7 +641,7 @@ export default function LandingPage() {
               className={`col-span-2 lg:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-700 ease-out overflow-hidden flex flex-col h-full ${stepsSection.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
               style={{ transitionDelay: '600ms' }}
             >
-              <div className="aspect-[4/3] overflow-hidden bg-gray-100">
+              <div className="aspect-square overflow-hidden bg-gray-100">
                 <img src="/images/landing/new_broker.png" alt="Broker autorizat" className="w-full h-full object-cover object-top" />
               </div>
               <div className="px-3.5 pb-3.5 pt-2 flex-1 flex flex-col justify-between">
