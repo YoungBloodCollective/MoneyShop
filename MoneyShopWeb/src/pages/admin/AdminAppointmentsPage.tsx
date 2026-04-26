@@ -19,13 +19,14 @@ interface Appointment {
   createdAt: string;
 }
 
-const statusOptions = ['Nou', 'Contactat', 'In lucru', 'Trimis Lead', 'BC Probleme', 'Nu se incadreaza', 'Finalizat', 'Anulat'];
+const statusOptions = ['Nou', 'Contactat', 'In lucru', 'Trimis Lead', 'BC Probleme', 'DTI', 'Nu se incadreaza', 'Finalizat', 'Anulat'];
 const statusColors: Record<string, string> = {
   Nou: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
   Contactat: 'bg-warning-500/15 text-warning-400 border-warning-500/30',
   'In lucru': 'bg-purple-500/15 text-purple-400 border-purple-500/30',
   'Trimis Lead': 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
   'BC Probleme': 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+  DTI: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
   'Nu se incadreaza': 'bg-red-500/15 text-red-400 border-red-500/30',
   Finalizat: 'bg-success-500/15 text-success-400 border-success-500/30',
   Anulat: 'bg-error-500/15 text-error-400 border-error-500/30',
@@ -139,6 +140,14 @@ export default function AdminAppointmentsPage() {
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-orange-500/15 text-orange-400 border border-orange-500/30 hover:bg-orange-500/25 transition-colors"
                     >
                       <XCircle size={13} /> BC Probleme
+                    </button>
+                  )}
+                  {a.status !== 'DTI' && (
+                    <button
+                      onClick={() => updateStatus(a.id, 'DTI')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/25 transition-colors"
+                    >
+                      <XCircle size={13} /> DTI
                     </button>
                   )}
                   {a.status !== 'Nu se incadreaza' && (
