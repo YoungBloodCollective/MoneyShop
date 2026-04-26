@@ -19,11 +19,14 @@ interface Appointment {
   createdAt: string;
 }
 
-const statusOptions = ['Nou', 'Contactat', 'In lucru', 'Finalizat', 'Anulat'];
+const statusOptions = ['Nou', 'Contactat', 'In lucru', 'Trimis Lead', 'BC Probleme', 'Nu se incadreaza', 'Finalizat', 'Anulat'];
 const statusColors: Record<string, string> = {
   Nou: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
   Contactat: 'bg-warning-500/15 text-warning-400 border-warning-500/30',
   'In lucru': 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  'Trimis Lead': 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
+  'BC Probleme': 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+  'Nu se incadreaza': 'bg-red-500/15 text-red-400 border-red-500/30',
   Finalizat: 'bg-success-500/15 text-success-400 border-success-500/30',
   Anulat: 'bg-error-500/15 text-error-400 border-error-500/30',
 };
@@ -113,7 +116,7 @@ export default function AdminAppointmentsPage() {
                   </div>
                   <p className="text-[10px] text-light-40 mt-1">{new Date(a.createdAt).toLocaleString('ro-RO')}</p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <button
                     onClick={() => convertToLead(a.id)}
                     disabled={converting === a.id}
@@ -122,6 +125,30 @@ export default function AdminAppointmentsPage() {
                   >
                     <UserPlus size={13} /> {converting === a.id ? '...' : 'Lead'}
                   </button>
+                  {a.status !== 'Trimis Lead' && (
+                    <button
+                      onClick={() => updateStatus(a.id, 'Trimis Lead')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/25 transition-colors"
+                    >
+                      <CheckCircle size={13} /> Trimis Lead
+                    </button>
+                  )}
+                  {a.status !== 'BC Probleme' && (
+                    <button
+                      onClick={() => updateStatus(a.id, 'BC Probleme')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-orange-500/15 text-orange-400 border border-orange-500/30 hover:bg-orange-500/25 transition-colors"
+                    >
+                      <XCircle size={13} /> BC Probleme
+                    </button>
+                  )}
+                  {a.status !== 'Nu se incadreaza' && (
+                    <button
+                      onClick={() => updateStatus(a.id, 'Nu se incadreaza')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-colors"
+                    >
+                      <XCircle size={13} /> Nu se incadreaza
+                    </button>
+                  )}
                   <select
                     value={a.status}
                     onChange={e => updateStatus(a.id, e.target.value)}
