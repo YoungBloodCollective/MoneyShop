@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Phone, Mail, MapPin, CreditCard, Clock, CheckCircle, XCircle, UserPlus } from 'lucide-react';
+import { Phone, Mail, MapPin, CreditCard, Clock, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api/apiClient';
 import { adminApi } from '@/services/api/adminApi';
@@ -117,7 +117,7 @@ export default function AdminAppointmentsPage() {
                   </div>
                   <p className="text-[10px] text-light-40 mt-1">{new Date(a.createdAt).toLocaleString('ro-RO')}</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => convertToLead(a.id)}
                     disabled={converting === a.id}
@@ -126,38 +126,6 @@ export default function AdminAppointmentsPage() {
                   >
                     <UserPlus size={13} /> {converting === a.id ? '...' : 'Lead'}
                   </button>
-                  {a.status !== 'Trimis Lead' && (
-                    <button
-                      onClick={() => updateStatus(a.id, 'Trimis Lead')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/25 transition-colors"
-                    >
-                      <CheckCircle size={13} /> Trimis Lead
-                    </button>
-                  )}
-                  {a.status !== 'BC Probleme' && (
-                    <button
-                      onClick={() => updateStatus(a.id, 'BC Probleme')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-orange-500/15 text-orange-400 border border-orange-500/30 hover:bg-orange-500/25 transition-colors"
-                    >
-                      <XCircle size={13} /> BC Probleme
-                    </button>
-                  )}
-                  {a.status !== 'DTI' && (
-                    <button
-                      onClick={() => updateStatus(a.id, 'DTI')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/25 transition-colors"
-                    >
-                      <XCircle size={13} /> DTI
-                    </button>
-                  )}
-                  {a.status !== 'Nu se incadreaza' && (
-                    <button
-                      onClick={() => updateStatus(a.id, 'Nu se incadreaza')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-colors"
-                    >
-                      <XCircle size={13} /> Nu se incadreaza
-                    </button>
-                  )}
                   <select
                     value={a.status}
                     onChange={e => updateStatus(a.id, e.target.value)}
