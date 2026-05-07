@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 
 namespace MoneyShop.ServiceAdapters.Services.Otp;
@@ -7,19 +8,20 @@ public class EmailService
 {
     private readonly IConfiguration _configuration;
     private readonly HttpClient _httpClient;
+    private readonly ILogger<EmailService> _logger;
     private readonly string _apiKey;
     private readonly string _fromEmail;
     private readonly string _fromName;
 
-    public EmailService(IConfiguration configuration, HttpClient httpClient)
+    public EmailService(IConfiguration configuration, HttpClient httpClient, ILogger<EmailService> logger)
     {
         _configuration = configuration;
         _httpClient = httpClient;
+        _logger = logger;
         _apiKey = _configuration["Brevo:ApiKey"] ?? "";
         _fromEmail = _configuration["Brevo:FromEmail"] ?? "";
         _fromName = _configuration["Brevo:FromName"] ?? "MoneyShop";
 
-        // Configure HttpClient for Brevo API
         if (!string.IsNullOrEmpty(_apiKey))
         {
             _httpClient.BaseAddress = new Uri("https://api.brevo.com/v3/");
@@ -33,8 +35,8 @@ public class EmailService
         {
             if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_fromEmail))
             {
-                System.Diagnostics.Debug.WriteLine($"[DEV] New appointment notification for {toEmail}: #{appointmentId} - {nume} {prenume}");
-                return true;
+                _logger.LogWarning("[EmailService] Brevo ApiKey or FromEmail not configured — skipping appointment notification #{AppointmentId}", appointmentId);
+                return false;
             }
 
             var subject = $"Programare noua #{appointmentId} - {nume} {prenume}";
@@ -62,11 +64,16 @@ public class EmailService
             };
 
             var response = await _httpClient.PostAsJsonAsync("smtp/email", emailRequest);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("[EmailService] Brevo rejected appointment notification #{AppointmentId}. Status: {Status}, Body: {Error}", appointmentId, response.StatusCode, error);
+            }
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[EmailService] Error sending appointment notification: {ex.Message}");
+            _logger.LogError(ex, "[EmailService] Exception sending appointment notification #{AppointmentId}", appointmentId);
             return false;
         }
     }
@@ -77,9 +84,8 @@ public class EmailService
         {
             if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_fromEmail))
             {
-                // In development, just log the code
-                System.Diagnostics.Debug.WriteLine($"[DEV] Email verification code for {toEmail}: {code}");
-                return true;
+                _logger.LogWarning("[EmailService] Brevo ApiKey or FromEmail not configured — skipping verification code to {Email}", toEmail);
+                return false;
             }
 
             var subject = "Cod de verificare MoneyShop";
@@ -113,21 +119,16 @@ public class EmailService
 
             var response = await _httpClient.PostAsJsonAsync("smtp/email", emailRequest);
 
-            if (response.IsSuccessStatusCode)
-            {
-                System.Diagnostics.Debug.WriteLine($"[EmailService] Email sent successfully to {toEmail}");
-                return true;
-            }
-            else
+            if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                System.Diagnostics.Debug.WriteLine($"[EmailService] Failed to send email to {toEmail}. Status: {response.StatusCode}, Error: {errorContent}");
-                return false;
+                _logger.LogError("[EmailService] Brevo rejected verification code to {Email}. Status: {Status}, Body: {Error}", toEmail, response.StatusCode, errorContent);
             }
+            return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[EmailService] Error sending email: {ex.Message}");
+            _logger.LogError(ex, "[EmailService] Exception sending verification code to {Email}", toEmail);
             return false;
         }
     }
