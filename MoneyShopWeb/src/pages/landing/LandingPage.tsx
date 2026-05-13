@@ -105,9 +105,13 @@ export default function LandingPage() {
   const [showProgrameaza, setShowProgrameaza] = useState(false);
   const [progForm, setProgForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
   const [progLoading, setProgLoading] = useState(false);
+  const [progAgreed, setProgAgreed] = useState(false);
+  const [progMarketing, setProgMarketing] = useState(false);
   const [inlineForm, setInlineForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
   const [inlineLoading, setInlineLoading] = useState(false);
   const [inlineSuccess, setInlineSuccess] = useState(false);
+  const [inlineAgreed, setInlineAgreed] = useState(false);
+  const [inlineMarketing, setInlineMarketing] = useState(false);
 
   const handleProgSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +135,8 @@ export default function LandingPage() {
       }
       setShowProgrameaza(false);
       setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
+      setProgAgreed(false);
+      setProgMarketing(false);
       navigate('/multumim');
     } catch {
       toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
@@ -161,6 +167,8 @@ export default function LandingPage() {
       }
       setInlineSuccess(true);
       setInlineForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
+      setInlineAgreed(false);
+      setInlineMarketing(false);
       toast.success('Cererea ta a fost inregistrata! Te vom contacta in curand.');
     } catch {
       toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
@@ -583,7 +591,17 @@ export default function LandingPage() {
                     <input type="email" required value={inlineForm.email} onChange={e => setInlineForm(f => ({ ...f, email: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
                   </div>
                 </div>
-                <button type="submit" disabled={inlineLoading} className="w-full bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-bold py-3 rounded-xl text-sm transition-colors shadow-md shadow-green-500/20">
+                <div className="space-y-2">
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input type="checkbox" required checked={inlineAgreed} onChange={e => setInlineAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-green-500" />
+                    <span className="text-xs text-gray-600">Sunt de acord cu <a href="/legal" className="text-green-600 hover:underline font-medium" target="_blank" rel="noopener noreferrer">termenii și condițiile de utilizare</a>. Sunt de acord cu politica de prelucrare a datelor. Am peste 18 ani.*</span>
+                  </label>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input type="checkbox" checked={inlineMarketing} onChange={e => setInlineMarketing(e.target.checked)} className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-green-500" />
+                    <span className="text-xs text-gray-600">Vreau să primesc informări prin email referitoare la noutăți despre dobânzi la credite și oferte bancare.</span>
+                  </label>
+                </div>
+                <button type="submit" disabled={inlineLoading || !inlineAgreed} className="w-full bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-bold py-3 rounded-xl text-sm transition-colors shadow-md shadow-green-500/20">
                   {inlineLoading ? 'Se trimite...' : 'Trimite cererea'}
                 </button>
               </form>
@@ -900,9 +918,19 @@ export default function LandingPage() {
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                 />
               </div>
+              <div className="space-y-2">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" required checked={progAgreed} onChange={e => setProgAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-green-500" />
+                  <span className="text-xs text-gray-600">Sunt de acord cu <a href="/legal" className="text-green-600 hover:underline font-medium" target="_blank" rel="noopener noreferrer">termenii și condițiile de utilizare</a>. Sunt de acord cu politica de prelucrare a datelor. Am peste 18 ani.*</span>
+                </label>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" checked={progMarketing} onChange={e => setProgMarketing(e.target.checked)} className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-green-500" />
+                  <span className="text-xs text-gray-600">Vreau să primesc informări prin email referitoare la noutăți despre dobânzi la credite și oferte bancare.</span>
+                </label>
+              </div>
               <button
                 type="submit"
-                disabled={progLoading}
+                disabled={progLoading || !progAgreed}
                 className="w-full bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-bold py-2.5 rounded-xl text-sm transition-colors shadow-md shadow-green-500/20"
               >
                 {progLoading ? 'Se trimite...' : 'Trimite cererea'}
