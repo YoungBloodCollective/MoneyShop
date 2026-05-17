@@ -65,6 +65,7 @@ public class MoneyShopDbContext : DbContext
 
     // Appointments
     public virtual DbSet<Appointment> Appointments { get; set; }
+    public virtual DbSet<PartnerApplication> PartnerApplications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

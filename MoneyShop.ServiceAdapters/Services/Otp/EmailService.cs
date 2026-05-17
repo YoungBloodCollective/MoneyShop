@@ -78,6 +78,54 @@ public class EmailService
         }
     }
 
+    public async Task<bool> SendPartnerApplicationNotificationAsync(string toEmail, int applicationId, string nume, string prenume, string telefon, string judet, string email, string descriere)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_fromEmail))
+            {
+                _logger.LogWarning("[EmailService] Brevo ApiKey or FromEmail not configured — skipping partner notification #{ApplicationId}", applicationId);
+                return false;
+            }
+
+            var subject = $"Cerere partener noua #{applicationId} - {nume} {prenume}";
+            var body = $@"
+<div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"">
+    <h2 style=""color: #2563eb;"">Cerere noua: Devino Partener</h2>
+    <table style=""width: 100%; border-collapse: collapse; margin-top: 16px;"">
+        <tr><td style=""padding: 8px; font-weight: bold; color: #555; width: 40%;"">ID</td><td style=""padding: 8px;"">#{applicationId}</td></tr>
+        <tr style=""background:#f9f9f9""><td style=""padding: 8px; font-weight: bold; color: #555;"">Nume</td><td style=""padding: 8px;"">{nume} {prenume}</td></tr>
+        <tr><td style=""padding: 8px; font-weight: bold; color: #555;"">Telefon</td><td style=""padding: 8px;"">{telefon}</td></tr>
+        <tr style=""background:#f9f9f9""><td style=""padding: 8px; font-weight: bold; color: #555;"">Email</td><td style=""padding: 8px;"">{(string.IsNullOrEmpty(email) ? "-" : email)}</td></tr>
+        <tr><td style=""padding: 8px; font-weight: bold; color: #555;"">Judet</td><td style=""padding: 8px;"">{(string.IsNullOrEmpty(judet) ? "-" : judet)}</td></tr>
+        <tr style=""background:#f9f9f9""><td style=""padding: 8px; font-weight: bold; color: #555;"">Descriere</td><td style=""padding: 8px; white-space: pre-wrap;"">{(string.IsNullOrEmpty(descriere) ? "-" : descriere)}</td></tr>
+    </table>
+    <p style=""margin-top: 24px; color: #666; font-size: 12px;"">Echipa MoneyShop</p>
+</div>";
+
+            var emailRequest = new
+            {
+                sender = new { name = _fromName, email = _fromEmail },
+                to = new[] { new { email = toEmail } },
+                subject = subject,
+                htmlContent = body
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("smtp/email", emailRequest);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("[EmailService] Brevo rejected partner notification #{ApplicationId}. Status: {Status}, Body: {Error}", applicationId, response.StatusCode, error);
+            }
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[EmailService] Exception sending partner notification #{ApplicationId}", applicationId);
+            return false;
+        }
+    }
+
     public async Task<bool> SendVerificationCodeAsync(string toEmail, string code)
     {
         try

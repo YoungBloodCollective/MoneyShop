@@ -102,6 +102,12 @@ export default function LandingPage() {
   const [partnerSalary, setPartnerSalary] = useState(0);
   const [partnerBonuri, setPartnerBonuri] = useState(0);
 
+  const [showPartner, setShowPartner] = useState(false);
+  const [partnerForm, setPartnerForm] = useState({ nume: '', prenume: '', telefon: '', email: '', judet: '', descriere: '' });
+  const [partnerLoading, setPartnerLoading] = useState(false);
+  const [partnerSuccess, setPartnerSuccess] = useState(false);
+  const [partnerAgreed, setPartnerAgreed] = useState(false);
+  const [partnerMarketing, setPartnerMarketing] = useState(false);
   const [showProgrameaza, setShowProgrameaza] = useState(false);
   const [progForm, setProgForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
   const [progLoading, setProgLoading] = useState(false);
@@ -177,6 +183,29 @@ export default function LandingPage() {
     }
   };
 
+  const handlePartnerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPartnerLoading(true);
+    try {
+      await apiClient.post('/partner-applications', {
+        nume: partnerForm.nume,
+        prenume: partnerForm.prenume,
+        telefon: partnerForm.telefon,
+        email: partnerForm.email,
+        judet: partnerForm.judet,
+        descriere: partnerForm.descriere,
+      });
+      setPartnerSuccess(true);
+      setPartnerForm({ nume: '', prenume: '', telefon: '', email: '', judet: '', descriere: '' });
+      setPartnerAgreed(false);
+      setPartnerMarketing(false);
+    } catch {
+      toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
+    } finally {
+      setPartnerLoading(false);
+    }
+  };
+
   const stepsSection = useInView(0.1);
   const statsSection = useInView(0.3);
 
@@ -226,6 +255,12 @@ export default function LandingPage() {
             ))}
           </nav>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => { setShowPartner(true); setPartnerSuccess(false); }}
+              className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-blue-600 border border-blue-200 hover:bg-blue-50 transition-colors"
+            >
+              Devino Partener
+            </button>
             <a href="tel:+40770548447" className="hidden md:flex items-center gap-1.5 text-sm text-gray-700 font-medium hover:text-gray-900 transition-colors">
               <Phone size={14} /> 0770 548 447
             </a>
@@ -272,6 +307,12 @@ export default function LandingPage() {
                 className="flex items-center gap-2 px-4 py-3 text-base font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               >
                 <Lock size={16} /> {isAuthenticated ? 'Dashboard' : 'Autentificare'}
+              </button>
+              <button
+                onClick={() => { setShowPartner(true); setPartnerSuccess(false); setMobileMenuOpen(false); }}
+                className="flex items-center gap-2 px-4 py-3 text-base font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
+              >
+                Devino Partener
               </button>
               <button
                 onClick={() => { navigate('/legal'); setMobileMenuOpen(false); }}
@@ -829,6 +870,75 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {showPartner && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowPartner(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Devino Partener MoneyShop</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Lucreaza cu noi ca broker de credite</p>
+              </div>
+              <button onClick={() => setShowPartner(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            {partnerSuccess ? (
+              <div className="p-8 text-center">
+                <CheckCircle2 size={48} className="mx-auto text-green-500 mb-3" />
+                <p className="text-lg font-bold text-gray-900">Cererea a fost trimisa!</p>
+                <p className="text-sm text-gray-500 mt-1">Te vom contacta in curand pentru a discuta detaliile.</p>
+                <button onClick={() => setShowPartner(false)} className="mt-4 text-sm text-blue-600 hover:underline">Inchide</button>
+              </div>
+            ) : (
+              <form onSubmit={handlePartnerSubmit} className="p-5 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Nume *</label>
+                    <input type="text" required value={partnerForm.nume} onChange={e => setPartnerForm(f => ({ ...f, nume: e.target.value }))} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Prenume</label>
+                    <input type="text" value={partnerForm.prenume} onChange={e => setPartnerForm(f => ({ ...f, prenume: e.target.value }))} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Telefon *</label>
+                  <input type="tel" required pattern="[0-9+\s\-]{8,15}" value={partnerForm.telefon} onChange={e => { const v = e.target.value.replace(/[^0-9+\s\-]/g, ''); setPartnerForm(f => ({ ...f, telefon: v })); }} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
+                  <input type="email" required value={partnerForm.email} onChange={e => setPartnerForm(f => ({ ...f, email: e.target.value }))} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Judet</label>
+                  <select value={partnerForm.judet} onChange={e => setPartnerForm(f => ({ ...f, judet: e.target.value }))} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 bg-white">
+                    <option value="">Selecteaza judetul</option>
+                    {judete.map(j => <option key={j} value={j}>{j}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Spune-ne despre tine</label>
+                  <textarea rows={4} value={partnerForm.descriere} onChange={e => setPartnerForm(f => ({ ...f, descriere: e.target.value }))} placeholder="Experienta in domeniu, activitate curenta, zona de acoperire..." className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 resize-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input type="checkbox" required checked={partnerAgreed} onChange={e => setPartnerAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-blue-600" />
+                    <span className="text-xs text-gray-600">Sunt de acord cu <a href="/legal" className="text-blue-600 hover:underline font-medium" target="_blank" rel="noopener noreferrer">termenii și condițiile de utilizare</a>. Sunt de acord cu politica de prelucrare a datelor. Am peste 18 ani.*</span>
+                  </label>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input type="checkbox" checked={partnerMarketing} onChange={e => setPartnerMarketing(e.target.checked)} className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-blue-600" />
+                    <span className="text-xs text-gray-600">Vreau să primesc informări prin email referitoare la noutăți despre dobânzi la credite și oferte bancare.</span>
+                  </label>
+                </div>
+                <button type="submit" disabled={partnerLoading || !partnerAgreed} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2.5 rounded-xl text-sm transition-colors shadow-md shadow-blue-500/20">
+                  {partnerLoading ? 'Se trimite...' : 'Trimite cererea'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {showProgrameaza && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowProgrameaza(false)}>
