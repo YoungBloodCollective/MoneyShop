@@ -49,7 +49,7 @@ const bankLogos = [
   { name: 'Libra Bank', src: '/images/partners/libra.png' },
   { name: 'Exim Bank', src: '/images/partners/eximbank.svg' },
   { name: 'Patria Bank', src: '/images/partners/patria.svg' },
-  { name: 'Raiffeisen Bank', src: '/images/partners/raiffeisen.svg' },
+  { name: 'Raiffeisen Bank', src: '/images/partners/raiffeisen.png' },
 ];
 
 const judete = [
