@@ -188,6 +188,18 @@ namespace MoneyShop.Api.Controllers
             var existing = _leadCaptureRepository.Get().FirstOrDefault(l => l.Telefon == appointment.Telefon && l.Email == appointment.Email);
             if (existing != null)
                 return Conflict(new { message = "Lead-ul exista deja", leadId = existing.Id });
+            var hasIntarzieri = !string.IsNullOrWhiteSpace(appointment.IntarzieriBirou)
+                && !appointment.IntarzieriBirou.Equals("NU", StringComparison.OrdinalIgnoreCase);
+            int? intarzieriZileMax = appointment.IntarzieriBirou switch
+            {
+                "Da-30 zile" => 30,
+                "Da-60 zile" => 60,
+                "Da-Peste 90 zile" => 90,
+                _ => (int?)null,
+            };
+            var hasPopriri = !string.IsNullOrWhiteSpace(appointment.PopriRecuperare)
+                && appointment.PopriRecuperare.Equals("DA", StringComparison.OrdinalIgnoreCase);
+
             var lead = new LeadCapture
             {
                 NumePrenume = $"{appointment.Nume} {appointment.Prenume}".Trim(),
@@ -196,8 +208,9 @@ namespace MoneyShop.Api.Controllers
                 Oras = appointment.Judet,
                 VenitNetLunar = appointment.SalariuNet,
                 CrediteActive = false,
-                Intarzieri = false,
-                PoprireSauExecutorUltimii5Ani = false,
+                Intarzieri = hasIntarzieri,
+                IntarzieriZileMax = intarzieriZileMax,
+                PoprireSauExecutorUltimii5Ani = hasPopriri,
                 Source = "appointment",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,

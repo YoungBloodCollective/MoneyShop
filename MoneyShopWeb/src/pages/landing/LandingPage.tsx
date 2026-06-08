@@ -110,11 +110,11 @@ export default function LandingPage() {
   const [partnerAgreed, setPartnerAgreed] = useState(false);
   const [partnerMarketing, setPartnerMarketing] = useState(false);
   const [showProgrameaza, setShowProgrameaza] = useState(false);
-  const [progForm, setProgForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
+  const [progForm, setProgForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriBirou: '', popriRecuperare: '' });
   const [progLoading, setProgLoading] = useState(false);
   const [progAgreed, setProgAgreed] = useState(false);
   const [progMarketing, setProgMarketing] = useState(false);
-  const [inlineForm, setInlineForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
+  const [inlineForm, setInlineForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriBirou: '', popriRecuperare: '' });
   const [inlineLoading, setInlineLoading] = useState(false);
   const [inlineSuccess, setInlineSuccess] = useState(false);
   const [inlineAgreed, setInlineAgreed] = useState(false);
@@ -132,6 +132,8 @@ export default function LandingPage() {
         salariuNet: Number(progForm.salariuNet),
         telefon: progForm.telefon,
         email: progForm.email,
+        intarzieriBirou: progForm.intarzieriBirou,
+        popriRecuperare: progForm.popriRecuperare,
       });
       if ((window as any).gtag) {
         (window as any).gtag('event', 'conversion', {
@@ -141,7 +143,7 @@ export default function LandingPage() {
         });
       }
       setShowProgrameaza(false);
-      setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
+      setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriBirou: '', popriRecuperare: '' });
       setProgAgreed(false);
       setProgMarketing(false);
       navigate('/multumim');
@@ -164,6 +166,8 @@ export default function LandingPage() {
         salariuNet: Number(inlineForm.salariuNet),
         telefon: inlineForm.telefon,
         email: inlineForm.email,
+        intarzieriBirou: inlineForm.intarzieriBirou,
+        popriRecuperare: inlineForm.popriRecuperare,
       });
       if ((window as any).gtag) {
         (window as any).gtag('event', 'conversion', {
@@ -173,7 +177,7 @@ export default function LandingPage() {
         });
       }
       setInlineSuccess(true);
-      setInlineForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '' });
+      setInlineForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriBirou: '', popriRecuperare: '' });
       setInlineAgreed(false);
       setInlineMarketing(false);
       toast.success('Cererea ta a fost inregistrata! Te vom contacta in curand.');
@@ -633,6 +637,26 @@ export default function LandingPage() {
                     <input type="email" required value={inlineForm.email} onChange={e => setInlineForm(f => ({ ...f, email: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
                   </div>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Aveti intarzieri in Birou? *</label>
+                    <select required value={inlineForm.intarzieriBirou} onChange={e => setInlineForm(f => ({ ...f, intarzieriBirou: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white">
+                      <option value="">Selecteaza raspunsul</option>
+                      <option value="NU">NU</option>
+                      <option value="Da-30 zile">Da, 30 zile</option>
+                      <option value="Da-60 zile">Da, 60 zile</option>
+                      <option value="Da-Peste 90 zile">Da, peste 90 zile</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">In ultimii 4 ani ati avut poprire / credit la firme de recuperare? *</label>
+                    <select required value={inlineForm.popriRecuperare} onChange={e => setInlineForm(f => ({ ...f, popriRecuperare: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white">
+                      <option value="">Selecteaza raspunsul</option>
+                      <option value="NU">NU</option>
+                      <option value="DA">DA</option>
+                    </select>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <label className="flex items-start gap-2 cursor-pointer">
                     <input type="checkbox" required checked={inlineAgreed} onChange={e => setInlineAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-green-500" />
@@ -1028,6 +1052,34 @@ export default function LandingPage() {
                   onChange={e => setProgForm(f => ({ ...f, email: e.target.value }))}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Aveti intarzieri in Birou? *</label>
+                <select
+                  required
+                  value={progForm.intarzieriBirou}
+                  onChange={e => setProgForm(f => ({ ...f, intarzieriBirou: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
+                >
+                  <option value="">Selecteaza raspunsul</option>
+                  <option value="NU">NU</option>
+                  <option value="Da-30 zile">Da, 30 zile</option>
+                  <option value="Da-60 zile">Da, 60 zile</option>
+                  <option value="Da-Peste 90 zile">Da, peste 90 zile</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">In ultimii 4 ani ati avut poprire / credit la firme de recuperare? *</label>
+                <select
+                  required
+                  value={progForm.popriRecuperare}
+                  onChange={e => setProgForm(f => ({ ...f, popriRecuperare: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
+                >
+                  <option value="">Selecteaza raspunsul</option>
+                  <option value="NU">NU</option>
+                  <option value="DA">DA</option>
+                </select>
               </div>
               <div className="space-y-2">
                 <label className="flex items-start gap-2 cursor-pointer">

@@ -40,6 +40,8 @@ namespace MoneyShop.Api.Controllers
                 Telefon = request.Telefon.Trim(),
                 Email = request.Email?.Trim() ?? "",
                 Status = "Nou",
+                IntarzieriBirou = string.IsNullOrWhiteSpace(request.IntarzieriBirou) ? null : request.IntarzieriBirou.Trim(),
+                PopriRecuperare = string.IsNullOrWhiteSpace(request.PopriRecuperare) ? null : request.PopriRecuperare.Trim(),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
             };
@@ -58,7 +60,9 @@ namespace MoneyShop.Api.Controllers
                 appointment.Judet,
                 appointment.TipCredit,
                 appointment.SalariuNet,
-                appointment.Email
+                appointment.Email,
+                appointment.IntarzieriBirou,
+                appointment.PopriRecuperare
             );
 
             return Ok(new { message = "Programare inregistrata cu succes.", id = appointment.Id });
@@ -104,6 +108,8 @@ namespace MoneyShop.Api.Controllers
         public decimal SalariuNet { get; set; }
         public string Telefon { get; set; } = "";
         public string? Email { get; set; }
+        public string? IntarzieriBirou { get; set; }
+        public string? PopriRecuperare { get; set; }
     }
 
     public class AppointmentStatusRequest

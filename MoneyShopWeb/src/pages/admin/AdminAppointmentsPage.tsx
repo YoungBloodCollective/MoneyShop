@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Phone, Mail, MapPin, CreditCard, Clock, UserPlus } from 'lucide-react';
+import { Phone, Mail, MapPin, CreditCard, Clock, UserPlus, AlertTriangle, Gavel } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api/apiClient';
 import { adminApi } from '@/services/api/adminApi';
@@ -16,6 +16,8 @@ interface Appointment {
   email: string;
   status: string;
   notes?: string;
+  intarzieriBirou?: string | null;
+  popriRecuperare?: string | null;
   createdAt: string;
 }
 
@@ -115,6 +117,20 @@ export default function AdminAppointmentsPage() {
                     {a.tipCredit && <span className="flex items-center gap-1"><CreditCard size={11} />{a.tipCredit}</span>}
                     <span className="text-light-40">{a.salariuNet.toLocaleString('ro-RO')} RON</span>
                   </div>
+                  {(a.intarzieriBirou || a.popriRecuperare) && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {a.intarzieriBirou && (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${a.intarzieriBirou === 'NU' ? 'bg-success-500/10 text-success-400 border-success-500/30' : 'bg-orange-500/15 text-orange-400 border-orange-500/30'}`}>
+                          <AlertTriangle size={10} /> Birou: {a.intarzieriBirou}
+                        </span>
+                      )}
+                      {a.popriRecuperare && (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${a.popriRecuperare === 'NU' ? 'bg-success-500/10 text-success-400 border-success-500/30' : 'bg-red-500/15 text-red-400 border-red-500/30'}`}>
+                          <Gavel size={10} /> Popriri/Recuperare: {a.popriRecuperare}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <p className="text-[10px] text-light-40 mt-1">{new Date(a.createdAt).toLocaleString('ro-RO')}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">

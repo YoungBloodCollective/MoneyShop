@@ -14,6 +14,8 @@ namespace MoneyShop.DomainModel.Entities
         public string Email { get; set; } = null!;
         public string Status { get; set; } = "Nou";
         public string? Notes { get; set; }
+        public string? IntarzieriBirou { get; set; }
+        public string? PopriRecuperare { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
