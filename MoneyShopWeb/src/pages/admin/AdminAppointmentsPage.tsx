@@ -119,11 +119,15 @@ export default function AdminAppointmentsPage() {
                   </div>
                   {(a.intarzieriBirou || a.popriRecuperare) && (
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {a.intarzieriBirou && (
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${a.intarzieriBirou === 'NU' ? 'bg-success-500/10 text-success-400 border-success-500/30' : 'bg-orange-500/15 text-orange-400 border-orange-500/30'}`}>
-                          <AlertTriangle size={10} /> Birou: {a.intarzieriBirou}
-                        </span>
-                      )}
+                      {a.intarzieriBirou && (() => {
+                        const isNu = a.intarzieriBirou === 'NU';
+                        const label = isNu ? 'fara intarzieri' : a.intarzieriBirou.replace(/^Da-/, '').toLowerCase() + ' intarziere';
+                        return (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${isNu ? 'bg-success-500/10 text-success-400 border-success-500/30' : 'bg-orange-500/15 text-orange-400 border-orange-500/30'}`}>
+                            <AlertTriangle size={10} /> Birou: {label}
+                          </span>
+                        );
+                      })()}
                       {a.popriRecuperare && (
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${a.popriRecuperare === 'NU' ? 'bg-success-500/10 text-success-400 border-success-500/30' : 'bg-red-500/15 text-red-400 border-red-500/30'}`}>
                           <Gavel size={10} /> Popriri/Recuperare: {a.popriRecuperare}

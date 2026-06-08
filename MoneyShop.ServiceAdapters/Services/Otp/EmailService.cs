@@ -39,6 +39,12 @@ public class EmailService
                 return false;
             }
 
+            var intarzieriDisplay = string.IsNullOrEmpty(intarzieriBirou)
+                ? "-"
+                : intarzieriBirou == "NU"
+                    ? "Nu"
+                    : intarzieriBirou.Replace("Da-", "").ToLowerInvariant() + " intarziere";
+
             var subject = $"Programare noua #{appointmentId} - {nume} {prenume}";
             var body = $@"
 <div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"">
@@ -51,7 +57,7 @@ public class EmailService
         <tr><td style=""padding: 8px; font-weight: bold; color: #555;"">Judet</td><td style=""padding: 8px;"">{(string.IsNullOrEmpty(judet) ? "-" : judet)}</td></tr>
         <tr style=""background:#f9f9f9""><td style=""padding: 8px; font-weight: bold; color: #555;"">Tip credit</td><td style=""padding: 8px;"">{(string.IsNullOrEmpty(tipCredit) ? "-" : tipCredit)}</td></tr>
         <tr><td style=""padding: 8px; font-weight: bold; color: #555;"">Salariu net</td><td style=""padding: 8px;"">{salariuNet:N0} RON</td></tr>
-        <tr style=""background:#f9f9f9""><td style=""padding: 8px; font-weight: bold; color: #555;"">Intarzieri Birou Credit</td><td style=""padding: 8px;"">{(string.IsNullOrEmpty(intarzieriBirou) ? "-" : intarzieriBirou)}</td></tr>
+        <tr style=""background:#f9f9f9""><td style=""padding: 8px; font-weight: bold; color: #555;"">Intarzieri Birou Credit</td><td style=""padding: 8px;"">{intarzieriDisplay}</td></tr>
         <tr><td style=""padding: 8px; font-weight: bold; color: #555;"">Popriri / recuperare (ultimii 4 ani)</td><td style=""padding: 8px;"">{(string.IsNullOrEmpty(popriRecuperare) ? "-" : popriRecuperare)}</td></tr>
     </table>
     <p style=""margin-top: 24px; color: #666; font-size: 12px;"">Echipa MoneyShop</p>
