@@ -23,12 +23,40 @@ namespace MoneyShop.Api.Controllers
             _emailService = emailService;
         }
 
+        private static string NormalizePhone(string? phone)
+        {
+            if (string.IsNullOrWhiteSpace(phone)) return "";
+            var digits = new string(phone.Where(char.IsDigit).ToArray());
+            if (digits.StartsWith("40")) digits = digits.Substring(2);
+            if (digits.StartsWith("0")) digits = digits.Substring(1);
+            return digits;
+        }
+
         [HttpPost]
         [AllowAnonymous]
         public async Task<IActionResult> Create([FromBody] CreateAppointmentRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Nume) || string.IsNullOrWhiteSpace(request.Telefon))
                 return BadRequest(new { message = "Nume si telefon sunt obligatorii." });
+
+            var normalized = NormalizePhone(request.Telefon);
+            if (normalized.Length >= 7)
+            {
+                var since = DateTime.UtcNow.AddDays(-7);
+                var recent = await _db.Appointments
+                    .Where(a => a.CreatedAt >= since)
+                    .Select(a => a.Telefon)
+                    .ToListAsync();
+                if (recent.Any(t => NormalizePhone(t) == normalized))
+                {
+                    _logger.LogInformation("Duplicate appointment blocked for phone {Phone} within 7-day window.", request.Telefon);
+                    return Conflict(new
+                    {
+                        code = "already_registered",
+                        message = "Te avem deja pe lista — un consultant te va contacta in curand."
+                    });
+                }
+            }
 
             var appointment = new Appointment
             {

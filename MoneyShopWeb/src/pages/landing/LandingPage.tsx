@@ -117,6 +117,7 @@ export default function LandingPage() {
   const [inlineForm, setInlineForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
   const [inlineLoading, setInlineLoading] = useState(false);
   const [inlineSuccess, setInlineSuccess] = useState(false);
+  const [inlineAlreadyRegistered, setInlineAlreadyRegistered] = useState(false);
   const [inlineAgreed, setInlineAgreed] = useState(false);
   const [inlineMarketing, setInlineMarketing] = useState(false);
 
@@ -147,8 +148,16 @@ export default function LandingPage() {
       setProgAgreed(false);
       setProgMarketing(false);
       navigate('/multumim');
-    } catch {
-      toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
+    } catch (err: any) {
+      if (err?.response?.status === 409) {
+        setShowProgrameaza(false);
+        setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
+        setProgAgreed(false);
+        setProgMarketing(false);
+        toast.success('Te avem deja pe lista! Un consultant te va contacta in curand.', { duration: 6000 });
+      } else {
+        toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
+      }
     } finally {
       setProgLoading(false);
     }
@@ -177,12 +186,21 @@ export default function LandingPage() {
         });
       }
       setInlineSuccess(true);
+      setInlineAlreadyRegistered(false);
       setInlineForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
       setInlineAgreed(false);
       setInlineMarketing(false);
       toast.success('Cererea ta a fost inregistrata! Te vom contacta in curand.');
-    } catch {
-      toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
+    } catch (err: any) {
+      if (err?.response?.status === 409) {
+        setInlineSuccess(true);
+        setInlineAlreadyRegistered(true);
+        setInlineForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
+        setInlineAgreed(false);
+        setInlineMarketing(false);
+      } else {
+        toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
+      }
     } finally {
       setInlineLoading(false);
     }
@@ -589,12 +607,21 @@ export default function LandingPage() {
               <p className="text-sm text-gray-500 mt-1">Completeaza formularul si te vom contacta in cel mai scurt timp</p>
             </div>
             {inlineSuccess ? (
-              <div className="text-center py-8">
-                <CheckCircle2 size={48} className="mx-auto text-green-500 mb-3" />
-                <p className="text-lg font-bold text-gray-900">Cererea a fost trimisa!</p>
-                <p className="text-sm text-gray-500 mt-1">Te vom contacta in curand.</p>
-                <button onClick={() => setInlineSuccess(false)} className="mt-4 text-sm text-blue-600 hover:underline">Trimite alta cerere</button>
-              </div>
+              inlineAlreadyRegistered ? (
+                <div className="text-center py-8">
+                  <Clock size={48} className="mx-auto text-blue-500 mb-3" />
+                  <p className="text-lg font-bold text-gray-900">Te avem deja pe lista!</p>
+                  <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">Cererea ta din ultimele zile este in lucru. Un consultant te va contacta in curand &mdash; nu este nevoie sa o trimiti din nou.</p>
+                  <p className="text-xs text-gray-400 mt-2">Ai o intrebare urgenta? Suna-ne la <a href="tel:+40770548447" className="text-blue-600 hover:underline font-medium">0770 548 447</a>.</p>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <CheckCircle2 size={48} className="mx-auto text-green-500 mb-3" />
+                  <p className="text-lg font-bold text-gray-900">Cererea a fost trimisa!</p>
+                  <p className="text-sm text-gray-500 mt-1">Te vom contacta in curand.</p>
+                  <button onClick={() => { setInlineSuccess(false); setInlineAlreadyRegistered(false); }} className="mt-4 text-sm text-blue-600 hover:underline">Trimite alta cerere</button>
+                </div>
+              )
             ) : (
               <form onSubmit={handleInlineSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
