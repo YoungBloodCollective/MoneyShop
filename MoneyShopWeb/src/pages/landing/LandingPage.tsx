@@ -155,6 +155,8 @@ export default function LandingPage() {
         setProgAgreed(false);
         setProgMarketing(false);
         toast.success('Te avem deja pe lista! Un consultant te va contacta in curand.', { duration: 6000 });
+      } else if (err?.response?.status === 400 && err?.response?.data?.code === 'salary_too_low') {
+        toast.error('Salariul net minim acceptat este 2.500 RON (salariul minim pe economie).', { duration: 6000 });
       } else {
         toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
       }
@@ -198,6 +200,8 @@ export default function LandingPage() {
         setInlineForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
         setInlineAgreed(false);
         setInlineMarketing(false);
+      } else if (err?.response?.status === 400 && err?.response?.data?.code === 'salary_too_low') {
+        toast.error('Salariul net minim acceptat este 2.500 RON (salariul minim pe economie).', { duration: 6000 });
       } else {
         toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
       }
@@ -653,7 +657,8 @@ export default function LandingPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Salariu net (RON) *</label>
-                    <input type="number" required min={0} value={inlineForm.salariuNet} onChange={e => setInlineForm(f => ({ ...f, salariuNet: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
+                    <input type="number" required min={2500} step={100} placeholder="Minim 2500" value={inlineForm.salariuNet} onChange={e => setInlineForm(f => ({ ...f, salariuNet: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
+                    <p className="text-[10px] text-gray-400 mt-0.5">Minim 2.500 RON (salariul minim pe economie)</p>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Telefon *</label>
@@ -1072,11 +1077,14 @@ export default function LandingPage() {
                 <input
                   type="number"
                   required
-                  min={0}
+                  min={2500}
+                  step={100}
+                  placeholder="Minim 2500"
                   value={progForm.salariuNet}
                   onChange={e => setProgForm(f => ({ ...f, salariuNet: e.target.value }))}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                 />
+                <p className="text-[10px] text-gray-400 mt-0.5">Minim 2.500 RON (salariul minim pe economie)</p>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Numar de telefon</label>

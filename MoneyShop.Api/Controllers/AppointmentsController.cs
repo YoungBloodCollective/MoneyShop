@@ -39,6 +39,13 @@ namespace MoneyShop.Api.Controllers
             if (string.IsNullOrWhiteSpace(request.Nume) || string.IsNullOrWhiteSpace(request.Telefon))
                 return BadRequest(new { message = "Nume si telefon sunt obligatorii." });
 
+            if (request.SalariuNet < 2500)
+                return BadRequest(new
+                {
+                    code = "salary_too_low",
+                    message = "Salariul net minim acceptat este 2500 RON (salariul minim pe economie)."
+                });
+
             var normalized = NormalizePhone(request.Telefon);
             if (normalized.Length >= 7)
             {
