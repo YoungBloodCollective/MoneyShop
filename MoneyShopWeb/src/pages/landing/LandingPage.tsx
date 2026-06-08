@@ -110,11 +110,11 @@ export default function LandingPage() {
   const [partnerAgreed, setPartnerAgreed] = useState(false);
   const [partnerMarketing, setPartnerMarketing] = useState(false);
   const [showProgrameaza, setShowProgrameaza] = useState(false);
-  const [progForm, setProgForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriBirou: '', popriRecuperare: '' });
+  const [progForm, setProgForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
   const [progLoading, setProgLoading] = useState(false);
   const [progAgreed, setProgAgreed] = useState(false);
   const [progMarketing, setProgMarketing] = useState(false);
-  const [inlineForm, setInlineForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriBirou: '', popriRecuperare: '' });
+  const [inlineForm, setInlineForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
   const [inlineLoading, setInlineLoading] = useState(false);
   const [inlineSuccess, setInlineSuccess] = useState(false);
   const [inlineAgreed, setInlineAgreed] = useState(false);
@@ -143,7 +143,7 @@ export default function LandingPage() {
         });
       }
       setShowProgrameaza(false);
-      setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriBirou: '', popriRecuperare: '' });
+      setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
       setProgAgreed(false);
       setProgMarketing(false);
       navigate('/multumim');
@@ -177,7 +177,7 @@ export default function LandingPage() {
         });
       }
       setInlineSuccess(true);
-      setInlineForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriBirou: '', popriRecuperare: '' });
+      setInlineForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
       setInlineAgreed(false);
       setInlineMarketing(false);
       toast.success('Cererea ta a fost inregistrata! Te vom contacta in curand.');
@@ -638,15 +638,34 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
+                  <div className="space-y-2">
                     <label className="block text-xs font-medium text-gray-700 mb-1">Aveti intarzieri in Birou? *</label>
-                    <select required value={inlineForm.intarzieriBirou} onChange={e => setInlineForm(f => ({ ...f, intarzieriBirou: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white">
+                    <select
+                      required
+                      value={inlineForm.intarzieriHas}
+                      onChange={e => {
+                        const v = e.target.value;
+                        setInlineForm(f => ({ ...f, intarzieriHas: v, intarzieriBirou: v === 'NU' ? 'NU' : '' }));
+                      }}
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
+                    >
                       <option value="">Selecteaza raspunsul</option>
                       <option value="NU">NU</option>
-                      <option value="Da-30 zile">Da, 30 zile</option>
-                      <option value="Da-60 zile">Da, 60 zile</option>
-                      <option value="Da-Peste 90 zile">Da, peste 90 zile</option>
+                      <option value="DA">DA</option>
                     </select>
+                    {inlineForm.intarzieriHas === 'DA' && (
+                      <select
+                        required
+                        value={inlineForm.intarzieriBirou}
+                        onChange={e => setInlineForm(f => ({ ...f, intarzieriBirou: e.target.value }))}
+                        className="w-full px-3 py-2.5 text-sm border border-orange-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 bg-orange-50/30"
+                      >
+                        <option value="">Cate zile?</option>
+                        <option value="Da-30 zile">30 zile</option>
+                        <option value="Da-60 zile">60 zile</option>
+                        <option value="Da-Peste 90 zile">Peste 90 zile</option>
+                      </select>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">In ultimii 4 ani ati avut poprire / credit la firme de recuperare? *</label>
@@ -1053,20 +1072,34 @@ export default function LandingPage() {
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <label className="block text-xs font-medium text-gray-700 mb-1">Aveti intarzieri in Birou? *</label>
                 <select
                   required
-                  value={progForm.intarzieriBirou}
-                  onChange={e => setProgForm(f => ({ ...f, intarzieriBirou: e.target.value }))}
+                  value={progForm.intarzieriHas}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setProgForm(f => ({ ...f, intarzieriHas: v, intarzieriBirou: v === 'NU' ? 'NU' : '' }));
+                  }}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
                 >
                   <option value="">Selecteaza raspunsul</option>
                   <option value="NU">NU</option>
-                  <option value="Da-30 zile">Da, 30 zile</option>
-                  <option value="Da-60 zile">Da, 60 zile</option>
-                  <option value="Da-Peste 90 zile">Da, peste 90 zile</option>
+                  <option value="DA">DA</option>
                 </select>
+                {progForm.intarzieriHas === 'DA' && (
+                  <select
+                    required
+                    value={progForm.intarzieriBirou}
+                    onChange={e => setProgForm(f => ({ ...f, intarzieriBirou: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-orange-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 bg-orange-50/30"
+                  >
+                    <option value="">Cate zile?</option>
+                    <option value="Da-30 zile">30 zile</option>
+                    <option value="Da-60 zile">60 zile</option>
+                    <option value="Da-Peste 90 zile">Peste 90 zile</option>
+                  </select>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">In ultimii 4 ani ati avut poprire / credit la firme de recuperare? *</label>
