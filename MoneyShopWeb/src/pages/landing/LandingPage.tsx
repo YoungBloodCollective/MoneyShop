@@ -637,9 +637,9 @@ export default function LandingPage() {
                     <input type="email" required value={inlineForm.email} onChange={e => setInlineForm(f => ({ ...f, email: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                   <div className="space-y-2">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Aveti intarzieri in Birou? *</label>
+                    <label className="text-xs font-medium text-gray-700 sm:min-h-[2.25rem] flex items-end">Aveti intarzieri in Birou? *</label>
                     <select
                       required
                       value={inlineForm.intarzieriHas}
@@ -667,8 +667,8 @@ export default function LandingPage() {
                       </select>
                     )}
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">In ultimii 4 ani ati avut poprire / credit la firme de recuperare? *</label>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-gray-700 sm:min-h-[2.25rem] flex items-end">In ultimii 4 ani ati avut poprire / credit la firme de recuperare? *</label>
                     <select required value={inlineForm.popriRecuperare} onChange={e => setInlineForm(f => ({ ...f, popriRecuperare: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white">
                       <option value="">Selecteaza raspunsul</option>
                       <option value="NU">NU</option>
