@@ -637,7 +637,7 @@ export default function LandingPage() {
                     <input type="email" required value={inlineForm.email} onChange={e => setInlineForm(f => ({ ...f, email: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                   <div className="space-y-2">
                     <label className="block text-xs font-medium text-gray-700 mb-1">Aveti intarzieri in Birou? *</label>
                     <select
