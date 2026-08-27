@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  IdCard, FileText, UploadCloud, Check, X, Info, ChevronRight,
-  Loader2, CheckCircle, ShieldCheck, CreditCard,
+  FileText, UploadCloud, Check, X, Info, ChevronRight,
+  Loader2, CheckCircle, ShieldCheck,
 } from 'lucide-react';
 import axios from 'axios';
 import { acordApi, type AcordConsentText } from '@/services/api/acordApi';
@@ -12,10 +12,15 @@ import { Logo } from '@/components/shared/Logo';
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const ACCEPTED = 'image/png,image/jpeg,image/jpg,image/heic,image/heif,application/pdf';
 
+/**
+ * Which documents each type of ID needs. A classic card has the address printed
+ * on it, so both sides are enough; the electronic one prints no address, so it
+ * needs a separate proof instead of the verso.
+ */
 const TIP_ACT_OPTIONS = [
-  { value: 'buletin', label: 'Buletin', icon: IdCard },
-  { value: 'buletin_electronic', label: 'Buletin Electronic', icon: CreditCard },
-  { value: 'carte_identitate', label: 'Carte de identitate', icon: IdCard },
+  { value: 'buletin', label: 'Buletin', back: true, proof: false },
+  { value: 'buletin_electronic', label: 'Buletin Electronic', back: false, proof: true },
+  { value: 'carte_identitate', label: 'Carte de identitate', back: true, proof: false },
 ] as const;
 
 type SlotKey = 'front' | 'back' | 'proof';
@@ -120,12 +125,19 @@ export default function AcordClientPage() {
     setFiles(prev => ({ ...prev, [key]: file }));
   };
 
+  const rules = TIP_ACT_OPTIONS.find(o => o.value === tipAct) ?? TIP_ACT_OPTIONS[0];
+
+  const isRequired = (key: SlotKey) =>
+    key === 'front' ? true : key === 'back' ? rules.back : rules.proof;
+
   const phoneDigits = telefon.replace(/\D/g, '');
   const canSubmit =
     nume.trim().length >= 2 &&
     prenume.trim().length >= 2 &&
     (phoneDigits.length === 10 || phoneDigits.length === 11) &&
-    !!files.front && !!files.back && !!files.proof &&
+    !!files.front &&
+    (!rules.back || !!files.back) &&
+    (!rules.proof || !!files.proof) &&
     choices.intermediere &&
     !!signature;
 
@@ -144,8 +156,8 @@ export default function AcordClientPage() {
         tipAct,
         agentCode,
         documentFront: files.front!,
-        documentBack: files.back!,
-        addressProof: files.proof!,
+        documentBack: files.back,
+        addressProof: files.proof,
         signatureDataUri: signature!,
         acceptIntermediere: choices.intermediere,
         acceptMarketing: choices.marketing,
@@ -232,16 +244,24 @@ export default function AcordClientPage() {
           <div className="grid grid-cols-3 gap-2">
             {DOCUMENT_SLOTS.map(slot => {
               const file = files[slot.key];
+              const required = isRequired(slot.key);
               return (
                 <div
                   key={slot.key}
                   className={`rounded-xl p-3 flex flex-col items-center text-center transition ${
-                    file ? 'ring-2 ring-success-500 bg-success-500/5' : 'ring-1 ring-dark-500 bg-white'
+                    file ? 'ring-2 ring-success-500 bg-success-500/5'
+                         : required ? 'ring-1 ring-dark-500 bg-white'
+                         : 'ring-1 ring-dark-600 bg-dark-800'
                   }`}
                 >
-                  <p className="text-[11.5px] font-medium text-light-80 leading-tight mb-2.5 h-[28px] flex items-center justify-center">
+                  <p className="text-[11.5px] font-medium text-light-80 leading-tight mb-1 h-[28px] flex items-center justify-center">
                     {slot.step}. {slot.title}
                   </p>
+                  <span className={`text-[10px] font-medium mb-1.5 ${
+                    required ? 'text-brand-primary' : 'text-light-60'
+                  }`}>
+                    {required ? 'Obligatoriu' : 'Opțional'}
+                  </span>
                   {file ? <Check size={26} className="text-success-600 mb-2" />
                         : <FileText size={26} className="text-light-50 mb-2" />}
                   <button

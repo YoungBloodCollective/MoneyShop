@@ -23,9 +23,16 @@ public class AcordController : BaseController
         "image/jpeg", "image/jpg", "image/png", "image/heic", "image/heif", "image/webp", "application/pdf"
     };
 
-    private static readonly string[] AllowedTipAct =
+    /// <summary>
+    /// Which documents each type of ID actually needs. A classic card carries the
+    /// address on it, so it needs both sides and no separate proof; the electronic
+    /// one prints no address, so it needs the front plus a proof of address.
+    /// </summary>
+    private static readonly Dictionary<string, (bool back, bool proof)> TipActRules = new()
     {
-        "buletin", "buletin_electronic", "carte_identitate"
+        ["buletin"] = (back: true, proof: false),
+        ["buletin_electronic"] = (back: false, proof: true),
+        ["carte_identitate"] = (back: true, proof: false),
     };
 
     private readonly IAcordService _acordService;
@@ -64,20 +71,20 @@ public class AcordController : BaseController
         if (!string.IsNullOrWhiteSpace(request.Email) && !EmailPattern.IsMatch(request.Email.Trim()))
             return BadRequest("Adresa de email nu este valida");
 
-        if (string.IsNullOrWhiteSpace(request.TipAct) || !AllowedTipAct.Contains(request.TipAct))
+        if (string.IsNullOrWhiteSpace(request.TipAct) || !TipActRules.TryGetValue(request.TipAct, out var rules))
             return BadRequest("Selecteaza tipul actului de identitate");
 
         if (!request.AcceptIntermediere)
             return BadRequest("Acordul pentru prelucrarea datelor este obligatoriu");
 
-        var front = ValidateUpload(request.DocumentFront, "Poza fata a actului");
-        if (front.error != null) return BadRequest(front.error);
+        var frontError = ValidateUpload(request.DocumentFront, "Poza fata a actului", required: true);
+        if (frontError != null) return BadRequest(frontError);
 
-        var back = ValidateUpload(request.DocumentBack, "Poza spate a actului");
-        if (back.error != null) return BadRequest(back.error);
+        var backError = ValidateUpload(request.DocumentBack, "Poza spate a actului", rules.back);
+        if (backError != null) return BadRequest(backError);
 
-        var proof = ValidateUpload(request.AddressProof, "Dovada de adresa");
-        if (proof.error != null) return BadRequest(proof.error);
+        var proofError = ValidateUpload(request.AddressProof, "Dovada de adresa", rules.proof);
+        if (proofError != null) return BadRequest(proofError);
 
         if (string.IsNullOrWhiteSpace(request.SignatureDataUri))
             return BadRequest("Semnatura este obligatorie");
@@ -100,8 +107,8 @@ public class AcordController : BaseController
                 AgentCode = request.AgentCode,
                 Ip = GetClientIp(),
                 DocumentFront = await ReadUpload(request.DocumentFront!),
-                DocumentBack = await ReadUpload(request.DocumentBack!),
-                AddressProof = await ReadUpload(request.AddressProof!),
+                DocumentBack = request.DocumentBack is { Length: > 0 } ? await ReadUpload(request.DocumentBack) : null,
+                AddressProof = request.AddressProof is { Length: > 0 } ? await ReadUpload(request.AddressProof) : null,
                 SignaturePng = signature,
                 Choices = new AcordSignChoices
                 {
@@ -182,19 +189,19 @@ public class AcordController : BaseController
         return HttpContext.Connection.RemoteIpAddress?.ToString();
     }
 
-    private static (string? error, IFormFile? file) ValidateUpload(IFormFile? file, string label)
+    private static string? ValidateUpload(IFormFile? file, string label, bool required)
     {
         if (file == null || file.Length == 0)
-            return ($"{label} este obligatorie", null);
+            return required ? $"{label} este obligatorie" : null;
 
         if (file.Length > MaxUploadBytes)
-            return ($"{label}: fisierul depaseste 5MB", null);
+            return $"{label}: fisierul depaseste 5MB";
 
         var mime = (file.ContentType ?? string.Empty).ToLowerInvariant();
         if (!AllowedMimeTypes.Contains(mime))
-            return ($"{label}: format acceptat PNG, JPG sau PDF", null);
+            return $"{label}: format acceptat PNG, JPG sau PDF";
 
-        return (null, file);
+        return null;
     }
 
     private static async Task<AcordUpload> ReadUpload(IFormFile file)

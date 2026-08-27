@@ -31,8 +31,8 @@ export interface AcordSubmitPayload {
   tipAct: string;
   agentCode?: string;
   documentFront: File;
-  documentBack: File;
-  addressProof: File;
+  documentBack: File | null;
+  addressProof: File | null;
   signatureDataUri: string;
   acceptIntermediere: boolean;
   acceptMarketing: boolean;
@@ -152,8 +152,8 @@ export const acordApi = {
     fd.append('TipAct', payload.tipAct);
     if (payload.agentCode) fd.append('AgentCode', payload.agentCode);
     fd.append('DocumentFront', payload.documentFront, payload.documentFront.name);
-    fd.append('DocumentBack', payload.documentBack, payload.documentBack.name);
-    fd.append('AddressProof', payload.addressProof, payload.addressProof.name);
+    if (payload.documentBack) fd.append('DocumentBack', payload.documentBack, payload.documentBack.name);
+    if (payload.addressProof) fd.append('AddressProof', payload.addressProof, payload.addressProof.name);
     fd.append('SignatureDataUri', payload.signatureDataUri);
     fd.append('AcceptIntermediere', String(payload.acceptIntermediere));
     fd.append('AcceptMarketing', String(payload.acceptMarketing));

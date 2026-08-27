@@ -47,8 +47,8 @@ public class AcordSubmitInput
     public string? Ip { get; set; }
 
     public AcordUpload DocumentFront { get; set; } = null!;
-    public AcordUpload DocumentBack { get; set; } = null!;
-    public AcordUpload AddressProof { get; set; } = null!;
+    public AcordUpload? DocumentBack { get; set; }
+    public AcordUpload? AddressProof { get; set; }
 
     public byte[] SignaturePng { get; set; } = null!;
     public AcordSignChoices Choices { get; set; } = new();
