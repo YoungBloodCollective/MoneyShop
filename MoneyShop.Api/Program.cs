@@ -281,6 +281,9 @@ else
     Console.WriteLine("[MoneyShop.Api] Application Insights connection string not found - telemetry disabled");
 }
 
+// ── Data Retention (erases expired KYC / Acord documents) ──
+builder.Services.AddHostedService<MoneyShop.Api.Services.DataRetentionHostedService>();
+
 // ── SignalR (if needed for real-time features) ──
 builder.Services.AddSignalR();
 
