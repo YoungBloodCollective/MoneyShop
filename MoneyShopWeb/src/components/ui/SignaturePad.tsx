@@ -13,15 +13,30 @@ export function SignaturePad({ onChange, disabled = false, height = 180 }: Signa
   const hasInkRef = useRef(false);
   const [hasInk, setHasInk] = useState(false);
 
+  /**
+   * Assigning canvas.width/height wipes the bitmap, so this only re-sizes when
+   * the pixel dimensions really changed, and restores the drawing when it does.
+   * iOS fires resize whenever the URL bar slides in or out — without this, a
+   * signature disappeared as soon as the client scrolled.
+   */
   const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ratio = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
 
-    canvas.width = rect.width * ratio;
-    canvas.height = rect.height * ratio;
+    const width = Math.round(rect.width * ratio);
+    const height = Math.round(rect.height * ratio);
+    if (canvas.width === width && canvas.height === height) return;
+
+    const previous = hasInkRef.current && canvas.width > 0 && canvas.height > 0
+      ? canvas.toDataURL('image/png')
+      : null;
+
+    canvas.width = width;
+    canvas.height = height;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -31,6 +46,12 @@ export function SignaturePad({ onChange, disabled = false, height = 180 }: Signa
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#111827';
+
+    if (previous) {
+      const img = new Image();
+      img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+      img.src = previous;
+    }
   }, []);
 
   useEffect(() => {
