@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Kyc;
+using MoneyShop.ServiceInterface.Interfaces.Subject;
 using MoneyShop.DomainServices.RepositoryInterfaces.Kyc;
 using MoneyShop.DomainModel.Entities;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
@@ -17,17 +18,23 @@ namespace MoneyShop.Api.Controllers;
 public class KycScanController : ControllerBase
 {
     private readonly IExternalKycService _externalKyc;
+    private readonly IKycService _kycService;
+    private readonly ISubjectService _subjectService;
     private readonly IKycSessionRepository _kycSessionRepository;
     private readonly MoneyShopDbContext _context;
     private readonly ILogger<KycScanController> _logger;
 
     public KycScanController(
         IExternalKycService externalKyc,
+        IKycService kycService,
+        ISubjectService subjectService,
         IKycSessionRepository kycSessionRepository,
         MoneyShopDbContext context,
         ILogger<KycScanController> logger)
     {
         _externalKyc = externalKyc;
+        _kycService = kycService;
+        _subjectService = subjectService;
         _kycSessionRepository = kycSessionRepository;
         _context = context;
         _logger = logger;
@@ -132,14 +139,17 @@ public class KycScanController : ControllerBase
             if (upload.DocumentBack != null && upload.DocumentBack.Length > 0)
                 backBytes = await ReadFormFile(upload.DocumentBack);
 
+            PersistFile(session, "id_front", frontBytes, "id-front.jpg", upload.DocumentFront.ContentType);
+            if (backBytes != null)
+                PersistFile(session, "id_back", backBytes, "id-back.jpg", upload.DocumentBack?.ContentType);
+
             var result = await _externalKyc.SubmitDocumentOcrAsync(
                 session.ProviderTransactionId!, session.Token!, frontBytes, backBytes);
 
             if (result.OcrData != null && result.Decision == "pass")
             {
-                session.Cnp = result.OcrData.Cnp;
+                session.Cnp = MaskCnp(session.UserId, result.OcrData.Cnp);
                 session.Address = result.OcrData.Address;
-                session.City = result.OcrData.PlaceOfBirth;
                 _context.SaveChanges();
             }
 
@@ -170,6 +180,9 @@ public class KycScanController : ControllerBase
         try
         {
             var selfieBytes = await ReadFormFile(upload.Selfie);
+
+            PersistFile(session, "selfie", selfieBytes, "selfie.jpg", upload.Selfie.ContentType);
+
             var result = await _externalKyc.SubmitLivenessAsync(
                 session.ProviderTransactionId!, session.Token!, selfieBytes);
 
@@ -213,8 +226,7 @@ public class KycScanController : ControllerBase
                 session.VerifiedAt = DateTime.UtcNow;
                 if (decision.Person != null)
                 {
-                    session.Cnp = decision.Person.IdNumber;
-                    session.City = decision.Person.PlaceOfBirth;
+                    session.Cnp = MaskCnp(session.UserId, decision.Person.IdNumber);
                     if (decision.Person.Addresses?.Count > 0)
                         session.Address = decision.Person.Addresses[0].FullAddress;
                 }
@@ -273,8 +285,7 @@ public class KycScanController : ControllerBase
                         session.VerifiedAt = DateTime.UtcNow;
                         if (decision.Person != null)
                         {
-                            session.Cnp = decision.Person.IdNumber;
-                            session.City = decision.Person.PlaceOfBirth;
+                            session.Cnp = MaskCnp(session.UserId, decision.Person.IdNumber);
                             if (decision.Person.Addresses?.Count > 0)
                                 session.Address = decision.Person.Addresses[0].FullAddress;
                         }
@@ -304,6 +315,45 @@ public class KycScanController : ControllerBase
     }
 
     // ── Helpers ──
+
+    /// <summary>
+    /// The raw CNP is never persisted on the session - only a masked form, with the
+    /// peppered hash kept in SubjectMap for matching.
+    /// </summary>
+    private string? MaskCnp(int userId, string? cnp)
+    {
+        if (string.IsNullOrWhiteSpace(cnp)) return null;
+
+        try
+        {
+            return _subjectService.GetOrCreateSubject(userId, cnp).CnpMasked;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not pseudonymise CNP for user {UserId}", userId);
+            return null;
+        }
+    }
+
+    private void PersistFile(KycSession session, string fileType, byte[] content, string fileName, string? mimeType)
+    {
+        try
+        {
+            _kycService.AddKycFile(
+                session.KycId,
+                session.UserId,
+                fileType,
+                null,
+                fileName,
+                string.IsNullOrWhiteSpace(mimeType) ? "image/jpeg" : mimeType,
+                content.LongLength,
+                content);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not persist {FileType} for KYC session {KycId}", fileType, session.KycId);
+        }
+    }
 
     private KycSession? FindSessionByToken(string token)
     {
