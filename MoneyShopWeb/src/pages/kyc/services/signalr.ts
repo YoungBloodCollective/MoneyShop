@@ -1,7 +1,7 @@
 import * as signalR from "@microsoft/signalr";
 import type { OcrOnlyResult, FaceCompareResult, ActiveLivenessResult } from "../types";
 
-const BASE = import.meta.env.VITE_KYC_API_URL || "https://kycybc.azurewebsites.net";
+const BASE = import.meta.env.VITE_KYC_API_URL || "https://kycybc-2.azurewebsites.net";
 
 let connection: signalR.HubConnection | null = null;
 
