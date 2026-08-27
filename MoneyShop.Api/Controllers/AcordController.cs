@@ -33,6 +33,17 @@ public class AcordController : BaseController
         ["carte_identitate_simpla"] = (back: true, proof: false),
     };
 
+    /// <summary>
+    /// The options were renamed once. A phone holding the previous bundle in
+    /// cache still posts the old keys, and rejecting those strands the client on
+    /// an error they cannot act on, so they are accepted and translated.
+    /// </summary>
+    private static readonly Dictionary<string, string> LegacyTipAct = new()
+    {
+        ["buletin"] = "carte_identitate",
+        ["buletin_electronic"] = "carte_identitate_electronica",
+    };
+
     private readonly IAcordService _acordService;
     private readonly ILogger<AcordController> _logger;
 
@@ -69,7 +80,10 @@ public class AcordController : BaseController
         if (!string.IsNullOrWhiteSpace(request.Email) && !EmailPattern.IsMatch(request.Email.Trim()))
             return BadRequest("Adresa de email nu este valida");
 
-        if (string.IsNullOrWhiteSpace(request.TipAct) || !TipActRules.TryGetValue(request.TipAct, out var rules))
+        var tipAct = request.TipAct?.Trim() ?? string.Empty;
+        if (LegacyTipAct.TryGetValue(tipAct, out var renamed)) tipAct = renamed;
+
+        if (!TipActRules.TryGetValue(tipAct, out var rules))
             return BadRequest("Selecteaza tipul actului de identitate");
 
         if (!request.AcceptIntermediere)
@@ -101,7 +115,7 @@ public class AcordController : BaseController
                 Prenume = request.Prenume,
                 Telefon = phone,
                 Email = request.Email,
-                TipAct = request.TipAct,
+                TipAct = tipAct,
                 AgentCode = request.AgentCode,
                 Ip = GetClientIp(),
                 DocumentFront = await ReadUpload(request.DocumentFront!),
