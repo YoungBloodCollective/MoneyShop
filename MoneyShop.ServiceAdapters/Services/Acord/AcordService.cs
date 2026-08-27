@@ -116,7 +116,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             AgentCode = string.IsNullOrWhiteSpace(input.AgentCode) ? null : input.AgentCode.Trim(),
             CreatedIp = input.Ip,
             Status = "documents",
-            RequiresProofOfAddress = true,
+            RequiresProofOfAddress = input.AddressProof != null,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             ExpiresAt = DateTime.UtcNow.AddDays(RetentionDays)
@@ -127,13 +127,21 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         // Documents are stored first and unconditionally — collecting them is the
         // point of the form, and reading them is a convenience on top.
         PersistFile(acord, "id_front", input.DocumentFront.Content, input.DocumentFront.FileName, input.DocumentFront.MimeType);
-        PersistFile(acord, "id_back", input.DocumentBack.Content, input.DocumentBack.FileName, input.DocumentBack.MimeType);
-        PersistFile(acord, "proof_of_address", input.AddressProof.Content, input.AddressProof.FileName, input.AddressProof.MimeType);
-        PersistFile(acord, "signature", input.SignaturePng, "signature.png", "image/png");
-
         acord.HasIdFront = true;
-        acord.HasIdBack = true;
-        acord.HasProofOfAddress = true;
+
+        if (input.DocumentBack != null)
+        {
+            PersistFile(acord, "id_back", input.DocumentBack.Content, input.DocumentBack.FileName, input.DocumentBack.MimeType);
+            acord.HasIdBack = true;
+        }
+
+        if (input.AddressProof != null)
+        {
+            PersistFile(acord, "proof_of_address", input.AddressProof.Content, input.AddressProof.FileName, input.AddressProof.MimeType);
+            acord.HasProofOfAddress = true;
+        }
+
+        PersistFile(acord, "signature", input.SignaturePng, "signature.png", "image/png");
         _context.SaveChanges();
 
         await TryReadDocumentAsync(acord, kycSession, input);
@@ -180,7 +188,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         {
             var ocr = await _externalKyc.SubmitDocumentOcrAsync(
                 kycSession.ProviderTransactionId!, kycSession.Token!,
-                input.DocumentFront.Content, input.DocumentBack.Content);
+                input.DocumentFront.Content, input.DocumentBack?.Content);
 
             if (ocr.OcrData != null)
             {
