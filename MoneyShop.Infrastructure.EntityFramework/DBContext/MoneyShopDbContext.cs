@@ -67,6 +67,10 @@ public class MoneyShopDbContext : DbContext
     public virtual DbSet<Appointment> Appointments { get; set; }
     public virtual DbSet<PartnerApplication> PartnerApplications { get; set; }
 
+    // Acord Clienti (public consent + document collection)
+    public virtual DbSet<AcordClient> AcordClients { get; set; }
+
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Roluri>(entity =>
@@ -560,6 +564,46 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.ExpiresAt).HasColumnType("datetime2");
             entity.HasIndex(e => e.SessionKey).IsUnique();
             entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.ExpiresAt);
+        });
+
+        // Acord Client Configuration
+        modelBuilder.Entity<AcordClient>(entity =>
+        {
+            entity.HasKey(e => e.AcordId);
+            entity.ToTable("AcordClients");
+
+            entity.Property(e => e.Token).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Nume).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Prenume).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Telefon).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Email).HasMaxLength(255);
+            entity.Property(e => e.AgentCode).HasMaxLength(50);
+            entity.Property(e => e.CreatedIp).HasMaxLength(64);
+            entity.Property(e => e.Status).HasMaxLength(30).IsRequired().HasDefaultValue("started");
+            entity.Property(e => e.ReviewNote).HasMaxLength(1000);
+            entity.Property(e => e.ConsentVersion).HasMaxLength(50);
+            entity.Property(e => e.LivenessConfidence).HasColumnType("decimal(5,4)");
+            entity.Property(e => e.FaceMatchConfidence).HasColumnType("decimal(5,4)");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2").HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2").HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.ExpiresAt).HasColumnType("datetime2");
+            entity.Property(e => e.SignedAt).HasColumnType("datetime2");
+            entity.Property(e => e.CompletedAt).HasColumnType("datetime2");
+
+            entity.HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.KycSession)
+                .WithMany()
+                .HasForeignKey(d => d.KycId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.ExpiresAt);
         });
     }
