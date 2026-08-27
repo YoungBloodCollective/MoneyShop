@@ -42,11 +42,15 @@ if (builder.Environment.IsDevelopment())
 
     builder.WebHost.UseUrls(urls.ToArray());
 
-    builder.WebHost.ConfigureKestrel(options =>
-    {
-        options.Limits.MaxRequestBodySize = 20_000_000; // 20MB
-    });
 }
+
+// ── Request body size ──
+// Three 10MB uploads plus a signature exceed the 30MB framework default, so the
+// cap is raised for every environment rather than only in development.
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 40_000_000; // 40MB
+});
 
 // ── Serilog Logging ──
 builder.Host.ConfigureSerilogLogging(builder.Configuration);
@@ -64,11 +68,11 @@ builder.Services.Configure<FormOptions>(options =>
 {
     options.ValueLengthLimit = int.MaxValue;
     options.KeyLengthLimit = int.MaxValue;
-    options.MultipartBodyLengthLimit = 20_000_000;
+    options.MultipartBodyLengthLimit = 40_000_000;
     options.MultipartBoundaryLengthLimit = int.MaxValue;
     options.MultipartHeadersLengthLimit = int.MaxValue;
     options.MultipartHeadersCountLimit = int.MaxValue;
-    options.BufferBodyLengthLimit = 20_000_000;
+    options.BufferBodyLengthLimit = 40_000_000;
     options.BufferBody = true;
     options.MemoryBufferThreshold = int.MaxValue;
 });
