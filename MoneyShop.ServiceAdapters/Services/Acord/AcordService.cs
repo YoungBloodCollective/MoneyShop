@@ -535,7 +535,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             CompletedAt = acord.CompletedAt,
             ExpiresAt = acord.ExpiresAt,
             CnpMasked = kycSession?.Cnp,
-            Address = kycSession?.Address
+            Address = kycSession?.Address,
+            AutomaticChecksRan = !string.IsNullOrEmpty(kycSession?.ProviderTransactionId)
         };
 
         if (acord.ConsentId.HasValue)

@@ -125,6 +125,7 @@ export interface AcordDetails {
   expiresAt: string;
   cnpMasked?: string;
   address?: string;
+  automaticChecksRan: boolean;
   consentVersion?: string;
   consentTextSnapshot?: string;
   consentIp?: string;
