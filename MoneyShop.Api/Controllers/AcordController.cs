@@ -16,7 +16,7 @@ public class AcordController : BaseController
 {
     private static readonly Regex PhonePattern = new(@"^0[0-9]{9}$", RegexOptions.Compiled);
     private static readonly Regex EmailPattern = new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
-    private const long MaxUploadBytes = 5 * 1024 * 1024;
+    private const long MaxUploadBytes = 10 * 1024 * 1024;
 
     private static readonly string[] AllowedMimeTypes =
     {
@@ -24,9 +24,9 @@ public class AcordController : BaseController
     };
 
     /// <summary>
-    /// Which documents each type of ID actually needs. A classic card carries the
-    /// address on it, so it needs both sides and no separate proof; the electronic
-    /// one prints no address, so it needs the front plus a proof of address.
+    /// Which documents each type of ID actually needs. Only the chipped electronic
+    /// card omits the printed address, so that one needs a separate proof; every
+    /// other card carries its address and needs just both sides.
     /// </summary>
     private static readonly Dictionary<string, (bool back, bool proof)> TipActRules = new()
     {
@@ -54,7 +54,7 @@ public class AcordController : BaseController
 
     [HttpPost("submit")]
     [Consumes("multipart/form-data")]
-    [RequestSizeLimit(25_000_000)]
+    [RequestSizeLimit(40_000_000)]
     public async Task<IActionResult> Submit([FromForm] AcordSubmitRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Nume) || request.Nume.Trim().Length < 2)
@@ -195,7 +195,7 @@ public class AcordController : BaseController
             return required ? $"{label} este obligatorie" : null;
 
         if (file.Length > MaxUploadBytes)
-            return $"{label}: fisierul depaseste 5MB";
+            return $"{label}: fisierul depaseste 10MB";
 
         var mime = (file.ContentType ?? string.Empty).ToLowerInvariant();
         if (!AllowedMimeTypes.Contains(mime))

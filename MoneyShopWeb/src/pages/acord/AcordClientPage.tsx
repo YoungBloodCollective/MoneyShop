@@ -9,18 +9,18 @@ import { acordApi, type AcordConsentText } from '@/services/api/acordApi';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { Logo } from '@/components/shared/Logo';
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ACCEPTED = 'image/png,image/jpeg,image/jpg,image/heic,image/heif,application/pdf';
 
 /**
- * Which documents each type of ID needs. A classic card has the address printed
- * on it, so both sides are enough; the electronic one prints no address, so it
- * needs a separate proof instead of the verso.
+ * Which documents each type of ID needs. Only the chipped electronic card omits
+ * the printed address, so that one needs a separate proof of address; every
+ * other card carries its address and needs just both sides.
  */
 const TIP_ACT_OPTIONS = [
   { value: 'buletin', label: 'Buletin', back: true, proof: false },
-  { value: 'buletin_electronic', label: 'Buletin Electronic', back: false, proof: true },
-  { value: 'carte_identitate', label: 'Carte de identitate', back: true, proof: false },
+  { value: 'buletin_electronic', label: 'Carte electronică (cu cip)', back: false, proof: true },
+  { value: 'carte_identitate', label: 'Carte electronică simplă', back: true, proof: false },
 ] as const;
 
 type SlotKey = 'front' | 'back' | 'proof';
@@ -32,17 +32,17 @@ type SlotKey = 'front' | 'back' | 'proof';
 const FALLBACK_CONSENT_OPTIONS = [
   {
     key: 'intermediere',
-    label: 'Sunt de acord cu prelucrarea datelor mele in scopul intermedierii creditului.',
+    label: 'Sunt de acord cu prelucrarea datelor mele în scopul intermedierii creditului.',
     required: true,
   },
   {
     key: 'marketing',
-    label: 'Sunt de acord sa primesc comunicari comerciale si oferte.',
+    label: 'Sunt de acord să primesc comunicări comerciale și oferte.',
     required: false,
   },
   {
     key: 'oug52Waiver',
-    label: 'Solicit inceperea imediata a serviciilor si, in masura permisa de lege, renunt la perioada de asteptare.',
+    label: 'Solicit începerea imediată a serviciilor și, în măsura permisă de lege, renunț la perioada de așteptare.',
     required: false,
   },
 ];
@@ -117,7 +117,7 @@ export default function AcordClientPage() {
     if (!file) return;
 
     if (file.size > MAX_FILE_BYTES) {
-      setError(`${file.name}: fișierul depășește 5MB.`);
+      setError(`${file.name}: fișierul depășește 10MB.`);
       return;
     }
 
@@ -286,7 +286,7 @@ export default function AcordClientPage() {
             })}
           </div>
           <p className="text-[12px] text-light-60 mt-2.5 mb-5">
-            Formate acceptate: PNG, JPG, PDF. Dimensiune max: 5MB / fișier.
+            Formate acceptate: PNG, JPG, PDF. Dimensiune max: 10MB / fișier.
           </p>
 
           <button
