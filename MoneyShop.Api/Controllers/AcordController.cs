@@ -16,9 +16,16 @@ public class AcordController : BaseController
 {
     private static readonly Regex PhonePattern = new(@"^0[0-9]{9}$", RegexOptions.Compiled);
     private static readonly Regex EmailPattern = new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
-    private static readonly string[] AllowedProofMimeTypes =
+    private const long MaxUploadBytes = 5 * 1024 * 1024;
+
+    private static readonly string[] AllowedMimeTypes =
     {
-        "image/jpeg", "image/png", "image/heic", "image/webp", "application/pdf"
+        "image/jpeg", "image/jpg", "image/png", "image/heic", "image/heif", "image/webp", "application/pdf"
+    };
+
+    private static readonly string[] AllowedTipAct =
+    {
+        "buletin", "buletin_electronic", "carte_identitate"
     };
 
     private readonly IAcordService _acordService;
@@ -38,8 +45,10 @@ public class AcordController : BaseController
         return Ok(_acordService.GetConsentText());
     }
 
-    [HttpPost("start")]
-    public async Task<IActionResult> Start([FromBody] AcordStartRequest request)
+    [HttpPost("submit")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(25_000_000)]
+    public async Task<IActionResult> Submit([FromForm] AcordSubmitRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Nume) || request.Nume.Trim().Length < 2)
             return BadRequest("Numele este obligatoriu");
@@ -55,167 +64,70 @@ public class AcordController : BaseController
         if (!string.IsNullOrWhiteSpace(request.Email) && !EmailPattern.IsMatch(request.Email.Trim()))
             return BadRequest("Adresa de email nu este valida");
 
-        try
-        {
-            var result = await _acordService.StartAsync(new AcordStartInput
-            {
-                Nume = request.Nume,
-                Prenume = request.Prenume,
-                Telefon = phone,
-                Email = request.Email,
-                AgentCode = request.AgentCode,
-                Ip = GetClientIp()
-            });
-
-            if (result.RateLimited)
-                return StatusCode(429, new { message = "Prea multe cereri. Incearca din nou mai tarziu." });
-
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error starting acord session");
-            return InternalServerError("Nu s-a putut incepe sesiunea");
-        }
-    }
-
-    [HttpGet("session/{token}")]
-    public IActionResult GetSession(string token)
-    {
-        var session = _acordService.GetByToken(token);
-        if (session == null) return NotFound("Sesiune invalida sau expirata");
-        return Ok(session);
-    }
-
-    [HttpPost("document/{token}")]
-    [Consumes("multipart/form-data")]
-    [RequestSizeLimit(30_000_000)]
-    public async Task<IActionResult> SubmitDocument(string token, [FromForm] AcordDocumentRequest request)
-    {
-        if (request.DocumentFront == null || request.DocumentFront.Length == 0)
-            return BadRequest("Fotografia fetei documentului este obligatorie");
-
-        try
-        {
-            var front = await ReadFile(request.DocumentFront);
-            byte[]? back = null;
-            if (request.DocumentBack != null && request.DocumentBack.Length > 0)
-                back = await ReadFile(request.DocumentBack);
-
-            var result = await _acordService.SubmitDocumentAsync(
-                token,
-                front, request.DocumentFront.ContentType ?? "image/jpeg",
-                back, request.DocumentBack?.ContentType);
-
-            if (!result.Accepted) return NotFound(result.Message ?? "Sesiune invalida sau expirata");
-
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error submitting acord document");
-            return InternalServerError("Nu s-a putut incarca documentul");
-        }
-    }
-
-    [HttpPost("liveness/{token}")]
-    [Consumes("multipart/form-data")]
-    [RequestSizeLimit(10_000_000)]
-    public async Task<IActionResult> SubmitLiveness(string token, [FromForm] AcordSelfieRequest request)
-    {
-        if (request.Selfie == null || request.Selfie.Length == 0)
-            return BadRequest("Selfie-ul este obligatoriu");
-
-        try
-        {
-            var selfie = await ReadFile(request.Selfie);
-            var result = await _acordService.SubmitLivenessAsync(
-                token, selfie, request.Selfie.ContentType ?? "image/jpeg");
-
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error submitting acord liveness");
-            return InternalServerError("Nu s-a putut procesa verificarea faciala");
-        }
-    }
-
-    [HttpPost("address-proof/{token}")]
-    [Consumes("multipart/form-data")]
-    [RequestSizeLimit(15_000_000)]
-    public async Task<IActionResult> SubmitAddressProof(string token, [FromForm] AcordAddressProofRequest request)
-    {
-        if (request.File == null || request.File.Length == 0)
-            return BadRequest("Fisierul este obligatoriu");
-
-        var mimeType = request.File.ContentType ?? "application/octet-stream";
-        if (!AllowedProofMimeTypes.Contains(mimeType))
-            return BadRequest("Format acceptat: JPG, PNG, HEIC, WEBP sau PDF");
-
-        try
-        {
-            var content = await ReadFile(request.File);
-            var ok = await _acordService.SubmitProofOfAddressAsync(
-                token, content, SanitiseFileName(request.File.FileName), mimeType);
-
-            if (!ok) return NotFound("Sesiune invalida sau expirata");
-
-            return Ok(new { success = true });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error submitting acord address proof");
-            return InternalServerError("Nu s-a putut incarca dovada de adresa");
-        }
-    }
-
-    [HttpPost("sign/{token}")]
-    [RequestSizeLimit(5_000_000)]
-    public async Task<IActionResult> Sign(string token, [FromBody] AcordSignRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.SignatureDataUri))
-            return BadRequest("Semnatura este obligatorie");
+        if (string.IsNullOrWhiteSpace(request.TipAct) || !AllowedTipAct.Contains(request.TipAct))
+            return BadRequest("Selecteaza tipul actului de identitate");
 
         if (!request.AcceptIntermediere)
             return BadRequest("Acordul pentru prelucrarea datelor este obligatoriu");
 
+        var front = ValidateUpload(request.DocumentFront, "Poza fata a actului");
+        if (front.error != null) return BadRequest(front.error);
+
+        var back = ValidateUpload(request.DocumentBack, "Poza spate a actului");
+        if (back.error != null) return BadRequest(back.error);
+
+        var proof = ValidateUpload(request.AddressProof, "Dovada de adresa");
+        if (proof.error != null) return BadRequest(proof.error);
+
+        if (string.IsNullOrWhiteSpace(request.SignatureDataUri))
+            return BadRequest("Semnatura este obligatorie");
+
         byte[] signature;
-        try
-        {
-            signature = DecodeDataUri(request.SignatureDataUri);
-        }
-        catch
-        {
-            return BadRequest("Semnatura nu a putut fi procesata");
-        }
+        try { signature = DecodeDataUri(request.SignatureDataUri); }
+        catch { return BadRequest("Semnatura nu a putut fi procesata"); }
 
         if (signature.Length == 0) return BadRequest("Semnatura este goala");
 
         try
         {
-            var choices = new AcordSignChoices
+            var result = await _acordService.SubmitAsync(new AcordSubmitInput
             {
-                AcceptIntermediere = request.AcceptIntermediere,
-                AcceptMarketing = request.AcceptMarketing,
-                WaiveOug52 = request.WaiveOug52
-            };
-
-            var result = await _acordService.SignAsync(token, signature, choices, new AcordSignContext
+                Nume = request.Nume,
+                Prenume = request.Prenume,
+                Telefon = phone,
+                Email = request.Email,
+                TipAct = request.TipAct,
+                AgentCode = request.AgentCode,
+                Ip = GetClientIp(),
+                DocumentFront = await ReadUpload(request.DocumentFront!),
+                DocumentBack = await ReadUpload(request.DocumentBack!),
+                AddressProof = await ReadUpload(request.AddressProof!),
+                SignaturePng = signature,
+                Choices = new AcordSignChoices
+                {
+                    AcceptIntermediere = request.AcceptIntermediere,
+                    AcceptMarketing = request.AcceptMarketing,
+                    WaiveOug52 = request.WaiveOug52
+                }
+            }, new AcordSignContext
             {
                 Ip = GetClientIp(),
                 UserAgent = Request.Headers.UserAgent.ToString(),
                 SourceChannel = "web"
             });
 
-            if (!result.Success) return BadRequest(result.Message ?? "Semnarea nu a reusit");
+            if (result.RateLimited)
+                return StatusCode(429, new { message = "Prea multe cereri. Incearca din nou mai tarziu." });
 
-            return Ok(result);
+            if (!result.Success)
+                return BadRequest(result.Message ?? "Trimiterea nu a reusit");
+
+            return Ok(new { success = true, acordId = result.AcordId });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error signing acord");
-            return InternalServerError("Nu s-a putut salva acordul");
+            _logger.LogError(ex, "Error submitting acord");
+            return InternalServerError("Nu am putut trimite formularul. Incearca din nou.");
         }
     }
 
@@ -270,17 +182,43 @@ public class AcordController : BaseController
         return HttpContext.Connection.RemoteIpAddress?.ToString();
     }
 
-    private static async Task<byte[]> ReadFile(IFormFile file)
+    private static (string? error, IFormFile? file) ValidateUpload(IFormFile? file, string label)
+    {
+        if (file == null || file.Length == 0)
+            return ($"{label} este obligatorie", null);
+
+        if (file.Length > MaxUploadBytes)
+            return ($"{label}: fisierul depaseste 5MB", null);
+
+        var mime = (file.ContentType ?? string.Empty).ToLowerInvariant();
+        if (!AllowedMimeTypes.Contains(mime))
+            return ($"{label}: format acceptat PNG, JPG sau PDF", null);
+
+        return (null, file);
+    }
+
+    private static async Task<AcordUpload> ReadUpload(IFormFile file)
     {
         using var ms = new MemoryStream();
         await file.CopyToAsync(ms);
-        return ms.ToArray();
+
+        return new AcordUpload
+        {
+            Content = ms.ToArray(),
+            FileName = SanitiseFileName(file.FileName),
+            MimeType = file.ContentType ?? "application/octet-stream"
+        };
     }
 
     private static byte[] DecodeDataUri(string dataUri)
     {
         var commaIndex = dataUri.IndexOf(',');
         var payload = commaIndex >= 0 ? dataUri.Substring(commaIndex + 1) : dataUri;
+
+        // Some clients wrap or pad the value in transit; base64 itself never
+        // contains whitespace, so stripping it is safe.
+        payload = new string(payload.Where(c => !char.IsWhiteSpace(c)).ToArray());
+
         return Convert.FromBase64String(payload);
     }
 
@@ -298,33 +236,19 @@ public class AcordController : BaseController
 
 // ── Request models ──
 
-public class AcordStartRequest
+public class AcordSubmitRequest
 {
     public string Nume { get; set; } = null!;
     public string Prenume { get; set; } = null!;
     public string Telefon { get; set; } = null!;
     public string? Email { get; set; }
+    public string? TipAct { get; set; }
     public string? AgentCode { get; set; }
-}
 
-public class AcordDocumentRequest
-{
     public IFormFile? DocumentFront { get; set; }
     public IFormFile? DocumentBack { get; set; }
-}
+    public IFormFile? AddressProof { get; set; }
 
-public class AcordSelfieRequest
-{
-    public IFormFile? Selfie { get; set; }
-}
-
-public class AcordAddressProofRequest
-{
-    public IFormFile? File { get; set; }
-}
-
-public class AcordSignRequest
-{
     public string SignatureDataUri { get; set; } = null!;
     public bool AcceptIntermediere { get; set; }
     public bool AcceptMarketing { get; set; }

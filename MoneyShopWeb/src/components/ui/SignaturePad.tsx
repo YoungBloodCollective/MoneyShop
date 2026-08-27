@@ -113,7 +113,7 @@ export function SignaturePad({ onChange, disabled = false, height = 180 }: Signa
         />
         {!hasInk && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="text-gray-400 text-sm">Semneaza aici cu degetul sau cu mouse-ul</p>
+            <p className="text-gray-400 text-sm">Semnează aici cu degetul sau cu mouse-ul</p>
           </div>
         )}
       </div>
@@ -124,7 +124,7 @@ export function SignaturePad({ onChange, disabled = false, height = 180 }: Signa
         disabled={disabled || !hasInk}
         className="flex items-center gap-2 -mx-2 px-3 py-2.5 min-h-[44px] rounded-xl text-sm text-light-60 hover:text-light-90 hover:bg-dark-800 active:bg-dark-600 disabled:opacity-40 disabled:cursor-not-allowed transition"
       >
-        <Eraser size={16} /> Sterge semnatura
+        <Eraser size={16} /> Șterge semnătura
       </button>
     </div>
   );

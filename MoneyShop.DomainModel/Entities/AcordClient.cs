@@ -20,6 +20,7 @@ namespace MoneyShop.DomainModel.Entities
 
         public string Status { get; set; } = "started"; // started, documents, signed, completed, rejected
 
+        public string? TipAct { get; set; }
         public bool? IdIsNewFormat { get; set; }
         public string? OcrDataJson { get; set; }
         public bool RequiresProofOfAddress { get; set; }
