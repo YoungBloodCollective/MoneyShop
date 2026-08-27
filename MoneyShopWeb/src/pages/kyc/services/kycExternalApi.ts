@@ -7,7 +7,7 @@ import type {
   ActiveLivenessResult,
 } from "../types";
 
-const KYC_API_URL = import.meta.env.VITE_KYC_API_URL || "https://kycybc.azurewebsites.net";
+const KYC_API_URL = import.meta.env.VITE_KYC_API_URL || "https://kycybc-2.azurewebsites.net";
 const KYC_API_KEY = import.meta.env.VITE_KYC_API_KEY || "sk-kyc-843f3b01411dfd5aebd393a45b793f7ae9b75c30d0b77333";
 
 const kycApi = axios.create({
