@@ -9,12 +9,11 @@ namespace MoneyShop.ServiceInterface.Interfaces.Acord;
 /// </summary>
 public interface IAcordService
 {
-    Task<AcordStartResult> StartAsync(AcordStartInput input);
-    AcordSessionView? GetByToken(string token);
-    Task<AcordDocumentResult> SubmitDocumentAsync(string token, byte[] front, string frontMime, byte[]? back, string? backMime);
-    Task<AcordLivenessResult> SubmitLivenessAsync(string token, byte[] selfie, string selfieMime);
-    Task<bool> SubmitProofOfAddressAsync(string token, byte[] content, string fileName, string mimeType);
-    Task<AcordSignResult> SignAsync(string token, byte[] signaturePng, AcordSignChoices choices, AcordSignContext context);
+    /// <summary>
+    /// Handles the whole form in one call: identify the client, store the three
+    /// documents, read the ID, record the consents and the signature.
+    /// </summary>
+    Task<AcordSubmitResult> SubmitAsync(AcordSubmitInput input, AcordSignContext context);
 
     AcordConsentText GetConsentText();
 
@@ -29,6 +28,39 @@ public interface IAcordService
 }
 
 // ── Inputs ──
+
+public class AcordUpload
+{
+    public byte[] Content { get; set; } = null!;
+    public string FileName { get; set; } = null!;
+    public string MimeType { get; set; } = null!;
+}
+
+public class AcordSubmitInput
+{
+    public string Nume { get; set; } = null!;
+    public string Prenume { get; set; } = null!;
+    public string Telefon { get; set; } = null!;
+    public string? Email { get; set; }
+    public string? TipAct { get; set; }
+    public string? AgentCode { get; set; }
+    public string? Ip { get; set; }
+
+    public AcordUpload DocumentFront { get; set; } = null!;
+    public AcordUpload DocumentBack { get; set; } = null!;
+    public AcordUpload AddressProof { get; set; } = null!;
+
+    public byte[] SignaturePng { get; set; } = null!;
+    public AcordSignChoices Choices { get; set; } = new();
+}
+
+public class AcordSubmitResult
+{
+    public bool Success { get; set; }
+    public Guid? AcordId { get; set; }
+    public bool RateLimited { get; set; }
+    public string? Message { get; set; }
+}
 
 public class AcordStartInput
 {
@@ -157,6 +189,7 @@ public class AcordDetails
     public string Telefon { get; set; } = null!;
     public string? Email { get; set; }
     public string? AgentCode { get; set; }
+    public string? TipAct { get; set; }
     public string Status { get; set; } = null!;
     public bool? IdIsNewFormat { get; set; }
     public bool? LivenessPassed { get; set; }

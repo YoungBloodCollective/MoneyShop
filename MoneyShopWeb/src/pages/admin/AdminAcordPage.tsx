@@ -15,6 +15,12 @@ const FILE_LABELS: Record<string, string> = {
   signature: 'Semnatura',
 };
 
+const TIP_ACT_LABELS: Record<string, string> = {
+  buletin: 'Buletin',
+  buletin_electronic: 'Buletin Electronic',
+  carte_identitate: 'Carte de identitate',
+};
+
 const STATUS_LABELS: Record<string, string> = {
   started: 'Inceput',
   documents: 'Documente incarcate',
@@ -204,7 +210,13 @@ export default function AdminAcordPage() {
           <StatusBadge status={selected.status} />
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-3 mb-6">
+        <div className="grid sm:grid-cols-4 gap-3 mb-6">
+          <div className="bg-dark-700 rounded-2xl p-4">
+            <p className="text-xs text-light-50 mb-1">Tip act declarat</p>
+            <p className="text-sm font-medium text-light-90">
+              {selected.tipAct ? (TIP_ACT_LABELS[selected.tipAct] ?? selected.tipAct) : '—'}
+            </p>
+          </div>
           <div className="bg-dark-700 rounded-2xl p-4">
             <p className="text-xs text-light-50 mb-1">Semnatura</p>
             <p className="text-sm font-medium text-light-90 flex items-center gap-1.5">

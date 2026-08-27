@@ -75,44 +75,22 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
 
     // ── Public flow ──
 
-    public Task<AcordStartResult> StartAsync(AcordStartInput input)
+    public async Task<AcordSubmitResult> SubmitAsync(AcordSubmitInput input, AcordSignContext context)
     {
         var telefon = NormalisePhone(input.Telefon);
         var email = string.IsNullOrWhiteSpace(input.Email) ? null : input.Email.Trim().ToLowerInvariant();
 
         if (IsIpRateLimited(input.Ip, telefon))
         {
-            _logger.LogWarning("Acord start rate limited for ip {Ip}", input.Ip);
-            return Task.FromResult(new AcordStartResult { RateLimited = true });
+            _logger.LogWarning("Acord submission rate limited for ip {Ip}", input.Ip);
+            return new AcordSubmitResult { Success = false, RateLimited = true };
         }
+
+        if (!input.Choices.AcceptIntermediere)
+            return new AcordSubmitResult { Success = false, Message = "Acordul pentru prelucrarea datelor este obligatoriu" };
 
         var user = FindOrCreateUser(input.Nume.Trim(), input.Prenume.Trim(), telefon, email);
 
-        var existing = _acordRepository.Get()
-            .Where(a => a.UserId == user.IdUtilizator
-                        && a.Status != "completed"
-                        && a.Status != "rejected"
-                        && a.ExpiresAt > DateTime.UtcNow)
-            .OrderByDescending(a => a.CreatedAt)
-            .FirstOrDefault();
-
-        if (existing != null)
-        {
-            return Task.FromResult(new AcordStartResult
-            {
-                AcordId = existing.AcordId,
-                Token = existing.Token,
-                ExpiresAt = existing.ExpiresAt,
-                IsResumed = true
-            });
-        }
-
-        var expiresAt = DateTime.UtcNow.AddHours(LinkValidityHours);
-        var token = GenerateToken();
-
-        // The external KYC session is created lazily, on first document upload.
-        // Doing it here made the client wait on a cold-start HTTP round-trip
-        // immediately after filling in their name.
         var kycSession = new KycSession
         {
             KycId = Guid.NewGuid(),
@@ -120,9 +98,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             KycType = "ACORD_CLIENT",
             Status = "pending",
             CreatedAt = DateTime.UtcNow,
-            ExpiresAt = expiresAt,
-            ProviderTransactionId = null,
-            Token = null
+            ExpiresAt = DateTime.UtcNow.AddDays(RetentionDays)
         };
         _kycSessionRepository.Insert(kycSession);
 
@@ -131,251 +107,91 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             AcordId = Guid.NewGuid(),
             UserId = user.IdUtilizator,
             KycId = kycSession.KycId,
-            Token = token,
+            Token = GenerateToken(),
             Nume = input.Nume.Trim(),
             Prenume = input.Prenume.Trim(),
             Telefon = telefon,
             Email = email,
+            TipAct = input.TipAct,
             AgentCode = string.IsNullOrWhiteSpace(input.AgentCode) ? null : input.AgentCode.Trim(),
             CreatedIp = input.Ip,
-            Status = "started",
+            Status = "documents",
+            RequiresProofOfAddress = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            ExpiresAt = expiresAt
+            ExpiresAt = DateTime.UtcNow.AddDays(RetentionDays)
         };
         _acordRepository.Insert(acord);
         _context.SaveChanges();
 
-        _logger.LogInformation("Acord session started {AcordId} for user {UserId}", acord.AcordId, user.IdUtilizator);
+        // Documents are stored first and unconditionally — collecting them is the
+        // point of the form, and reading them is a convenience on top.
+        PersistFile(acord, "id_front", input.DocumentFront.Content, input.DocumentFront.FileName, input.DocumentFront.MimeType);
+        PersistFile(acord, "id_back", input.DocumentBack.Content, input.DocumentBack.FileName, input.DocumentBack.MimeType);
+        PersistFile(acord, "proof_of_address", input.AddressProof.Content, input.AddressProof.FileName, input.AddressProof.MimeType);
+        PersistFile(acord, "signature", input.SignaturePng, "signature.png", "image/png");
 
-        return Task.FromResult(new AcordStartResult
-        {
-            AcordId = acord.AcordId,
-            Token = token,
-            ExpiresAt = expiresAt,
-            IsResumed = false
-        });
-    }
-
-    /// <summary>
-    /// Creates the external KYC session on demand. Returns false when the
-    /// service is unreachable, in which case the flow continues collecting
-    /// documents without automatic checks.
-    /// </summary>
-    private async Task<bool> EnsureProviderSessionAsync(KycSession kycSession)
-    {
-        if (!string.IsNullOrEmpty(kycSession.ProviderTransactionId)) return true;
-
-        try
-        {
-            var externalSession = await _externalKyc.CreateSessionAsync();
-            kycSession.ProviderTransactionId = externalSession.SessionId;
-            kycSession.Token = externalSession.Token;
-            _context.SaveChanges();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Could not create external KYC session; continuing in upload-only mode");
-            return false;
-        }
-    }
-
-    public AcordSessionView? GetByToken(string token)
-    {
-        var acord = FindByToken(token);
-        if (acord == null) return null;
-
-        return new AcordSessionView
-        {
-            AcordId = acord.AcordId,
-            Nume = acord.Nume,
-            Prenume = acord.Prenume,
-            Status = acord.Status,
-            HasIdFront = acord.HasIdFront,
-            HasIdBack = acord.HasIdBack,
-            HasSelfie = acord.HasSelfie,
-            HasProofOfAddress = acord.HasProofOfAddress,
-            RequiresProofOfAddress = acord.RequiresProofOfAddress,
-            IsSigned = acord.SignedAt.HasValue,
-            ExpiresAt = acord.ExpiresAt
-        };
-    }
-
-    public async Task<AcordDocumentResult> SubmitDocumentAsync(string token, byte[] front, string frontMime, byte[]? back, string? backMime)
-    {
-        var acord = FindByToken(token);
-        if (acord == null)
-            return new AcordDocumentResult { Accepted = false, Message = "Sesiune invalida sau expirata" };
-
-        // The images are persisted first and unconditionally. Collecting the document is the
-        // primary purpose of this flow; OCR is a convenience on top of it.
-        PersistFile(acord, "id_front", front, "id-front.jpg", frontMime);
         acord.HasIdFront = true;
-
-        if (back != null && back.Length > 0)
-        {
-            PersistFile(acord, "id_back", back, "id-back.jpg", backMime ?? "image/jpeg");
-            acord.HasIdBack = true;
-        }
-
-        var result = new AcordDocumentResult { Accepted = true };
-
-        var kycSession = GetKycSession(acord);
-        if (kycSession != null && await EnsureProviderSessionAsync(kycSession))
-        {
-            try
-            {
-                var ocr = await _externalKyc.SubmitDocumentOcrAsync(
-                    kycSession.ProviderTransactionId!, kycSession.Token!, front, back);
-
-                result.OcrData = ocr.OcrData;
-                result.Validation = ocr.LogicValidation;
-
-                if (ocr.OcrData != null)
-                {
-                    acord.IdIsNewFormat = ocr.OcrData.IsNewFormat;
-                    result.IsNewFormat = ocr.OcrData.IsNewFormat;
-
-                    // A new-type Romanian ID does not print the holder's address, so OCR
-                    // returns an empty address field. That is the dependable signal - the
-                    // format flag alone can be wrong.
-                    acord.RequiresProofOfAddress =
-                        ocr.OcrData.IsNewFormat || string.IsNullOrWhiteSpace(ocr.OcrData.Address);
-
-                    StoreIdentityData(acord, kycSession, ocr.OcrData, ocr.LogicValidation);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "OCR failed for acord {AcordId}; document kept", acord.AcordId);
-                result.Message = "Documentul a fost salvat, dar citirea automata nu a reusit.";
-            }
-        }
-
-        acord.Status = "documents";
-        acord.UpdatedAt = DateTime.UtcNow;
-        _context.SaveChanges();
-
-        result.RequiresProofOfAddress = acord.RequiresProofOfAddress;
-        return result;
-    }
-
-    public async Task<AcordLivenessResult> SubmitLivenessAsync(string token, byte[] selfie, string selfieMime)
-    {
-        var acord = FindByToken(token);
-        if (acord == null)
-            return new AcordLivenessResult { Passed = false, Message = "Sesiune invalida sau expirata" };
-
-        PersistFile(acord, "selfie", selfie, "selfie.jpg", selfieMime);
-        acord.HasSelfie = true;
-
-        var outcome = new AcordLivenessResult { Passed = true };
-
-        var kycSession = GetKycSession(acord);
-        if (kycSession != null && await EnsureProviderSessionAsync(kycSession))
-        {
-            try
-            {
-                var liveness = await _externalKyc.SubmitLivenessAsync(
-                    kycSession.ProviderTransactionId!, kycSession.Token!, selfie);
-
-                acord.LivenessPassed = liveness.LivenessDetected;
-                acord.LivenessConfidence = liveness.Confidence;
-                outcome.Passed = liveness.LivenessDetected;
-                outcome.Confidence = liveness.Confidence;
-
-                await TryFaceCompareAsync(acord, kycSession, selfie);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Liveness failed for acord {AcordId}; selfie kept", acord.AcordId);
-                outcome.Message = "Verificarea faciala nu a putut fi finalizata.";
-            }
-        }
-
-        acord.UpdatedAt = DateTime.UtcNow;
-        _context.SaveChanges();
-
-        // Liveness never blocks the flow - the result is recorded for the operator to review.
-        return outcome;
-    }
-
-    public Task<bool> SubmitProofOfAddressAsync(string token, byte[] content, string fileName, string mimeType)
-    {
-        var acord = FindByToken(token);
-        if (acord == null) return Task.FromResult(false);
-
-        PersistFile(acord, "proof_of_address", content, fileName, mimeType);
+        acord.HasIdBack = true;
         acord.HasProofOfAddress = true;
-        acord.UpdatedAt = DateTime.UtcNow;
         _context.SaveChanges();
 
-        return Task.FromResult(true);
-    }
-
-    public Task<AcordSignResult> SignAsync(string token, byte[] signaturePng, AcordSignChoices choices, AcordSignContext context)
-    {
-        var acord = FindByToken(token);
-        if (acord == null)
-            return Task.FromResult(new AcordSignResult { Success = false, Message = "Sesiune invalida sau expirata" });
-
-        if (!choices.AcceptIntermediere)
-            return Task.FromResult(new AcordSignResult { Success = false, Message = "Acordul pentru prelucrarea datelor este obligatoriu" });
-
-        if (!acord.HasIdFront)
-            return Task.FromResult(new AcordSignResult { Success = false, Message = "Incarca mai intai actul de identitate" });
-
-        if (acord.RequiresProofOfAddress && !acord.HasProofOfAddress)
-            return Task.FromResult(new AcordSignResult { Success = false, Message = "Dovada de adresa este obligatorie pentru actul de identitate incarcat" });
-
-        if (acord.SignedAt.HasValue)
-            return Task.FromResult(new AcordSignResult { Success = true, ConsentId = acord.ConsentId, SignedAt = acord.SignedAt });
+        await TryReadDocumentAsync(acord, kycSession, input);
 
         var consentText = GetConsentText();
         var legalDoc = GetOrCreateLegalDoc(consentText);
 
-        PersistFile(acord, "signature", signaturePng, "signature.png", "image/png");
-
-        // Each opt-in is recorded as its own consent. Marketing and the OUG 52/2016
-        // waiver are optional, so bundling them into one record would make none of
-        // them a freely given consent.
         var primary = RecordConsent(acord, legalDoc, consentText, "ACORD_INTERMEDIERE", context);
-
-        if (choices.AcceptMarketing)
+        if (input.Choices.AcceptMarketing)
             RecordConsent(acord, legalDoc, consentText, "ACORD_MARKETING", context);
-
-        if (choices.WaiveOug52)
+        if (input.Choices.WaiveOug52)
             RecordConsent(acord, legalDoc, consentText, "ACORD_OUG52_WAIVER", context);
 
         acord.ConsentId = primary.ConsentId;
         acord.ConsentVersion = consentText.Version;
-        acord.MarketingAccepted = choices.AcceptMarketing;
-        acord.Oug52Waived = choices.WaiveOug52;
+        acord.MarketingAccepted = input.Choices.AcceptMarketing;
+        acord.Oug52Waived = input.Choices.WaiveOug52;
         acord.SignedAt = DateTime.UtcNow;
         acord.CompletedAt = DateTime.UtcNow;
         acord.Status = "completed";
         acord.UpdatedAt = DateTime.UtcNow;
 
-        var kycSession = GetKycSession(acord);
-        if (kycSession != null)
-        {
-            kycSession.Status = "verified";
-            kycSession.VerifiedAt = DateTime.UtcNow;
-        }
+        kycSession.Status = "verified";
+        kycSession.VerifiedAt = DateTime.UtcNow;
 
         _context.SaveChanges();
 
         _logger.LogInformation(
-            "Acord {AcordId} signed by user {UserId} (marketing: {Marketing}, oug52 waiver: {Waiver})",
-            acord.AcordId, acord.UserId, choices.AcceptMarketing, choices.WaiveOug52);
+            "Acord {AcordId} submitted for user {UserId} (marketing: {Marketing}, oug52: {Waiver})",
+            acord.AcordId, acord.UserId, input.Choices.AcceptMarketing, input.Choices.WaiveOug52);
 
-        return Task.FromResult(new AcordSignResult
+        return new AcordSubmitResult { Success = true, AcordId = acord.AcordId };
+    }
+
+    /// <summary>
+    /// Reads the document if the KYC service is reachable. A failure here never
+    /// fails the submission — the documents are already stored.
+    /// </summary>
+    private async Task TryReadDocumentAsync(AcordClient acord, KycSession kycSession, AcordSubmitInput input)
+    {
+        if (!await EnsureProviderSessionAsync(kycSession)) return;
+
+        try
         {
-            Success = true,
-            ConsentId = primary.ConsentId,
-            SignedAt = acord.SignedAt
-        });
+            var ocr = await _externalKyc.SubmitDocumentOcrAsync(
+                kycSession.ProviderTransactionId!, kycSession.Token!,
+                input.DocumentFront.Content, input.DocumentBack.Content);
+
+            if (ocr.OcrData != null)
+            {
+                acord.IdIsNewFormat = ocr.OcrData.IsNewFormat;
+                StoreIdentityData(acord, kycSession, ocr.OcrData, ocr.LogicValidation);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not read document for acord {AcordId}; documents kept", acord.AcordId);
+        }
     }
 
     private ConsentEntity RecordConsent(AcordClient acord, LegalDoc legalDoc, AcordConsentText text, string consentType, AcordSignContext context)
@@ -398,6 +214,25 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         return consent;
     }
 
+    private async Task<bool> EnsureProviderSessionAsync(KycSession kycSession)
+    {
+        if (!string.IsNullOrEmpty(kycSession.ProviderTransactionId)) return true;
+
+        try
+        {
+            var externalSession = await _externalKyc.CreateSessionAsync();
+            kycSession.ProviderTransactionId = externalSession.SessionId;
+            kycSession.Token = externalSession.Token;
+            _context.SaveChanges();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not create external KYC session; continuing without automatic checks");
+            return false;
+        }
+    }
+
     public AcordConsentText GetConsentText()
     {
         var version = _configuration["Acord:ConsentVersion"];
@@ -407,7 +242,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         return new AcordConsentText
         {
             Version = string.IsNullOrWhiteSpace(version) ? "0.0-placeholder" : version,
-            Title = string.IsNullOrWhiteSpace(title) ? "Acord privind prelucrarea datelor" : title,
+            Title = string.IsNullOrWhiteSpace(title) ? "Informații GDPR și Intermediere credit" : title,
             Body = body,
             IsPlaceholder = isPlaceholder,
             Options = BuildOptions()
@@ -453,22 +288,22 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         new AcordConsentOption
         {
             Key = "intermediere",
-            Label = "Sunt de acord cu prelucrarea datelor mele in scopul intermedierii creditului.",
-            Hint = "Fara acest acord, cererea nu poate fi analizata si transmisa.",
+            Label = "Sunt de acord cu prelucrarea datelor mele în scopul intermedierii creditului.",
+            Hint = "Fără acest acord, cererea nu poate fi analizată și transmisă.",
             Required = true
         },
         new AcordConsentOption
         {
             Key = "marketing",
-            Label = "Sunt de acord sa primesc comunicari comerciale si oferte.",
-            Hint = "Optional. Refuzul nu afecteaza serviciile de intermediere.",
+            Label = "Sunt de acord să primesc comunicări comerciale și oferte.",
+            Hint = "Opțional. Refuzul nu afectează serviciile de intermediere.",
             Required = false
         },
         new AcordConsentOption
         {
             Key = "oug52Waiver",
-            Label = "Solicit inceperea imediata a serviciilor si, in masura permisa de lege, renunt la perioada de asteptare.",
-            Hint = "Optional, conform OUG nr. 52/2016.",
+            Label = "Solicit începerea imediată a serviciilor și, în măsura permisă de lege, renunț la perioada de așteptare.",
+            Hint = "Opțional, conform OUG nr. 52/2016.",
             Required = false
         }
     };
@@ -536,6 +371,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             Telefon = acord.Telefon,
             Email = acord.Email,
             AgentCode = acord.AgentCode,
+            TipAct = acord.TipAct,
             Status = acord.Status,
             IdIsNewFormat = acord.IdIsNewFormat,
             LivenessPassed = acord.LivenessPassed,

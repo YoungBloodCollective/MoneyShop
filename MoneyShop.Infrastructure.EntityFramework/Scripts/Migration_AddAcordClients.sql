@@ -23,6 +23,7 @@ BEGIN
 
         Status                NVARCHAR(30) NOT NULL DEFAULT 'started',
 
+        TipAct                NVARCHAR(40) NULL,
         IdIsNewFormat         BIT NULL,
         OcrDataJson           NVARCHAR(MAX) NULL,
         RequiresProofOfAddress BIT NOT NULL DEFAULT 0,
@@ -79,5 +80,12 @@ IF OBJECT_ID('dbo.AcordClients','U') IS NOT NULL
 BEGIN
     ALTER TABLE dbo.AcordClients ADD OcrDataJson NVARCHAR(MAX) NULL;
     PRINT 'Added column AcordClients.OcrDataJson';
+END
+
+IF OBJECT_ID('dbo.AcordClients','U') IS NOT NULL
+   AND COL_LENGTH('dbo.AcordClients','TipAct') IS NULL
+BEGIN
+    ALTER TABLE dbo.AcordClients ADD TipAct NVARCHAR(40) NULL;
+    PRINT 'Added column AcordClients.TipAct';
 END
 GO

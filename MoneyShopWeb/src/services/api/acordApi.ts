@@ -23,54 +23,25 @@ export interface AcordSignChoices {
   waiveOug52: boolean;
 }
 
-export interface AcordStartResult {
-  acordId: string;
-  token: string;
-  expiresAt: string;
-  isResumed: boolean;
-}
-
-export interface AcordSession {
-  acordId: string;
+export interface AcordSubmitPayload {
   nume: string;
   prenume: string;
-  status: string;
-  hasIdFront: boolean;
-  hasIdBack: boolean;
-  hasSelfie: boolean;
-  hasProofOfAddress: boolean;
-  requiresProofOfAddress: boolean;
-  isSigned: boolean;
-  expiresAt: string;
+  telefon: string;
+  email?: string;
+  tipAct: string;
+  agentCode?: string;
+  documentFront: File;
+  documentBack: File;
+  addressProof: File;
+  signatureDataUri: string;
+  acceptIntermediere: boolean;
+  acceptMarketing: boolean;
+  waiveOug52: boolean;
 }
 
-export interface AcordOcrData {
-  lastName?: string;
-  firstName?: string;
-  expiryDate?: string;
-  address?: string;
-  isNewFormat: boolean;
-}
-
-export interface AcordDocumentResult {
-  accepted: boolean;
-  isNewFormat: boolean;
-  requiresProofOfAddress: boolean;
-  message?: string;
-  ocrData?: AcordOcrData;
-}
-
-export interface AcordLivenessResult {
-  passed: boolean;
-  confidence: number;
-  message?: string;
-}
-
-export interface AcordSignResult {
+export interface AcordSubmitResult {
   success: boolean;
-  consentId?: string;
-  signedAt?: string;
-  message?: string;
+  acordId?: string;
 }
 
 export interface AcordListItem {
@@ -133,6 +104,7 @@ export interface AcordDetails {
   telefon: string;
   email?: string;
   agentCode?: string;
+  tipAct?: string;
   status: string;
   idIsNewFormat?: boolean;
   livenessPassed?: boolean;
@@ -171,35 +143,24 @@ export const acordApi = {
   getConsentText: () =>
     publicClient.get('/acord/consent-text').then(r => unwrap<AcordConsentText>(r.data)),
 
-  start: (payload: { nume: string; prenume: string; telefon: string; email?: string; agentCode?: string }) =>
-    publicClient.post('/acord/start', payload).then(r => unwrap<AcordStartResult>(r.data)),
-
-  getSession: (token: string) =>
-    publicClient.get(`/acord/session/${token}`).then(r => unwrap<AcordSession>(r.data)),
-
-  submitDocument: (token: string, front: Blob, back?: Blob) => {
+  submit: (payload: AcordSubmitPayload) => {
     const fd = new FormData();
-    fd.append('DocumentFront', front, 'front.jpg');
-    if (back) fd.append('DocumentBack', back, 'back.jpg');
-    return publicClient.post(`/acord/document/${token}`, fd).then(r => unwrap<AcordDocumentResult>(r.data));
-  },
+    fd.append('Nume', payload.nume);
+    fd.append('Prenume', payload.prenume);
+    fd.append('Telefon', payload.telefon);
+    if (payload.email) fd.append('Email', payload.email);
+    fd.append('TipAct', payload.tipAct);
+    if (payload.agentCode) fd.append('AgentCode', payload.agentCode);
+    fd.append('DocumentFront', payload.documentFront, payload.documentFront.name);
+    fd.append('DocumentBack', payload.documentBack, payload.documentBack.name);
+    fd.append('AddressProof', payload.addressProof, payload.addressProof.name);
+    fd.append('SignatureDataUri', payload.signatureDataUri);
+    fd.append('AcceptIntermediere', String(payload.acceptIntermediere));
+    fd.append('AcceptMarketing', String(payload.acceptMarketing));
+    fd.append('WaiveOug52', String(payload.waiveOug52));
 
-  submitLiveness: (token: string, selfie: Blob) => {
-    const fd = new FormData();
-    fd.append('Selfie', selfie, 'selfie.jpg');
-    return publicClient.post(`/acord/liveness/${token}`, fd).then(r => unwrap<AcordLivenessResult>(r.data));
+    return publicClient.post('/acord/submit', fd).then(r => unwrap<AcordSubmitResult>(r.data));
   },
-
-  submitAddressProof: (token: string, file: File) => {
-    const fd = new FormData();
-    fd.append('File', file, file.name);
-    return publicClient.post(`/acord/address-proof/${token}`, fd).then(r => unwrap<{ success: boolean }>(r.data));
-  },
-
-  sign: (token: string, signatureDataUri: string, choices: AcordSignChoices) =>
-    publicClient
-      .post(`/acord/sign/${token}`, { signatureDataUri, ...choices })
-      .then(r => unwrap<AcordSignResult>(r.data)),
 
   // ── Admin (JWT) ──
 
