@@ -2,8 +2,9 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Camera, Upload, CheckCircle, XCircle, ArrowRight, ShieldCheck,
-  FileText, X, Loader2, IdCard, Home, UserCircle,
+  FileText, X, Loader2, IdCard, Home, UserCircle, Lock, Clock, Check,
 } from 'lucide-react';
+import { Logo } from '@/components/shared/Logo';
 import axios from 'axios';
 import { acordApi, type AcordConsentText } from '@/services/api/acordApi';
 import { SignaturePad } from '@/components/ui/SignaturePad';
@@ -22,6 +23,15 @@ type Step =
 
 const STEP_ORDER: Step[] = ['form', 'doc_front', 'doc_back', 'selfie', 'address_proof', 'consent'];
 
+const STEP_LABELS: Partial<Record<Step, string>> = {
+  form: 'Datele tale',
+  doc_front: 'Fata buletinului',
+  doc_back: 'Spatele buletinului',
+  selfie: 'O poza cu tine',
+  address_proof: 'Dovada de adresa',
+  consent: 'Acordul tau',
+};
+
 function dataUriToBlob(dataUri: string): Blob {
   const match = dataUri.match(/^data:([^;]+);base64,(.+)$/);
   if (!match) throw new Error('Invalid data URI');
@@ -30,10 +40,31 @@ function dataUriToBlob(dataUri: string): Blob {
 }
 
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children, showTrust = true }: { children: React.ReactNode; showTrust?: boolean }) {
   return (
-    <div className="min-h-screen bg-dark-900 flex flex-col items-center px-4 py-8">
-      <div className="w-full max-w-md">{children}</div>
+    <div className="min-h-screen bg-gradient-to-b from-white via-[#F4F7FF] to-[#EAEFFA] flex flex-col items-center px-4 py-6">
+      <div className="w-full max-w-md flex-1 flex flex-col">
+        <div className="flex justify-center mb-6">
+          <Logo size="md" clickable={false} />
+        </div>
+
+        <div className="flex-1">{children}</div>
+
+        {showTrust && (
+          <div className="flex items-center justify-center gap-2 mt-8 pt-4 text-light-60">
+            <Lock size={13} className="shrink-0" />
+            <span className="text-xs">Conexiune securizata &middot; datele tale raman confidentiale</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`bg-white rounded-3xl shadow-sm ring-1 ring-black/[0.04] ${className}`}>
+      {children}
     </div>
   );
 }
@@ -44,13 +75,27 @@ function Progress({ step, requiresAddressProof }: { step: Step; requiresAddressP
   if (current < 0) return null;
 
   return (
-    <div className="flex gap-1.5 mb-6">
-      {visible.map((s, i) => (
-        <div
-          key={s}
-          className={`h-1.5 flex-1 rounded-full ${i <= current ? 'bg-brand-primary' : 'bg-dark-400'}`}
-        />
-      ))}
+    <div className="mb-6">
+      <div className="flex items-baseline justify-between mb-2.5">
+        <span className="text-sm font-semibold text-brand-primary">
+          {STEP_LABELS[step]}
+        </span>
+        <span className="text-xs text-light-60">
+          Pasul {current + 1} din {visible.length}
+        </span>
+      </div>
+      <div className="flex gap-1.5">
+        {visible.map((s, i) => (
+          <div
+            key={s}
+            className={`h-2 flex-1 rounded-full transition-colors ${
+              i < current ? 'bg-brand-primary/40'
+                : i === current ? 'bg-brand-primary'
+                : 'bg-dark-500'
+            }`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -68,24 +113,30 @@ interface CameraStageProps {
   onFilePicked: (e: React.ChangeEvent<HTMLInputElement>) => void;
   allowSkip?: boolean;
   onSkip?: () => void;
+  hint?: string;
 }
 
 function CameraStage({
   videoRef, fileInputRef, cameraOn, busy, error, guide, uploadLabel,
-  onOpenCamera, onCapture, onFilePicked, allowSkip, onSkip,
+  onOpenCamera, onCapture, onFilePicked, allowSkip, onSkip, hint,
 }: CameraStageProps) {
   return (
     <>
-      <div className="relative rounded-2xl overflow-hidden bg-black aspect-[4/3] mb-4">
+      <div className="relative rounded-3xl overflow-hidden bg-navy-900 aspect-[4/3] mb-4 shadow-sm">
         <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+
         {!cameraOn && (
-          <div className="absolute inset-0 flex items-center justify-center bg-dark-600">
-            <Camera size={40} className="text-light-50" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white gap-3 px-6 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-brand-primary/10 flex items-center justify-center">
+              <Camera size={30} className="text-brand-primary" />
+            </div>
+            {hint && <p className="text-sm text-light-70 leading-relaxed">{hint}</p>}
           </div>
         )}
+
         {cameraOn && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className={`border-2 border-white/50 rounded-xl ${
+            <div className={`border-[3px] border-white rounded-2xl shadow-[0_0_0_9999px_rgba(15,23,42,0.45)] ${
               guide === 'face' ? 'w-40 h-52' : 'w-64 h-40'
             }`} />
           </div>
@@ -97,26 +148,26 @@ function CameraStage({
           <button
             onClick={onOpenCamera}
             disabled={busy}
-            className="w-full py-4 rounded-full bg-brand-primary text-white font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-5 rounded-full bg-brand-primary text-white text-base font-semibold flex items-center justify-center gap-2.5 shadow-md shadow-brand-primary/20 active:scale-[0.99] transition disabled:opacity-50"
           >
-            <Camera size={20} /> Deschide camera
+            <Camera size={21} /> Deschide camera
           </button>
         ) : (
           <button
             onClick={onCapture}
             disabled={busy}
-            className="w-full py-4 rounded-full bg-brand-primary text-white font-semibold disabled:opacity-50"
+            className="w-full py-5 rounded-full bg-brand-primary text-white text-base font-semibold shadow-md shadow-brand-primary/20 active:scale-[0.99] transition disabled:opacity-50"
           >
-            {busy ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Fotografiaza'}
+            {busy ? <Loader2 size={21} className="animate-spin mx-auto" /> : 'Fotografiaza'}
           </button>
         )}
 
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={busy}
-          className="w-full py-3.5 rounded-full border border-dark-400 text-light-70 font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full py-4 rounded-full bg-white ring-1 ring-dark-500 text-light-80 font-medium flex items-center justify-center gap-2.5 active:scale-[0.99] transition disabled:opacity-50"
         >
-          <Upload size={18} /> {uploadLabel}
+          <Upload size={19} /> {uploadLabel}
         </button>
         <input
           ref={fileInputRef}
@@ -136,7 +187,11 @@ function CameraStage({
           </button>
         )}
 
-        {error && <p className="text-error-500 text-sm text-center">{error}</p>}
+        {error && (
+          <p className="text-error-600 text-sm text-center bg-error-500/8 rounded-2xl px-4 py-3">
+            {error}
+          </p>
+        )}
       </div>
     </>
   );
@@ -215,8 +270,27 @@ export default function AcordClientPage() {
     return dataUriToBlob(canvas.toDataURL('image/jpeg', 0.9));
   };
 
-  const messageFrom = (err: unknown, fallback: string) =>
-    (axios.isAxiosError(err) && (err.response?.data?.message as string)) || fallback;
+  // Distinguishes "we could not reach the server" from "the server rejected this".
+  // Telling someone to check their details when the API is unreachable sends them
+  // in circles.
+  const messageFrom = (err: unknown, fallback: string) => {
+    if (axios.isAxiosError(err)) {
+      if (!err.response) {
+        return err.code === 'ECONNABORTED'
+          ? 'Conexiunea a durat prea mult. Verifica internetul si incearca din nou.'
+          : 'Nu ne putem conecta la server. Verifica conexiunea la internet si incearca din nou.';
+      }
+
+      const serverMessage = err.response.data?.message as string | undefined;
+      if (serverMessage) return serverMessage;
+
+      if (err.response.status >= 500) {
+        return 'Serverul intampina o problema. Te rugam sa incerci din nou in cateva momente.';
+      }
+    }
+
+    return fallback;
+  };
 
   // ── Step actions ──
 
@@ -330,40 +404,49 @@ export default function AcordClientPage() {
   if (step === 'welcome') {
     return (
       <Shell>
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-brand-primary/15 flex items-center justify-center mx-auto mb-5">
-            <ShieldCheck size={32} className="text-brand-primary" />
+        <div className="text-center mb-7">
+          <div className="w-20 h-20 rounded-3xl bg-brand-primary/10 flex items-center justify-center mx-auto mb-5">
+            <ShieldCheck size={38} className="text-brand-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-light-100 mb-3">Hai sa facem cunostinta</h1>
-          <p className="text-light-60 leading-relaxed">
-            Avem nevoie de cateva date si de o poza a actului tau de identitate, ca sa putem
-            incepe analiza dosarului. Dureaza aproximativ un minut.
+          <h1 className="text-[26px] leading-tight font-bold text-light-100 mb-3">
+            Buna! Hai sa facem cunostinta
+          </h1>
+          <p className="text-[15px] text-light-70 leading-relaxed">
+            Avem nevoie de cateva date si de o poza a actului tau de identitate,
+            ca sa putem incepe analiza dosarului.
           </p>
+          <div className="inline-flex items-center gap-1.5 mt-4 px-3.5 py-1.5 rounded-full bg-brand-accent/15 text-[13px] font-medium text-[#8a5a00]">
+            <Clock size={14} /> Dureaza aproximativ un minut
+          </div>
         </div>
 
-        <div className="space-y-3 mb-8">
+        <Card className="p-2 mb-7">
           {[
-            { icon: UserCircle, text: 'Numele, telefonul si emailul tau' },
-            { icon: IdCard, text: 'O poza cu buletinul (fata si verso)' },
-            { icon: FileText, text: 'Semnatura pe ecran pentru acordul de date' },
-          ].map(({ icon: Icon, text }) => (
-            <div key={text} className="flex items-center gap-3 bg-dark-700 rounded-2xl px-4 py-3.5">
-              <Icon size={20} className="text-brand-primary shrink-0" />
-              <span className="text-sm text-light-80">{text}</span>
+            { icon: UserCircle, title: 'Cateva date despre tine', sub: 'Nume, telefon si email' },
+            { icon: IdCard, title: 'O poza cu buletinul', sub: 'Fata si, daca are, verso' },
+            { icon: FileText, title: 'Semnatura pe ecran', sub: 'Pentru acordul de date' },
+          ].map(({ icon: Icon, title, sub }, i) => (
+            <div
+              key={title}
+              className={`flex items-center gap-3.5 px-4 py-4 ${i > 0 ? 'border-t border-dark-600' : ''}`}
+            >
+              <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 flex items-center justify-center shrink-0">
+                <Icon size={21} className="text-brand-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[15px] font-medium text-light-90 leading-snug">{title}</p>
+                <p className="text-[13px] text-light-60 mt-0.5">{sub}</p>
+              </div>
             </div>
           ))}
-        </div>
+        </Card>
 
         <button
           onClick={() => setStep('form')}
-          className="w-full py-4 rounded-full bg-brand-primary text-white font-semibold"
+          className="w-full py-5 rounded-full bg-brand-primary text-white text-base font-semibold shadow-md shadow-brand-primary/25 active:scale-[0.99] transition"
         >
-          Incepe
+          Sa incepem
         </button>
-
-        <p className="text-xs text-light-60 text-center mt-5 leading-relaxed">
-          Datele tale sunt transmise securizat si sunt sterse automat dupa perioada de pastrare.
-        </p>
       </Shell>
     );
   }
@@ -378,37 +461,43 @@ export default function AcordClientPage() {
     return (
       <Shell>
         <Progress step={step} requiresAddressProof={requiresAddressProof} />
-        <h1 className="text-xl font-bold text-light-100 mb-1">Datele tale</h1>
-        <p className="text-sm text-light-50 mb-6">Ca sa stim cu cine vorbim.</p>
+        <h1 className="text-2xl font-bold text-light-100 mb-1.5">Spune-ne cine esti</h1>
+        <p className="text-[15px] text-light-60 mb-6">Ca sa stim cu cine vorbim.</p>
 
-        <div className="space-y-4">
+        <Card className="p-5 space-y-4">
           {[
-            { label: 'Nume', value: nume, set: setNume, placeholder: 'Popescu', type: 'text' },
-            { label: 'Prenume', value: prenume, set: setPrenume, placeholder: 'Ion', type: 'text' },
-            { label: 'Telefon', value: telefon, set: setTelefon, placeholder: '07xx xxx xxx', type: 'tel' },
-            { label: 'Email (optional)', value: email, set: setEmail, placeholder: 'ion@exemplu.ro', type: 'email' },
+            { label: 'Nume', value: nume, set: setNume, placeholder: 'Popescu', type: 'text', mode: 'text' },
+            { label: 'Prenume', value: prenume, set: setPrenume, placeholder: 'Ion', type: 'text', mode: 'text' },
+            { label: 'Telefon', value: telefon, set: setTelefon, placeholder: '07xx xxx xxx', type: 'tel', mode: 'tel' },
+            { label: 'Email', value: email, set: setEmail, placeholder: 'ion@exemplu.ro', type: 'email', mode: 'email', optional: true },
           ].map(f => (
             <div key={f.label}>
-              <label className="block text-sm text-light-60 mb-1.5">{f.label}</label>
+              <label className="block text-sm font-medium text-light-80 mb-1.5">
+                {f.label}
+                {f.optional && <span className="text-light-60 font-normal"> (optional)</span>}
+              </label>
               <input
                 type={f.type}
+                inputMode={f.mode as 'text' | 'tel' | 'email'}
                 value={f.value}
                 onChange={e => f.set(e.target.value)}
                 placeholder={f.placeholder}
-                className="w-full px-4 py-3.5 rounded-2xl bg-dark-700 border border-dark-500 text-light-90 placeholder:text-light-40 focus:outline-none focus:border-brand-primary"
+                className="w-full px-4 py-4 text-base rounded-2xl bg-dark-800 ring-1 ring-dark-500 text-light-90 placeholder:text-light-40 focus:outline-none focus:ring-2 focus:ring-brand-primary focus:bg-white transition"
               />
             </div>
           ))}
-        </div>
+        </Card>
 
-        {error && <p className="text-error-400 text-sm mt-4">{error}</p>}
+        {error && (
+          <p className="text-error-600 text-sm mt-4 bg-error-500/8 rounded-2xl px-4 py-3">{error}</p>
+        )}
 
         <button
           onClick={handleStart}
           disabled={!canSubmit || busy}
-          className="w-full py-4 mt-6 rounded-full bg-brand-primary text-white font-semibold disabled:opacity-40"
+          className="w-full py-5 mt-6 rounded-full bg-brand-primary text-white text-base font-semibold shadow-md shadow-brand-primary/25 active:scale-[0.99] transition disabled:opacity-40 disabled:shadow-none"
         >
-          {busy ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Continua'}
+          {busy ? <Loader2 size={21} className="animate-spin mx-auto" /> : 'Continua'}
         </button>
       </Shell>
     );
@@ -419,13 +508,13 @@ export default function AcordClientPage() {
     return (
       <Shell>
         <Progress step={step} requiresAddressProof={requiresAddressProof} />
-        <h1 className="text-xl font-bold text-light-100 mb-1">
-          {isFront ? 'Fata buletinului' : 'Spatele buletinului'}
+        <h1 className="text-2xl font-bold text-light-100 mb-1.5">
+          {isFront ? 'Fotografiaza buletinul' : 'Acum spatele actului'}
         </h1>
-        <p className="text-sm text-light-50 mb-5">
+        <p className="text-[15px] text-light-60 mb-5">
           {isFront
-            ? 'Aseaza actul pe o suprafata si fotografiaza-l intreg.'
-            : 'Daca actul tau are informatii pe verso, fotografiaza si aceasta parte.'}
+            ? 'Aseaza actul pe o masa, intr-o lumina buna, si prinde-l intreg in cadru.'
+            : 'Daca actul tau are informatii pe verso, fotografiaza-l. Daca nu, poti sari peste.'}
         </p>
         <CameraStage
           videoRef={videoRef}
@@ -434,7 +523,10 @@ export default function AcordClientPage() {
           busy={busy}
           error={error}
           guide="card"
-          uploadLabel="Incarca o poza din telefon"
+          hint={isFront
+            ? 'Ai nevoie de o poza clara, cu toate colturile vizibile.'
+            : 'Aceeasi procedura ca la fata actului.'}
+          uploadLabel="Alege o poza din telefon"
           onOpenCamera={() => startCamera('environment')}
           onCapture={() => {
             const blob = capture();
@@ -452,9 +544,10 @@ export default function AcordClientPage() {
     return (
       <Shell>
         <Progress step={step} requiresAddressProof={requiresAddressProof} />
-        <h1 className="text-xl font-bold text-light-100 mb-1">O poza cu tine</h1>
-        <p className="text-sm text-light-50 mb-5">
-          Ne ajuta sa confirmam ca tu esti persoana din act. Daca nu reusesti, poti sari peste.
+        <h1 className="text-2xl font-bold text-light-100 mb-1.5">O poza cu tine</h1>
+        <p className="text-[15px] text-light-60 mb-5">
+          Ne ajuta sa confirmam ca tu esti persoana din act. Daca nu reusesti, poti sari peste
+          fara nicio problema.
         </p>
         <CameraStage
           videoRef={videoRef}
@@ -463,7 +556,8 @@ export default function AcordClientPage() {
           busy={busy}
           error={error}
           guide="face"
-          uploadLabel="Incarca un selfie"
+          hint="Priveste spre camera, cu fata bine luminata."
+          uploadLabel="Alege un selfie din telefon"
           onOpenCamera={() => startCamera('user')}
           onCapture={() => { const blob = capture(); if (blob) handleSelfie(blob); }}
           onFilePicked={e => onFilePicked(e, blob => handleSelfie(blob))}
@@ -478,23 +572,34 @@ export default function AcordClientPage() {
     return (
       <Shell>
         <Progress step={step} requiresAddressProof={requiresAddressProof} />
-        <div className="w-14 h-14 rounded-2xl bg-brand-primary/15 flex items-center justify-center mb-5">
-          <Home size={26} className="text-brand-primary" />
+        <div className="w-16 h-16 rounded-3xl bg-brand-primary/10 flex items-center justify-center mb-5">
+          <Home size={28} className="text-brand-primary" />
         </div>
-        <h1 className="text-xl font-bold text-light-100 mb-1">Dovada de adresa</h1>
-        <p className="text-sm text-light-50 mb-5 leading-relaxed">
-          Actul tau de identitate nu contine adresa de domiciliu.
-          Incarca o factura de utilitati recenta sau o adeverinta cu adresa ta.
+        <h1 className="text-2xl font-bold text-light-100 mb-1.5">Dovada de adresa</h1>
+        <p className="text-[15px] text-light-60 mb-5 leading-relaxed">
+          Actul tau de identitate nu contine adresa de domiciliu, asa ca mai avem nevoie de un
+          document care o arata.
         </p>
+
+        <Card className="p-4 mb-5">
+          <p className="text-[13px] font-medium text-light-80 mb-2">Poti incarca, de exemplu:</p>
+          <ul className="space-y-1.5">
+            {['O factura recenta de utilitati', 'O adeverinta cu adresa ta', 'Un extras de cont recent'].map(t => (
+              <li key={t} className="flex items-start gap-2 text-[14px] text-light-70">
+                <Check size={15} className="text-success-600 mt-0.5 shrink-0" /> {t}
+              </li>
+            ))}
+          </ul>
+        </Card>
 
         <button
           onClick={() => proofInputRef.current?.click()}
           disabled={busy}
-          className="w-full py-4 rounded-full bg-brand-primary text-white font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full py-5 rounded-full bg-brand-primary text-white text-base font-semibold flex items-center justify-center gap-2.5 shadow-md shadow-brand-primary/25 active:scale-[0.99] transition disabled:opacity-50"
         >
           {busy
-            ? <Loader2 size={20} className="animate-spin" />
-            : <><Upload size={20} /> Incarca documentul</>}
+            ? <Loader2 size={21} className="animate-spin" />
+            : <><Upload size={21} /> Incarca documentul</>}
         </button>
         <input
           ref={proofInputRef}
@@ -504,8 +609,10 @@ export default function AcordClientPage() {
           onChange={e => { const f = e.target.files?.[0]; if (f) handleAddressProof(f); e.target.value = ''; }}
         />
 
-        <p className="text-xs text-light-60 text-center mt-4">Accepta JPG, PNG sau PDF.</p>
-        {error && <p className="text-error-400 text-sm text-center mt-4">{error}</p>}
+        <p className="text-xs text-light-60 text-center mt-4">Accepta poze (JPG, PNG) sau PDF.</p>
+        {error && (
+          <p className="text-error-600 text-sm text-center mt-4 bg-error-500/8 rounded-2xl px-4 py-3">{error}</p>
+        )}
       </Shell>
     );
   }
@@ -514,87 +621,102 @@ export default function AcordClientPage() {
     return (
       <Shell>
         <Progress step={step} requiresAddressProof={requiresAddressProof} />
-        <h1 className="text-xl font-bold text-light-100 mb-1">Acordul tau</h1>
-        <p className="text-sm text-light-50 mb-5">
-          Citeste acordul, apoi semneaza in casuta de mai jos.
+        <h1 className="text-2xl font-bold text-light-100 mb-1.5">Ultimul pas</h1>
+        <p className="text-[15px] text-light-60 mb-5">
+          Citeste acordul, bifeaza ce esti de acord si semneaza mai jos.
         </p>
 
         {addressProofName && (
-          <div className="flex items-center gap-2 bg-dark-700 rounded-2xl px-4 py-3 mb-4">
-            <CheckCircle size={16} className="text-success-500 shrink-0" />
-            <span className="text-sm text-light-70 truncate">{addressProofName}</span>
+          <div className="flex items-center gap-2.5 bg-success-500/10 rounded-2xl px-4 py-3 mb-4">
+            <CheckCircle size={17} className="text-success-600 shrink-0" />
+            <span className="text-sm text-light-80 truncate">{addressProofName}</span>
           </div>
         )}
 
         <button
           onClick={() => setConsentOpen(true)}
-          className="w-full flex items-center justify-between gap-2 bg-dark-700 rounded-2xl px-4 py-3.5 mb-5 text-left"
+          className="w-full flex items-center justify-between gap-3 bg-white rounded-2xl ring-1 ring-dark-500 px-4 py-4 mb-5 text-left active:scale-[0.99] transition"
         >
-          <span className="flex items-center gap-2.5 text-sm text-light-80">
-            <FileText size={18} className="text-brand-primary shrink-0" />
-            {consentText?.title ?? 'Acord privind prelucrarea datelor'}
+          <span className="flex items-center gap-3 min-w-0">
+            <span className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0">
+              <FileText size={19} className="text-brand-primary" />
+            </span>
+            <span className="text-[15px] text-light-90 leading-snug">
+              {consentText?.title ?? 'Acord privind prelucrarea datelor'}
+            </span>
           </span>
-          <span className="text-xs text-brand-primary shrink-0">Citeste</span>
+          <span className="text-[13px] font-semibold text-brand-primary shrink-0">Citeste</span>
         </button>
 
-        <div className="space-y-3 mb-6">
-          {(consentText?.options ?? []).map(option => (
+        <Card className="p-2 mb-6">
+          {(consentText?.options ?? []).map((option, i) => (
             <label
               key={option.key}
-              className="flex items-start gap-3 bg-dark-700 rounded-2xl px-4 py-3.5 cursor-pointer"
+              className={`flex items-start gap-3.5 px-4 py-4 cursor-pointer ${i > 0 ? 'border-t border-dark-600' : ''}`}
             >
               <input
                 type="checkbox"
                 checked={choices[option.key] ?? false}
                 onChange={e => setChoices(prev => ({ ...prev, [option.key]: e.target.checked }))}
-                className="mt-0.5 w-5 h-5 rounded accent-brand-primary shrink-0"
+                className="mt-0.5 w-6 h-6 rounded-md accent-brand-primary shrink-0"
               />
               <span className="min-w-0">
-                <span className="block text-sm text-light-80 leading-relaxed">
+                <span className="block text-[15px] text-light-90 leading-relaxed">
                   {option.label}
                   {option.required && <span className="text-error-500"> *</span>}
                 </span>
                 {option.hint && (
-                  <span className="block text-xs text-light-60 mt-1">{option.hint}</span>
+                  <span className="block text-[13px] text-light-60 mt-1">{option.hint}</span>
                 )}
               </span>
             </label>
           ))}
-        </div>
+        </Card>
 
-        <p className="text-sm text-light-60 mb-2">Semneaza mai jos:</p>
+        <p className="text-sm font-medium text-light-80 mb-2">Semneaza aici</p>
         <SignaturePad onChange={setSignature} disabled={!choices.intermediere} />
+        {!choices.intermediere && (
+          <p className="text-[13px] text-light-60 mt-2">
+            Bifeaza mai intai acordul obligatoriu ca sa poti semna.
+          </p>
+        )}
 
-        {error && <p className="text-error-500 text-sm mt-4">{error}</p>}
+        {error && (
+          <p className="text-error-600 text-sm mt-4 bg-error-500/8 rounded-2xl px-4 py-3">{error}</p>
+        )}
 
         <button
           onClick={handleSign}
           disabled={!choices.intermediere || !signature}
-          className="w-full py-4 mt-5 rounded-full bg-brand-primary text-white font-semibold disabled:opacity-40"
+          className="w-full py-5 mt-5 rounded-full bg-brand-primary text-white text-base font-semibold shadow-md shadow-brand-primary/25 active:scale-[0.99] transition disabled:opacity-40 disabled:shadow-none"
         >
           Trimite acordul
         </button>
 
         {consentOpen && (
-          <div className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div className="bg-dark-700 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[85vh] flex flex-col">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-dark-500">
-                <h2 className="font-semibold text-light-100 pr-4">
+          <div className="fixed inset-0 z-50 bg-navy-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[88vh] flex flex-col shadow-2xl">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-dark-600">
+                <h2 className="font-semibold text-light-100 pr-4 leading-snug">
                   {consentText?.title ?? 'Acord'}
                 </h2>
-                <button onClick={() => setConsentOpen(false)} className="text-light-50 shrink-0">
-                  <X size={22} />
+                <button
+                  onClick={() => setConsentOpen(false)}
+                  aria-label="Inchide"
+                  className="w-9 h-9 rounded-full hover:bg-dark-800 flex items-center justify-center text-light-60 shrink-0"
+                >
+                  <X size={21} />
                 </button>
               </div>
               <div className="px-5 py-4 overflow-y-auto">
-                <p className="text-sm text-light-70 whitespace-pre-wrap leading-relaxed">
+                <p className="text-[14px] text-light-80 whitespace-pre-wrap leading-relaxed">
                   {consentText?.body ?? 'Textul acordului nu este disponibil momentan.'}
                 </p>
               </div>
-              <div className="px-5 py-4 border-t border-dark-500">
+              <div className="px-5 py-4 border-t border-dark-600">
                 <button
                   onClick={() => setConsentOpen(false)}
-                  className="w-full py-3.5 rounded-full bg-brand-primary text-white font-semibold"
+                  className="w-full py-4 rounded-full bg-brand-primary text-white font-semibold"
                 >
                   Am inteles
                 </button>
@@ -608,11 +730,11 @@ export default function AcordClientPage() {
 
   if (step === 'submitting') {
     return (
-      <Shell>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <Loader2 size={40} className="text-brand-primary animate-spin mb-5" />
+      <Shell showTrust={false}>
+        <div className="flex flex-col items-center justify-center min-h-[55vh] text-center">
+          <Loader2 size={42} className="text-brand-primary animate-spin mb-5" />
           <h1 className="text-xl font-bold text-light-100 mb-2">Se trimite...</h1>
-          <p className="text-sm text-light-50">Nu inchide pagina.</p>
+          <p className="text-[15px] text-light-60">Mai dureaza cateva secunde. Nu inchide pagina.</p>
         </div>
       </Shell>
     );
@@ -620,30 +742,40 @@ export default function AcordClientPage() {
 
   if (step === 'done') {
     return (
-      <Shell>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <CheckCircle size={56} className="text-success-500 mb-5" />
-          <h1 className="text-2xl font-bold text-light-100 mb-3">Gata, multumim!</h1>
-          <p className="text-light-60 leading-relaxed mb-2">
-            Am primit datele si documentele tale. Te contactam in cel mai scurt timp.
+      <Shell showTrust={false}>
+        <div className="flex flex-col items-center justify-center min-h-[55vh] text-center">
+          <div className="w-24 h-24 rounded-full bg-success-500/12 flex items-center justify-center mb-6">
+            <CheckCircle size={46} className="text-success-600" />
+          </div>
+          <h1 className="text-[26px] font-bold text-light-100 mb-3">
+            Gata{prenume ? `, ${prenume}` : ''}. Multumim!
+          </h1>
+          <p className="text-[15px] text-light-70 leading-relaxed mb-6 max-w-xs">
+            Am primit datele si documentele tale in siguranta. Te contactam in cel mai scurt timp.
           </p>
-          <p className="text-sm text-light-60">Poti inchide aceasta pagina.</p>
+          <div className="flex items-center gap-2 text-light-60 text-sm">
+            <Lock size={14} /> Poti inchide aceasta pagina
+          </div>
         </div>
       </Shell>
     );
   }
 
   return (
-    <Shell>
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <XCircle size={48} className="text-error-500 mb-5" />
+    <Shell showTrust={false}>
+      <div className="flex flex-col items-center justify-center min-h-[55vh] text-center">
+        <div className="w-20 h-20 rounded-full bg-error-500/10 flex items-center justify-center mb-5">
+          <XCircle size={38} className="text-error-500" />
+        </div>
         <h1 className="text-xl font-bold text-light-100 mb-2">Ceva nu a mers</h1>
-        <p className="text-sm text-light-50 mb-6">{error || 'Incearca din nou mai tarziu.'}</p>
+        <p className="text-[15px] text-light-60 mb-7 max-w-xs">
+          {error || 'Te rugam sa incerci din nou. Datele introduse nu s-au pierdut.'}
+        </p>
         <button
           onClick={() => { setStep('welcome'); setError(''); }}
-          className="px-8 py-3.5 rounded-full bg-brand-primary text-white font-semibold"
+          className="px-10 py-4 rounded-full bg-brand-primary text-white font-semibold shadow-md shadow-brand-primary/25"
         >
-          Reia
+          Incearca din nou
         </button>
       </div>
     </Shell>
