@@ -15,6 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Legal\**\*.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\MoneyShop.ServiceAdapters\MoneyShop.ServiceAdapters.csproj" />
     <ProjectReference Include="..\MoneyShop.ServiceInterface\MoneyShop.ServiceInterface.csproj" />
     <ProjectReference Include="..\MoneyShop.DomainServices\MoneyShop.DomainServices.csproj" />

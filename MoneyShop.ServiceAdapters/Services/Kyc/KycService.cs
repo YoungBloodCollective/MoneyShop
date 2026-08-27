@@ -430,6 +430,10 @@ public class KycService : IKycService
     /// <summary>
     /// Marks expired KYC files for deletion (called by Azure Function)
     /// </summary>
+    /// <summary>
+    /// Erases the stored content of every expired file and marks it deleted.
+    /// The metadata row is kept so the deletion itself remains auditable.
+    /// </summary>
     public int MarkExpiredFilesForDeletion()
     {
         var expiredFiles = _kycFileRepository.Get()
@@ -438,6 +442,8 @@ public class KycService : IKycService
 
         foreach (var file in expiredFiles)
         {
+            file.FileContentBase64 = null;
+            file.BlobPath = null;
             file.DeletedAt = DateTime.UtcNow;
             _kycFileRepository.Update(file);
         }

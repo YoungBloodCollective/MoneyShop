@@ -49,6 +49,7 @@ const LegalAllPage = lazy(() => import('@/pages/legal/LegalAllPage'));
 const ThankYouPage = lazy(() => import('@/pages/public/ThankYouPage'));
 const LegalMenuPage = lazy(() => import('@/pages/legal/LegalMenuPage'));
 const PublicBrokerSearchPage = lazy(() => import('@/pages/broker/PublicBrokerSearchPage'));
+const AcordClientPage = lazy(() => import('@/pages/acord/AcordClientPage'));
 
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
 const AdminApplicationsPage = lazy(() => import('@/pages/admin/AdminApplicationsPage'));
@@ -58,6 +59,7 @@ const AdminBrokersPage = lazy(() => import('@/pages/admin/AdminBrokersPage'));
 const AdminAppointmentsPage = lazy(() => import('@/pages/admin/AdminAppointmentsPage'));
 const AdminLeadsPage = lazy(() => import('@/pages/admin/AdminLeadsPage'));
 const AdminPartnersPage = lazy(() => import('@/pages/admin/AdminPartnersPage'));
+const AdminAcordPage = lazy(() => import('@/pages/admin/AdminAcordPage'));
 
 function PageLoader() {
   return (
@@ -78,6 +80,9 @@ export function AppRouter() {
         <Route path="/kyc/scan/:token" element={<KycScanPage />} />
         <Route path="/kyc/verify" element={<FullKycPage />} />
         <Route path="/kyc/verify/:sessionId" element={<FullKycPage />} />
+
+        {/* Public client consent + document upload (shared link, no layout) */}
+        <Route path="/acord" element={<AcordClientPage />} />
 
         {/* Thank you page for Google Ads conversion tracking */}
         <Route path="/multumim" element={<ThankYouPage />} />
@@ -139,6 +144,7 @@ export function AppRouter() {
           <Route path="/admin/appointments" element={<ProtectedRoute adminOnly><AdminAppointmentsPage /></ProtectedRoute>} />
           <Route path="/admin/leads" element={<ProtectedRoute adminOnly><AdminLeadsPage /></ProtectedRoute>} />
           <Route path="/admin/partners" element={<ProtectedRoute adminOnly><AdminPartnersPage /></ProtectedRoute>} />
+          <Route path="/admin/acord" element={<ProtectedRoute adminOnly><AdminAcordPage /></ProtectedRoute>} />
         </Route>
 
         {/* Catch-all */}
