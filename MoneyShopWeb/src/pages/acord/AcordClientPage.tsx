@@ -125,6 +125,7 @@ function Progress({ step, requiresAddressProof }: { step: Step; requiresAddressP
 
 interface CameraStageProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
+  guideRef: React.RefObject<HTMLDivElement | null>;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   cameraOn: boolean;
   busy: boolean;
@@ -140,38 +141,20 @@ interface CameraStageProps {
 }
 
 function CameraStage({
-  videoRef, fileInputRef, cameraOn, busy, error, guide, uploadLabel,
+  videoRef, guideRef, fileInputRef, cameraOn, busy, error, guide, uploadLabel,
   onOpenCamera, onCapture, onFilePicked, allowSkip, onSkip, hint,
 }: CameraStageProps) {
-  // capture() grabs the whole video frame, so the preview has to show the whole
-  // frame too — otherwise the client carefully frames the document inside a box
-  // and the photo that gets taken is wider than what they saw. Matching the
-  // container to the stream's own aspect ratio keeps preview and capture
-  // identical, with no crop and no letterboxing.
-  const [streamAspect, setStreamAspect] = useState<number | null>(null);
-
-  const fallbackAspect = guide === 'face' ? 3 / 4 : 4 / 3;
-
   return (
     <>
       <div
-        className="relative rounded-3xl overflow-hidden bg-navy-900 mb-4 shadow-sm"
-        style={{ aspectRatio: String(streamAspect ?? fallbackAspect) }}
+        className={`relative rounded-3xl overflow-hidden bg-navy-900 mb-4 shadow-sm ${
+          guide === 'face' ? 'aspect-[3/4]' : 'aspect-[4/3]'
+        }`}
       >
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          onLoadedMetadata={e => {
-            const v = e.currentTarget;
-            if (v.videoWidth && v.videoHeight) setStreamAspect(v.videoWidth / v.videoHeight);
-          }}
-          className="w-full h-full object-contain"
-        />
+        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
 
         {!cameraOn && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white gap-3 px-6 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white gap-3 px-8 text-center">
             <div className="w-16 h-16 rounded-2xl bg-brand-primary/10 flex items-center justify-center">
               <Camera size={30} className="text-brand-primary" />
             </div>
@@ -180,13 +163,14 @@ function CameraStage({
         )}
 
         {cameraOn && (
-          <div className="absolute inset-2.5 flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div
-              className="border-[3px] border-white/90 rounded-2xl shadow-[0_0_0_9999px_rgba(15,23,42,0.35)]"
+              ref={guideRef}
+              className="border-[3px] border-white rounded-xl shadow-[0_0_0_9999px_rgba(15,23,42,0.5)]"
               style={
                 guide === 'face'
-                  ? { height: '100%', aspectRatio: '0.78', maxWidth: '100%' }
-                  : { width: '100%', aspectRatio: '1.586', maxHeight: '100%' }
+                  ? { width: '68%', aspectRatio: '0.78' }
+                  : { width: '88%', aspectRatio: '1.586' }
               }
             />
           </div>
@@ -282,6 +266,7 @@ export default function AcordClientPage() {
 
   const [cameraOn, setCameraOn] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const guideRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const proofInputRef = useRef<HTMLInputElement>(null);
@@ -340,19 +325,56 @@ export default function AcordClientPage() {
     }
   };
 
+  /**
+   * Captures only what is inside the guide box, at the camera's native
+   * resolution. Saving the whole frame meant the document was a small patch of
+   * a large photo — poor for OCR and wasteful to store. The video is rendered
+   * with object-cover, so the visible area is a centre crop of the source and
+   * the guide has to be mapped back through that same transform.
+   */
   const capture = (): Blob | null => {
     const video = videoRef.current;
     if (!video || !video.videoWidth) return null;
+
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d')!.drawImage(video, 0, 0);
-    return dataUriToBlob(canvas.toDataURL('image/jpeg', 0.9));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    const guideEl = guideRef.current;
+    const videoRect = video.getBoundingClientRect();
+
+    if (guideEl && videoRect.width > 0 && videoRect.height > 0) {
+      const guideRect = guideEl.getBoundingClientRect();
+
+      const scale = Math.max(
+        videoRect.width / video.videoWidth,
+        videoRect.height / video.videoHeight,
+      );
+      const offsetX = (video.videoWidth * scale - videoRect.width) / 2;
+      const offsetY = (video.videoHeight * scale - videoRect.height) / 2;
+
+      const sx = (guideRect.left - videoRect.left + offsetX) / scale;
+      const sy = (guideRect.top - videoRect.top + offsetY) / scale;
+      const sw = guideRect.width / scale;
+      const sh = guideRect.height / scale;
+
+      const clampedX = Math.max(0, Math.min(sx, video.videoWidth));
+      const clampedY = Math.max(0, Math.min(sy, video.videoHeight));
+      const clampedW = Math.max(1, Math.min(sw, video.videoWidth - clampedX));
+      const clampedH = Math.max(1, Math.min(sh, video.videoHeight - clampedY));
+
+      canvas.width = Math.round(clampedW);
+      canvas.height = Math.round(clampedH);
+      ctx.drawImage(video, clampedX, clampedY, clampedW, clampedH, 0, 0, canvas.width, canvas.height);
+    } else {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+    }
+
+    return dataUriToBlob(canvas.toDataURL('image/jpeg', 0.92));
   };
 
-  // Distinguishes "we could not reach the server" from "the server rejected this".
-  // Telling someone to check their details when the API is unreachable sends them
-  // in circles.
   const messageFrom = (err: unknown, fallback: string) => {
     if (axios.isAxiosError(err)) {
       if (!err.response) {
@@ -688,6 +710,7 @@ export default function AcordClientPage() {
         </p>
         <CameraStage
           videoRef={videoRef}
+          guideRef={guideRef}
           fileInputRef={fileInputRef}
           cameraOn={cameraOn}
           busy={busy}
@@ -721,6 +744,7 @@ export default function AcordClientPage() {
         </p>
         <CameraStage
           videoRef={videoRef}
+          guideRef={guideRef}
           fileInputRef={fileInputRef}
           cameraOn={cameraOn}
           busy={busy}
