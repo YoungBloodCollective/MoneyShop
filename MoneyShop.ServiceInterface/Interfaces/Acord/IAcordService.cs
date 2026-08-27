@@ -18,6 +18,9 @@ public interface IAcordService
 
     AcordConsentText GetConsentText();
 
+    /// <summary>Clears stored ID data once its retention period has elapsed.</summary>
+    int PurgeExpiredOcrData();
+
     // ── Admin ──
     List<AcordListItem> ListForAdmin(string? status, string? search);
     AcordDetails? GetDetailsForAdmin(Guid acordId);
@@ -170,6 +173,7 @@ public class AcordDetails
 
     public string? CnpMasked { get; set; }
     public string? Address { get; set; }
+    public AcordOcrSnapshot? Ocr { get; set; }
 
     /// <summary>
     /// False when no external KYC session existed, i.e. OCR / liveness never ran
@@ -182,6 +186,35 @@ public class AcordDetails
     public string? ConsentIp { get; set; }
 
     public List<AcordFileInfo> Files { get; set; } = new();
+}
+
+/// <summary>
+/// Everything the reader returned from the document, kept for the operator to
+/// review. The CNP is stored masked - the raw value never lands here.
+/// </summary>
+public class AcordOcrSnapshot
+{
+    public string? LastName { get; set; }
+    public string? FirstName { get; set; }
+    public string? CnpMasked { get; set; }
+    public string? IdSeries { get; set; }
+    public string? IdNumber { get; set; }
+    public string? BirthDate { get; set; }
+    public string? Sex { get; set; }
+    public string? PlaceOfBirth { get; set; }
+    public string? Address { get; set; }
+    public string? Nationality { get; set; }
+    public string? IssuedBy { get; set; }
+    public string? IssueDate { get; set; }
+    public string? ExpiryDate { get; set; }
+    public decimal? ConfidenceScore { get; set; }
+    public bool IsNewFormat { get; set; }
+
+    public bool? CnpChecksumValid { get; set; }
+    public bool? CnpBirthDateMatch { get; set; }
+    public bool? CnpSexMatch { get; set; }
+    public bool? DocumentNotExpired { get; set; }
+    public List<string> ValidationErrors { get; set; } = new();
 }
 
 public class AcordFileInfo

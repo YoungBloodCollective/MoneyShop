@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   Search, ArrowLeft, Phone, Mail, Calendar, ShieldCheck, ShieldAlert,
   FileText, Download, Loader2, PenLine, AlertTriangle, Trash2, Megaphone,
+  Check, XCircle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { acordApi, type AcordListItem, type AcordDetails, type AcordFileInfo } from '@/services/api/acordApi';
@@ -267,29 +268,109 @@ export default function AdminAcordPage() {
           </div>
         )}
 
-        <h2 className="text-sm font-semibold text-light-60 uppercase tracking-wider mb-3">Date extrase</h2>
-        <div className="bg-dark-700 rounded-2xl p-4 mb-6 space-y-2 text-sm">
-          <div className="flex justify-between gap-4">
-            <span className="text-light-50">CNP</span>
-            <span className="text-light-90">
-              {selected.cnpMasked ?? (selected.automaticChecksRan ? 'necitit' : 'neverificat')}
-            </span>
+        <h2 className="text-sm font-semibold text-light-60 uppercase tracking-wider mb-3">
+          Date extrase din act
+        </h2>
+
+        {selected.ocr ? (
+          <div className="bg-dark-700 rounded-2xl p-5 mb-6">
+            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3">
+              {([
+                ['Nume', selected.ocr.lastName],
+                ['Prenume', selected.ocr.firstName],
+                ['CNP', selected.ocr.cnpMasked],
+                ['Serie act', selected.ocr.idSeries],
+                ['Numar act', selected.ocr.idNumber],
+                ['Data nasterii', selected.ocr.birthDate],
+                ['Sex', selected.ocr.sex],
+                ['Loc nastere', selected.ocr.placeOfBirth],
+                ['Cetatenie', selected.ocr.nationality],
+                ['Emis de', selected.ocr.issuedBy],
+                ['Data emiterii', selected.ocr.issueDate],
+                ['Valabil pana la', selected.ocr.expiryDate],
+              ] as const).map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-4 text-sm border-b border-dark-600 pb-2">
+                  <span className="text-light-50 shrink-0">{label}</span>
+                  <span className="text-light-90 text-right break-words">{value || '—'}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-between gap-4 text-sm mt-4">
+              <span className="text-light-50 shrink-0">Adresa</span>
+              <span className="text-light-90 text-right break-words">{selected.ocr.address || '—'}</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-dark-600">
+              <span className="text-sm text-light-50">
+                Tip act:{' '}
+                <span className="text-light-90">
+                  {selected.ocr.isNewFormat ? 'Carte de identitate electronica' : 'Buletin clasic'}
+                </span>
+              </span>
+              {selected.ocr.confidenceScore != null && (
+                <span className="text-sm text-light-50">
+                  Incredere citire:{' '}
+                  <span className="text-light-90">{Math.round(selected.ocr.confidenceScore * 100)}%</span>
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-4">
+              {([
+                ['CNP valid', selected.ocr.cnpChecksumValid],
+                ['CNP ↔ data nasterii', selected.ocr.cnpBirthDateMatch],
+                ['CNP ↔ sex', selected.ocr.cnpSexMatch],
+                ['Act neexpirat', selected.ocr.documentNotExpired],
+              ] as const).map(([label, ok]) => (
+                <span
+                  key={label}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                    ok === true ? 'bg-success-500/15 text-success-600'
+                      : ok === false ? 'bg-error-500/15 text-error-600'
+                      : 'bg-dark-600 text-light-60'
+                  }`}
+                >
+                  {ok === true ? <Check size={13} /> : ok === false ? <XCircle size={13} /> : null}
+                  {label}
+                </span>
+              ))}
+            </div>
+
+            {selected.ocr.validationErrors.length > 0 && (
+              <ul className="mt-4 space-y-1">
+                {selected.ocr.validationErrors.map((e, i) => (
+                  <li key={i} className="text-sm text-error-600 flex items-start gap-2">
+                    <AlertTriangle size={14} className="mt-0.5 shrink-0" /> {e}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-light-50">Adresa</span>
-            <span className="text-light-90 text-right">
-              {selected.address ?? (selected.automaticChecksRan ? 'necitit' : 'neverificat')}
-            </span>
+        ) : (
+          <div className="bg-dark-700 rounded-2xl p-5 mb-6 space-y-2 text-sm">
+            <div className="flex justify-between gap-4">
+              <span className="text-light-50">CNP</span>
+              <span className="text-light-90">
+                {selected.cnpMasked ?? (selected.automaticChecksRan ? 'necitit' : 'neverificat')}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-light-50">Adresa</span>
+              <span className="text-light-90 text-right">
+                {selected.address ?? (selected.automaticChecksRan ? 'necitit' : 'neverificat')}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-light-50">Tip act</span>
+              <span className="text-light-90">
+                {selected.idIsNewFormat == null
+                  ? (selected.automaticChecksRan ? 'necitit' : 'neverificat')
+                  : selected.idIsNewFormat ? 'Carte de identitate electronica' : 'Buletin clasic'}
+              </span>
+            </div>
           </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-light-50">Tip act</span>
-            <span className="text-light-90">
-              {selected.idIsNewFormat == null
-                ? (selected.automaticChecksRan ? 'necitit' : 'neverificat')
-                : selected.idIsNewFormat ? 'Carte de identitate electronica' : 'Buletin clasic'}
-            </span>
-          </div>
-        </div>
+        )}
 
         {selected.consentTextSnapshot && (
           <>
