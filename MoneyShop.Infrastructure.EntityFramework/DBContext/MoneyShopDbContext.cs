@@ -70,6 +70,13 @@ public class MoneyShopDbContext : DbContext
     // Acord Clienti (public consent + document collection)
     public virtual DbSet<AcordClient> AcordClients { get; set; }
 
+    // Broker CRM Entities
+    public virtual DbSet<BrokerProfile> BrokerProfiles { get; set; }
+    public virtual DbSet<BrokerLead> BrokerLeads { get; set; }
+    public virtual DbSet<BrokerDosar> BrokerDosare { get; set; }
+    public virtual DbSet<BrokerDocument> BrokerDocuments { get; set; }
+    public virtual DbSet<BrokerNotification> BrokerNotifications { get; set; }
+    public virtual DbSet<BrokerStatusHistory> BrokerStatusHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -605,6 +612,110 @@ public class MoneyShopDbContext : DbContext
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.ExpiresAt);
+        });
+        // Broker CRM Configuration
+        modelBuilder.Entity<BrokerProfile>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("BrokerProfiles");
+
+            entity.HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => e.UserId).IsUnique();
+            entity.HasIndex(e => e.Status);
+        });
+
+        modelBuilder.Entity<BrokerLead>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("BrokerLeads");
+
+            entity.Property(e => e.SalariuNet).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.SumaDorita).HasColumnType("decimal(18,2)");
+
+            entity.HasOne(d => d.BrokerProfile)
+                .WithMany(p => p.Leads)
+                .HasForeignKey(d => d.BrokerProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.BrokerProfileId);
+            entity.HasIndex(e => e.Status);
+        });
+
+        modelBuilder.Entity<BrokerDosar>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("BrokerDosare");
+
+            entity.Property(e => e.SumaSolicitata).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.RataLunaraEstimata).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.SumaAprobata).HasColumnType("decimal(18,2)");
+
+            entity.HasOne(d => d.BrokerProfile)
+                .WithMany(p => p.Dosare)
+                .HasForeignKey(d => d.BrokerProfileId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(d => d.BrokerLead)
+                .WithMany(p => p.Dosare)
+                .HasForeignKey(d => d.BrokerLeadId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.BrokerProfileId);
+            entity.HasIndex(e => e.Status);
+        });
+
+        modelBuilder.Entity<BrokerDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("BrokerDocuments");
+
+            entity.HasOne(d => d.BrokerDosar)
+                .WithMany(p => p.Documents)
+                .HasForeignKey(d => d.BrokerDosarId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.UploadedByUser)
+                .WithMany()
+                .HasForeignKey(d => d.UploadedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(e => e.BrokerDosarId);
+        });
+
+        modelBuilder.Entity<BrokerNotification>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("BrokerNotifications");
+
+            entity.HasOne(d => d.BrokerProfile)
+                .WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.BrokerProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.BrokerProfileId, e.IsRead });
+        });
+
+        modelBuilder.Entity<BrokerStatusHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("BrokerStatusHistory");
+
+            entity.HasOne(d => d.BrokerDosar)
+                .WithMany(p => p.StatusHistory)
+                .HasForeignKey(d => d.BrokerDosarId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.ChangedByUser)
+                .WithMany()
+                .HasForeignKey(d => d.ChangedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(e => e.BrokerDosarId);
         });
     }
 }
