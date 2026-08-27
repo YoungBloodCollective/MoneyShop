@@ -16,9 +16,9 @@ const FILE_LABELS: Record<string, string> = {
 };
 
 const TIP_ACT_LABELS: Record<string, string> = {
-  buletin: 'Buletin',
-  buletin_electronic: 'Carte electronică (cu cip)',
-  carte_identitate: 'Carte electronică simplă',
+  carte_identitate: 'Carte de identitate',
+  carte_identitate_electronica: 'Carte de identitate electronică',
+  carte_identitate_simpla: 'Carte de identitate simplă (fără cip)',
 };
 
 const STATUS_LABELS: Record<string, string> = {
