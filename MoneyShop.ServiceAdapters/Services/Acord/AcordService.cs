@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -74,7 +75,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
 
     // ── Public flow ──
 
-    public async Task<AcordStartResult> StartAsync(AcordStartInput input)
+    public Task<AcordStartResult> StartAsync(AcordStartInput input)
     {
         var telefon = NormalisePhone(input.Telefon);
         var email = string.IsNullOrWhiteSpace(input.Email) ? null : input.Email.Trim().ToLowerInvariant();
@@ -82,7 +83,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         if (IsIpRateLimited(input.Ip, telefon))
         {
             _logger.LogWarning("Acord start rate limited for ip {Ip}", input.Ip);
-            return new AcordStartResult { RateLimited = true };
+            return Task.FromResult(new AcordStartResult { RateLimited = true });
         }
 
         var user = FindOrCreateUser(input.Nume.Trim(), input.Prenume.Trim(), telefon, email);
@@ -97,31 +98,21 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
 
         if (existing != null)
         {
-            return new AcordStartResult
+            return Task.FromResult(new AcordStartResult
             {
                 AcordId = existing.AcordId,
                 Token = existing.Token,
                 ExpiresAt = existing.ExpiresAt,
                 IsResumed = true
-            };
+            });
         }
 
         var expiresAt = DateTime.UtcNow.AddHours(LinkValidityHours);
         var token = GenerateToken();
 
-        string? providerSessionId = null;
-        string? providerToken = null;
-        try
-        {
-            var externalSession = await _externalKyc.CreateSessionAsync();
-            providerSessionId = externalSession.SessionId;
-            providerToken = externalSession.Token;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Could not create external KYC session for acord; continuing in upload-only mode");
-        }
-
+        // The external KYC session is created lazily, on first document upload.
+        // Doing it here made the client wait on a cold-start HTTP round-trip
+        // immediately after filling in their name.
         var kycSession = new KycSession
         {
             KycId = Guid.NewGuid(),
@@ -130,8 +121,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             Status = "pending",
             CreatedAt = DateTime.UtcNow,
             ExpiresAt = expiresAt,
-            ProviderTransactionId = providerSessionId,
-            Token = providerToken
+            ProviderTransactionId = null,
+            Token = null
         };
         _kycSessionRepository.Insert(kycSession);
 
@@ -157,13 +148,37 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
 
         _logger.LogInformation("Acord session started {AcordId} for user {UserId}", acord.AcordId, user.IdUtilizator);
 
-        return new AcordStartResult
+        return Task.FromResult(new AcordStartResult
         {
             AcordId = acord.AcordId,
             Token = token,
             ExpiresAt = expiresAt,
             IsResumed = false
-        };
+        });
+    }
+
+    /// <summary>
+    /// Creates the external KYC session on demand. Returns false when the
+    /// service is unreachable, in which case the flow continues collecting
+    /// documents without automatic checks.
+    /// </summary>
+    private async Task<bool> EnsureProviderSessionAsync(KycSession kycSession)
+    {
+        if (!string.IsNullOrEmpty(kycSession.ProviderTransactionId)) return true;
+
+        try
+        {
+            var externalSession = await _externalKyc.CreateSessionAsync();
+            kycSession.ProviderTransactionId = externalSession.SessionId;
+            kycSession.Token = externalSession.Token;
+            _context.SaveChanges();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not create external KYC session; continuing in upload-only mode");
+            return false;
+        }
     }
 
     public AcordSessionView? GetByToken(string token)
@@ -207,12 +222,12 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         var result = new AcordDocumentResult { Accepted = true };
 
         var kycSession = GetKycSession(acord);
-        if (kycSession?.ProviderTransactionId != null)
+        if (kycSession != null && await EnsureProviderSessionAsync(kycSession))
         {
             try
             {
                 var ocr = await _externalKyc.SubmitDocumentOcrAsync(
-                    kycSession.ProviderTransactionId, kycSession.Token!, front, back);
+                    kycSession.ProviderTransactionId!, kycSession.Token!, front, back);
 
                 result.OcrData = ocr.OcrData;
                 result.Validation = ocr.LogicValidation;
@@ -228,7 +243,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
                     acord.RequiresProofOfAddress =
                         ocr.OcrData.IsNewFormat || string.IsNullOrWhiteSpace(ocr.OcrData.Address);
 
-                    StoreIdentityData(acord, kycSession, ocr.OcrData);
+                    StoreIdentityData(acord, kycSession, ocr.OcrData, ocr.LogicValidation);
                 }
             }
             catch (Exception ex)
@@ -258,12 +273,12 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         var outcome = new AcordLivenessResult { Passed = true };
 
         var kycSession = GetKycSession(acord);
-        if (kycSession?.ProviderTransactionId != null)
+        if (kycSession != null && await EnsureProviderSessionAsync(kycSession))
         {
             try
             {
                 var liveness = await _externalKyc.SubmitLivenessAsync(
-                    kycSession.ProviderTransactionId, kycSession.Token!, selfie);
+                    kycSession.ProviderTransactionId!, kycSession.Token!, selfie);
 
                 acord.LivenessPassed = liveness.LivenessDetected;
                 acord.LivenessConfidence = liveness.Confidence;
@@ -536,7 +551,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             ExpiresAt = acord.ExpiresAt,
             CnpMasked = kycSession?.Cnp,
             Address = kycSession?.Address,
-            AutomaticChecksRan = !string.IsNullOrEmpty(kycSession?.ProviderTransactionId)
+            AutomaticChecksRan = !string.IsNullOrEmpty(kycSession?.ProviderTransactionId),
+            Ocr = DeserialiseOcr(acord.OcrDataJson)
         };
 
         if (acord.ConsentId.HasValue)
@@ -671,25 +687,54 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         return user;
     }
 
-    private void StoreIdentityData(AcordClient acord, KycSession kycSession, OcrData ocr)
+    private void StoreIdentityData(AcordClient acord, KycSession kycSession, OcrData ocr, LogicValidation? validation)
     {
+        string? cnpMasked = null;
+
         if (!string.IsNullOrWhiteSpace(ocr.Cnp))
         {
             try
             {
-                // The raw CNP is never persisted - only the peppered hash plus a masked form.
-                var subject = _subjectService.GetOrCreateSubject(acord.UserId, ocr.Cnp);
-                kycSession.Cnp = subject.CnpMasked;
+                // The raw CNP is never persisted - only the peppered hash in
+                // SubjectMap plus a masked form for display.
+                cnpMasked = _subjectService.GetOrCreateSubject(acord.UserId, ocr.Cnp).CnpMasked;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Could not pseudonymise CNP for acord {AcordId}", acord.AcordId);
-                kycSession.Cnp = null;
             }
         }
 
+        kycSession.Cnp = cnpMasked;
+
         if (!string.IsNullOrWhiteSpace(ocr.Address))
             kycSession.Address = ocr.Address;
+
+        var snapshot = new AcordOcrSnapshot
+        {
+            LastName = ocr.LastName,
+            FirstName = ocr.FirstName,
+            CnpMasked = cnpMasked,
+            IdSeries = ocr.IdSeries,
+            IdNumber = ocr.IdNumber,
+            BirthDate = ocr.BirthDate,
+            Sex = ocr.Sex,
+            PlaceOfBirth = ocr.PlaceOfBirth,
+            Address = ocr.Address,
+            Nationality = ocr.Nationality,
+            IssuedBy = ocr.IssuedBy,
+            IssueDate = ocr.IssueDate,
+            ExpiryDate = ocr.ExpiryDate,
+            ConfidenceScore = ocr.ConfidenceScore,
+            IsNewFormat = ocr.IsNewFormat,
+            CnpChecksumValid = validation?.CnpChecksumValid,
+            CnpBirthDateMatch = validation?.CnpBirthDateMatch,
+            CnpSexMatch = validation?.CnpSexMatch,
+            DocumentNotExpired = validation?.DocumentNotExpired,
+            ValidationErrors = validation?.Errors ?? new List<string>()
+        };
+
+        acord.OcrDataJson = JsonSerializer.Serialize(snapshot);
     }
 
     private async Task TryFaceCompareAsync(AcordClient acord, KycSession kycSession, byte[] selfie)
@@ -789,6 +834,43 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         _context.SaveChanges();
 
         return doc;
+    }
+
+    private AcordOcrSnapshot? DeserialiseOcr(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<AcordOcrSnapshot>(json);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not read stored OCR snapshot");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Identity data extracted from the document is personal data, so it is
+    /// cleared on the same retention clock as the scans themselves.
+    /// </summary>
+    public int PurgeExpiredOcrData()
+    {
+        var cutoff = DateTime.UtcNow.AddDays(-RetentionDays);
+
+        var stale = _acordRepository.Get()
+            .Where(a => a.OcrDataJson != null && a.CreatedAt < cutoff)
+            .ToList();
+
+        foreach (var acord in stale)
+        {
+            acord.OcrDataJson = null;
+            _acordRepository.Update(acord);
+        }
+
+        if (stale.Count > 0) _context.SaveChanges();
+        return stale.Count;
     }
 
     private static string NormalisePhone(string phone)

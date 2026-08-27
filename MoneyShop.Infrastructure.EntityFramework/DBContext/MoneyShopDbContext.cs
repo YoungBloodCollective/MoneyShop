@@ -583,6 +583,7 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.Status).HasMaxLength(30).IsRequired().HasDefaultValue("started");
             entity.Property(e => e.ReviewNote).HasMaxLength(1000);
             entity.Property(e => e.ConsentVersion).HasMaxLength(50);
+            entity.Property(e => e.OcrDataJson).HasColumnType("nvarchar(max)");
             entity.Property(e => e.LivenessConfidence).HasColumnType("decimal(5,4)");
             entity.Property(e => e.FaceMatchConfidence).HasColumnType("decimal(5,4)");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime2").HasDefaultValueSql("GETUTCDATE()");

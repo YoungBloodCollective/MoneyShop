@@ -102,6 +102,29 @@ export interface AcordFileInfo {
   isDeleted: boolean;
 }
 
+export interface AcordOcrSnapshot {
+  lastName?: string;
+  firstName?: string;
+  cnpMasked?: string;
+  idSeries?: string;
+  idNumber?: string;
+  birthDate?: string;
+  sex?: string;
+  placeOfBirth?: string;
+  address?: string;
+  nationality?: string;
+  issuedBy?: string;
+  issueDate?: string;
+  expiryDate?: string;
+  confidenceScore?: number;
+  isNewFormat: boolean;
+  cnpChecksumValid?: boolean;
+  cnpBirthDateMatch?: boolean;
+  cnpSexMatch?: boolean;
+  documentNotExpired?: boolean;
+  validationErrors: string[];
+}
+
 export interface AcordDetails {
   acordId: string;
   userId: number;
@@ -126,6 +149,7 @@ export interface AcordDetails {
   cnpMasked?: string;
   address?: string;
   automaticChecksRan: boolean;
+  ocr?: AcordOcrSnapshot | null;
   consentVersion?: string;
   consentTextSnapshot?: string;
   consentIp?: string;
