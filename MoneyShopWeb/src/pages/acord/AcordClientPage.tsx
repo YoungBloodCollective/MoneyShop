@@ -8,7 +8,7 @@ import {
 import { QRCodeSVG } from 'qrcode.react';
 import { Logo } from '@/components/shared/Logo';
 import axios from 'axios';
-import { acordApi, type AcordConsentText, type AcordSession } from '@/services/api/acordApi';
+import { acordApi, type AcordConsentText, type AcordSession, type AcordStartResult } from '@/services/api/acordApi';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 
 type Step =
@@ -267,6 +267,7 @@ export default function AcordClientPage() {
   const [cameraOn, setCameraOn] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const guideRef = useRef<HTMLDivElement>(null);
+  const startPromiseRef = useRef<Promise<AcordStartResult> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const proofInputRef = useRef<HTMLInputElement>(null);
@@ -396,32 +397,56 @@ export default function AcordClientPage() {
 
   // ── Step actions ──
 
-  const handleStart = async () => {
-    setBusy(true);
+  /**
+   * Moves the client straight to the next step and lets the request settle in
+   * the background. Nothing before the first upload needs the token, so making
+   * someone watch a spinner after typing their name buys nothing.
+   */
+  const handleStart = () => {
     setError('');
+
+    const request = acordApi.start({
+      nume: nume.trim(),
+      prenume: prenume.trim(),
+      telefon: telefon.trim(),
+      email: email.trim() || undefined,
+      agentCode,
+    });
+
+    startPromiseRef.current = request;
+    request.then(result => setToken(result.token)).catch(() => undefined);
+
+    setStep(onDesktop ? 'handoff' : 'doc_front');
+  };
+
+  /** Resolves the token, waiting on the background /start only if it is still in flight. */
+  const ensureToken = async (): Promise<string | null> => {
+    if (token) return token;
+
+    const pending = startPromiseRef.current;
+    if (!pending) {
+      setStep('form');
+      return null;
+    }
+
     try {
-      const result = await acordApi.start({
-        nume: nume.trim(),
-        prenume: prenume.trim(),
-        telefon: telefon.trim(),
-        email: email.trim() || undefined,
-        agentCode,
-      });
+      const result = await pending;
       setToken(result.token);
-      setStep(onDesktop ? 'handoff' : 'doc_front');
+      return result.token;
     } catch (err) {
       setError(messageFrom(err, 'Nu am putut incepe. Verifica datele si incearca din nou.'));
-    } finally {
-      setBusy(false);
+      setStep('form');
+      return null;
     }
   };
 
   const handleDocument = async (front: Blob, back?: Blob) => {
-    if (!token) return;
     setBusy(true);
+    const activeToken = await ensureToken();
+    if (!activeToken) { setBusy(false); return; }
     setError('');
     try {
-      const result = await acordApi.submitDocument(token, front, back);
+      const result = await acordApi.submitDocument(activeToken, front, back);
       setRequiresAddressProof(result.requiresProofOfAddress);
       stopCamera();
       setStep('selfie');
@@ -445,11 +470,13 @@ export default function AcordClientPage() {
 
   const handleSelfie = async (blob: Blob | null) => {
     stopCamera();
-    if (blob && token) {
+    if (blob) {
       setBusy(true);
+      const activeToken = await ensureToken();
+      if (!activeToken) { setBusy(false); return; }
       try {
         // The result is recorded for review; it never blocks the client.
-        await acordApi.submitLiveness(token, blob);
+        await acordApi.submitLiveness(activeToken, blob);
       } catch {
         // Intentionally ignored - a failed check must not stop the submission.
       } finally {
@@ -460,11 +487,12 @@ export default function AcordClientPage() {
   };
 
   const handleAddressProof = async (file: File) => {
-    if (!token) return;
     setBusy(true);
     setError('');
+    const activeToken = await ensureToken();
+    if (!activeToken) { setBusy(false); return; }
     try {
-      await acordApi.submitAddressProof(token, file);
+      await acordApi.submitAddressProof(activeToken, file);
       setAddressProofName(file.name);
       setStep('consent');
     } catch (err) {
@@ -475,10 +503,12 @@ export default function AcordClientPage() {
   };
 
   const handleSign = async () => {
-    if (!token || !signature) return;
+    if (!signature) return;
     setStep('submitting');
+    const activeToken = await ensureToken();
+    if (!activeToken) return;
     try {
-      const result = await acordApi.sign(token, signature, {
+      const result = await acordApi.sign(activeToken, signature, {
         acceptIntermediere: choices.intermediere,
         acceptMarketing: choices.marketing,
         waiveOug52: choices.oug52Waiver,
@@ -544,8 +574,11 @@ export default function AcordClientPage() {
 
         <Card className="p-6 mb-5">
           <div className="flex justify-center mb-5">
-            <div className="p-4 bg-white rounded-2xl ring-1 ring-dark-500">
-              <QRCodeSVG value={handoffUrl} size={188} level="M" />
+            <div className="p-4 bg-white rounded-2xl ring-1 ring-dark-500 flex items-center justify-center"
+                 style={{ width: 220, height: 220 }}>
+              {handoffUrl
+                ? <QRCodeSVG value={handoffUrl} size={188} level="M" />
+                : <Loader2 size={28} className="text-brand-primary animate-spin" />}
             </div>
           </div>
 
@@ -558,13 +591,14 @@ export default function AcordClientPage() {
             <div className="flex items-center gap-2">
               <input
                 readOnly
-                value={handoffUrl}
+                value={handoffUrl || 'Se pregateste linkul...'}
                 onFocus={e => e.currentTarget.select()}
                 className="flex-1 min-w-0 px-3 py-2.5 text-[13px] rounded-xl bg-dark-800 ring-1 ring-dark-500 text-light-70 focus:outline-none focus:ring-2 focus:ring-brand-primary"
               />
               <button
                 onClick={copyHandoffLink}
-                className="shrink-0 px-4 py-2.5 rounded-xl bg-brand-primary text-white text-sm font-medium flex items-center gap-1.5 active:scale-[0.98] transition"
+                disabled={!handoffUrl}
+                className="shrink-0 px-4 py-2.5 rounded-xl bg-brand-primary text-white text-sm font-medium flex items-center gap-1.5 active:scale-[0.98] transition disabled:opacity-40"
               >
                 {linkCopied ? <><Check size={15} /> Copiat</> : <><Copy size={15} /> Copiaza</>}
               </button>
