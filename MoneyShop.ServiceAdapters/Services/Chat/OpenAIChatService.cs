@@ -24,7 +24,7 @@ public class OpenAIChatService : IChatService
     private readonly string _apiVersion;
     private readonly int _maxOutputTokens;
 
-    private const string SystemPromptBase = @"Esti Asistentul Virtual MoneyShop pentru POPIX BROKERAGE CONSULTING S.R.L. (broker de credite / intermediar, NU institutie de credit).
+    private const string SystemPromptBase = @"Esti Asistentul Virtual MoneyShop pentru MONEYSHOP FINTECH SRL (broker de credite / intermediar, NU institutie de credit).
 Rolul tau este sa explici pe intelesul tuturor concepte de creditare, eligibilitate, documente, pasi de urmat si sa ajuti utilizatorii sa inteleaga rezultatele calculatoarelor MoneyShop.
 
 REGULI OBLIGATORII (nu ai voie sa le incalci):
