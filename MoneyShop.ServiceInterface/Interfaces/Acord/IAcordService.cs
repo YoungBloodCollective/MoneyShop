@@ -171,6 +171,12 @@ public class AcordDetails
     public string? CnpMasked { get; set; }
     public string? Address { get; set; }
 
+    /// <summary>
+    /// False when no external KYC session existed, i.e. OCR / liveness never ran
+    /// and the empty fields mean "not checked", not "check failed".
+    /// </summary>
+    public bool AutomaticChecksRan { get; set; }
+
     public string? ConsentVersion { get; set; }
     public string? ConsentTextSnapshot { get; set; }
     public string? ConsentIp { get; set; }

@@ -217,7 +217,9 @@ export default function AdminAcordPage() {
             <p className="text-sm font-medium flex items-center gap-1.5">
               {selected.livenessPassed === true && <><ShieldCheck size={14} className="text-success-500" /> <span className="text-success-400">Trecuta</span></>}
               {selected.livenessPassed === false && <><ShieldAlert size={14} className="text-warning-400" /> <span className="text-warning-400">Nereusita</span></>}
-              {selected.livenessPassed == null && <span className="text-light-50">Neefectuata</span>}
+              {selected.livenessPassed == null && (
+                <span className="text-light-60">{selected.automaticChecksRan ? 'Neefectuata' : 'Indisponibila'}</span>
+              )}
             </p>
           </div>
           <div className="bg-dark-700 rounded-2xl p-4">
@@ -249,20 +251,42 @@ export default function AdminAcordPage() {
           </div>
         )}
 
+        {!selected.automaticChecksRan && (
+          <div className="flex items-start gap-3 bg-info-400/10 border border-info-400/30 rounded-2xl p-4 mb-6">
+            <AlertTriangle size={18} className="text-info-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-light-90 mb-1">
+                Verificarea automata nu a rulat pentru acest dosar
+              </p>
+              <p className="text-sm text-light-70 leading-relaxed">
+                Serviciul de citire a actului nu a fost disponibil, asa ca nu s-au extras
+                date si nu s-a facut verificarea faciala. Documentele incarcate de client
+                sunt complete si pot fi verificate manual mai sus.
+              </p>
+            </div>
+          </div>
+        )}
+
         <h2 className="text-sm font-semibold text-light-60 uppercase tracking-wider mb-3">Date extrase</h2>
         <div className="bg-dark-700 rounded-2xl p-4 mb-6 space-y-2 text-sm">
           <div className="flex justify-between gap-4">
             <span className="text-light-50">CNP</span>
-            <span className="text-light-90">{selected.cnpMasked ?? '-'}</span>
+            <span className="text-light-90">
+              {selected.cnpMasked ?? (selected.automaticChecksRan ? 'necitit' : 'neverificat')}
+            </span>
           </div>
           <div className="flex justify-between gap-4">
             <span className="text-light-50">Adresa</span>
-            <span className="text-light-90 text-right">{selected.address ?? '-'}</span>
+            <span className="text-light-90 text-right">
+              {selected.address ?? (selected.automaticChecksRan ? 'necitit' : 'neverificat')}
+            </span>
           </div>
           <div className="flex justify-between gap-4">
             <span className="text-light-50">Tip act</span>
             <span className="text-light-90">
-              {selected.idIsNewFormat == null ? '-' : selected.idIsNewFormat ? 'Carte de identitate electronica' : 'Buletin clasic'}
+              {selected.idIsNewFormat == null
+                ? (selected.automaticChecksRan ? 'necitit' : 'neverificat')
+                : selected.idIsNewFormat ? 'Carte de identitate electronica' : 'Buletin clasic'}
             </span>
           </div>
         </div>

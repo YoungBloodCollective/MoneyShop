@@ -143,10 +143,32 @@ function CameraStage({
   videoRef, fileInputRef, cameraOn, busy, error, guide, uploadLabel,
   onOpenCamera, onCapture, onFilePicked, allowSkip, onSkip, hint,
 }: CameraStageProps) {
+  // capture() grabs the whole video frame, so the preview has to show the whole
+  // frame too — otherwise the client carefully frames the document inside a box
+  // and the photo that gets taken is wider than what they saw. Matching the
+  // container to the stream's own aspect ratio keeps preview and capture
+  // identical, with no crop and no letterboxing.
+  const [streamAspect, setStreamAspect] = useState<number | null>(null);
+
+  const fallbackAspect = guide === 'face' ? 3 / 4 : 4 / 3;
+
   return (
     <>
-      <div className="relative rounded-3xl overflow-hidden bg-navy-900 aspect-[4/3] mb-4 shadow-sm">
-        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+      <div
+        className="relative rounded-3xl overflow-hidden bg-navy-900 mb-4 shadow-sm"
+        style={{ aspectRatio: String(streamAspect ?? fallbackAspect) }}
+      >
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          onLoadedMetadata={e => {
+            const v = e.currentTarget;
+            if (v.videoWidth && v.videoHeight) setStreamAspect(v.videoWidth / v.videoHeight);
+          }}
+          className="w-full h-full object-contain"
+        />
 
         {!cameraOn && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-white gap-3 px-6 text-center">
@@ -158,10 +180,15 @@ function CameraStage({
         )}
 
         {cameraOn && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className={`border-[3px] border-white rounded-2xl shadow-[0_0_0_9999px_rgba(15,23,42,0.45)] ${
-              guide === 'face' ? 'w-40 h-52' : 'w-64 h-40'
-            }`} />
+          <div className="absolute inset-2.5 flex items-center justify-center pointer-events-none">
+            <div
+              className="border-[3px] border-white/90 rounded-2xl shadow-[0_0_0_9999px_rgba(15,23,42,0.35)]"
+              style={
+                guide === 'face'
+                  ? { height: '100%', aspectRatio: '0.78', maxWidth: '100%' }
+                  : { width: '100%', aspectRatio: '1.586', maxHeight: '100%' }
+              }
+            />
           </div>
         )}
       </div>
@@ -656,7 +683,7 @@ export default function AcordClientPage() {
         </h1>
         <p className="text-[15px] text-light-60 mb-5">
           {isFront
-            ? 'Aseaza actul pe o masa, intr-o lumina buna, si prinde-l intreg in cadru.'
+            ? 'Aseaza actul pe o masa, intr-o lumina buna, si apropie telefonul pana umple chenarul.'
             : 'Daca actul tau are informatii pe verso, fotografiaza-l. Daca nu, poti sari peste.'}
         </p>
         <CameraStage
@@ -667,7 +694,7 @@ export default function AcordClientPage() {
           error={error}
           guide="card"
           hint={isFront
-            ? 'Ai nevoie de o poza clara, cu toate colturile vizibile.'
+            ? 'Cu cat actul umple mai bine cadrul, cu atat il citim mai bine.'
             : 'Aceeasi procedura ca la fata actului.'}
           uploadLabel="Alege o poza din telefon"
           onOpenCamera={() => startCamera('environment')}
@@ -699,7 +726,7 @@ export default function AcordClientPage() {
           busy={busy}
           error={error}
           guide="face"
-          hint="Priveste spre camera, cu fata bine luminata."
+          hint="Priveste spre camera, cu fata bine luminata si aproape de ecran."
           uploadLabel="Alege un selfie din telefon"
           onOpenCamera={() => startCamera('user')}
           onCapture={() => { const blob = capture(); if (blob) handleSelfie(blob); }}
