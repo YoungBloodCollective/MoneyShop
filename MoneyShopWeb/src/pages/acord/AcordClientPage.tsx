@@ -3,15 +3,18 @@ import { useSearchParams } from 'react-router-dom';
 import {
   Camera, Upload, CheckCircle, XCircle, ArrowRight, ShieldCheck,
   FileText, X, Loader2, IdCard, Home, UserCircle, Lock, Clock, Check,
+  Smartphone, Copy, Monitor,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Logo } from '@/components/shared/Logo';
 import axios from 'axios';
-import { acordApi, type AcordConsentText } from '@/services/api/acordApi';
+import { acordApi, type AcordConsentText, type AcordSession } from '@/services/api/acordApi';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 
 type Step =
   | 'welcome'
   | 'form'
+  | 'handoff'
   | 'doc_front'
   | 'doc_back'
   | 'selfie'
@@ -31,6 +34,26 @@ const STEP_LABELS: Partial<Record<Step, string>> = {
   address_proof: 'Dovada de adresa',
   consent: 'Acordul tau',
 };
+
+/**
+ * Photographing an ID is a phone job: desktops often have no camera, and a
+ * webcam rarely produces a readable document. Coarse pointer is the most
+ * reliable signal for "this is a touch device".
+ */
+function isTouchDevice(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return true;
+  return window.matchMedia('(pointer: coarse)').matches;
+}
+
+/** Works out where a resumed session left off. */
+function stepFromSession(session: AcordSession): Step {
+  if (session.isSigned) return 'done';
+  if (!session.hasIdFront) return 'doc_front';
+  if (!session.hasIdBack) return 'doc_back';
+  if (!session.hasSelfie) return 'selfie';
+  if (session.requiresProofOfAddress && !session.hasProofOfAddress) return 'address_proof';
+  return 'consent';
+}
 
 function dataUriToBlob(dataUri: string): Blob {
   const match = dataUri.match(/^data:([^;]+);base64,(.+)$/);
@@ -200,9 +223,15 @@ function CameraStage({
 export default function AcordClientPage() {
   const [searchParams] = useSearchParams();
   const agentCode = searchParams.get('ag') ?? undefined;
+  const resumeToken = searchParams.get('t');
 
+  // A resumed session starts on 'welcome' but immediately shows the resuming
+  // spinner; the effect below moves it to the right step once the session loads.
   const [step, setStep] = useState<Step>('welcome');
   const [token, setToken] = useState<string | null>(null);
+  const [resuming, setResuming] = useState(Boolean(resumeToken));
+  const [onDesktop] = useState(() => !isTouchDevice());
+  const [linkCopied, setLinkCopied] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -233,6 +262,30 @@ export default function AcordClientPage() {
   useEffect(() => {
     acordApi.getConsentText().then(setConsentText).catch(() => undefined);
   }, []);
+
+  // A link carrying ?t=<token> resumes an existing session - this is how the
+  // desktop-to-phone handoff continues where it left off.
+  useEffect(() => {
+    if (!resumeToken) return;
+
+    let cancelled = false;
+    acordApi.getSession(resumeToken)
+      .then(session => {
+        if (cancelled) return;
+        setToken(resumeToken);
+        setPrenume(session.prenume);
+        setRequiresAddressProof(session.requiresProofOfAddress);
+        setStep(stepFromSession(session));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setError('Linkul a expirat sau nu mai este valid. Te rugam sa iei legatura cu consultantul tau.');
+        setStep('error');
+      })
+      .finally(() => { if (!cancelled) setResuming(false); });
+
+    return () => { cancelled = true; };
+  }, [resumeToken]);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach(t => t.stop());
@@ -306,7 +359,7 @@ export default function AcordClientPage() {
         agentCode,
       });
       setToken(result.token);
-      setStep('doc_front');
+      setStep(onDesktop ? 'handoff' : 'doc_front');
     } catch (err) {
       setError(messageFrom(err, 'Nu am putut incepe. Verifica datele si incearca din nou.'));
     } finally {
@@ -393,6 +446,18 @@ export default function AcordClientPage() {
     }
   };
 
+  const handoffUrl = token ? `${window.location.origin}/acord?t=${token}` : '';
+
+  const copyHandoffLink = async () => {
+    try {
+      await navigator.clipboard.writeText(handoffUrl);
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2500);
+    } catch {
+      setError('Nu am putut copia linkul. Selecteaza-l manual si copiaza-l.');
+    }
+  };
+
   const onFilePicked = (e: React.ChangeEvent<HTMLInputElement>, handler: (b: Blob) => void) => {
     const file = e.target.files?.[0];
     if (file) handler(file);
@@ -400,6 +465,84 @@ export default function AcordClientPage() {
   };
 
   // ── Screens ──
+
+  if (resuming) {
+    return (
+      <Shell showTrust={false}>
+        <div className="flex flex-col items-center justify-center min-h-[55vh] text-center">
+          <Loader2 size={40} className="text-brand-primary animate-spin mb-5" />
+          <p className="text-[15px] text-light-70">Iti reluam sesiunea...</p>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (step === 'handoff') {
+    return (
+      <Shell>
+        <div className="text-center mb-6">
+          <div className="w-20 h-20 rounded-3xl bg-brand-primary/10 flex items-center justify-center mx-auto mb-5">
+            <Smartphone size={38} className="text-brand-primary" />
+          </div>
+          <h1 className="text-[26px] leading-tight font-bold text-light-100 mb-3">
+            Continua pe telefon
+          </h1>
+          <p className="text-[15px] text-light-70 leading-relaxed">
+            Urmeaza sa fotografiezi actul de identitate, iar asta merge mult mai bine
+            de pe telefon. Scaneaza codul de mai jos si continui exact de unde ai ramas.
+          </p>
+        </div>
+
+        <Card className="p-6 mb-5">
+          <div className="flex justify-center mb-5">
+            <div className="p-4 bg-white rounded-2xl ring-1 ring-dark-500">
+              <QRCodeSVG value={handoffUrl} size={188} level="M" />
+            </div>
+          </div>
+
+          <p className="text-[13px] text-light-60 text-center mb-3">
+            Deschide camera telefonului si indreapt-o spre cod
+          </p>
+
+          <div className="border-t border-dark-600 pt-4">
+            <p className="text-[13px] text-light-60 mb-2">Sau copiaza linkul si trimite-ti-l:</p>
+            <div className="flex items-center gap-2">
+              <input
+                readOnly
+                value={handoffUrl}
+                onFocus={e => e.currentTarget.select()}
+                className="flex-1 min-w-0 px-3 py-2.5 text-[13px] rounded-xl bg-dark-800 ring-1 ring-dark-500 text-light-70 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              />
+              <button
+                onClick={copyHandoffLink}
+                className="shrink-0 px-4 py-2.5 rounded-xl bg-brand-primary text-white text-sm font-medium flex items-center gap-1.5 active:scale-[0.98] transition"
+              >
+                {linkCopied ? <><Check size={15} /> Copiat</> : <><Copy size={15} /> Copiaza</>}
+              </button>
+            </div>
+          </div>
+        </Card>
+
+        <div className="flex items-start gap-2.5 bg-brand-accent/12 rounded-2xl px-4 py-3.5 mb-5">
+          <Clock size={16} className="text-[#8a5a00] mt-0.5 shrink-0" />
+          <p className="text-[13px] text-[#8a5a00] leading-relaxed">
+            Linkul este valabil 3 zile. Datele completate pana acum sunt deja salvate.
+          </p>
+        </div>
+
+        <button
+          onClick={() => setStep('doc_front')}
+          className="w-full py-4 rounded-full bg-white ring-1 ring-dark-500 text-light-80 font-medium flex items-center justify-center gap-2.5 active:scale-[0.99] transition"
+        >
+          <Monitor size={18} /> Continua totusi pe acest dispozitiv
+        </button>
+
+        {error && (
+          <p className="text-error-600 text-sm text-center mt-4 bg-error-500/8 rounded-2xl px-4 py-3">{error}</p>
+        )}
+      </Shell>
+    );
+  }
 
   if (step === 'welcome') {
     return (

@@ -122,9 +122,9 @@ export function SignaturePad({ onChange, disabled = false, height = 180 }: Signa
         type="button"
         onClick={handleClear}
         disabled={disabled || !hasInk}
-        className="flex items-center gap-2 text-sm text-light-60 hover:text-light-90 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex items-center gap-2 -mx-2 px-3 py-2.5 min-h-[44px] rounded-xl text-sm text-light-60 hover:text-light-90 hover:bg-dark-800 active:bg-dark-600 disabled:opacity-40 disabled:cursor-not-allowed transition"
       >
-        <Eraser size={14} /> Sterge semnatura
+        <Eraser size={16} /> Sterge semnatura
       </button>
     </div>
   );
