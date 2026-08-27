@@ -12,15 +12,11 @@ import { Logo } from '@/components/shared/Logo';
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ACCEPTED = 'image/png,image/jpeg,image/jpg,image/heic,image/heif,application/pdf';
 
-/**
- * Which documents each type of ID needs. Only the chipped electronic card omits
- * the printed address, so that one needs a separate proof of address; every
- * other card carries its address and needs just both sides.
- */
+/** Which documents each type of ID needs, per the operator's rules. */
 const TIP_ACT_OPTIONS = [
-  { value: 'buletin', label: 'Buletin', back: true, proof: false },
-  { value: 'buletin_electronic', label: 'Carte electronică (cu cip)', back: false, proof: true },
-  { value: 'carte_identitate', label: 'Carte electronică simplă', back: true, proof: false },
+  { value: 'carte_identitate', label: 'Carte de identitate', back: false, proof: false },
+  { value: 'carte_identitate_electronica', label: 'Carte de identitate electronică', back: true, proof: true },
+  { value: 'carte_identitate_simpla', label: 'Carte de identitate simplă (fără cip)', back: true, proof: false },
 ] as const;
 
 type SlotKey = 'front' | 'back' | 'proof';
@@ -86,7 +82,7 @@ export default function AcordClientPage() {
   const [prenume, setPrenume] = useState('');
   const [telefon, setTelefon] = useState('');
   const [email, setEmail] = useState('');
-  const [tipAct, setTipAct] = useState<string>('buletin');
+  const [tipAct, setTipAct] = useState<string>('carte_identitate');
 
   const [files, setFiles] = useState<Record<SlotKey, File | null>>({
     front: null, back: null, proof: null,

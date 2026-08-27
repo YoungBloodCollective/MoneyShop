@@ -24,15 +24,13 @@ public class AcordController : BaseController
     };
 
     /// <summary>
-    /// Which documents each type of ID actually needs. Only the chipped electronic
-    /// card omits the printed address, so that one needs a separate proof; every
-    /// other card carries its address and needs just both sides.
+    /// Which documents each type of ID actually needs, per the operator's rules.
     /// </summary>
     private static readonly Dictionary<string, (bool back, bool proof)> TipActRules = new()
     {
-        ["buletin"] = (back: true, proof: false),
-        ["buletin_electronic"] = (back: false, proof: true),
-        ["carte_identitate"] = (back: true, proof: false),
+        ["carte_identitate"] = (back: false, proof: false),
+        ["carte_identitate_electronica"] = (back: true, proof: true),
+        ["carte_identitate_simpla"] = (back: true, proof: false),
     };
 
     private readonly IAcordService _acordService;
