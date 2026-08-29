@@ -13,7 +13,9 @@ using MoneyShop.DomainServices.RepositoryInterfaces.Acord;
 using MoneyShop.DomainServices.RepositoryInterfaces.Account;
 using MoneyShop.DomainServices.RepositoryInterfaces.Kyc;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
+using MoneyShop.ServiceAdapters.Services.Otp;
 using MoneyShop.ServiceInterface.Interfaces.Acord;
+using MoneyShop.ServiceInterface.Interfaces.Document;
 using MoneyShop.ServiceInterface.Interfaces.Kyc;
 using MoneyShop.ServiceInterface.Interfaces.Subject;
 using ConsentEntity = MoneyShop.DomainModel.Entities.Consent;
@@ -41,6 +43,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
     private readonly IUserRepository _userRepository;
     private readonly IExternalKycService _externalKyc;
     private readonly ISubjectService _subjectService;
+    private readonly IPdfGenerationService _pdfGenerationService;
+    private readonly EmailService _emailService;
     private readonly MoneyShopDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AcordService> _logger;
@@ -52,6 +56,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         IUserRepository userRepository,
         IExternalKycService externalKyc,
         ISubjectService subjectService,
+        IPdfGenerationService pdfGenerationService,
+        EmailService emailService,
         MoneyShopDbContext context,
         IConfiguration configuration,
         ILogger<AcordService> logger)
@@ -62,6 +68,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         _userRepository = userRepository;
         _externalKyc = externalKyc;
         _subjectService = subjectService;
+        _pdfGenerationService = pdfGenerationService;
+        _emailService = emailService;
         _context = context;
         _configuration = configuration;
         _logger = logger;
@@ -173,7 +181,51 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             "Acord {AcordId} submitted for user {UserId} (marketing: {Marketing}, oug52: {Waiver})",
             acord.AcordId, acord.UserId, input.Choices.AcceptMarketing, input.Choices.WaiveOug52);
 
+        await TrySendSignedAgreementAsync(acord, primary, input.SignaturePng, context);
+
         return new AcordSubmitResult { Success = true, AcordId = acord.AcordId };
+    }
+
+    /// <summary>
+    /// Generates the signed agreement PDF, keeps a copy alongside the other
+    /// documents, and emails it to the client when an address was provided.
+    /// A failure here never fails the submission — the acord is already recorded.
+    /// </summary>
+    private async Task TrySendSignedAgreementAsync(AcordClient acord, ConsentEntity consent, byte[] signaturePng, AcordSignContext context)
+    {
+        try
+        {
+            var fileName = $"acord-semnat-{acord.AcordId}.pdf";
+            var pdf = _pdfGenerationService.GenerateAcordAgreementPdf(new AcordAgreementPdfInput
+            {
+                AcordId = acord.AcordId,
+                Nume = acord.Nume,
+                Prenume = acord.Prenume,
+                Telefon = acord.Telefon,
+                Email = acord.Email,
+                ConsentVersion = acord.ConsentVersion ?? "0.0-placeholder",
+                ConsentTextSnapshot = consent.ConsentTextSnapshot ?? string.Empty,
+                MarketingAccepted = acord.MarketingAccepted ?? false,
+                Oug52Waived = acord.Oug52Waived ?? false,
+                SignedAt = acord.SignedAt ?? DateTime.UtcNow,
+                Ip = context.Ip,
+                UserAgent = context.UserAgent,
+                SignaturePng = signaturePng
+            });
+
+            PersistFile(acord, "signed_agreement", pdf, fileName, "application/pdf");
+            _context.SaveChanges();
+
+            if (string.IsNullOrWhiteSpace(acord.Email)) return;
+
+            var sent = await _emailService.SendAcordAgreementAsync(acord.Email, $"{acord.Prenume} {acord.Nume}", pdf, fileName);
+            if (sent)
+                _logger.LogInformation("Signed agreement emailed to client for acord {AcordId}", acord.AcordId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not generate or email the signed agreement for acord {AcordId}", acord.AcordId);
+        }
     }
 
     /// <summary>

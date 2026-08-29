@@ -12,6 +12,25 @@ namespace MoneyShop.ServiceInterface.Interfaces.Document
             string? userAgent,
             DateTime grantedAt,
             DateTime expiresAt);
+
+        byte[] GenerateAcordAgreementPdf(AcordAgreementPdfInput input);
+    }
+
+    public class AcordAgreementPdfInput
+    {
+        public Guid AcordId { get; set; }
+        public string Nume { get; set; } = null!;
+        public string Prenume { get; set; } = null!;
+        public string Telefon { get; set; } = null!;
+        public string? Email { get; set; }
+        public string ConsentVersion { get; set; } = null!;
+        public string ConsentTextSnapshot { get; set; } = null!;
+        public bool MarketingAccepted { get; set; }
+        public bool Oug52Waived { get; set; }
+        public DateTime SignedAt { get; set; }
+        public string? Ip { get; set; }
+        public string? UserAgent { get; set; }
+        public byte[] SignaturePng { get; set; } = null!;
     }
 
     public class MandatePdfResult

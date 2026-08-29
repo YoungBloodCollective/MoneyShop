@@ -134,6 +134,51 @@ public class EmailService
         }
     }
 
+    public async Task<bool> SendAcordAgreementAsync(string toEmail, string clientName, byte[] agreementPdf, string fileName)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_fromEmail))
+            {
+                _logger.LogWarning("[EmailService] Brevo ApiKey or FromEmail not configured — skipping signed agreement to {Email}", toEmail);
+                return false;
+            }
+
+            var subject = "Acordul dumneavoastra semnat - MoneyShop";
+            var body = $@"
+<div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"">
+    <h2 style=""color: #0075EB;"">Acordul dumneavoastra semnat</h2>
+    <p>Buna ziua, {clientName},</p>
+    <p>Va multumim pentru increderea acordata. Atasat gasiti o copie a acordului de intermediere si prelucrare date pe care l-ati semnat.</p>
+    <p>Pastrati acest document pentru evidenta dumneavoastra. Un consultant MoneyShop va va contacta in cel mai scurt timp.</p>
+    <p>Daca nu ati semnat acest acord, va rugam sa ne contactati imediat.</p>
+    <p style=""margin-top: 30px; color: #666; font-size: 12px;"">Echipa MoneyShop</p>
+</div>";
+
+            var emailRequest = new
+            {
+                sender = new { name = _fromName, email = _fromEmail },
+                to = new[] { new { email = toEmail } },
+                subject = subject,
+                htmlContent = body,
+                attachment = new[] { new { content = Convert.ToBase64String(agreementPdf), name = fileName } }
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("smtp/email", emailRequest);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("[EmailService] Brevo rejected signed agreement to {Email}. Status: {Status}, Body: {Error}", toEmail, response.StatusCode, error);
+            }
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[EmailService] Exception sending signed agreement to {Email}", toEmail);
+            return false;
+        }
+    }
+
     public async Task<bool> SendVerificationCodeAsync(string toEmail, string code)
     {
         try
