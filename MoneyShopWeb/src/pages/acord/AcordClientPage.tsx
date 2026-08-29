@@ -185,6 +185,11 @@ export default function AcordClientPage() {
           <p className="text-[15px] text-light-70 leading-relaxed max-w-sm">
             Am primit datele și documentele tale în siguranță. Te contactăm în cel mai scurt timp.
           </p>
+          {email.trim() && (
+            <p className="text-[15px] text-light-70 leading-relaxed max-w-sm mt-3">
+              Ți-am trimis o copie a acordului semnat pe {email.trim()}.
+            </p>
+          )}
         </div>
       </div>
     );
@@ -211,6 +216,9 @@ export default function AcordClientPage() {
             <Field label="Telefon" value={telefon} onChange={setTelefon} placeholder="07xxxxxxxx" type="tel" inputMode="tel" />
             <Field label="Email" value={email} onChange={setEmail} placeholder="exemplu@email.com" type="email" inputMode="email" />
           </div>
+          <p className="text-xs text-light-50 -mt-2 mb-4">
+            Dacă ne lași emailul, primești o copie a acordului semnat.
+          </p>
 
           <p className="text-sm font-semibold text-light-90 mb-2.5">Tip act de identitate</p>
           <div className="grid grid-cols-3 gap-2 mb-6">

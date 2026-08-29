@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using iText.IO.Image;
 using iText.Kernel.Pdf;
 using iText.Layout;
 using iText.Layout.Element;
@@ -221,6 +222,135 @@ public class PdfGenerationService : IPdfGenerationService
             FileSize = finalPdfBytes.Length,
             GeneratedAt = DateTime.UtcNow
         };
+    }
+
+    public byte[] GenerateAcordAgreementPdf(AcordAgreementPdfInput input)
+    {
+        byte[] pdfBytes;
+        using (var memoryStream = new MemoryStream())
+        {
+            var writer = new PdfWriter(memoryStream);
+            var pdf = new PdfDocument(writer);
+            var document = new iText.Layout.Document(pdf);
+
+            document.Add(new Paragraph("ACORD DE INTERMEDIERE SI PRELUCRARE DATE")
+                .SetFontSize(18)
+                .SetBold()
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetMarginBottom(20));
+
+            document.Add(new Paragraph("POPIX BROKERAGE CONSULTING S.R.L.")
+                .SetFontSize(14)
+                .SetBold()
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetMarginBottom(30));
+
+            var table = new Table(2).UseAllAvailableWidth();
+            table.AddCell(new Cell().Add(new Paragraph("ID Acord:").SetBold()));
+            table.AddCell(new Cell().Add(new Paragraph(input.AcordId.ToString())));
+
+            table.AddCell(new Cell().Add(new Paragraph("Nume complet:").SetBold()));
+            table.AddCell(new Cell().Add(new Paragraph($"{input.Nume} {input.Prenume}")));
+
+            table.AddCell(new Cell().Add(new Paragraph("Telefon:").SetBold()));
+            table.AddCell(new Cell().Add(new Paragraph(input.Telefon)));
+
+            if (!string.IsNullOrEmpty(input.Email))
+            {
+                table.AddCell(new Cell().Add(new Paragraph("Email:").SetBold()));
+                table.AddCell(new Cell().Add(new Paragraph(input.Email)));
+            }
+
+            table.AddCell(new Cell().Add(new Paragraph("Versiune acord:").SetBold()));
+            table.AddCell(new Cell().Add(new Paragraph(input.ConsentVersion)));
+
+            table.AddCell(new Cell().Add(new Paragraph("Semnat la:").SetBold()));
+            table.AddCell(new Cell().Add(new Paragraph(input.SignedAt.ToString("dd.MM.yyyy HH:mm:ss UTC"))));
+
+            table.AddCell(new Cell().Add(new Paragraph("Acord intermediere:").SetBold()));
+            table.AddCell(new Cell().Add(new Paragraph("DA")));
+
+            table.AddCell(new Cell().Add(new Paragraph("Acord marketing:").SetBold()));
+            table.AddCell(new Cell().Add(new Paragraph(input.MarketingAccepted ? "DA" : "NU")));
+
+            table.AddCell(new Cell().Add(new Paragraph("Renuntare perioada asteptare (OUG 52/2016):").SetBold()));
+            table.AddCell(new Cell().Add(new Paragraph(input.Oug52Waived ? "DA" : "NU")));
+
+            document.Add(table);
+
+            document.Add(new Paragraph("Text acord (snapshot):")
+                .SetBold()
+                .SetMarginTop(20));
+            document.Add(new Paragraph(input.ConsentTextSnapshot)
+                .SetFontSize(10)
+                .SetItalic()
+                .SetMarginBottom(20));
+
+            document.Add(new Paragraph("Semnatura client:")
+                .SetBold()
+                .SetMarginTop(10));
+            var signature = new Image(ImageDataFactory.Create(input.SignaturePng))
+                .SetAutoScale(false)
+                .ScaleToFit(240, 100)
+                .SetMarginBottom(20);
+            document.Add(signature);
+
+            if (!string.IsNullOrEmpty(input.Ip) || !string.IsNullOrEmpty(input.UserAgent))
+            {
+                document.Add(new Paragraph("Informatii tehnice:")
+                    .SetBold()
+                    .SetMarginTop(10));
+
+                if (!string.IsNullOrEmpty(input.Ip))
+                {
+                    document.Add(new Paragraph($"IP: {input.Ip}"));
+                }
+                if (!string.IsNullOrEmpty(input.UserAgent))
+                {
+                    document.Add(new Paragraph($"User-Agent: {input.UserAgent}"));
+                }
+            }
+
+            document.Add(new Paragraph().SetMarginTop(30));
+            var footerTable = new Table(1).UseAllAvailableWidth();
+            footerTable.AddCell(new Cell()
+                .Add(new Paragraph("--- Metadata audit ---")
+                    .SetFontSize(8)
+                    .SetItalic()));
+            footerTable.AddCell(new Cell()
+                .Add(new Paragraph($"Generat la: {DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffZ}")
+                    .SetFontSize(8)));
+            document.Add(footerTable);
+
+            document.Close();
+
+            pdfBytes = memoryStream.ToArray();
+        }
+
+        byte[] sha256Hash;
+        using (var sha256 = SHA256.Create())
+        {
+            sha256Hash = sha256.ComputeHash(pdfBytes);
+        }
+
+        using (var memoryStream = new MemoryStream())
+        {
+            var writer = new PdfWriter(memoryStream);
+            var pdf = new PdfDocument(new PdfReader(new MemoryStream(pdfBytes)), writer);
+            var document = new iText.Layout.Document(pdf);
+
+            var hashBase64 = Convert.ToBase64String(sha256Hash);
+            var lastPage = pdf.GetNumberOfPages();
+            var hashParagraph = new Paragraph($"SHA-256: {hashBase64}")
+                .SetFontSize(8)
+                .SetFixedPosition(lastPage, 50, 30, 500)
+                .SetTextAlignment(TextAlignment.LEFT);
+
+            document.Add(hashParagraph);
+            document.Close();
+
+            return memoryStream.ToArray();
+        }
     }
 
     private string MaskPhone(string? phone)
