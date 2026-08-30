@@ -159,7 +159,7 @@ export const acordApi = {
     fd.append('AcceptMarketing', String(payload.acceptMarketing));
     fd.append('WaiveOug52', String(payload.waiveOug52));
 
-    return publicClient.post('/acord/submit', fd).then(r => unwrap<AcordSubmitResult>(r.data));
+    return publicClient.post('/acord/submit', fd, { timeout: 180000 }).then(r => unwrap<AcordSubmitResult>(r.data));
   },
 
   // ── Admin (JWT) ──

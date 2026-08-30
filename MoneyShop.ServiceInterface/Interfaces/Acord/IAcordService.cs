@@ -15,6 +15,12 @@ public interface IAcordService
     /// </summary>
     Task<AcordSubmitResult> SubmitAsync(AcordSubmitInput input, AcordSignContext context);
 
+    /// <summary>
+    /// Post-submit work that the client never waits for: document OCR, the signed
+    /// agreement PDF, and the email copy. Runs in the background after SubmitAsync.
+    /// </summary>
+    Task ProcessSubmissionAsync(Guid acordId);
+
     AcordConsentText GetConsentText();
 
     /// <summary>Clears stored ID data once its retention period has elapsed.</summary>
