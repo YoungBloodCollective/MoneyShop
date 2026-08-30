@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MoneyShop.DomainModel.Entities;
 using MoneyShop.DomainServices.RepositoryInterfaces.Acord;
@@ -45,6 +46,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
     private readonly ISubjectService _subjectService;
     private readonly IPdfGenerationService _pdfGenerationService;
     private readonly EmailService _emailService;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly MoneyShopDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AcordService> _logger;
@@ -58,6 +60,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         ISubjectService subjectService,
         IPdfGenerationService pdfGenerationService,
         EmailService emailService,
+        IServiceScopeFactory scopeFactory,
         MoneyShopDbContext context,
         IConfiguration configuration,
         ILogger<AcordService> logger)
@@ -70,6 +73,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         _subjectService = subjectService;
         _pdfGenerationService = pdfGenerationService;
         _emailService = emailService;
+        _scopeFactory = scopeFactory;
         _context = context;
         _configuration = configuration;
         _logger = logger;
@@ -152,8 +156,6 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         PersistFile(acord, "signature", input.SignaturePng, "signature.png", "image/png");
         _context.SaveChanges();
 
-        await TryReadDocumentAsync(acord, kycSession, input);
-
         var consentText = GetConsentText();
         var legalDoc = GetOrCreateLegalDoc(consentText);
 
@@ -181,9 +183,40 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             "Acord {AcordId} submitted for user {UserId} (marketing: {Marketing}, oug52: {Waiver})",
             acord.AcordId, acord.UserId, input.Choices.AcceptMarketing, input.Choices.WaiveOug52);
 
-        await TrySendSignedAgreementAsync(acord, primary, input.SignaturePng, context);
+        QueueBackgroundProcessing(acord.AcordId);
 
         return new AcordSubmitResult { Success = true, AcordId = acord.AcordId };
+    }
+
+    /// <summary>
+    /// The client's answer does not depend on OCR, the PDF, or the email, and each
+    /// of those steps is slow — so they run after the response, on a fresh scope
+    /// because the request's own services are disposed once it returns.
+    /// </summary>
+    private void QueueBackgroundProcessing(Guid acordId)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var service = scope.ServiceProvider.GetRequiredService<IAcordService>();
+                await service.ProcessSubmissionAsync(acordId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Background processing failed for acord {AcordId}", acordId);
+            }
+        });
+    }
+
+    public async Task ProcessSubmissionAsync(Guid acordId)
+    {
+        var acord = _acordRepository.Get().FirstOrDefault(a => a.AcordId == acordId);
+        if (acord == null) return;
+
+        await TryReadDocumentAsync(acord);
+        await TrySendSignedAgreementAsync(acord);
     }
 
     /// <summary>
@@ -191,10 +224,21 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
     /// documents, and emails it to the client when an address was provided.
     /// A failure here never fails the submission — the acord is already recorded.
     /// </summary>
-    private async Task TrySendSignedAgreementAsync(AcordClient acord, ConsentEntity consent, byte[] signaturePng, AcordSignContext context)
+    private async Task TrySendSignedAgreementAsync(AcordClient acord)
     {
         try
         {
+            var signaturePng = LoadFileBytes(acord, "signature");
+            if (signaturePng == null)
+            {
+                _logger.LogWarning("No signature file found for acord {AcordId}; skipping agreement PDF", acord.AcordId);
+                return;
+            }
+
+            var consent = acord.ConsentId.HasValue
+                ? _context.Consents.FirstOrDefault(c => c.ConsentId == acord.ConsentId.Value)
+                : null;
+
             var fileName = $"acord-semnat-{acord.AcordId}.pdf";
             var pdf = _pdfGenerationService.GenerateAcordAgreementPdf(new AcordAgreementPdfInput
             {
@@ -204,12 +248,12 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
                 Telefon = acord.Telefon,
                 Email = acord.Email,
                 ConsentVersion = acord.ConsentVersion ?? "0.0-placeholder",
-                ConsentTextSnapshot = consent.ConsentTextSnapshot ?? string.Empty,
+                ConsentTextSnapshot = consent?.ConsentTextSnapshot ?? string.Empty,
                 MarketingAccepted = acord.MarketingAccepted ?? false,
                 Oug52Waived = acord.Oug52Waived ?? false,
                 SignedAt = acord.SignedAt ?? DateTime.UtcNow,
-                Ip = context.Ip,
-                UserAgent = context.UserAgent,
+                Ip = consent?.Ip,
+                UserAgent = consent?.UserAgent,
                 SignaturePng = signaturePng
             });
 
@@ -228,24 +272,43 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         }
     }
 
+    private byte[]? LoadFileBytes(AcordClient acord, string fileType)
+    {
+        if (!acord.KycId.HasValue) return null;
+
+        var file = _kycFileRepository.Get()
+            .Where(f => f.KycId == acord.KycId.Value && f.FileType == fileType && f.DeletedAt == null)
+            .OrderByDescending(f => f.CreatedAt)
+            .FirstOrDefault();
+
+        return file?.FileContentBase64 == null ? null : Convert.FromBase64String(file.FileContentBase64);
+    }
+
     /// <summary>
     /// Reads the document if the KYC service is reachable. A failure here never
     /// fails the submission — the documents are already stored.
     /// </summary>
-    private async Task TryReadDocumentAsync(AcordClient acord, KycSession kycSession, AcordSubmitInput input)
+    private async Task TryReadDocumentAsync(AcordClient acord)
     {
+        var kycSession = GetKycSession(acord);
+        if (kycSession == null) return;
+
+        var front = LoadFileBytes(acord, "id_front");
+        if (front == null) return;
+
         if (!await EnsureProviderSessionAsync(kycSession)) return;
 
         try
         {
             var ocr = await _externalKyc.SubmitDocumentOcrAsync(
                 kycSession.ProviderTransactionId!, kycSession.Token!,
-                input.DocumentFront.Content, input.DocumentBack?.Content);
+                front, LoadFileBytes(acord, "id_back"));
 
             if (ocr.OcrData != null)
             {
                 acord.IdIsNewFormat = ocr.OcrData.IsNewFormat;
                 StoreIdentityData(acord, kycSession, ocr.OcrData, ocr.LogicValidation);
+                _context.SaveChanges();
             }
         }
         catch (Exception ex)
