@@ -3,7 +3,10 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using iText.IO.Font;
+using iText.IO.Font.Constants;
 using iText.IO.Image;
+using iText.Kernel.Font;
 using iText.Kernel.Pdf;
 using iText.Layout;
 using iText.Layout.Element;
@@ -38,6 +41,14 @@ public class PdfGenerationService : IPdfGenerationService
         _context = context;
         _environment = environment;
         _configuration = configuration;
+    }
+
+    private static PdfFont CreateUnicodeFont()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "Fonts", "DejaVuSans.ttf");
+        if (File.Exists(path))
+            return PdfFontFactory.CreateFont(path, PdfEncodings.IDENTITY_H);
+        return PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
     }
 
     /// <summary>
@@ -79,6 +90,7 @@ public class PdfGenerationService : IPdfGenerationService
             var writer = new PdfWriter(memoryStream);
             var pdf = new PdfDocument(writer);
             var document = new iText.Layout.Document(pdf);
+            document.SetFont(CreateUnicodeFont());
 
             document.Add(new Paragraph("MANDAT ANAF SI BIROUL DE CREDIT")
                 .SetFontSize(18)
@@ -187,6 +199,7 @@ public class PdfGenerationService : IPdfGenerationService
             var writer = new PdfWriter(memoryStream);
             var pdf = new PdfDocument(new PdfReader(new MemoryStream(pdfBytes)), writer);
             var document = new iText.Layout.Document(pdf);
+            document.SetFont(CreateUnicodeFont());
 
             var hashBase64 = Convert.ToBase64String(sha256Hash);
             var hashParagraph = new Paragraph($"SHA-256: {hashBase64}")
@@ -232,6 +245,7 @@ public class PdfGenerationService : IPdfGenerationService
             var writer = new PdfWriter(memoryStream);
             var pdf = new PdfDocument(writer);
             var document = new iText.Layout.Document(pdf);
+            document.SetFont(CreateUnicodeFont());
 
             document.Add(new Paragraph("ACORD DE INTERMEDIERE SI PRELUCRARE DATE")
                 .SetFontSize(18)
@@ -338,6 +352,7 @@ public class PdfGenerationService : IPdfGenerationService
             var writer = new PdfWriter(memoryStream);
             var pdf = new PdfDocument(new PdfReader(new MemoryStream(pdfBytes)), writer);
             var document = new iText.Layout.Document(pdf);
+            document.SetFont(CreateUnicodeFont());
 
             var hashBase64 = Convert.ToBase64String(sha256Hash);
             var lastPage = pdf.GetNumberOfPages();
