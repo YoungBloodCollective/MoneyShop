@@ -11,7 +11,7 @@ public static class DbContextConfigurationExtensions
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         services.AddDbContext<MoneyShopDbContext>(options =>
-            options.UseSqlServer(connectionString));
+            options.UseSqlServer(connectionString, sql => sql.CommandTimeout(120)));
         return services;
     }
 }

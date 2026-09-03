@@ -746,6 +746,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             existing.CreatedAt = DateTime.UtcNow;
             existing.ExpiresAt = DateTime.UtcNow.AddDays(RetentionDays);
             _kycFileRepository.Update(existing);
+            _context.SaveChanges();
             return;
         }
 
@@ -764,6 +765,9 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         };
 
         _kycFileRepository.Insert(file);
+        // Flushed per file: a single batched insert of several photos exceeds
+        // the SQL command timeout on the Basic tier.
+        _context.SaveChanges();
     }
 
     private LegalDoc GetOrCreateLegalDoc(AcordConsentText consentText)
