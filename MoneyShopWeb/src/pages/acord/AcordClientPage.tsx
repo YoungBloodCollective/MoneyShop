@@ -49,6 +49,36 @@ const DOCUMENT_SLOTS: { key: SlotKey; step: string; title: string }[] = [
   { key: 'proof', step: '3', title: 'Dovadă de adresă' },
 ];
 
+const MAX_IMAGE_DIMENSION = 2000;
+const COMPRESSED_QUALITY = 0.82;
+
+async function compressImage(file: File): Promise<File> {
+  if (!file.type.startsWith('image/')) return file;
+  try {
+    let bitmap: ImageBitmap;
+    try {
+      bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    } catch {
+      bitmap = await createImageBitmap(file);
+    }
+    const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>(resolve =>
+      canvas.toBlob(resolve, 'image/jpeg', COMPRESSED_QUALITY),
+    );
+    if (!blob || blob.size === 0 || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
+}
+
 function Field({
   label, value, onChange, placeholder, type = 'text', inputMode,
 }: {
@@ -109,16 +139,18 @@ export default function AcordClientPage() {
     acordApi.getConsentText().then(setConsentText).catch(() => undefined);
   }, []);
 
-  const pickFile = (key: SlotKey, file: File | undefined) => {
+  const pickFile = async (key: SlotKey, file: File | undefined) => {
     if (!file) return;
 
-    if (file.size > MAX_FILE_BYTES) {
+    const prepared = await compressImage(file);
+
+    if (prepared.size > MAX_FILE_BYTES) {
       setError(`${file.name}: fișierul depășește 10MB.`);
       return;
     }
 
     setError('');
-    setFiles(prev => ({ ...prev, [key]: file }));
+    setFiles(prev => ({ ...prev, [key]: prepared }));
   };
 
   const rules = TIP_ACT_OPTIONS.find(o => o.value === tipAct) ?? TIP_ACT_OPTIONS[0];
