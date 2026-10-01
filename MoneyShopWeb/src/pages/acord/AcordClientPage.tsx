@@ -152,7 +152,7 @@ function SelectField({
   label: string;
   value: string;
   onChange: (v: string) => void;
-  options: { value: string; label: string }[];
+  options: readonly { value: string; label: string }[];
 }) {
   return (
     <div>
@@ -182,7 +182,7 @@ export default function AcordClientPage() {
   const [prenume, setPrenume] = useState('');
   const [telefon, setTelefon] = useState('');
   const [email, setEmail] = useState('');
-  const [tipAct, setTipAct] = useState<string>('carte_identitate');
+  const [tipAct, setTipAct] = useState('');
   const [stareCivila, setStareCivila] = useState('');
   const [stareLocativa, setStareLocativa] = useState('');
   const [functieActuala, setFunctieActuala] = useState('');
@@ -230,10 +230,10 @@ export default function AcordClientPage() {
     setFiles(prev => ({ ...prev, [key]: prepared }));
   };
 
-  const rules = TIP_ACT_OPTIONS.find(o => o.value === tipAct) ?? TIP_ACT_OPTIONS[0];
+  const rules = TIP_ACT_OPTIONS.find(o => o.value === tipAct);
 
   const isRequired = (key: SlotKey) =>
-    key === 'front' ? true : key === 'back' ? rules.back : rules.proof;
+    key === 'front' ? true : key === 'back' ? !!rules?.back : !!rules?.proof;
 
   const phoneDigits = telefon.replace(/\D/g, '');
   const yearsTotal = parseYears(vechimeTotala);
@@ -253,6 +253,7 @@ export default function AcordClientPage() {
     prenume.trim().length >= 2 &&
     (phoneDigits.length === 10 || phoneDigits.length === 11) &&
     profileComplete &&
+    !!rules &&
     !!files.front &&
     (!rules.back || !!files.back) &&
     (!rules.proof || !!files.proof) &&
@@ -370,32 +371,22 @@ export default function AcordClientPage() {
           )}
           <div className="mb-6" />
 
-          <p className="text-sm font-semibold text-light-90 mb-2.5">Tip act de identitate</p>
-          <div className="grid grid-cols-3 gap-2 mb-6">
-            {TIP_ACT_OPTIONS.map(opt => {
-              const active = tipAct === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setTipAct(opt.value)}
-                  className={`flex flex-col items-start gap-2 rounded-xl px-3 py-3 text-left transition ${
-                    active
-                      ? 'ring-2 ring-brand-primary bg-brand-primary/5'
-                      : 'ring-1 ring-dark-500 bg-white hover:ring-dark-400'
-                  }`}
-                >
-                  <span className={`w-4 h-4 rounded-full border-[5px] shrink-0 ${
-                    active ? 'border-brand-primary' : 'border-dark-500'
-                  }`} />
-                  <span className="text-[13px] font-medium text-light-90 leading-tight">{opt.label}</span>
-                </button>
-              );
-            })}
+          <div className="mb-6">
+            <SelectField
+              label="Alege ce tip de act de identitate ai"
+              value={tipAct}
+              onChange={setTipAct}
+              options={TIP_ACT_OPTIONS}
+            />
           </div>
 
           <p className="text-sm font-semibold text-light-90 mb-2.5">Încarcă documentele</p>
-          <div className="grid grid-cols-3 gap-2">
+          {!rules && (
+            <p className="text-[13px] text-light-60 rounded-xl bg-dark-800 ring-1 ring-dark-600 px-4 py-3">
+              Alege mai întâi tipul actului de identitate ca să vezi ce documente trebuie încărcate.
+            </p>
+          )}
+          <div className={`grid grid-cols-3 gap-2 ${rules ? '' : 'hidden'}`}>
             {DOCUMENT_SLOTS.map(slot => {
               const file = files[slot.key];
               const required = isRequired(slot.key);
