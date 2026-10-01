@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Acord;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace MoneyShop.Api.Controllers;
@@ -89,6 +90,13 @@ public class AcordController : BaseController
         if (!request.AcceptIntermediere)
             return BadRequest("Acordul pentru prelucrarea datelor este obligatoriu");
 
+        var profile = new AcordClientProfile();
+        if (HasProfile(request))
+        {
+            var profileError = ValidateProfile(request, profile);
+            if (profileError != null) return BadRequest(profileError);
+        }
+
         var frontError = ValidateUpload(request.DocumentFront, "Poza fata a actului", required: true);
         if (frontError != null) return BadRequest(frontError);
 
@@ -122,6 +130,7 @@ public class AcordController : BaseController
                 DocumentBack = request.DocumentBack is { Length: > 0 } ? await ReadUpload(request.DocumentBack) : null,
                 AddressProof = request.AddressProof is { Length: > 0 } ? await ReadUpload(request.AddressProof) : null,
                 SignaturePng = signature,
+                Profile = profile,
                 Choices = new AcordSignChoices
                 {
                     AcceptIntermediere = request.AcceptIntermediere,
@@ -201,6 +210,65 @@ public class AcordController : BaseController
         return HttpContext.Connection.RemoteIpAddress?.ToString();
     }
 
+    private static bool HasProfile(AcordSubmitRequest request) =>
+        new[]
+        {
+            request.StareCivila, request.StareLocativa, request.FunctieActuala, request.Studii,
+            request.NumeFirma, request.VechimeTotalaAni, request.VechimeLocActualAni
+        }.Any(v => !string.IsNullOrWhiteSpace(v));
+
+    private static string? ValidateProfile(AcordSubmitRequest request, AcordClientProfile profile)
+    {
+        var stareCivila = request.StareCivila?.Trim() ?? string.Empty;
+        if (!AcordProfileOptions.StareCivila.ContainsKey(stareCivila))
+            return "Selecteaza starea civila";
+
+        var stareLocativa = request.StareLocativa?.Trim() ?? string.Empty;
+        if (!AcordProfileOptions.StareLocativa.ContainsKey(stareLocativa))
+            return "Selecteaza starea locativa";
+
+        var functie = request.FunctieActuala?.Trim() ?? string.Empty;
+        if (functie.Length < 2 || functie.Length > 150)
+            return "Functia actuala este obligatorie";
+
+        var studii = request.Studii?.Trim() ?? string.Empty;
+        if (!AcordProfileOptions.Studii.ContainsKey(studii))
+            return "Selecteaza nivelul studiilor";
+
+        var firma = request.NumeFirma?.Trim();
+        if (firma is { Length: > 200 })
+            return "Numele firmei este prea lung";
+
+        var vechimeTotala = ParseYears(request.VechimeTotalaAni);
+        if (vechimeTotala == null)
+            return "Vechimea totala in munca nu este valida";
+
+        var vechimeLocActual = ParseYears(request.VechimeLocActualAni);
+        if (vechimeLocActual == null)
+            return "Vechimea la locul actual de munca nu este valida";
+
+        if (vechimeLocActual > vechimeTotala)
+            return "Vechimea la locul actual nu poate depasi vechimea totala in munca";
+
+        profile.StareCivila = stareCivila;
+        profile.StareLocativa = stareLocativa;
+        profile.FunctieActuala = functie;
+        profile.Studii = studii;
+        profile.NumeFirma = string.IsNullOrEmpty(firma) ? null : firma;
+        profile.VechimeTotalaAni = vechimeTotala;
+        profile.VechimeLocActualAni = vechimeLocActual;
+        return null;
+    }
+
+    private static decimal? ParseYears(string? value)
+    {
+        var normalised = (value ?? string.Empty).Trim().Replace(',', '.');
+        if (!decimal.TryParse(normalised, NumberStyles.Number, CultureInfo.InvariantCulture, out var years))
+            return null;
+
+        return years is < 0 or > 60 ? null : Math.Round(years, 1);
+    }
+
     private static string? ValidateUpload(IFormFile? file, string label, bool required)
     {
         if (file == null || file.Length == 0)
@@ -263,6 +331,14 @@ public class AcordSubmitRequest
     public string? Email { get; set; }
     public string? TipAct { get; set; }
     public string? AgentCode { get; set; }
+
+    public string? StareCivila { get; set; }
+    public string? StareLocativa { get; set; }
+    public string? FunctieActuala { get; set; }
+    public string? Studii { get; set; }
+    public string? NumeFirma { get; set; }
+    public string? VechimeTotalaAni { get; set; }
+    public string? VechimeLocActualAni { get; set; }
 
     public IFormFile? DocumentFront { get; set; }
     public IFormFile? DocumentBack { get; set; }

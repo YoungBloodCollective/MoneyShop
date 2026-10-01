@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -29,6 +30,8 @@ public class AcordService : IAcordService
     private const int DEFAULT_LINK_VALIDITY_HOURS = 72;
     private const int CLIENT_ROLE_ID = 1;
     private const int MAX_STARTS_PER_IP_PER_HOUR = 10;
+    private const int MANGO_ARCHIVE_YEARS = 5;
+    private static readonly CultureInfo RomanianCulture = CultureInfo.GetCultureInfo("ro-RO");
 
     private const string PLACEHOLDER_CONSENT = @"TEXT PROVIZORIU - A SE INLOCUI INAINTE DE PUNEREA IN FUNCTIUNE.
 
@@ -85,6 +88,9 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
     private int LinkValidityHours =>
         _configuration.GetValue<int?>("Acord:LinkValidityHours") ?? DEFAULT_LINK_VALIDITY_HOURS;
 
+    private bool MangoAgreementEnabled =>
+        _configuration.GetValue<bool?>("Acord:MangoAgreementEnabled") ?? true;
+
     // ── Public flow ──
 
     public async Task<AcordSubmitResult> SubmitAsync(AcordSubmitInput input, AcordSignContext context)
@@ -125,6 +131,13 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             Telefon = telefon,
             Email = email,
             TipAct = input.TipAct,
+            StareCivila = input.Profile.StareCivila,
+            StareLocativa = input.Profile.StareLocativa,
+            FunctieActuala = input.Profile.FunctieActuala,
+            Studii = input.Profile.Studii,
+            NumeFirma = input.Profile.NumeFirma,
+            VechimeTotalaAni = input.Profile.VechimeTotalaAni,
+            VechimeLocActualAni = input.Profile.VechimeLocActualAni,
             AgentCode = string.IsNullOrWhiteSpace(input.AgentCode) ? null : input.AgentCode.Trim(),
             CreatedIp = input.Ip,
             Status = "documents",
@@ -217,6 +230,92 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
 
         await TryReadDocumentAsync(acord);
         await TrySendSignedAgreementAsync(acord);
+        await TrySendMangoAgreementAsync(acord);
+    }
+
+    private async Task TrySendMangoAgreementAsync(AcordClient acord)
+    {
+        if (!MangoAgreementEnabled) return;
+
+        try
+        {
+            var signaturePng = LoadFileBytes(acord, "signature");
+            if (signaturePng == null)
+            {
+                _logger.LogWarning("No signature file found for acord {AcordId}; skipping Mango agreement PDF", acord.AcordId);
+                return;
+            }
+
+            var signedAt = acord.SignedAt ?? DateTime.UtcNow;
+            var fileName = $"acord-mango-broker-{acord.AcordId}.pdf";
+            var pdf = _pdfGenerationService.GenerateMangoAgreementPdf(new MangoAgreementPdfInput
+            {
+                FullName = $"{acord.Prenume} {acord.Nume}".ToUpper(RomanianCulture),
+                Telefon = acord.Telefon,
+                Email = acord.Email,
+                BirthDate = DeserialiseOcr(acord.OcrDataJson)?.BirthDate,
+                SignedOn = ToRomaniaTime(signedAt),
+                RequestNumber = BuildRequestNumber(signedAt),
+                Oug52Waived = acord.Oug52Waived ?? false,
+                SignaturePng = signaturePng
+            });
+
+            PersistFile(acord, "mango_agreement", pdf, fileName, "application/pdf", DateTime.UtcNow.AddYears(MANGO_ARCHIVE_YEARS));
+
+            if (string.IsNullOrWhiteSpace(acord.Email)) return;
+
+            var sent = await _emailService.SendMangoAgreementAsync(acord.Email, $"{acord.Prenume} {acord.Nume}", pdf, fileName);
+            if (sent)
+                _logger.LogInformation("Mango agreement emailed to client for acord {AcordId}", acord.AcordId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not generate or email the Mango agreement for acord {AcordId}", acord.AcordId);
+        }
+    }
+
+    private string BuildRequestNumber(DateTime signedAtUtc)
+    {
+        var local = ToRomaniaTime(signedAtUtc);
+        var dayStartUtc = signedAtUtc - local.TimeOfDay;
+        var sequence = _acordRepository.Get()
+            .Count(a => a.SignedAt != null && a.SignedAt >= dayStartUtc && a.SignedAt <= signedAtUtc);
+
+        return $"{local:yyMMdd}{Math.Max(sequence, 1):D4}";
+    }
+
+    private static DateTime ToRomaniaTime(DateTime utc)
+    {
+        try
+        {
+            var zone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Bucharest");
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), zone);
+        }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return utc;
+        }
+    }
+
+    private static List<AcordLabeledValue> BuildDeclaredData(AcordClient acord)
+    {
+        var rows = new List<AcordLabeledValue>();
+
+        void Add(string label, string? value)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+                rows.Add(new AcordLabeledValue { Label = label, Value = value });
+        }
+
+        Add("Stare civilă", AcordProfileOptions.Label(AcordProfileOptions.StareCivila, acord.StareCivila));
+        Add("Stare locativă", AcordProfileOptions.Label(AcordProfileOptions.StareLocativa, acord.StareLocativa));
+        Add("Funcție actuală", acord.FunctieActuala);
+        Add("Studii", AcordProfileOptions.Label(AcordProfileOptions.Studii, acord.Studii));
+        Add("Firma angajatoare", acord.NumeFirma);
+        Add("Vechime totală în muncă (ani)", acord.VechimeTotalaAni?.ToString("0.#", RomanianCulture));
+        Add("Vechime la locul actual de muncă (ani)", acord.VechimeLocActualAni?.ToString("0.#", RomanianCulture));
+
+        return rows;
     }
 
     /// <summary>
@@ -254,11 +353,13 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
                 SignedAt = acord.SignedAt ?? DateTime.UtcNow,
                 Ip = consent?.Ip,
                 UserAgent = consent?.UserAgent,
-                SignaturePng = signaturePng
+                SignaturePng = signaturePng,
+                DeclaredData = BuildDeclaredData(acord)
+                    .Select(r => new KeyValuePair<string, string>(r.Label, r.Value))
+                    .ToList()
             });
 
             PersistFile(acord, "signed_agreement", pdf, fileName, "application/pdf");
-            _context.SaveChanges();
 
             if (string.IsNullOrWhiteSpace(acord.Email)) return;
 
@@ -511,7 +612,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             CnpMasked = kycSession?.Cnp,
             Address = kycSession?.Address,
             AutomaticChecksRan = !string.IsNullOrEmpty(kycSession?.ProviderTransactionId),
-            Ocr = DeserialiseOcr(acord.OcrDataJson)
+            Ocr = DeserialiseOcr(acord.OcrDataJson),
+            DeclaredData = BuildDeclaredData(acord)
         };
 
         if (acord.ConsentId.HasValue)
@@ -722,10 +824,12 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         }
     }
 
-    private void PersistFile(AcordClient acord, string fileType, byte[] content, string fileName, string mimeType)
+    private void PersistFile(AcordClient acord, string fileType, byte[] content, string fileName, string mimeType, DateTime? expiresAt = null)
     {
         if (!acord.KycId.HasValue)
             throw new InvalidOperationException("Acord session has no KYC session to attach files to");
+
+        var expires = expiresAt ?? DateTime.UtcNow.AddDays(RetentionDays);
 
         byte[] hash;
         using (var sha256 = SHA256.Create())
@@ -744,7 +848,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             existing.Sha256Hash = hash;
             existing.FileContentBase64 = Convert.ToBase64String(content);
             existing.CreatedAt = DateTime.UtcNow;
-            existing.ExpiresAt = DateTime.UtcNow.AddDays(RetentionDays);
+            existing.ExpiresAt = expires;
             _kycFileRepository.Update(existing);
             _context.SaveChanges();
             return;
@@ -761,7 +865,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             Sha256Hash = hash,
             FileContentBase64 = Convert.ToBase64String(content),
             CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddDays(RetentionDays)
+            ExpiresAt = expires
         };
 
         _kycFileRepository.Insert(file);

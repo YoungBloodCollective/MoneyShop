@@ -13,6 +13,8 @@ const FILE_LABELS: Record<string, string> = {
   selfie: 'Selfie',
   proof_of_address: 'Dovada de adresa',
   signature: 'Semnatura',
+  signed_agreement: 'Acord MoneyShop semnat',
+  mango_agreement: 'Acord Mango Broker semnat',
 };
 
 const TIP_ACT_LABELS: Record<string, string> = {
@@ -278,6 +280,24 @@ export default function AdminAcordPage() {
               </p>
             </div>
           </div>
+        )}
+
+        {selected.declaredData?.length > 0 && (
+          <>
+            <h2 className="text-sm font-semibold text-light-60 uppercase tracking-wider mb-3">
+              Date declarate de client
+            </h2>
+            <div className="bg-dark-700 rounded-2xl p-5 mb-6">
+              <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3">
+                {selected.declaredData.map(({ label, value }) => (
+                  <div key={label} className="flex justify-between gap-4 text-sm border-b border-dark-600 pb-2">
+                    <span className="text-light-50 shrink-0">{label}</span>
+                    <span className="text-light-90 text-right break-words">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
         )}
 
         <h2 className="text-sm font-semibold text-light-60 uppercase tracking-wider mb-3">

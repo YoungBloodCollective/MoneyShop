@@ -30,6 +30,13 @@ export interface AcordSubmitPayload {
   email?: string;
   tipAct: string;
   agentCode?: string;
+  stareCivila: string;
+  stareLocativa: string;
+  functieActuala: string;
+  studii: string;
+  numeFirma?: string;
+  vechimeTotalaAni: string;
+  vechimeLocActualAni: string;
   documentFront: File;
   documentBack: File | null;
   addressProof: File | null;
@@ -122,6 +129,7 @@ export interface AcordDetails {
   address?: string;
   automaticChecksRan: boolean;
   ocr?: AcordOcrSnapshot | null;
+  declaredData: { label: string; value: string }[];
   consentVersion?: string;
   consentTextSnapshot?: string;
   consentIp?: string;
@@ -151,6 +159,13 @@ export const acordApi = {
     if (payload.email) fd.append('Email', payload.email);
     fd.append('TipAct', payload.tipAct);
     if (payload.agentCode) fd.append('AgentCode', payload.agentCode);
+    fd.append('StareCivila', payload.stareCivila);
+    fd.append('StareLocativa', payload.stareLocativa);
+    fd.append('FunctieActuala', payload.functieActuala);
+    fd.append('Studii', payload.studii);
+    if (payload.numeFirma) fd.append('NumeFirma', payload.numeFirma);
+    fd.append('VechimeTotalaAni', payload.vechimeTotalaAni);
+    fd.append('VechimeLocActualAni', payload.vechimeLocActualAni);
     fd.append('DocumentFront', payload.documentFront, payload.documentFront.name);
     if (payload.documentBack) fd.append('DocumentBack', payload.documentBack, payload.documentBack.name);
     if (payload.addressProof) fd.append('AddressProof', payload.addressProof, payload.addressProof.name);

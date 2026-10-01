@@ -17,7 +17,8 @@ public interface IAcordService
 
     /// <summary>
     /// Post-submit work that the client never waits for: document OCR, the signed
-    /// agreement PDF, and the email copy. Runs in the background after SubmitAsync.
+    /// MoneyShop and Mango Broker PDFs, and their email copies. Runs in the
+    /// background after SubmitAsync.
     /// </summary>
     Task ProcessSubmissionAsync(Guid acordId);
 
@@ -58,6 +59,56 @@ public class AcordSubmitInput
 
     public byte[] SignaturePng { get; set; } = null!;
     public AcordSignChoices Choices { get; set; } = new();
+    public AcordClientProfile Profile { get; set; } = new();
+}
+
+public class AcordClientProfile
+{
+    public string? StareCivila { get; set; }
+    public string? StareLocativa { get; set; }
+    public string? FunctieActuala { get; set; }
+    public string? Studii { get; set; }
+    public string? NumeFirma { get; set; }
+    public decimal? VechimeTotalaAni { get; set; }
+    public decimal? VechimeLocActualAni { get; set; }
+}
+
+public static class AcordProfileOptions
+{
+    public static readonly IReadOnlyDictionary<string, string> StareCivila = new Dictionary<string, string>
+    {
+        ["casatorit"] = "Căsătorit/ă",
+        ["necasatorit"] = "Necăsătorit/ă",
+        ["vaduv"] = "Văduv/ă",
+        ["divortat"] = "Divorțat/ă",
+        ["concubinaj"] = "Concubinaj",
+    };
+
+    public static readonly IReadOnlyDictionary<string, string> StareLocativa = new Dictionary<string, string>
+    {
+        ["proprietar"] = "Proprietar",
+        ["cu_parintii"] = "Cu părinții",
+        ["chirie"] = "Chirie",
+        ["proprietar_ipoteca"] = "Proprietar cu ipotecă",
+    };
+
+    public static readonly IReadOnlyDictionary<string, string> Studii = new Dictionary<string, string>
+    {
+        ["gimnaziale"] = "Gimnaziale",
+        ["liceu"] = "Liceu",
+        ["postliceale"] = "Postliceale",
+        ["universitare"] = "Universitare",
+        ["master"] = "Master",
+    };
+
+    public static string? Label(IReadOnlyDictionary<string, string> options, string? key) =>
+        key == null ? null : options.TryGetValue(key, out var label) ? label : key;
+}
+
+public class AcordLabeledValue
+{
+    public string Label { get; set; } = null!;
+    public string Value { get; set; } = null!;
 }
 
 public class AcordSubmitResult
@@ -213,6 +264,7 @@ public class AcordDetails
     public string? CnpMasked { get; set; }
     public string? Address { get; set; }
     public AcordOcrSnapshot? Ocr { get; set; }
+    public List<AcordLabeledValue> DeclaredData { get; set; } = new();
 
     /// <summary>
     /// False when no external KYC session existed, i.e. OCR / liveness never ran
