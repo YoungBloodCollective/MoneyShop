@@ -14,6 +14,20 @@ namespace MoneyShop.ServiceInterface.Interfaces.Document
             DateTime expiresAt);
 
         byte[] GenerateAcordAgreementPdf(AcordAgreementPdfInput input);
+
+        byte[] GenerateMangoAgreementPdf(MangoAgreementPdfInput input);
+    }
+
+    public class MangoAgreementPdfInput
+    {
+        public string FullName { get; set; } = null!;
+        public string Telefon { get; set; } = null!;
+        public string? Email { get; set; }
+        public string? BirthDate { get; set; }
+        public DateTime SignedOn { get; set; }
+        public string RequestNumber { get; set; } = null!;
+        public bool Oug52Waived { get; set; }
+        public byte[] SignaturePng { get; set; } = null!;
     }
 
     public class AcordAgreementPdfInput
@@ -31,6 +45,7 @@ namespace MoneyShop.ServiceInterface.Interfaces.Document
         public string? Ip { get; set; }
         public string? UserAgent { get; set; }
         public byte[] SignaturePng { get; set; } = null!;
+        public IReadOnlyList<KeyValuePair<string, string>> DeclaredData { get; set; } = Array.Empty<KeyValuePair<string, string>>();
     }
 
     public class MandatePdfResult

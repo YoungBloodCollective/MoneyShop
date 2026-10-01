@@ -20,6 +20,14 @@ namespace MoneyShop.DomainModel.Entities
 
         public string Status { get; set; } = "started"; // started, documents, signed, completed, rejected
 
+        public string? StareCivila { get; set; }
+        public string? StareLocativa { get; set; }
+        public string? FunctieActuala { get; set; }
+        public string? Studii { get; set; }
+        public string? NumeFirma { get; set; }
+        public decimal? VechimeTotalaAni { get; set; }
+        public decimal? VechimeLocActualAni { get; set; }
+
         public string? TipAct { get; set; }
         public bool? IdIsNewFormat { get; set; }
         public string? OcrDataJson { get; set; }

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  FileText, UploadCloud, Check, X, Info, ChevronRight,
+  FileText, UploadCloud, Check, X, Info, ChevronRight, ChevronDown,
   Loader2, CheckCircle, ShieldCheck,
 } from 'lucide-react';
 import axios from 'axios';
@@ -49,6 +49,36 @@ const DOCUMENT_SLOTS: { key: SlotKey; step: string; title: string }[] = [
   { key: 'proof', step: '3', title: 'Dovadă de adresă' },
 ];
 
+const STARE_CIVILA_OPTIONS = [
+  { value: 'casatorit', label: 'Căsătorit/ă' },
+  { value: 'necasatorit', label: 'Necăsătorit/ă' },
+  { value: 'vaduv', label: 'Văduv/ă' },
+  { value: 'divortat', label: 'Divorțat/ă' },
+  { value: 'concubinaj', label: 'Concubinaj' },
+];
+
+const STARE_LOCATIVA_OPTIONS = [
+  { value: 'proprietar', label: 'Proprietar' },
+  { value: 'cu_parintii', label: 'Cu părinții' },
+  { value: 'chirie', label: 'Chirie' },
+  { value: 'proprietar_ipoteca', label: 'Proprietar cu ipotecă' },
+];
+
+const STUDII_OPTIONS = [
+  { value: 'gimnaziale', label: 'Gimnaziale' },
+  { value: 'liceu', label: 'Liceu' },
+  { value: 'postliceale', label: 'Postliceale' },
+  { value: 'universitare', label: 'Universitare' },
+  { value: 'master', label: 'Master' },
+];
+
+function parseYears(value: string): number | null {
+  const normalised = value.trim().replace(',', '.');
+  if (!/^\d+(\.\d+)?$/.test(normalised)) return null;
+  const years = Number(normalised);
+  return years >= 0 && years <= 60 ? years : null;
+}
+
 const MAX_IMAGE_DIMENSION = 2000;
 const COMPRESSED_QUALITY = 0.82;
 
@@ -79,19 +109,31 @@ async function compressImage(file: File): Promise<File> {
   }
 }
 
+function FieldLabel({ label, required, optional }: { label: string; required?: boolean; optional?: boolean }) {
+  return (
+    <label className="block text-sm font-medium text-light-80 mb-1.5">
+      {label}
+      {required && <span className="text-error-500"> *</span>}
+      {optional && <span className="font-normal text-light-50"> (opțional)</span>}
+    </label>
+  );
+}
+
 function Field({
-  label, value, onChange, placeholder, type = 'text', inputMode,
+  label, value, onChange, placeholder, type = 'text', inputMode, required, optional,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
   type?: string;
-  inputMode?: 'text' | 'tel' | 'email';
+  inputMode?: 'text' | 'tel' | 'email' | 'decimal';
+  required?: boolean;
+  optional?: boolean;
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-light-80 mb-1.5">{label}</label>
+      <FieldLabel label={label} required={required} optional={optional} />
       <input
         type={type}
         inputMode={inputMode}
@@ -100,6 +142,34 @@ function Field({
         placeholder={placeholder}
         className="w-full px-3.5 py-3 text-base rounded-xl bg-white ring-1 ring-dark-500 text-light-90 placeholder:text-light-50 focus:outline-none focus:ring-2 focus:ring-brand-primary transition"
       />
+    </div>
+  );
+}
+
+function SelectField({
+  label, value, onChange, options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div>
+      <FieldLabel label={label} required />
+      <div className="relative">
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className={`w-full appearance-none pl-3.5 pr-9 py-3 text-base rounded-xl bg-white ring-1 ring-dark-500 focus:outline-none focus:ring-2 focus:ring-brand-primary transition ${
+            value ? 'text-light-90' : 'text-light-50'
+          }`}
+        >
+          <option value="" disabled>Alege</option>
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <ChevronDown size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-light-50 pointer-events-none" />
+      </div>
     </div>
   );
 }
@@ -113,6 +183,13 @@ export default function AcordClientPage() {
   const [telefon, setTelefon] = useState('');
   const [email, setEmail] = useState('');
   const [tipAct, setTipAct] = useState<string>('carte_identitate');
+  const [stareCivila, setStareCivila] = useState('');
+  const [stareLocativa, setStareLocativa] = useState('');
+  const [functieActuala, setFunctieActuala] = useState('');
+  const [studii, setStudii] = useState('');
+  const [numeFirma, setNumeFirma] = useState('');
+  const [vechimeTotala, setVechimeTotala] = useState('');
+  const [vechimeLocActual, setVechimeLocActual] = useState('');
 
   const [files, setFiles] = useState<Record<SlotKey, File | null>>({
     front: null, back: null, proof: null,
@@ -159,10 +236,23 @@ export default function AcordClientPage() {
     key === 'front' ? true : key === 'back' ? rules.back : rules.proof;
 
   const phoneDigits = telefon.replace(/\D/g, '');
+  const yearsTotal = parseYears(vechimeTotala);
+  const yearsCurrent = parseYears(vechimeLocActual);
+  const tenureConflict = yearsTotal !== null && yearsCurrent !== null && yearsCurrent > yearsTotal;
+  const profileComplete =
+    !!stareCivila &&
+    !!stareLocativa &&
+    functieActuala.trim().length >= 2 &&
+    !!studii &&
+    yearsTotal !== null &&
+    yearsCurrent !== null &&
+    !tenureConflict;
+
   const canSubmit =
     nume.trim().length >= 2 &&
     prenume.trim().length >= 2 &&
     (phoneDigits.length === 10 || phoneDigits.length === 11) &&
+    profileComplete &&
     !!files.front &&
     (!rules.back || !!files.back) &&
     (!rules.proof || !!files.proof) &&
@@ -183,6 +273,13 @@ export default function AcordClientPage() {
         email: email.trim() || undefined,
         tipAct,
         agentCode,
+        stareCivila,
+        stareLocativa,
+        functieActuala: functieActuala.trim(),
+        studii,
+        numeFirma: numeFirma.trim() || undefined,
+        vechimeTotalaAni: vechimeTotala.trim(),
+        vechimeLocActualAni: vechimeLocActual.trim(),
         documentFront: files.front!,
         documentBack: files.back,
         addressProof: files.proof,
@@ -219,7 +316,7 @@ export default function AcordClientPage() {
           </p>
           {email.trim() && (
             <p className="text-[15px] text-light-70 leading-relaxed max-w-sm mt-3">
-              Ți-am trimis o copie a acordului semnat pe {email.trim()}.
+              Ți-am trimis copii ale documentelor semnate pe {email.trim()}.
             </p>
           )}
         </div>
@@ -242,15 +339,36 @@ export default function AcordClientPage() {
             Completează datele și încarcă documentele.
           </p>
 
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <Field label="Nume" value={nume} onChange={setNume} placeholder="Introdu numele" />
-            <Field label="Prenume" value={prenume} onChange={setPrenume} placeholder="Introdu prenumele" />
-            <Field label="Telefon" value={telefon} onChange={setTelefon} placeholder="07xxxxxxxx" type="tel" inputMode="tel" />
-            <Field label="Email" value={email} onChange={setEmail} placeholder="exemplu@email.com" type="email" inputMode="email" />
+          <div className="grid grid-cols-2 gap-3 mb-4 items-end">
+            <Field label="Nume" value={nume} onChange={setNume} placeholder="Introdu numele" required />
+            <Field label="Prenume" value={prenume} onChange={setPrenume} placeholder="Introdu prenumele" required />
+            <Field label="Telefon" value={telefon} onChange={setTelefon} placeholder="07xxxxxxxx" type="tel" inputMode="tel" required />
+            <Field label="Email" value={email} onChange={setEmail} placeholder="exemplu@email.com" type="email" inputMode="email" optional />
           </div>
-          <p className="text-xs text-light-50 -mt-2 mb-4">
-            Dacă ne lași emailul, primești o copie a acordului semnat.
+          <p className="text-xs text-light-50 -mt-2 mb-6">
+            Dacă ne lași emailul, primești copii ale documentelor semnate.
           </p>
+
+          <p className="text-sm font-semibold text-light-90 mb-2.5">Situația personală și profesională</p>
+          <div className="grid grid-cols-2 gap-3 mb-2 items-end">
+            <SelectField label="Stare civilă" value={stareCivila} onChange={setStareCivila} options={STARE_CIVILA_OPTIONS} />
+            <SelectField label="Stare locativă" value={stareLocativa} onChange={setStareLocativa} options={STARE_LOCATIVA_OPTIONS} />
+            <Field label="Funcție actuală" value={functieActuala} onChange={setFunctieActuala} placeholder="ex. Operator vânzări" required />
+            <SelectField label="Studii" value={studii} onChange={setStudii} options={STUDII_OPTIONS} />
+          </div>
+          <div className="mb-3">
+            <Field label="Numele firmei unde lucrezi" value={numeFirma} onChange={setNumeFirma} placeholder="ex. Exemplu SRL" optional />
+          </div>
+          <div className="grid grid-cols-2 gap-3 items-end">
+            <Field label="Vechime totală în muncă (ani)" value={vechimeTotala} onChange={setVechimeTotala} placeholder="ex. 8" inputMode="decimal" required />
+            <Field label="Vechime la locul actual (ani)" value={vechimeLocActual} onChange={setVechimeLocActual} placeholder="ex. 2" inputMode="decimal" required />
+          </div>
+          {tenureConflict && (
+            <p className="text-[12px] text-error-600 mt-1.5">
+              Vechimea la locul actual nu poate depăși vechimea totală în muncă.
+            </p>
+          )}
+          <div className="mb-6" />
 
           <p className="text-sm font-semibold text-light-90 mb-2.5">Tip act de identitate</p>
           <div className="grid grid-cols-3 gap-2 mb-6">

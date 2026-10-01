@@ -43,12 +43,14 @@ public class PdfGenerationService : IPdfGenerationService
         _configuration = configuration;
     }
 
-    private static PdfFont CreateUnicodeFont()
+    private static PdfFont CreateUnicodeFont() => LoadFont("DejaVuSans.ttf", StandardFonts.HELVETICA);
+
+    private static PdfFont LoadFont(string fileName, string fallback)
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "Fonts", "DejaVuSans.ttf");
+        var path = Path.Combine(AppContext.BaseDirectory, "Fonts", fileName);
         if (File.Exists(path))
             return PdfFontFactory.CreateFont(path, PdfEncodings.IDENTITY_H);
-        return PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
+        return PdfFontFactory.CreateFont(fallback);
     }
 
     /// <summary>
@@ -292,6 +294,20 @@ public class PdfGenerationService : IPdfGenerationService
 
             document.Add(table);
 
+            if (input.DeclaredData.Count > 0)
+            {
+                document.Add(new Paragraph("Date declarate de client:")
+                    .SetBold()
+                    .SetMarginTop(20));
+                var declared = new Table(2).UseAllAvailableWidth();
+                foreach (var item in input.DeclaredData)
+                {
+                    declared.AddCell(new Cell().Add(new Paragraph($"{item.Key}:").SetBold()));
+                    declared.AddCell(new Cell().Add(new Paragraph(item.Value)));
+                }
+                document.Add(declared);
+            }
+
             document.Add(new Paragraph("Text acord (snapshot):")
                 .SetBold()
                 .SetMarginTop(20));
@@ -366,6 +382,17 @@ public class PdfGenerationService : IPdfGenerationService
 
             return memoryStream.ToArray();
         }
+    }
+
+    public byte[] GenerateMangoAgreementPdf(MangoAgreementPdfInput input)
+    {
+        var logoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "mango-broker-logo.png");
+        var logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : null;
+        return MangoAgreementPdf.Build(
+            input,
+            LoadFont("DejaVuSansCondensed.ttf", StandardFonts.HELVETICA),
+            LoadFont("DejaVuSansCondensed-Bold.ttf", StandardFonts.HELVETICA_BOLD),
+            logo);
     }
 
     private string MaskPhone(string? phone)

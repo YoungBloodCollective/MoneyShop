@@ -585,6 +585,13 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.ConsentVersion).HasMaxLength(50);
             entity.Property(e => e.OcrDataJson).HasColumnType("nvarchar(max)");
             entity.Property(e => e.TipAct).HasMaxLength(40);
+            entity.Property(e => e.StareCivila).HasMaxLength(30);
+            entity.Property(e => e.StareLocativa).HasMaxLength(30);
+            entity.Property(e => e.FunctieActuala).HasMaxLength(150);
+            entity.Property(e => e.Studii).HasMaxLength(30);
+            entity.Property(e => e.NumeFirma).HasMaxLength(200);
+            entity.Property(e => e.VechimeTotalaAni).HasColumnType("decimal(4,1)");
+            entity.Property(e => e.VechimeLocActualAni).HasColumnType("decimal(4,1)");
             entity.Property(e => e.LivenessConfidence).HasColumnType("decimal(5,4)");
             entity.Property(e => e.FaceMatchConfidence).HasColumnType("decimal(5,4)");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime2").HasDefaultValueSql("GETUTCDATE()");
