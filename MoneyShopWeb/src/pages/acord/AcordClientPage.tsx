@@ -43,6 +43,8 @@ const FALLBACK_CONSENT_OPTIONS = [
   },
 ];
 
+const MANGO_TITLE = 'Acord prestare servicii prin Mango Broker SRL';
+
 const DOCUMENT_SLOTS: { key: SlotKey; step: string; title: string }[] = [
   { key: 'front', step: '1', title: 'Poză față' },
   { key: 'back', step: '2', title: 'Poză spate/verso' },
@@ -107,6 +109,25 @@ async function compressImage(file: File): Promise<File> {
   } catch {
     return file;
   }
+}
+
+function InfoCard({ title, onOpen }: { title: string; onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full flex items-center gap-3 rounded-xl bg-info-400/10 ring-1 ring-info-400/30 px-4 py-3.5 text-left"
+    >
+      <Info size={19} className="text-info-500 shrink-0 mt-0.5 self-start" />
+      <span className="flex-1 min-w-0">
+        <span className="block text-[13px] font-semibold text-light-90">{title}</span>
+        <span className="block text-[12px] text-light-60 mt-0.5">
+          Te rugăm să citești informațiile înainte de a continua.
+        </span>
+      </span>
+      <ChevronRight size={18} className="text-light-50 shrink-0 self-center" />
+    </button>
+  );
 }
 
 function FieldLabel({ label, required, optional }: { label: string; required?: boolean; optional?: boolean }) {
@@ -196,7 +217,7 @@ export default function AcordClientPage() {
   });
 
   const [consentText, setConsentText] = useState<AcordConsentText | null>(null);
-  const [consentOpen, setConsentOpen] = useState(false);
+  const [openDoc, setOpenDoc] = useState<'gdpr' | 'mango' | null>(null);
   const [choices, setChoices] = useState<Record<string, boolean>>({
     intermediere: false, marketing: false, oug52Waiver: false,
   });
@@ -231,6 +252,7 @@ export default function AcordClientPage() {
   };
 
   const rules = TIP_ACT_OPTIONS.find(o => o.value === tipAct);
+  const showMango = consentText === null || !!consentText.mangoAgreement;
 
   const isRequired = (key: SlotKey) =>
     key === 'front' ? true : key === 'back' ? !!rules?.back : !!rules?.proof;
@@ -434,22 +456,10 @@ export default function AcordClientPage() {
             Formate acceptate: PNG, JPG, PDF. Dimensiune max: 10MB / fișier.
           </p>
 
-          <button
-            type="button"
-            onClick={() => setConsentOpen(true)}
-            className="w-full flex items-center gap-3 rounded-xl bg-info-400/10 ring-1 ring-info-400/30 px-4 py-3.5 text-left mb-5"
-          >
-            <Info size={19} className="text-info-500 shrink-0 mt-0.5 self-start" />
-            <span className="flex-1 min-w-0">
-              <span className="block text-[13px] font-semibold text-light-90">
-                Informații GDPR și Intermediere credit
-              </span>
-              <span className="block text-[12px] text-light-60 mt-0.5">
-                Te rugăm să citești informațiile înainte de a continua.
-              </span>
-            </span>
-            <ChevronRight size={18} className="text-light-50 shrink-0 self-center" />
-          </button>
+          <div className="space-y-2.5 mb-5">
+            <InfoCard title="Informații GDPR și Intermediere credit" onOpen={() => setOpenDoc('gdpr')} />
+            {showMango && <InfoCard title={MANGO_TITLE} onOpen={() => setOpenDoc('mango')} />}
+          </div>
 
           <div className="space-y-2.5 mb-5">
             {(consentText?.options?.length ? consentText.options : FALLBACK_CONSENT_OPTIONS).map(option => (
@@ -499,15 +509,17 @@ export default function AcordClientPage() {
         </div>
       </div>
 
-      {consentOpen && (
+      {openDoc && (
         <div className="fixed inset-0 z-50 bg-navy-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[88vh] flex flex-col shadow-2xl">
             <div className="flex items-center justify-between px-5 py-4 border-b border-dark-600">
               <h2 className="font-semibold text-light-100 pr-4 leading-snug">
-                {consentText?.title ?? 'Informații GDPR și Intermediere credit'}
+                {openDoc === 'mango'
+                  ? consentText?.mangoAgreement?.title ?? MANGO_TITLE
+                  : consentText?.title ?? 'Informații GDPR și Intermediere credit'}
               </h2>
               <button
-                onClick={() => setConsentOpen(false)}
+                onClick={() => setOpenDoc(null)}
                 aria-label="Închide"
                 className="w-9 h-9 rounded-full hover:bg-dark-800 flex items-center justify-center text-light-60 shrink-0"
               >
@@ -516,12 +528,13 @@ export default function AcordClientPage() {
             </div>
             <div className="px-5 py-4 overflow-y-auto">
               <p className="text-[14px] text-light-80 whitespace-pre-wrap leading-relaxed">
-                {consentText?.body ?? 'Textul acordului nu este disponibil momentan.'}
+                {(openDoc === 'mango' ? consentText?.mangoAgreement?.body : consentText?.body)
+                  ?? 'Textul acordului nu este disponibil momentan.'}
               </p>
             </div>
             <div className="px-5 py-4 border-t border-dark-600">
               <button
-                onClick={() => setConsentOpen(false)}
+                onClick={() => setOpenDoc(null)}
                 className="w-full py-3.5 rounded-xl bg-brand-primary text-white font-semibold"
               >
                 Am înțeles

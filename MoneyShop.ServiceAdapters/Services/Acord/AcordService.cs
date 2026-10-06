@@ -15,6 +15,7 @@ using MoneyShop.DomainServices.RepositoryInterfaces.Acord;
 using MoneyShop.DomainServices.RepositoryInterfaces.Account;
 using MoneyShop.DomainServices.RepositoryInterfaces.Kyc;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
+using MoneyShop.ServiceAdapters.Services.Document;
 using MoneyShop.ServiceAdapters.Services.Otp;
 using MoneyShop.ServiceInterface.Interfaces.Acord;
 using MoneyShop.ServiceInterface.Interfaces.Document;
@@ -469,7 +470,10 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             Title = string.IsNullOrWhiteSpace(title) ? "Informații GDPR și Intermediere credit" : title,
             Body = body,
             IsPlaceholder = isPlaceholder,
-            Options = BuildOptions()
+            Options = BuildOptions(),
+            MangoAgreement = MangoAgreementEnabled
+                ? new AcordDocumentText { Title = MangoAgreementText.DisplayTitle, Body = MangoAgreementText.BuildReadingText() }
+                : null
         };
     }
 

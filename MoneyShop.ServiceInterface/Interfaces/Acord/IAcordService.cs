@@ -206,6 +206,13 @@ public class AcordConsentText
     public string Body { get; set; } = null!;
     public bool IsPlaceholder { get; set; }
     public List<AcordConsentOption> Options { get; set; } = new();
+    public AcordDocumentText? MangoAgreement { get; set; }
+}
+
+public class AcordDocumentText
+{
+    public string Title { get; set; } = null!;
+    public string Body { get; set; } = null!;
 }
 
 public class AcordConsentOption

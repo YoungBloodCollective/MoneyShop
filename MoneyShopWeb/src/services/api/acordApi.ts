@@ -15,6 +15,7 @@ export interface AcordConsentText {
   body: string;
   isPlaceholder: boolean;
   options: AcordConsentOption[];
+  mangoAgreement?: { title: string; body: string } | null;
 }
 
 export interface AcordSignChoices {
