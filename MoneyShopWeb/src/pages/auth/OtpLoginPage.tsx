@@ -1,3 +1,4 @@
+import { useReturnPath } from '@/hooks/useReturnPath';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Phone } from 'lucide-react';
@@ -7,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function OtpLoginPage() {
   const navigate = useNavigate();
+  const returnPath = useReturnPath();
   const { loginWithToken } = useAuth();
   const [phone, setPhone] = useState('');
   const [otpId, setOtpId] = useState('');
@@ -39,7 +41,7 @@ export default function OtpLoginPage() {
       if (res.accessToken && res.user) {
         loginWithToken(res.accessToken!, { ...res.user!, kycStatus: 'none' } as Parameters<typeof loginWithToken>[1]);
         toast.success('Autentificare reusita!');
-        navigate('/dashboard');
+        navigate(returnPath, { replace: true });
       } else {
         toast.error(res.message || 'Cod invalid');
       }

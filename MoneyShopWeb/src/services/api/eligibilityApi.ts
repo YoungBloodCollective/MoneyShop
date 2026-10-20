@@ -87,7 +87,18 @@ export interface EligibilityResponse {
   };
 }
 
+export interface PublicRates {
+  version: string;
+  np: { aprMin: number; aprMax: number; maxTermMonths: number };
+  mortgage: { promoFixedMin: number; promoFixedMax: number };
+}
+
 export const eligibilityApi = {
+  async getRates(): Promise<PublicRates> {
+    const response = await apiClient.get<PublicRates>('/eligibility/rates');
+    return response.data;
+  },
+
   calculateSimple: async (
     request: CalcSimpleRequest,
   ): Promise<EligibilityResponse> => {

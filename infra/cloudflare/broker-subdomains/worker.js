@@ -5,7 +5,11 @@ export default {
     const url = new URL(request.url);
     const label = url.hostname.slice(0, -(env.ROOT_DOMAIN.length + 1));
 
-    if (!label || PASS_THROUGH.has(label)) {
+    if (!label || label === 'www') {
+      return Response.redirect(`https://${env.ROOT_DOMAIN}${url.pathname}${url.search}`, 301);
+    }
+
+    if (PASS_THROUGH.has(label)) {
       return fetch(request);
     }
 

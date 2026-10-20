@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, Search, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { applicationsApi } from '@/services/api/applicationsApi';
@@ -15,12 +15,14 @@ const steps = ['Tip credit', 'Detalii', 'Confirmare'];
 
 export default function ApplicationWizardPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
+  const [params] = useSearchParams();
+  const prefilledType = LOAN_TYPES.some(l => l.value === params.get('tip')) ? params.get('tip')! : '';
+  const [step, setStep] = useState(prefilledType ? 1 : 0);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    loanType: '',
-    amount: '',
-    term: '',
+    loanType: prefilledType,
+    amount: params.get('suma')?.replace(/\D/g, '') ?? '',
+    term: params.get('luni')?.replace(/\D/g, '') ?? '',
     purpose: '',
   });
   const [brokerSearch, setBrokerSearch] = useState('');
