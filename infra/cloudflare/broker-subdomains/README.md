@@ -24,8 +24,10 @@ for every subdomain with no certificate step.
 
 ## Notes
 
-- The Worker route `*.moneyshop.ro/*` catches **every proxied subdomain**. Reserved names (`www`,
-  `api`, `admin`, `status`, … — the same list the API refuses as broker slugs) pass straight through
+- `www.moneyshop.ro` redirects (301) to `moneyshop.ro`: it has no DNS record of its own, so without
+  the redirect it would hit the wildcard placeholder and fail with 522.
+- The Worker route `*.moneyshop.ro/*` catches **every proxied subdomain**. Other reserved names (`api`,
+  `admin`, `status`, … — the same list the API refuses as broker slugs) pass straight through
   to their own DNS record. A new proxied subdomain outside that list must be added to `PASS_THROUGH`
   in `worker.js` (and to the API/web reserved lists) or it will serve the web app.
 - Unknown slugs are handled by the app (it shows a "broker not found" page).
