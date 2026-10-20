@@ -31,7 +31,7 @@ namespace MoneyShop.Api.Controllers
                 var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
                 var deviceHash = ComputeDeviceHash();
 
-                var result = _otpService.RequestOtp(model.Phone, model.Purpose, model.UserId, ip, deviceHash, model.Channel);
+                var result = _otpService.RequestOtp(model.Phone, model.Purpose, null, ip, deviceHash, model.Channel);
 
                 return Ok(new { otpId = result.OtpId, expiresInSeconds = result.ExpiresInSeconds });
             }
@@ -64,9 +64,7 @@ namespace MoneyShop.Api.Controllers
                 // Update EmailVerified / PhoneVerified status
                 if (model.Purpose == "EMAIL_VERIFY")
                 {
-                    var user = result.UserId.HasValue
-                        ? userRepository.Get().FirstOrDefault(u => u.IdUtilizator == result.UserId.Value)
-                        : userRepository.Get().FirstOrDefault(u => u.Mail == model.Phone);
+                    var user = userRepository.Get().FirstOrDefault(u => u.Mail == model.Phone && u.IsDeleted != true);
                     if (user != null)
                     {
                         user.EmailVerified = true;
@@ -75,9 +73,7 @@ namespace MoneyShop.Api.Controllers
                 }
                 else if (model.Purpose == "PHONE_VERIFY")
                 {
-                    var user = result.UserId.HasValue
-                        ? userRepository.Get().FirstOrDefault(u => u.IdUtilizator == result.UserId.Value)
-                        : userRepository.Get().FirstOrDefault(u => u.NumarTelefon == model.Phone);
+                    var user = FindUserByPhone(userRepository, model.Phone);
                     if (user != null)
                     {
                         user.PhoneVerified = true;
@@ -85,19 +81,19 @@ namespace MoneyShop.Api.Controllers
                     }
                 }
 
-                if (model.Purpose == "LOGIN_SMS" && result.UserId.HasValue)
+                if (model.Purpose == "LOGIN_SMS")
                 {
                     var jwtService = HttpContext.RequestServices.GetRequiredService<JwtTokenGenerator>();
                     var sessionRepository = HttpContext.RequestServices.GetRequiredService<ISessionRepository>();
 
-                    var user = userRepository.Get().FirstOrDefault(u => u.IdUtilizator == result.UserId.Value);
+                    var user = FindUserByPhone(userRepository, model.Phone);
                     if (user == null)
                         return Unauthorized(new { message = "User not found" });
 
                     var session = new MoneyShop.DomainModel.Entities.Session
                     {
                         SessionId = Guid.NewGuid(),
-                        UserId = result.UserId.Value,
+                        UserId = user.IdUtilizator,
                         CreatedAt = DateTime.UtcNow,
                         ExpiresAt = DateTime.UtcNow.AddHours(24),
                         Ip = HttpContext.Connection.RemoteIpAddress?.ToString(),
@@ -141,6 +137,16 @@ namespace MoneyShop.Api.Controllers
             }
         }
 
+        private static MoneyShop.DomainModel.Entities.Utilizatori? FindUserByPhone(IUserRepository userRepository, string phone)
+        {
+            var digits = new string(phone.Where(char.IsDigit).ToArray());
+            if (digits.StartsWith("40") && digits.Length == 11) digits = "0" + digits.Substring(2);
+            if (digits.StartsWith("0040") && digits.Length == 13) digits = "0" + digits.Substring(4);
+
+            return userRepository.Get()
+                .FirstOrDefault(u => (u.NumarTelefon == digits || u.NumarTelefon == phone) && u.IsDeleted != true);
+        }
+
         private byte[]? ComputeDeviceHash()
         {
             var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
@@ -155,7 +161,6 @@ namespace MoneyShop.Api.Controllers
         public string Phone { get; set; } = null!;
         public string Purpose { get; set; } = null!;
         public string? Channel { get; set; } = "sms";
-        public int? UserId { get; set; }
     }
 
     public class OtpVerifyModel

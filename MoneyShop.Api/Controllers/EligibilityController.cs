@@ -54,7 +54,7 @@ namespace MoneyShop.Api.Controllers
         }
 
         [HttpGet("config")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Administrator")]
         public async Task<IActionResult> GetConfig()
         {
             try

@@ -74,7 +74,7 @@ public class BcReportController : BaseController
     {
         try
         {
-            var report = _bcReportService.GetById(id);
+            var report = _bcReportService.GetById(id, GetUserId());
             if (report == null)
                 return NotFound("Report not found");
 
