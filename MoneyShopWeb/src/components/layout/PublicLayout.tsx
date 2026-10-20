@@ -1,9 +1,11 @@
+import { useBrokerContact } from '@/context/brokerContextValue';
 import { useState } from 'react';
 import { Outlet, useNavigate, NavLink } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Phone, Lock, Menu, X, Shield, Award, FileCheck } from 'lucide-react';
 
 export function PublicLayout() {
+  const contact = useBrokerContact();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -38,8 +40,8 @@ export function PublicLayout() {
             ))}
           </nav>
           <div className="flex items-center gap-3">
-            <a href="tel:+40770548447" className="hidden md:flex items-center gap-1.5 text-sm text-gray-700 font-medium hover:text-gray-900 transition-colors">
-              <Phone size={14} /> 0770 548 447
+            <a href={contact.phoneHref} className="hidden md:flex items-center gap-1.5 text-sm text-gray-700 font-medium hover:text-gray-900 transition-colors">
+              <Phone size={14} /> {contact.phone}
             </a>
             <button
               onClick={() => navigate(isAuthenticated ? '/dashboard' : '/auth/login')}
@@ -69,8 +71,8 @@ export function PublicLayout() {
                 </button>
               ))}
               <hr className="my-3 border-gray-200" />
-              <a href="tel:+40770548447" className="flex items-center gap-2 px-4 py-3 text-base text-gray-700 font-medium">
-                <Phone size={16} /> 0770 548 447
+              <a href={contact.phoneHref} className="flex items-center gap-2 px-4 py-3 text-base text-gray-700 font-medium">
+                <Phone size={16} /> {contact.phone}
               </a>
               <button
                 onClick={() => { navigate(isAuthenticated ? '/dashboard' : '/auth/login'); setMobileMenuOpen(false); }}
@@ -118,9 +120,9 @@ export function PublicLayout() {
             <div>
               <p className="text-xs font-semibold text-white mb-3">Contact</p>
               <div className="space-y-1.5 text-[11px] text-gray-400">
-                <p className="flex items-center gap-1.5"><Phone size={11} /> 0770 548 447</p>
-                <p className="flex items-center gap-1.5"><Phone size={11} /> 031 434 0940</p>
-                <p><a href="mailto:alex.moore@moneyshop.ro" className="hover:text-white transition-colors">alex.moore@moneyshop.ro</a></p>
+                <p className="flex items-center gap-1.5"><Phone size={11} /> {contact.phone}</p>
+                {!contact.isBrokerSite && <p className="flex items-center gap-1.5"><Phone size={11} /> 031 434 0940</p>}
+                <p><a href={`mailto:${contact.email}`} className="hover:text-white transition-colors">{contact.email}</a></p>
                 <p>L-V: 09:00 - 18:00</p>
               </div>
               <div className="mt-4 space-y-1 text-[10px] text-gray-500">

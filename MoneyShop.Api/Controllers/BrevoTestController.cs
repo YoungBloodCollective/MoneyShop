@@ -5,6 +5,7 @@ namespace MoneyShop.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator")]
     public class BrevoTestController : ControllerBase
     {
         private readonly EmailService _emailService;

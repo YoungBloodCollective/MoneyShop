@@ -18,6 +18,7 @@ using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using MoneyShop.ServiceAdapters.Services.Document;
 using MoneyShop.ServiceAdapters.Services.Otp;
 using MoneyShop.ServiceInterface.Interfaces.Acord;
+using MoneyShop.ServiceInterface.Interfaces.Broker;
 using MoneyShop.ServiceInterface.Interfaces.Document;
 using MoneyShop.ServiceInterface.Interfaces.Kyc;
 using MoneyShop.ServiceInterface.Interfaces.Subject;
@@ -33,6 +34,9 @@ public class AcordService : IAcordService
     private const int MAX_STARTS_PER_IP_PER_HOUR = 10;
     private const int MANGO_ARCHIVE_YEARS = 5;
     private static readonly CultureInfo RomanianCulture = CultureInfo.GetCultureInfo("ro-RO");
+
+    private const string UNAVAILABLE_CONSENT =
+        "Acordul nu este inca disponibil pentru acest broker. Te rugam sa revii mai tarziu sau sa contactezi brokerul.";
 
     private const string PLACEHOLDER_CONSENT = @"TEXT PROVIZORIU - A SE INLOCUI INAINTE DE PUNEREA IN FUNCTIUNE.
 
@@ -54,6 +58,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
     private readonly MoneyShopDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AcordService> _logger;
+    private readonly IBrokerProfileService _brokerProfiles;
 
     public AcordService(
         IAcordClientRepository acordRepository,
@@ -67,7 +72,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         IServiceScopeFactory scopeFactory,
         MoneyShopDbContext context,
         IConfiguration configuration,
-        ILogger<AcordService> logger)
+        ILogger<AcordService> logger,
+        IBrokerProfileService brokerProfiles)
     {
         _acordRepository = acordRepository;
         _kycSessionRepository = kycSessionRepository;
@@ -81,6 +87,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         _context = context;
         _configuration = configuration;
         _logger = logger;
+        _brokerProfiles = brokerProfiles;
     }
 
     private int RetentionDays =>
@@ -104,6 +111,10 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             _logger.LogWarning("Acord submission rate limited for ip {Ip}", input.Ip);
             return new AcordSubmitResult { Success = false, RateLimited = true };
         }
+
+        var identity = _brokerProfiles.GetLegalIdentity(_brokerProfiles.ResolveIntakeBrokerId(input.BrokerSlug));
+        if (identity == null)
+            return new AcordSubmitResult { Success = false, Message = "Acordul nu este disponibil pentru acest broker" };
 
         if (!input.Choices.AcceptIntermediere)
             return new AcordSubmitResult { Success = false, Message = "Acordul pentru prelucrarea datelor este obligatoriu" };
@@ -140,6 +151,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             VechimeTotalaAni = input.Profile.VechimeTotalaAni,
             VechimeLocActualAni = input.Profile.VechimeLocActualAni,
             AgentCode = string.IsNullOrWhiteSpace(input.AgentCode) ? null : input.AgentCode.Trim(),
+            BrokerProfileId = identity.BrokerProfileId,
             CreatedIp = input.Ip,
             Status = "documents",
             RequiresProofOfAddress = input.AddressProof != null,
@@ -170,8 +182,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         PersistFile(acord, "signature", input.SignaturePng, "signature.png", "image/png");
         _context.SaveChanges();
 
-        var consentText = GetConsentText();
-        var legalDoc = GetOrCreateLegalDoc(consentText);
+        var consentText = BuildConsentText(identity);
+        var legalDoc = GetOrCreateLegalDoc(consentText, identity.BrokerProfileId);
 
         var primary = RecordConsent(acord, legalDoc, consentText, "ACORD_INTERMEDIERE", context);
         if (input.Choices.AcceptMarketing)
@@ -238,6 +250,10 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
     {
         if (!MangoAgreementEnabled) return;
 
+        var identity = _brokerProfiles.GetLegalIdentity(acord.BrokerProfileId);
+        if (identity is not { MangoAgreementEnabled: true } || string.IsNullOrWhiteSpace(identity.MangoEmail)) return;
+        var representative = ToMangoRepresentative(identity);
+
         try
         {
             var signaturePng = LoadFileBytes(acord, "signature");
@@ -257,6 +273,12 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
                 BirthDate = DeserialiseOcr(acord.OcrDataJson)?.BirthDate,
                 SignedOn = ToRomaniaTime(signedAt),
                 RequestNumber = BuildRequestNumber(signedAt),
+                RepresentativeCompany = representative.Company,
+                RepresentativeRegCom = representative.RegCom,
+                RepresentativeCui = representative.Cui,
+                RepresentativeAddress = representative.Address,
+                RepresentativePhone = representative.Phone,
+                RepresentativeEmail = representative.Email,
                 Oug52Waived = acord.Oug52Waived ?? false,
                 SignaturePng = signaturePng
             });
@@ -355,6 +377,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
                 Ip = consent?.Ip,
                 UserAgent = consent?.UserAgent,
                 SignaturePng = signaturePng,
+                BrokerCompany = _brokerProfiles.GetLegalIdentity(acord.BrokerProfileId)?.FirmaNume ?? "MONEYSHOP FINTECH SRL",
                 DeclaredData = BuildDeclaredData(acord)
                     .Select(r => new KeyValuePair<string, string>(r.Label, r.Value))
                     .ToList()
@@ -458,24 +481,55 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         }
     }
 
-    public AcordConsentText GetConsentText()
+    public AcordConsentText GetConsentText(string? brokerSlug = null) =>
+        BuildConsentText(_brokerProfiles.GetLegalIdentity(_brokerProfiles.ResolveIntakeBrokerId(brokerSlug)));
+
+    private AcordConsentText BuildConsentText(BrokerLegalIdentity? identity)
     {
         var version = _configuration["Acord:ConsentVersion"];
         var title = _configuration["Acord:ConsentTitle"];
-        var body = LoadConsentBody(out var isPlaceholder);
+        var template = LoadConsentBody(out var isPlaceholder);
 
         return new AcordConsentText
         {
             Version = string.IsNullOrWhiteSpace(version) ? "0.0-placeholder" : version,
             Title = string.IsNullOrWhiteSpace(title) ? "Informații GDPR și Intermediere credit" : title,
-            Body = body,
+            Body = identity == null ? UNAVAILABLE_CONSENT : RenderConsent(template, identity),
             IsPlaceholder = isPlaceholder,
+            Available = identity != null,
+            BrokerName = identity?.FirmaNume,
             Options = BuildOptions(),
-            MangoAgreement = MangoAgreementEnabled
-                ? new AcordDocumentText { Title = MangoAgreementText.DisplayTitle, Body = MangoAgreementText.BuildReadingText() }
+            MangoAgreement = MangoAgreementEnabled && identity is { MangoAgreementEnabled: true }
+                ? new AcordDocumentText { Title = MangoAgreementText.DisplayTitle, Body = MangoAgreementText.BuildReadingText(ToMangoRepresentative(identity)) }
                 : null
         };
     }
+
+    private static string RenderConsent(string template, BrokerLegalIdentity identity)
+    {
+        var values = new Dictionary<string, string>
+        {
+            ["FIRMA"] = identity.FirmaNume,
+            ["FIRMA_SEDIU"] = identity.FirmaSediu,
+            ["FIRMA_CUI"] = identity.FirmaCui,
+            ["FIRMA_REG_COM"] = identity.FirmaRegCom,
+            ["FIRMA_EUID"] = identity.FirmaEuid,
+            ["FIRMA_DATA_INFIINTARII"] = identity.FirmaDataInfiintarii,
+            ["REPREZENTANT"] = identity.ReprezentantNume.ToUpper(RomanianCulture),
+            ["REPREZENTANT_TELEFON"] = identity.ReprezentantTelefon,
+        };
+
+        return System.Text.RegularExpressions.Regex.Replace(template, @"\{\{([A-Z_]+)\}\}",
+            m => values.TryGetValue(m.Groups[1].Value, out var value) ? value : m.Value);
+    }
+
+    private static MangoRepresentative ToMangoRepresentative(BrokerLegalIdentity identity) => new(
+        identity.FirmaNume,
+        identity.FirmaRegCom,
+        identity.FirmaCui,
+        identity.FirmaSediu,
+        new string(identity.ReprezentantTelefon.Where(char.IsDigit).ToArray()),
+        identity.MangoEmail ?? string.Empty);
 
     private string LoadConsentBody(out bool isPlaceholder)
     {
@@ -538,9 +592,12 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
 
     // ── Admin ──
 
-    public List<AcordListItem> ListForAdmin(string? status, string? search)
+    public List<AcordListItem> ListForAdmin(string? status, string? search, int? brokerId = null)
     {
         var query = _acordRepository.Get().AsQueryable();
+
+        if (brokerId.HasValue)
+            query = query.Where(a => a.BrokerProfileId == brokerId.Value);
 
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(a => a.Status == status);
@@ -555,6 +612,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         }
 
         var items = query.OrderByDescending(a => a.CreatedAt).Take(500).ToList();
+        var brokerNames = _brokerProfiles.GetDisplayNames();
         var kycIds = items.Where(i => i.KycId.HasValue).Select(i => i.KycId!.Value).ToList();
 
         var fileCounts = _kycFileRepository.Get()
@@ -573,6 +631,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             Status = a.Status,
             AgentCode = a.AgentCode,
             IsSigned = a.SignedAt.HasValue,
+            BrokerProfileId = a.BrokerProfileId,
+            BrokerName = a.BrokerProfileId.HasValue && brokerNames.TryGetValue(a.BrokerProfileId.Value, out var brokerName) ? brokerName : null,
             MarketingAccepted = a.MarketingAccepted,
             LivenessPassed = a.LivenessPassed,
             FaceMatchPassed = a.FaceMatchPassed,
@@ -599,6 +659,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             Telefon = acord.Telefon,
             Email = acord.Email,
             AgentCode = acord.AgentCode,
+            BrokerProfileId = acord.BrokerProfileId,
+            BrokerName = acord.BrokerProfileId.HasValue && _brokerProfiles.GetDisplayNames().TryGetValue(acord.BrokerProfileId.Value, out var brokerName) ? brokerName : null,
             TipAct = acord.TipAct,
             Status = acord.Status,
             IdIsNewFormat = acord.IdIsNewFormat,
@@ -662,6 +724,9 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         if (file == null || file.DeletedAt != null || string.IsNullOrEmpty(file.FileContentBase64))
             return null;
 
+        if (!_acordRepository.Get().Any(a => a.KycId == file.KycId))
+            return null;
+
         return new AcordFileContent
         {
             FileName = file.FileName,
@@ -715,29 +780,26 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
     private Utilizatori FindOrCreateUser(string nume, string prenume, string telefon, string? email)
     {
         var existing = _userRepository.Get()
-            .FirstOrDefault(u => u.NumarTelefon == telefon && u.IsDeleted != true);
+            .FirstOrDefault(u => u.NumarTelefon == telefon && u.IsDeleted != true && u.IdRol == CLIENT_ROLE_ID);
 
         if (existing == null && !string.IsNullOrWhiteSpace(email))
         {
             existing = _userRepository.Get()
-                .FirstOrDefault(u => u.Mail == email && u.IsDeleted != true);
+                .FirstOrDefault(u => u.Mail == email && u.IsDeleted != true && u.IdRol == CLIENT_ROLE_ID);
         }
 
-        if (existing != null)
-        {
-            if (string.IsNullOrWhiteSpace(existing.Mail) && !string.IsNullOrWhiteSpace(email))
-                existing.Mail = email;
-            if (string.IsNullOrWhiteSpace(existing.NumarTelefon))
-                existing.NumarTelefon = telefon;
-            return existing;
-        }
+        if (existing != null) return existing;
+
+        var phoneTaken = _userRepository.Get().Any(u => u.NumarTelefon == telefon && u.IsDeleted != true);
+        var emailTaken = !string.IsNullOrWhiteSpace(email) &&
+                         _userRepository.Get().Any(u => u.Mail == email && u.IsDeleted != true);
 
         var user = new Utilizatori
         {
             Nume = nume,
             Prenume = prenume,
-            NumarTelefon = telefon,
-            Mail = email,
+            NumarTelefon = phoneTaken ? null : telefon,
+            Mail = emailTaken ? null : email,
             Username = null,
             Parola = null,
             EmailVerified = false,
@@ -878,8 +940,9 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         _context.SaveChanges();
     }
 
-    private LegalDoc GetOrCreateLegalDoc(AcordConsentText consentText)
+    private LegalDoc GetOrCreateLegalDoc(AcordConsentText consentText, int brokerProfileId)
     {
+        var docType = $"ACORD_CLIENT_{brokerProfileId}";
         byte[] contentHash;
         using (var sha256 = SHA256.Create())
         {
@@ -887,14 +950,14 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         }
 
         var existing = _context.LegalDocs
-            .FirstOrDefault(d => d.DocType == "ACORD_CLIENT" && d.Version == consentText.Version);
+            .FirstOrDefault(d => d.DocType == docType && d.Version == consentText.Version);
 
         if (existing != null) return existing;
 
         var doc = new LegalDoc
         {
             DocId = Guid.NewGuid(),
-            DocType = "ACORD_CLIENT",
+            DocType = docType,
             Version = consentText.Version,
             PublishedAt = DateTime.UtcNow,
             ContentHash = contentHash,

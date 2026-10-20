@@ -1,3 +1,4 @@
+import { getBrokerSlug } from '@/lib/brokerHost';
 import { apiClient } from './apiClient';
 import type { Application, CreateApplicationRequest } from '@/types/application.types';
 
@@ -24,6 +25,7 @@ export const applicationsApi = {
       requestedAmount: data.requestedAmount,
       requestedTermMonths: data.requestedTermMonths,
       purpose: data.purpose,
+      brokerSlug: getBrokerSlug() ?? undefined,
     };
     const response = await apiClient.post<Application>('/applications', request);
     return response.data;

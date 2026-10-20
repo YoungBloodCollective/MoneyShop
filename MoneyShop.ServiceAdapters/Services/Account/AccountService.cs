@@ -73,7 +73,7 @@ public class AccountService : IAccountService
         UserRoles users = new UserRoles();
         Dictionary<int, string> userRoles = users.CreateUserRolesDictionary();
         var user = _userRepository.Get()
-            .FirstOrDefault(u => u.Mail == email);
+            .FirstOrDefault(u => u.Mail == email && u.IsDeleted != true);
 
         if (user == null)
         {
@@ -364,7 +364,9 @@ public class AccountService : IAccountService
         var user = _userRepository.Get().FirstOrDefault(u => u.FirebaseUid == firebaseUid);
         if (user == null)
         {
-            user = _userRepository.Get().FirstOrDefault(u => u.Mail == email);
+            user = _userRepository.Get().FirstOrDefault(u => u.Mail == email && u.IsDeleted != true);
+            if (user != null && user.IdRol != 1)
+                throw new InvalidOperationException("Pentru acest cont foloseste autentificarea cu email si parola.");
             if (user != null)
             {
                 user.FirebaseUid = firebaseUid;

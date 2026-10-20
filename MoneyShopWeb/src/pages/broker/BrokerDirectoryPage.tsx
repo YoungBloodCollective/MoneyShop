@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function BrokerDirectoryPage() {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isSuperAdmin } = useAuth();
   const [brokers, setBrokers] = useState<BrokerInfo[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -174,7 +174,7 @@ export default function BrokerDirectoryPage() {
           <div className="mt-4 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-light-80">Director brokeri</p>
-              {isAdmin && (
+              {isSuperAdmin && (
                 <label className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-colors ${
                   uploading ? 'bg-dark-600 text-light-50' : 'bg-brand-primary text-white hover:bg-brand-primary/90'
                 }`}>

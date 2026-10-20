@@ -22,13 +22,13 @@ public interface IAcordService
     /// </summary>
     Task ProcessSubmissionAsync(Guid acordId);
 
-    AcordConsentText GetConsentText();
+    AcordConsentText GetConsentText(string? brokerSlug = null);
 
     /// <summary>Clears stored ID data once its retention period has elapsed.</summary>
     int PurgeExpiredOcrData();
 
     // ── Admin ──
-    List<AcordListItem> ListForAdmin(string? status, string? search);
+    List<AcordListItem> ListForAdmin(string? status, string? search, int? brokerId = null);
     AcordDetails? GetDetailsForAdmin(Guid acordId);
     AcordFileContent? GetFileForAdmin(Guid fileId);
     bool UpdateStatusForAdmin(Guid acordId, string status, string? reviewNote);
@@ -51,6 +51,7 @@ public class AcordSubmitInput
     public string? Email { get; set; }
     public string? TipAct { get; set; }
     public string? AgentCode { get; set; }
+    public string? BrokerSlug { get; set; }
     public string? Ip { get; set; }
 
     public AcordUpload DocumentFront { get; set; } = null!;
@@ -205,6 +206,8 @@ public class AcordConsentText
     public string Title { get; set; } = null!;
     public string Body { get; set; } = null!;
     public bool IsPlaceholder { get; set; }
+    public bool Available { get; set; } = true;
+    public string? BrokerName { get; set; }
     public List<AcordConsentOption> Options { get; set; } = new();
     public AcordDocumentText? MangoAgreement { get; set; }
 }
@@ -233,6 +236,8 @@ public class AcordListItem
     public string Telefon { get; set; } = null!;
     public string? Email { get; set; }
     public string Status { get; set; } = null!;
+    public int? BrokerProfileId { get; set; }
+    public string? BrokerName { get; set; }
     public string? AgentCode { get; set; }
     public bool IsSigned { get; set; }
     public bool? MarketingAccepted { get; set; }
@@ -252,6 +257,8 @@ public class AcordDetails
     public string Prenume { get; set; } = null!;
     public string Telefon { get; set; } = null!;
     public string? Email { get; set; }
+    public int? BrokerProfileId { get; set; }
+    public string? BrokerName { get; set; }
     public string? AgentCode { get; set; }
     public string? TipAct { get; set; }
     public string Status { get; set; } = null!;

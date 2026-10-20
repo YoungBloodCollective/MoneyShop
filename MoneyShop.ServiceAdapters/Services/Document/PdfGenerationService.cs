@@ -255,7 +255,7 @@ public class PdfGenerationService : IPdfGenerationService
                 .SetTextAlignment(TextAlignment.CENTER)
                 .SetMarginBottom(20));
 
-            document.Add(new Paragraph("POPIX BROKERAGE CONSULTING S.R.L.")
+            document.Add(new Paragraph(input.BrokerCompany)
                 .SetFontSize(14)
                 .SetBold()
                 .SetTextAlignment(TextAlignment.CENTER)

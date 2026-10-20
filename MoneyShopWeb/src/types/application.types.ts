@@ -37,6 +37,7 @@ export interface CreateApplicationRequest {
   requestedAmount: number;
   requestedTermMonths: number;
   purpose?: string;
+  brokerSlug?: string;
 }
 
 export interface CardCreditData {

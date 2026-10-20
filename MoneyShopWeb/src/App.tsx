@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AppRouter } from '@/router/AppRouter';
 import { useAuthStore } from '@/store/authStore';
+import { BrokerProvider } from '@/context/BrokerContext';
+import { BrokerGate } from '@/components/shared/BrokerGate';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,9 +40,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthInitializer>
-          <AppRouter />
-        </AuthInitializer>
+        <BrokerProvider>
+          <BrokerGate>
+            <AuthInitializer>
+              <AppRouter />
+            </AuthInitializer>
+          </BrokerGate>
+        </BrokerProvider>
         <Toaster
           position="top-right"
           toastOptions={{

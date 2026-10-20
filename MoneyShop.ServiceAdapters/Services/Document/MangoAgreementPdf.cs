@@ -27,6 +27,8 @@ internal static class MangoAgreementPdf
         document.SetMargins(32, 50, 30, 50);
         document.SetFont(regular).SetFontSize(BodySize);
 
+        var rep = new MangoRepresentative(input.RepresentativeCompany, input.RepresentativeRegCom, input.RepresentativeCui,
+            input.RepresentativeAddress, input.RepresentativePhone, input.RepresentativeEmail);
         var name = input.FullName;
         var date = input.SignedOn.ToString("yyyy/MM/dd");
         var birthDate = string.IsNullOrWhiteSpace(input.BirthDate) ? Blank : input.BirthDate;
@@ -37,7 +39,7 @@ internal static class MangoAgreementPdf
         document.Add(new Paragraph(MangoAgreementText.IntermediarySection).SetMarginBottom(6));
 
         var intermediary = TwoColumnTable();
-        foreach (var (label, value) in MangoAgreementText.IntermediaryRows)
+        foreach (var (label, value) in MangoAgreementText.IntermediaryRows(rep))
             AddRow(intermediary, label, value);
         intermediary.AddCell(new Cell(1, 2).SetPadding(4).SetFontSize(TableSize).Add(new Paragraph(MangoAgreementText.AnpcNote)));
         document.Add(intermediary);
@@ -50,7 +52,7 @@ internal static class MangoAgreementPdf
         document.Add(client);
 
         document.Add(new AreaBreak(AreaBreakType.NEXT_PAGE));
-        foreach (var (number, point) in MangoAgreementText.Points)
+        foreach (var (number, point) in MangoAgreementText.Points(rep))
         {
             if (number == MangoAgreementText.EmphasizedPoint) AddNumbered(document, number, point, bold, 14);
             else AddNumbered(document, number, point);

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Application;
+using MoneyShop.ServiceInterface.Interfaces.Broker;
 using MoneyShop.DomainModel.Entities;
 using System.Security.Claims;
 using ApplicationEntity = MoneyShop.DomainModel.Entities.Application;
@@ -16,6 +17,7 @@ namespace MoneyShop.Api.Controllers
         public decimal? RequestedAmount { get; set; }
         public int? RequestedTermMonths { get; set; }
         public string? Purpose { get; set; }
+        public string? BrokerSlug { get; set; }
     }
 
     public class UpdateApplicationRequest
@@ -38,9 +40,12 @@ namespace MoneyShop.Api.Controllers
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<ApplicationsController> _logger;
 
-        public ApplicationsController(IApplicationService applicationService, TelemetryClient telemetryClient, ILogger<ApplicationsController> logger)
+        private readonly IBrokerProfileService _brokerProfiles;
+
+        public ApplicationsController(IApplicationService applicationService, TelemetryClient telemetryClient, ILogger<ApplicationsController> logger, IBrokerProfileService brokerProfiles)
         {
             _applicationService = applicationService;
+            _brokerProfiles = brokerProfiles;
             _telemetryClient = telemetryClient;
             _logger = logger;
         }
@@ -94,9 +99,14 @@ namespace MoneyShop.Api.Controllers
                     return Conflict("An application of this type already exists");
                 }
 
+                var brokerId = _brokerProfiles.ResolveIntakeBrokerId(request.BrokerSlug);
+                if (brokerId == null && !string.IsNullOrWhiteSpace(request.BrokerSlug))
+                    return BadRequest(new { message = "Brokerul nu a fost gasit." });
+
                 var application = new ApplicationEntity
                 {
                     UserId = userId.Value,
+                    BrokerProfileId = brokerId,
                     TypeCredit = request.TypeCredit,
                     TipOperatiune = request.TipOperatiune,
                     RequestedAmount = request.RequestedAmount,

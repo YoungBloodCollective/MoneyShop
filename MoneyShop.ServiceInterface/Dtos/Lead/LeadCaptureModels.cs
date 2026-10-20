@@ -4,6 +4,7 @@ namespace MoneyShop.ServiceInterface.Dtos.Lead
     {
         public string NumePrenume { get; set; } = null!;
         public string Telefon { get; set; } = null!;
+        public string? BrokerSlug { get; set; }
         public string Email { get; set; } = null!;
         public string Oras { get; set; } = null!;
 

@@ -1,3 +1,4 @@
+import { useBroker, useBrokerContact } from '@/context/brokerContextValue';
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Phone, Lock, ChevronLeft, ChevronRight, CheckCircle2, Shield, Award, Clock, Star, Users, FileCheck, Building2, ArrowRight, Menu, X } from 'lucide-react';
@@ -87,6 +88,8 @@ function useCountUp(end: number, duration: number, trigger: boolean) {
 }
 
 export default function LandingPage() {
+  const contact = useBrokerContact();
+  const { slug: brokerSlug } = useBroker();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -126,6 +129,7 @@ export default function LandingPage() {
     setProgLoading(true);
     try {
       await apiClient.post('/appointments', {
+        brokerSlug: brokerSlug ?? undefined,
         nume: progForm.nume,
         prenume: progForm.prenume,
         judet: progForm.judet,
@@ -170,6 +174,7 @@ export default function LandingPage() {
     setInlineLoading(true);
     try {
       await apiClient.post('/appointments', {
+        brokerSlug: brokerSlug ?? undefined,
         nume: inlineForm.nume,
         prenume: inlineForm.prenume,
         judet: inlineForm.judet,
@@ -288,8 +293,8 @@ export default function LandingPage() {
             >
               Devino Partener
             </button>
-            <a href="tel:+40770548447" className="hidden md:flex items-center gap-1.5 text-sm text-gray-700 font-medium hover:text-gray-900 transition-colors">
-              <Phone size={14} /> 0770 548 447
+            <a href={contact.phoneHref} className="hidden md:flex items-center gap-1.5 text-sm text-gray-700 font-medium hover:text-gray-900 transition-colors">
+              <Phone size={14} /> {contact.phone}
             </a>
             <button
               onClick={() => navigate(isAuthenticated ? '/dashboard' : '/auth/login')}
@@ -322,12 +327,14 @@ export default function LandingPage() {
                 </button>
               ))}
               <hr className="my-2 border-gray-200" />
-              <a href="tel:+40770548447" className="flex items-center gap-2 px-4 py-3 text-base text-gray-700 font-medium">
-                <Phone size={16} /> 0770 548 447
+              <a href={contact.phoneHref} className="flex items-center gap-2 px-4 py-3 text-base text-gray-700 font-medium">
+                <Phone size={16} /> {contact.phone}
               </a>
-              <a href="tel:+40314340940" className="flex items-center gap-2 px-4 py-3 text-sm text-gray-500 font-medium">
-                <Phone size={14} /> 031 434 0940
-              </a>
+              {!contact.isBrokerSite && (
+                <a href="tel:+40314340940" className="flex items-center gap-2 px-4 py-3 text-sm text-gray-500 font-medium">
+                  <Phone size={14} /> 031 434 0940
+                </a>
+              )}
               <hr className="my-2 border-gray-200" />
               <button
                 onClick={() => { navigate(isAuthenticated ? '/dashboard' : '/auth/login'); setMobileMenuOpen(false); }}
@@ -616,7 +623,7 @@ export default function LandingPage() {
                   <Clock size={48} className="mx-auto text-blue-500 mb-3" />
                   <p className="text-lg font-bold text-gray-900">Te avem deja pe lista!</p>
                   <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">Cererea ta din ultimele zile este in lucru. Un consultant te va contacta in curand &mdash; nu este nevoie sa o trimiti din nou.</p>
-                  <p className="text-xs text-gray-400 mt-2">Ai o intrebare urgenta? Suna-ne la <a href="tel:+40770548447" className="text-blue-600 hover:underline font-medium">0770 548 447</a>.</p>
+                  <p className="text-xs text-gray-400 mt-2">Ai o intrebare urgenta? Suna-ne la <a href={contact.phoneHref} className="text-blue-600 hover:underline font-medium">{contact.phone}</a>.</p>
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -792,7 +799,7 @@ export default function LandingPage() {
                     Programeaza
                   </button>
                   <p className="text-[10px] text-gray-400 text-center">
-                    Sau suna: <strong className="text-gray-700">0770 548 447</strong>
+                    Sau suna: <strong className="text-gray-700">{contact.phone}</strong>
                   </p>
                 </div>
               </div>
@@ -894,9 +901,9 @@ export default function LandingPage() {
             <div>
               <p className="text-xs font-semibold text-white mb-3">Contact</p>
               <div className="space-y-1.5 text-[11px] text-gray-400">
-                <p className="flex items-center gap-1.5"><Phone size={11} /> 0770 548 447</p>
-                <p className="flex items-center gap-1.5"><Phone size={11} /> 031 434 0940</p>
-                <p><a href="mailto:alex.moore@moneyshop.ro" className="hover:text-white transition-colors">alex.moore@moneyshop.ro</a></p>
+                <p className="flex items-center gap-1.5"><Phone size={11} /> {contact.phone}</p>
+                {!contact.isBrokerSite && <p className="flex items-center gap-1.5"><Phone size={11} /> 031 434 0940</p>}
+                <p><a href={`mailto:${contact.email}`} className="hover:text-white transition-colors">{contact.email}</a></p>
                 <p>L-V: 09:00 - 18:00</p>
               </div>
               <div className="mt-4 space-y-1 text-[10px] text-gray-500">

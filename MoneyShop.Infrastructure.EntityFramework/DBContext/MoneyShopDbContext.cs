@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using MoneyShop.DomainModel;
 using MoneyShop.DomainModel.Entities;
 
 namespace MoneyShop.Infrastructure.EntityFramework.DBContext;
@@ -69,6 +70,9 @@ public class MoneyShopDbContext : DbContext
 
     // Acord Clienti (public consent + document collection)
     public virtual DbSet<AcordClient> AcordClients { get; set; }
+    public virtual DbSet<BrokerProfile> BrokerProfiles { get; set; }
+
+    public int? BrokerScopeId { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -614,6 +618,59 @@ public class MoneyShopDbContext : DbContext
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.ExpiresAt);
+        });
+
+        modelBuilder.Entity<BrokerProfile>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("BrokerProfiles");
+
+            entity.Property(e => e.Slug).HasMaxLength(63).IsRequired();
+            entity.Property(e => e.DisplayName).HasMaxLength(150).IsRequired();
+            entity.Property(e => e.PublicPhone).HasMaxLength(30);
+            entity.Property(e => e.PublicEmail).HasMaxLength(255);
+            entity.Property(e => e.NotificationEmail).HasMaxLength(255);
+            entity.Property(e => e.Bio).HasMaxLength(500);
+            entity.Property(e => e.Status).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Plan).HasMaxLength(30).IsRequired();
+            entity.Property(e => e.FirmaNume).HasMaxLength(255);
+            entity.Property(e => e.FirmaSediu).HasMaxLength(500);
+            entity.Property(e => e.FirmaCui).HasMaxLength(20);
+            entity.Property(e => e.FirmaRegCom).HasMaxLength(50);
+            entity.Property(e => e.FirmaEuid).HasMaxLength(50);
+            entity.Property(e => e.FirmaDataInfiintarii).HasMaxLength(20);
+            entity.Property(e => e.ReprezentantNume).HasMaxLength(150);
+            entity.Property(e => e.ReprezentantTelefon).HasMaxLength(30);
+            entity.Property(e => e.MangoEmail).HasMaxLength(255);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => e.UserId).IsUnique();
+        });
+
+        ConfigureBrokerOwned<AcordClient>(modelBuilder);
+        ConfigureBrokerOwned<Application>(modelBuilder);
+        ConfigureBrokerOwned<Appointment>(modelBuilder);
+        ConfigureBrokerOwned<LeadCapture>(modelBuilder);
+    }
+
+    private void ConfigureBrokerOwned<TEntity>(ModelBuilder modelBuilder) where TEntity : class, IBrokerOwned
+    {
+        modelBuilder.Entity<TEntity>(entity =>
+        {
+            entity.HasOne<BrokerProfile>()
+                .WithMany()
+                .HasForeignKey(e => e.BrokerProfileId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(e => e.BrokerProfileId);
+            entity.HasQueryFilter(e => BrokerScopeId == null || e.BrokerProfileId == BrokerScopeId);
         });
     }
 }

@@ -16,17 +16,17 @@ internal static class MangoAgreementText
     public const string RequestTitle = "SOLICITARE SERVICII";
     public const string EmphasizedPoint = "5.";
 
-    public static readonly (string Label, string Value)[] IntermediaryRows =
+    public static (string Label, string Value)[] IntermediaryRows(MangoRepresentative rep) => new[]
     {
         ("Intermediar de credit", "SC MANGO BROKER SRL, inmatriculata la Registrul Comertului nr. J2017001430226, avand CUI 37612556"),
         ("Adresa", "Str. Gandu nr. 1A, mansarda, Ap 4, Iasi"),
         ("Tel.", "+40723848318"),
         ("E-mail", "office@mangobroker.ro"),
         ("Adresa internet", "www.mangobroker.ro"),
-        ("Reprezentant desemnat al intermediarului de credit", "POPIX BROKERAGE CONSULTING SRL, inmatriculata la Registrul Comertului nr. J2024018340008, avand CUI 50477260"),
-        ("Adresa", "Str. Constantin Brancusi 8, Ramnicu Valcea, VL"),
-        ("Tel.", "0744686946"),
-        ("E-mail", "alex.moore@mangobroker.ro"),
+        ("Reprezentant desemnat al intermediarului de credit", $"{rep.Company}, inmatriculata la Registrul Comertului nr. {rep.RegCom}, avand CUI {rep.Cui}"),
+        ("Adresa", rep.Address),
+        ("Tel.", rep.Phone),
+        ("E-mail", rep.Email),
         ("Adresa internet", "www.mangobroker.ro"),
         ("Tip de intermediar conf. OUG 52/20.09.2016", "NELEGAT, care NU presteaza servicii de consiliere\n\nNU SE PERCEPE COMISION CLIENTULUI"),
         ("Comision / stimulent incasat de intermediar / reprezentantul desemnat", "Suma nu se cunoaste cu exactitate. Cf. Art 10, OUG 52 / 2016 suma reala va fi furnizata la un moment ulterior, in FEIS (Fisa Europeana de Informatii Standard pusa la dispozitie de creditor). Suma nu afecteaza DAE, nefiind cost suportat de client."),
@@ -35,9 +35,9 @@ internal static class MangoAgreementText
     public const string AnpcNote =
         "Intermediarul de credite este inscris in Registrul de la Autoritatea Națională pentru Protecția Consumatorilor, https://anpc.ro/intermediari-credite/";
 
-    public static readonly (string Number, string Text)[] Points =
+    public static (string Number, string Text)[] Points(MangoRepresentative rep) => new[]
     {
-        ("3.", "Va aducem la cunostinta ca potrivit art.10 alin. 1, lit.(f) din OUG 52/20.09.2016 puteti depune reclamatii la nivel intern, in scris cu confirmare de primire la adresa punctului de lucru sau pe e-mail la adresa office@mangobroker.ro si alex.moore@mangobroker.ro"),
+        ("3.", $"Va aducem la cunostinta ca potrivit art.10 alin. 1, lit.(f) din OUG 52/20.09.2016 puteti depune reclamatii la nivel intern, in scris cu confirmare de primire la adresa punctului de lucru sau pe e-mail la adresa office@mangobroker.ro si {rep.Email}"),
         ("4.", "Va aducem la cunostinta ca potrivit art.10 alin. 1 din OUG 52/20.09.2016 intermediarul de credite sau reprezentantul desemnat are obligatia de a va furniza toate informatiile de mai sus in timp util dar nu mai putin de 5 zile calendaristice inainte de desfasurarea oricareia din activitatile de intermediere."),
         ("5.", "Conform art. 10 alin. 3 din OUG 52/20.09.2016, aveti dreptul de a opta pentru reducerea perioadei de 5 zile calendaristice, in mod expres, in scris prin semnarea anexei 1 la prezenta informare."),
         ("6.", "Conform art. 70 alin 2 din OUG 52/20.09.2016 consumatorul furnizeaza informatii corecte si complete pentru efectuarea unei evaluari corespunzatoare a bonitatii."),
@@ -61,7 +61,7 @@ internal static class MangoAgreementText
         $"Declar ca sunt de acord sa fiu contactat de catre Mango Broker SRL si / sau orice imputernicit al acestuia la numarul de telefon {phone} si / sau la adresa de e-mail {email}, pentru a-mi comunica orice fel de informatii legate de produsele bancare si de creditele pe care le-as putea contracta sau orice alte produse / servicii conexe despre care as putea fi interesat.",
     };
 
-    public static string BuildReadingText()
+    public static string BuildReadingText(MangoRepresentative rep)
     {
         const string name = "[numele și prenumele dumneavoastră]";
         const string birthDate = "[data nașterii, din actul de identitate]";
@@ -69,14 +69,14 @@ internal static class MangoAgreementText
         var text = new StringBuilder();
         text.AppendLine(Title).AppendLine();
         text.AppendLine(IntermediarySection).AppendLine();
-        foreach (var (label, value) in IntermediaryRows)
+        foreach (var (label, value) in IntermediaryRows(rep))
             text.AppendLine($"{label}: {value.Replace("\n\n", " – ")}");
         text.AppendLine().AppendLine(AnpcNote).AppendLine();
 
         text.AppendLine(ClientSection);
         text.AppendLine("Numele, telefonul și adresa de e-mail completate în acest formular.").AppendLine();
 
-        foreach (var (number, point) in Points)
+        foreach (var (number, point) in Points(rep))
             text.AppendLine($"{number} {point}").AppendLine();
 
         text.AppendLine("ANEXA 1 la informarea precontractuală");
@@ -89,3 +89,5 @@ internal static class MangoAgreementText
         return text.ToString();
     }
 }
+
+internal record MangoRepresentative(string Company, string RegCom, string Cui, string Address, string Phone, string Email);

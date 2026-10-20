@@ -2,8 +2,9 @@ using System;
 
 namespace MoneyShop.DomainModel.Entities
 {
-    public class Appointment : IEntity
+    public class Appointment : IEntity, IBrokerOwned
     {
+        public int? BrokerProfileId { get; set; }
         public int Id { get; set; }
         public string Nume { get; set; } = null!;
         public string Prenume { get; set; } = null!;

@@ -1,3 +1,5 @@
+import { brokersApi } from '@/services/api/brokersApi';
+import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
 import { Phone, Mail, MapPin, CreditCard, Clock, UserPlus, AlertTriangle, Gavel } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +20,7 @@ interface Appointment {
   notes?: string;
   intarzieriBirou?: string | null;
   popriRecuperare?: string | null;
+  brokerProfileId?: number | null;
   createdAt: string;
 }
 
@@ -41,9 +44,19 @@ export default function AdminAppointmentsPage() {
   const [filter, setFilter] = useState('');
   const [converting, setConverting] = useState<number | null>(null);
 
+  const { isSuperAdmin } = useAuth();
+  const [brokerNames, setBrokerNames] = useState<Record<number, string>>({});
+
   useEffect(() => {
     apiClient.get('/appointments').then(r => setAppointments(r.data)).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    brokersApi.list()
+      .then(list => setBrokerNames(Object.fromEntries(list.map(b => [b.id, b.displayName]))))
+      .catch(() => undefined);
+  }, [isSuperAdmin]);
 
   const updateStatus = async (id: number, status: string) => {
     try {
@@ -116,6 +129,9 @@ export default function AdminAppointmentsPage() {
                     {a.judet && <span className="flex items-center gap-1"><MapPin size={11} />{a.judet}</span>}
                     {a.tipCredit && <span className="flex items-center gap-1"><CreditCard size={11} />{a.tipCredit}</span>}
                     <span className="text-light-40">{a.salariuNet.toLocaleString('ro-RO')} RON</span>
+                    {isSuperAdmin && a.brokerProfileId != null && brokerNames[a.brokerProfileId] && (
+                      <span className="px-2 py-0.5 rounded-full bg-brand-primary/10 text-brand-primary">{brokerNames[a.brokerProfileId]}</span>
+                    )}
                   </div>
                   {(a.intarzieriBirou || a.popriRecuperare) && (
                     <div className="flex flex-wrap gap-2 mt-2">

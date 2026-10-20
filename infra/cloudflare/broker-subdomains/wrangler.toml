@@ -1,0 +1,12 @@
+name = "moneyshop-broker-subdomains"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+routes = [
+  { pattern = "*.moneyshop.ro/*", zone_name = "moneyshop.ro" }
+]
+
+[vars]
+ROOT_DOMAIN = "moneyshop.ro"
+ORIGIN_HOST = "gentle-tree-0f5cdaa03.1.azurestaticapps.net"

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { acordApi, type AcordConsentText } from '@/services/api/acordApi';
+import { useBroker } from '@/context/brokerContextValue';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { Logo } from '@/components/shared/Logo';
 
@@ -198,6 +199,7 @@ function SelectField({
 export default function AcordClientPage() {
   const [searchParams] = useSearchParams();
   const agentCode = searchParams.get('ag') ?? undefined;
+  const { slug: brokerSlug } = useBroker();
 
   const [nume, setNume] = useState('');
   const [prenume, setPrenume] = useState('');
@@ -234,8 +236,8 @@ export default function AcordClientPage() {
   };
 
   useEffect(() => {
-    acordApi.getConsentText().then(setConsentText).catch(() => undefined);
-  }, []);
+    acordApi.getConsentText(brokerSlug).then(setConsentText).catch(() => undefined);
+  }, [brokerSlug]);
 
   const pickFile = async (key: SlotKey, file: File | undefined) => {
     if (!file) return;
@@ -270,7 +272,9 @@ export default function AcordClientPage() {
     yearsCurrent !== null &&
     !tenureConflict;
 
+  const acordUnavailable = consentText?.available === false;
   const canSubmit =
+    !acordUnavailable &&
     nume.trim().length >= 2 &&
     prenume.trim().length >= 2 &&
     (phoneDigits.length === 10 || phoneDigits.length === 11) &&
@@ -296,6 +300,7 @@ export default function AcordClientPage() {
         email: email.trim() || undefined,
         tipAct,
         agentCode,
+        brokerSlug: brokerSlug ?? undefined,
         stareCivila,
         stareLocativa,
         functieActuala: functieActuala.trim(),
@@ -361,6 +366,12 @@ export default function AcordClientPage() {
           <p className="text-sm text-light-60 mt-1.5 mb-6">
             Completează datele și încarcă documentele.
           </p>
+
+          {acordUnavailable && (
+            <p className="text-sm text-warning-600 bg-warning-500/10 rounded-xl px-4 py-3 mb-5">
+              Acordul nu este încă disponibil pentru acest broker. Te rugăm să revii mai târziu sau să îl contactezi direct.
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-3 mb-4 items-end">
             <Field label="Nume" value={nume} onChange={setNume} placeholder="Introdu numele" required />

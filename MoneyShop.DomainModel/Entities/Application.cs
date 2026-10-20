@@ -5,8 +5,9 @@ using System.Collections.Generic;
 
 namespace MoneyShop.DomainModel.Entities
 {
-    public partial class Application : IEntity
+    public partial class Application : IEntity, IBrokerOwned
     {
+        public int? BrokerProfileId { get; set; }
         public int Id { get; set; }
         public int UserId { get; set; }
         public string Status { get; set; } = "INREGISTRAT";

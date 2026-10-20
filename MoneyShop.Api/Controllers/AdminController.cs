@@ -12,7 +12,7 @@ namespace MoneyShop.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Roles = "Administrator,Broker")]
     public class AdminController : BaseController
     {
         private readonly IApplicationService _applicationService;
@@ -202,6 +202,7 @@ namespace MoneyShop.Api.Controllers
 
             var lead = new LeadCapture
             {
+                BrokerProfileId = appointment.BrokerProfileId,
                 NumePrenume = $"{appointment.Nume} {appointment.Prenume}".Trim(),
                 Telefon = appointment.Telefon,
                 Email = appointment.Email,
