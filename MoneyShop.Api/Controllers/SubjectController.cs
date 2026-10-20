@@ -64,7 +64,7 @@ namespace MoneyShop.Api.Controllers
         }
 
         [HttpGet("{subjectId}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Administrator")]
         public IActionResult GetSubject(string subjectId)
         {
             try

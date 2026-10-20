@@ -136,7 +136,7 @@ public class AccountService : IAccountService
         }
         else
         {
-            user.IdRol = model.Role > 0 ? model.Role : 1;
+            user.IdRol = 1;
         }
 
         user.IsDeleted = false;

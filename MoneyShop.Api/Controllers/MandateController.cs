@@ -7,10 +7,12 @@ using MoneyShop.DomainServices.RepositoryInterfaces.Account;
 using MoneyShop.DomainServices.RepositoryInterfaces.Consent;
 using System;
 using System.Linq;
+using System.Security.Claims;
 
 namespace MoneyShop.Api.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class MandateController : BaseController
     {
@@ -34,11 +36,26 @@ namespace MoneyShop.Api.Controllers
             _consentRepository = consentRepository;
         }
 
-        [HttpGet("list/{userId}")]
-        public IActionResult GetMandates(int userId)
+        private int CurrentUserId =>
+            int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
+
+        private bool IsAdmin => User.IsInRole("Administrator");
+
+        private MoneyShop.DomainModel.Entities.Mandate? FindOwnedMandate(Guid mandateId)
         {
+            var mandate = _mandateRepository.Get().FirstOrDefault(m => m.MandateId == mandateId);
+            return mandate != null && (IsAdmin || mandate.UserId == CurrentUserId) ? mandate : null;
+        }
+
+        [HttpGet("list")]
+        [HttpGet("list/{userId:int}")]
+        public IActionResult GetMandates(int? userId)
+        {
+            var targetUserId = userId ?? CurrentUserId;
+            if (targetUserId != CurrentUserId && !IsAdmin) return Forbid();
+
             var mandates = _mandateRepository.Get()
-                .Where(m => m.UserId == userId)
+                .Where(m => m.UserId == targetUserId)
                 .OrderByDescending(m => m.GrantedAt)
                 .Select(m => new
                 {
@@ -54,7 +71,7 @@ namespace MoneyShop.Api.Controllers
         [HttpGet("{mandateId}")]
         public IActionResult GetMandate(Guid mandateId)
         {
-            var mandate = _mandateRepository.Get().FirstOrDefault(m => m.MandateId == mandateId);
+            var mandate = FindOwnedMandate(mandateId);
             if (mandate == null) return NotFound(new { message = "Mandate not found" });
 
             return Ok(new
@@ -69,7 +86,7 @@ namespace MoneyShop.Api.Controllers
         [HttpPost("{mandateId}/revoke")]
         public async Task<IActionResult> RevokeMandate(Guid mandateId, [FromBody] RevokeRequest request)
         {
-            var mandate = _mandateRepository.Get().FirstOrDefault(m => m.MandateId == mandateId);
+            var mandate = FindOwnedMandate(mandateId);
             if (mandate == null) return NotFound(new { message = "Mandate not found" });
             if (mandate.Status != "active") return BadRequest(new { message = "Mandate is not active" });
 
@@ -84,7 +101,7 @@ namespace MoneyShop.Api.Controllers
         [HttpPost("{mandateId}/generate-pdf")]
         public IActionResult GeneratePdf(Guid mandateId)
         {
-            var mandate = _mandateRepository.Get().FirstOrDefault(m => m.MandateId == mandateId);
+            var mandate = FindOwnedMandate(mandateId);
             if (mandate == null) return NotFound(new { message = "Mandate not found" });
 
             var consent = _consentRepository.Get()
@@ -117,7 +134,7 @@ namespace MoneyShop.Api.Controllers
         [HttpGet("{mandateId}/download")]
         public IActionResult DownloadPdf(Guid mandateId)
         {
-            var mandate = _mandateRepository.Get().FirstOrDefault(m => m.MandateId == mandateId);
+            var mandate = FindOwnedMandate(mandateId);
             if (mandate == null) return NotFound(new { message = "Mandate not found" });
 
             var year = mandate.GrantedAt.Year;
@@ -142,16 +159,17 @@ namespace MoneyShop.Api.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> CreateMandate([FromBody] CreateMandateRequest request)
         {
-            if (request == null || request.UserId <= 0)
+            if (request == null)
                 return BadRequest(new { message = "Invalid request" });
 
-            var user = _userRepository.Get().FirstOrDefault(u => u.IdUtilizator == request.UserId);
+            var targetUserId = IsAdmin && request.UserId > 0 ? request.UserId : CurrentUserId;
+            var user = _userRepository.Get().FirstOrDefault(u => u.IdUtilizator == targetUserId);
             if (user == null) return NotFound(new { message = "User not found" });
 
             var mandate = new MoneyShop.DomainModel.Entities.Mandate
             {
                 MandateId = Guid.NewGuid(),
-                UserId = request.UserId,
+                UserId = targetUserId,
                 MandateType = request.MandateType ?? "ANAF",
                 Scope = request.Scope ?? "credit_eligibility_only",
                 Status = "active",
@@ -165,7 +183,7 @@ namespace MoneyShop.Api.Controllers
             var consent = new MoneyShop.DomainModel.Entities.Consent
             {
                 ConsentId = Guid.NewGuid(),
-                UserId = request.UserId,
+                UserId = targetUserId,
                 ConsentType = $"MANDATE_{request.MandateType ?? "ANAF"}",
                 Status = "granted",
                 GrantedAt = DateTime.UtcNow,

@@ -159,10 +159,10 @@ public class BcReportService : IBcReportService
         return report == null ? null : MapToDto(report);
     }
 
-    public BcReportSummaryDto? GetById(int reportId)
+    public BcReportSummaryDto? GetById(int reportId, int userId)
     {
         var report = _bcReportRepository.Get()
-            .Where(r => r.Id == reportId)
+            .Where(r => r.Id == reportId && r.UserId == userId)
             .Select(r => new DomainModel.Entities.BcReport
             {
                 Id = r.Id,

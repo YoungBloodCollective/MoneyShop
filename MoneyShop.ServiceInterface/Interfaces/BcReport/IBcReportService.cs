@@ -7,5 +7,5 @@ public interface IBcReportService
 {
     Task<BcReportUploadResult> UploadAndParseAsync(IFormFile file, int userId);
     BcReportSummaryDto? GetLatest(int userId);
-    BcReportSummaryDto? GetById(int reportId);
+    BcReportSummaryDto? GetById(int reportId, int userId);
 }

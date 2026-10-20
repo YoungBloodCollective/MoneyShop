@@ -25,8 +25,6 @@ namespace MoneyShop.ServiceInterface.Dtos.Account
         [Phone(ErrorMessage = "Numarul de telefon nu este valid")]
         public string Phone { get; set; }
 
-        public int Role { get; set; } = 1;
-
         // Consents
         [Required]
         [Range(typeof(bool), "true", "true", ErrorMessage = "Trebuie sa accepti Termenii si Conditiile")]
