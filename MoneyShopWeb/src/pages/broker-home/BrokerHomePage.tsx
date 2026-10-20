@@ -84,6 +84,7 @@ export default function BrokerHomePage() {
   const payment = Math.round(monthlyPayment(amount, rate, months));
   const accountPath = isAuthenticated ? '/dashboard' : '/auth/login';
   const firstName = profile.displayName.split(/\s+/)[0];
+  const whatsappHref = `https://wa.me/${contact.phoneHref.replace(/\D/g, '')}?text=${encodeURIComponent(`Bună, ${firstName}! Am o întrebare despre un credit.`)}`;
 
   return (
     <div className="bh">
@@ -132,7 +133,7 @@ export default function BrokerHomePage() {
           </div>
           <div className="contact">
             <a href={contact.phoneHref}>☎ Sună-mă</a>
-            <a className="whatsapp" href={`mailto:${contact.email}`}>✉ Mesaj</a>
+            <a className="whatsapp" href={whatsappHref} target="_blank" rel="noreferrer">✉ Mesaj</a>
           </div>
         </div>
         <section className="section" id="simulator">
@@ -270,7 +271,7 @@ export default function BrokerHomePage() {
           </div>
           <p>Ai o întrebare despre credit? Alege cum preferi să discutăm.</p>
           <a className="primary full" href={contact.phoneHref}>☎ Sună la {contact.phone}</a>
-          <a className="login full" style={{ display: 'flex', justifyContent: 'center' }} href={`mailto:${contact.email}`}>✉ Scrie-mi pe email</a>
+          <a className="login full" style={{ display: 'flex', justifyContent: 'center' }} href={whatsappHref} target="_blank" rel="noreferrer">✉ Scrie-mi pe WhatsApp</a>
         </div>
       </div>
     </div>
