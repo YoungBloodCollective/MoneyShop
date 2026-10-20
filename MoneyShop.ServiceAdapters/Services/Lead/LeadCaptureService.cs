@@ -1,3 +1,4 @@
+using MoneyShop.ServiceInterface.Interfaces.Broker;
 using System;
 using System.Linq;
 using System.Text.Json;
@@ -15,13 +16,16 @@ public class LeadCaptureService : ILeadCaptureService
 {
     private readonly MoneyShopDbContext _context;
     private readonly ILogger<LeadCaptureService> _logger;
+    private readonly IBrokerProfileService _brokerProfiles;
 
     public LeadCaptureService(
         MoneyShopDbContext context,
-        ILogger<LeadCaptureService> logger)
+        ILogger<LeadCaptureService> logger,
+        IBrokerProfileService brokerProfiles)
     {
         _context = context;
         _logger = logger;
+        _brokerProfiles = brokerProfiles;
     }
 
     public async Task<LeadCapture> CreateLeadAsync(int? userId, LeadCaptureRequest request, string source = "api")
@@ -29,6 +33,7 @@ public class LeadCaptureService : ILeadCaptureService
         var lead = new LeadCapture
         {
             UserId = userId,
+            BrokerProfileId = _brokerProfiles.ResolveIntakeBrokerId(request.BrokerSlug),
             NumePrenume = request.NumePrenume,
             Telefon = request.Telefon,
             Email = request.Email,

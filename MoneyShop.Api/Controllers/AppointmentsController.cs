@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using MoneyShop.DomainModel.Entities;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using MoneyShop.ServiceAdapters.Services.Otp;
+using MoneyShop.ServiceInterface.Interfaces.Broker;
 
 namespace MoneyShop.Api.Controllers
 {
@@ -14,10 +15,12 @@ namespace MoneyShop.Api.Controllers
         private readonly MoneyShopDbContext _db;
         private readonly ILogger<AppointmentsController> _logger;
         private readonly EmailService _emailService;
+        private readonly IBrokerProfileService _brokerProfiles;
         private const string NotificationEmail = "alex.moore@moneyshop.ro";
 
-        public AppointmentsController(MoneyShopDbContext db, ILogger<AppointmentsController> logger, EmailService emailService)
+        public AppointmentsController(MoneyShopDbContext db, ILogger<AppointmentsController> logger, EmailService emailService, IBrokerProfileService brokerProfiles)
         {
+            _brokerProfiles = brokerProfiles;
             _db = db;
             _logger = logger;
             _emailService = emailService;
@@ -46,12 +49,15 @@ namespace MoneyShop.Api.Controllers
                     message = "Salariul net minim acceptat este 2500 RON (salariul minim pe economie)."
                 });
 
+            var brokerId = _brokerProfiles.ResolveIntakeBrokerId(request.BrokerSlug);
+            if (brokerId == null && !string.IsNullOrWhiteSpace(request.BrokerSlug))
+                return BadRequest(new { message = "Brokerul nu a fost gasit." });
             var normalized = NormalizePhone(request.Telefon);
             if (normalized.Length >= 7)
             {
                 var since = DateTime.UtcNow.AddDays(-7);
                 var recent = await _db.Appointments
-                    .Where(a => a.CreatedAt >= since)
+                    .Where(a => a.CreatedAt >= since && a.BrokerProfileId == brokerId)
                     .Select(a => a.Telefon)
                     .ToListAsync();
                 if (recent.Any(t => NormalizePhone(t) == normalized))
@@ -67,6 +73,7 @@ namespace MoneyShop.Api.Controllers
 
             var appointment = new Appointment
             {
+                BrokerProfileId = brokerId,
                 Nume = request.Nume.Trim(),
                 Prenume = request.Prenume?.Trim() ?? "",
                 Judet = request.Judet?.Trim() ?? "",
@@ -87,7 +94,7 @@ namespace MoneyShop.Api.Controllers
             _logger.LogInformation("New appointment created: {Id} - {Nume} {Prenume}", appointment.Id, appointment.Nume, appointment.Prenume);
 
             _ = _emailService.SendAppointmentNotificationAsync(
-                NotificationEmail,
+                _brokerProfiles.GetNotificationEmail(brokerId) ?? NotificationEmail,
                 appointment.Id,
                 appointment.Nume,
                 appointment.Prenume,
@@ -104,10 +111,12 @@ namespace MoneyShop.Api.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Administrator")]
-        public async Task<IActionResult> GetAll([FromQuery] string? status = null)
+        [Authorize(Roles = "Administrator,Broker")]
+        public async Task<IActionResult> GetAll([FromQuery] string? status = null, [FromQuery] int? brokerId = null)
         {
             var query = _db.Appointments.AsQueryable();
+            if (brokerId.HasValue && User.IsInRole("Administrator"))
+                query = query.Where(a => a.BrokerProfileId == brokerId.Value);
             if (!string.IsNullOrEmpty(status))
                 query = query.Where(a => a.Status == status);
 
@@ -119,7 +128,7 @@ namespace MoneyShop.Api.Controllers
         }
 
         [HttpPatch("{id}/status")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Roles = "Administrator,Broker")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] AppointmentStatusRequest request)
         {
             var appointment = await _db.Appointments.FindAsync(id);
@@ -145,6 +154,7 @@ namespace MoneyShop.Api.Controllers
         public string? Email { get; set; }
         public string? IntarzieriBirou { get; set; }
         public string? PopriRecuperare { get; set; }
+        public string? BrokerSlug { get; set; }
     }
 
     public class AppointmentStatusRequest

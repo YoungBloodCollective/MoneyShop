@@ -4,8 +4,9 @@ using System;
 
 namespace MoneyShop.DomainModel.Entities
 {
-    public partial class AcordClient : IEntity
+    public partial class AcordClient : IEntity, IBrokerOwned
     {
+        public int? BrokerProfileId { get; set; }
         public Guid AcordId { get; set; } = Guid.NewGuid();
         public int UserId { get; set; }
         public Guid? KycId { get; set; }

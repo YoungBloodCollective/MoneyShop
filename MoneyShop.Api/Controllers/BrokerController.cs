@@ -27,6 +27,7 @@ namespace MoneyShop.Api.Controllers
         }
 
         [HttpPost("upload-excel")]
+        [Authorize(Roles = "Administrator")]
         [RequestSizeLimit(10_000_000)]
         public async Task<IActionResult> UploadExcel([FromForm] BrokerUploadModel model)
         {

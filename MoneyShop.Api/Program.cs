@@ -117,7 +117,11 @@ builder.Services.AddCors(options =>
             });
         }
 
-        policy.WithOrigins(origins.ToArray())
+        var rootDomain = builder.Configuration["Brokers:RootDomain"] ?? "moneyshop.ro";
+        policy.SetIsOriginAllowed(origin =>
+                origins.Contains(origin) ||
+                (Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps &&
+                 uri.Host.EndsWith("." + rootDomain, StringComparison.OrdinalIgnoreCase)))
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
@@ -348,6 +352,7 @@ if (app.Environment.IsDevelopment())
 // ── Authentication & Authorization ──
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<MoneyShop.Api.Middleware.BrokerScopeMiddleware>();
 
 // ── Map Controllers (API only, no MVC routes) ──
 app.MapControllers();

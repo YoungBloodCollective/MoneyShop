@@ -33,6 +33,15 @@ public class EmailService
     {
         try
         {
+            var subjectName = Plain($"{nume} {prenume}");
+            nume = Html(nume);
+            prenume = Html(prenume);
+            telefon = Html(telefon);
+            judet = Html(judet);
+            tipCredit = Html(tipCredit);
+            email = Html(email);
+            intarzieriBirou = Html(intarzieriBirou);
+            popriRecuperare = Html(popriRecuperare);
             if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_fromEmail))
             {
                 _logger.LogWarning("[EmailService] Brevo ApiKey or FromEmail not configured — skipping appointment notification #{AppointmentId}", appointmentId);
@@ -45,7 +54,7 @@ public class EmailService
                     ? "Nu"
                     : intarzieriBirou.Replace("Da-", "").ToLowerInvariant() + " intarziere";
 
-            var subject = $"Programare noua #{appointmentId} - {nume} {prenume}";
+            var subject = $"Programare noua #{appointmentId} - {subjectName}";
             var body = $@"
 <div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"">
     <h2 style=""color: #16a34a;"">Programare noua inregistrata</h2>
@@ -90,13 +99,20 @@ public class EmailService
     {
         try
         {
+            var subjectName = Plain($"{nume} {prenume}");
+            nume = Html(nume);
+            prenume = Html(prenume);
+            telefon = Html(telefon);
+            judet = Html(judet);
+            email = Html(email);
+            descriere = Html(descriere);
             if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_fromEmail))
             {
                 _logger.LogWarning("[EmailService] Brevo ApiKey or FromEmail not configured — skipping partner notification #{ApplicationId}", applicationId);
                 return false;
             }
 
-            var subject = $"Cerere partener noua #{applicationId} - {nume} {prenume}";
+            var subject = $"Cerere partener noua #{applicationId} - {subjectName}";
             var body = $@"
 <div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"">
     <h2 style=""color: #2563eb;"">Cerere noua: Devino Partener</h2>
@@ -163,6 +179,12 @@ public class EmailService
 
         return SendPdfAsync(toEmail, "Informare precontractuala si solicitare servicii - Mango Broker", body, agreementPdf, fileName, "Mango agreement");
     }
+
+    private static string Plain(string? value) =>
+        (value ?? string.Empty).Replace("\r", " ").Replace("\n", " ").Trim();
+
+    private static string Html(string? value) =>
+        System.Net.WebUtility.HtmlEncode((value ?? string.Empty).Replace("\r", " ").Replace("\n", " "));
 
     private async Task<bool> SendPdfAsync(string toEmail, string subject, string body, byte[] pdf, string fileName, string description)
     {

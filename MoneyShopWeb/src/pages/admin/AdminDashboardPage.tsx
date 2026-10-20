@@ -1,3 +1,4 @@
+import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -10,6 +11,7 @@ import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
 import type { Application } from '@/types/application.types';
 
 export default function AdminDashboardPage() {
+  const { isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -164,7 +166,7 @@ export default function AdminDashboardPage() {
 
           {/* Quick actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {quickActions.map((action, i) => (
+            {quickActions.filter(a => isSuperAdmin || !['/admin/kyc', '/admin/brokers'].includes(a.path)).map((action, i) => (
               i === 0 ? (
                 <button
                   key={action.path}

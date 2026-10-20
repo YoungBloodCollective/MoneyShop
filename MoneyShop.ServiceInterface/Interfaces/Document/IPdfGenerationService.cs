@@ -28,6 +28,12 @@ namespace MoneyShop.ServiceInterface.Interfaces.Document
         public string RequestNumber { get; set; } = null!;
         public bool Oug52Waived { get; set; }
         public byte[] SignaturePng { get; set; } = null!;
+        public string RepresentativeCompany { get; set; } = null!;
+        public string RepresentativeRegCom { get; set; } = null!;
+        public string RepresentativeCui { get; set; } = null!;
+        public string RepresentativeAddress { get; set; } = null!;
+        public string RepresentativePhone { get; set; } = null!;
+        public string RepresentativeEmail { get; set; } = null!;
     }
 
     public class AcordAgreementPdfInput
@@ -46,6 +52,7 @@ namespace MoneyShop.ServiceInterface.Interfaces.Document
         public string? UserAgent { get; set; }
         public byte[] SignaturePng { get; set; } = null!;
         public IReadOnlyList<KeyValuePair<string, string>> DeclaredData { get; set; } = Array.Empty<KeyValuePair<string, string>>();
+        public string BrokerCompany { get; set; } = null!;
     }
 
     public class MandatePdfResult

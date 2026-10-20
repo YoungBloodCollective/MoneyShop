@@ -57,9 +57,9 @@ public class AcordController : BaseController
     // ── Public flow ──
 
     [HttpGet("consent-text")]
-    public IActionResult GetConsentText()
+    public IActionResult GetConsentText([FromQuery] string? broker)
     {
-        return Ok(_acordService.GetConsentText());
+        return Ok(_acordService.GetConsentText(broker));
     }
 
     [HttpPost("submit")]
@@ -125,6 +125,7 @@ public class AcordController : BaseController
                 Email = request.Email,
                 TipAct = tipAct,
                 AgentCode = request.AgentCode,
+                BrokerSlug = request.BrokerSlug,
                 Ip = GetClientIp(),
                 DocumentFront = await ReadUpload(request.DocumentFront!),
                 DocumentBack = request.DocumentBack is { Length: > 0 } ? await ReadUpload(request.DocumentBack) : null,
@@ -162,14 +163,14 @@ public class AcordController : BaseController
     // ── Admin ──
 
     [HttpGet("admin/list")]
-    [Authorize(Roles = "Administrator")]
-    public IActionResult AdminList([FromQuery] string? status, [FromQuery] string? search)
+    [Authorize(Roles = "Administrator,Broker")]
+    public IActionResult AdminList([FromQuery] string? status, [FromQuery] string? search, [FromQuery] int? brokerId)
     {
-        return Ok(_acordService.ListForAdmin(status, search));
+        return Ok(_acordService.ListForAdmin(status, search, User.IsInRole("Administrator") ? brokerId : null));
     }
 
     [HttpGet("admin/{acordId}")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Roles = "Administrator,Broker")]
     public IActionResult AdminDetails(Guid acordId)
     {
         var details = _acordService.GetDetailsForAdmin(acordId);
@@ -178,7 +179,7 @@ public class AcordController : BaseController
     }
 
     [HttpGet("admin/file/{fileId}")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Roles = "Administrator,Broker")]
     public IActionResult AdminFile(Guid fileId)
     {
         var file = _acordService.GetFileForAdmin(fileId);
@@ -187,7 +188,7 @@ public class AcordController : BaseController
     }
 
     [HttpPost("admin/{acordId}/status")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Roles = "Administrator,Broker")]
     public IActionResult AdminUpdateStatus(Guid acordId, [FromBody] AcordStatusRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Status))
@@ -331,6 +332,7 @@ public class AcordSubmitRequest
     public string? Email { get; set; }
     public string? TipAct { get; set; }
     public string? AgentCode { get; set; }
+    public string? BrokerSlug { get; set; }
 
     public string? StareCivila { get; set; }
     public string? StareLocativa { get; set; }

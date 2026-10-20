@@ -4,23 +4,29 @@ import { useAuth } from '@/hooks/useAuth';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   adminOnly?: boolean;
+  superAdminOnly?: boolean;
+  brokerOnly?: boolean;
   skipOnboardingCheck?: boolean;
 }
 
-export function ProtectedRoute({ children, adminOnly, skipOnboardingCheck }: ProtectedRouteProps) {
-  const { isAuthenticated, isAdmin, user } = useAuth();
+export function ProtectedRoute({ children, adminOnly, superAdminOnly, brokerOnly }: ProtectedRouteProps) {
+  const { isAuthenticated, isAdmin, isSuperAdmin, isBroker } = useAuth();
   const location = useLocation();
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  if (adminOnly && !isAdmin) {
+  if ((adminOnly || superAdminOnly || brokerOnly) && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
+  if ((superAdminOnly && !isSuperAdmin) || (brokerOnly && !isBroker)) {
+    return <Navigate to="/admin" replace />;
+  }
+
   // Admin users go to admin panel, not user dashboard
-  if (isAdmin && !adminOnly && !location.pathname.startsWith('/admin')) {
+  if (isAdmin && !(adminOnly || superAdminOnly || brokerOnly) && !location.pathname.startsWith('/admin')) {
     return <Navigate to="/admin" replace />;
   }
 

@@ -60,6 +60,8 @@ const AdminAppointmentsPage = lazy(() => import('@/pages/admin/AdminAppointments
 const AdminLeadsPage = lazy(() => import('@/pages/admin/AdminLeadsPage'));
 const AdminPartnersPage = lazy(() => import('@/pages/admin/AdminPartnersPage'));
 const AdminAcordPage = lazy(() => import('@/pages/admin/AdminAcordPage'));
+const AdminBrokerAccountsPage = lazy(() => import('@/pages/admin/AdminBrokerAccountsPage'));
+const BrokerProfilePage = lazy(() => import('@/pages/admin/BrokerProfilePage'));
 
 function PageLoader() {
   return (
@@ -125,7 +127,7 @@ export function AppRouter() {
           <Route path="/profile/notifications" element={<NotificationSettingsPage />} />
           <Route path="/profile/kyc" element={<KycFormPage />} />
           <Route path="/profile/bc-report" element={<BcReportPage />} />
-          <Route path="/profile/kyc-admin" element={<ProtectedRoute adminOnly><KycAdminPage /></ProtectedRoute>} />
+          <Route path="/profile/kyc-admin" element={<ProtectedRoute superAdminOnly><KycAdminPage /></ProtectedRoute>} />
 
           <Route path="/profile/legal" element={<LegalMenuPage />} />
 
@@ -138,13 +140,15 @@ export function AppRouter() {
           {/* Admin routes */}
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboardPage /></ProtectedRoute>} />
           <Route path="/admin/applications" element={<ProtectedRoute adminOnly><AdminApplicationsPage /></ProtectedRoute>} />
-          <Route path="/admin/kyc" element={<ProtectedRoute adminOnly><AdminKycPage /></ProtectedRoute>} />
+          <Route path="/admin/kyc" element={<ProtectedRoute superAdminOnly><AdminKycPage /></ProtectedRoute>} />
           <Route path="/admin/reports" element={<ProtectedRoute adminOnly><AdminReportsPage /></ProtectedRoute>} />
-          <Route path="/admin/brokers" element={<ProtectedRoute adminOnly><AdminBrokersPage /></ProtectedRoute>} />
+          <Route path="/admin/brokers" element={<ProtectedRoute superAdminOnly><AdminBrokersPage /></ProtectedRoute>} />
           <Route path="/admin/appointments" element={<ProtectedRoute adminOnly><AdminAppointmentsPage /></ProtectedRoute>} />
           <Route path="/admin/leads" element={<ProtectedRoute adminOnly><AdminLeadsPage /></ProtectedRoute>} />
-          <Route path="/admin/partners" element={<ProtectedRoute adminOnly><AdminPartnersPage /></ProtectedRoute>} />
+          <Route path="/admin/partners" element={<ProtectedRoute superAdminOnly><AdminPartnersPage /></ProtectedRoute>} />
           <Route path="/admin/acord" element={<ProtectedRoute adminOnly><AdminAcordPage /></ProtectedRoute>} />
+          <Route path="/admin/brokeri" element={<ProtectedRoute superAdminOnly><AdminBrokerAccountsPage /></ProtectedRoute>} />
+          <Route path="/admin/profil" element={<ProtectedRoute brokerOnly><BrokerProfilePage /></ProtectedRoute>} />
         </Route>
 
         {/* Catch-all */}

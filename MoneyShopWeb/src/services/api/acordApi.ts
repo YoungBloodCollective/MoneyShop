@@ -14,6 +14,8 @@ export interface AcordConsentText {
   title: string;
   body: string;
   isPlaceholder: boolean;
+  available: boolean;
+  brokerName?: string | null;
   options: AcordConsentOption[];
   mangoAgreement?: { title: string; body: string } | null;
 }
@@ -31,6 +33,7 @@ export interface AcordSubmitPayload {
   email?: string;
   tipAct: string;
   agentCode?: string;
+  brokerSlug?: string;
   stareCivila: string;
   stareLocativa: string;
   functieActuala: string;
@@ -59,6 +62,8 @@ export interface AcordListItem {
   telefon: string;
   email?: string;
   status: string;
+  brokerProfileId?: number | null;
+  brokerName?: string | null;
   agentCode?: string;
   isSigned: boolean;
   marketingAccepted?: boolean;
@@ -111,6 +116,8 @@ export interface AcordDetails {
   prenume: string;
   telefon: string;
   email?: string;
+  brokerProfileId?: number | null;
+  brokerName?: string | null;
   agentCode?: string;
   tipAct?: string;
   status: string;
@@ -149,8 +156,10 @@ function unwrap<T>(payload: unknown): T {
 }
 
 export const acordApi = {
-  getConsentText: () =>
-    publicClient.get('/acord/consent-text').then(r => unwrap<AcordConsentText>(r.data)),
+  getConsentText: (brokerSlug?: string | null) =>
+    publicClient
+      .get('/acord/consent-text', { params: brokerSlug ? { broker: brokerSlug } : undefined })
+      .then(r => unwrap<AcordConsentText>(r.data)),
 
   submit: (payload: AcordSubmitPayload) => {
     const fd = new FormData();
@@ -160,6 +169,7 @@ export const acordApi = {
     if (payload.email) fd.append('Email', payload.email);
     fd.append('TipAct', payload.tipAct);
     if (payload.agentCode) fd.append('AgentCode', payload.agentCode);
+    if (payload.brokerSlug) fd.append('BrokerSlug', payload.brokerSlug);
     fd.append('StareCivila', payload.stareCivila);
     fd.append('StareLocativa', payload.stareLocativa);
     fd.append('FunctieActuala', payload.functieActuala);
@@ -180,7 +190,7 @@ export const acordApi = {
 
   // ── Admin (JWT) ──
 
-  adminList: (params?: { status?: string; search?: string }) =>
+  adminList: (params?: { status?: string; search?: string; brokerId?: number }) =>
     apiClient.get('/acord/admin/list', { params }).then(r => r.data as AcordListItem[]),
 
   adminDetails: (acordId: string) =>

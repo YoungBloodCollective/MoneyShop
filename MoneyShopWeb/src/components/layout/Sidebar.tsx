@@ -48,28 +48,35 @@ const navItems: NavItem[] = [
   },
 ];
 
-const adminNavItems: NavItem[] = [
-  {
-    label: 'Admin',
-    path: '/admin',
-    icon: <ShieldCheck size={20} />,
-    children: [
-      { label: 'Aplicatii', path: '/admin/applications' },
-      { label: 'Verificari KYC', path: '/admin/kyc' },
-      { label: 'Rapoarte', path: '/admin/reports' },
-      { label: 'Brokeri', path: '/admin/brokers' },
-      { label: 'Programari', path: '/admin/appointments' },
-      { label: 'Lead-uri', path: '/admin/leads' },
-      { label: 'Acord clienti', path: '/admin/acord' },
-      { label: 'Parteneri', path: '/admin/partners' },
-    ],
-  },
+type AdminLink = { label: string; path: string; access: 'all' | 'super' | 'broker' };
+
+const adminLinks: AdminLink[] = [
+  { label: 'Aplicatii', path: '/admin/applications', access: 'all' },
+  { label: 'Acord clienti', path: '/admin/acord', access: 'all' },
+  { label: 'Programari', path: '/admin/appointments', access: 'all' },
+  { label: 'Lead-uri', path: '/admin/leads', access: 'all' },
+  { label: 'Rapoarte', path: '/admin/reports', access: 'all' },
+  { label: 'Profilul meu', path: '/admin/profil', access: 'broker' },
+  { label: 'Brokeri (conturi)', path: '/admin/brokeri', access: 'super' },
+  { label: 'Verificari KYC', path: '/admin/kyc', access: 'super' },
+  { label: 'Registru brokeri', path: '/admin/brokers', access: 'super' },
+  { label: 'Parteneri', path: '/admin/partners', access: 'super' },
 ];
 
 export function Sidebar() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isSuperAdmin } = useAuth();
+  const adminNavItems: NavItem[] = [
+    {
+      label: isSuperAdmin ? 'Admin' : 'CRM',
+      path: '/admin',
+      icon: <ShieldCheck size={20} />,
+      children: adminLinks
+        .filter(l => l.access === 'all' || (l.access === 'super') === isSuperAdmin)
+        .map(({ label, path }) => ({ label, path })),
+    },
+  ];
   const [expandedItems, setExpandedItems] = useState<string[]>(
-    ['Profil'],
+    ['Profil', 'Admin', 'CRM'],
   );
 
   const toggleExpand = (label: string) => {

@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { acordApi, type AcordListItem, type AcordDetails, type AcordFileInfo } from '@/services/api/acordApi';
+import { brokersApi, type BrokerAdminItem } from '@/services/api/brokersApi';
+import { useAuth } from '@/hooks/useAuth';
 
 const FILE_LABELS: Record<string, string> = {
   id_front: 'Buletin - fata',
@@ -135,6 +137,13 @@ export default function AdminAcordPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [brokerFilter, setBrokerFilter] = useState('');
+  const [brokers, setBrokers] = useState<BrokerAdminItem[]>([]);
+  const { isSuperAdmin } = useAuth();
+
+  useEffect(() => {
+    if (isSuperAdmin) brokersApi.list().then(setBrokers).catch(() => undefined);
+  }, [isSuperAdmin]);
   const [selected, setSelected] = useState<AcordDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [reviewNote, setReviewNote] = useState('');
@@ -142,14 +151,17 @@ export default function AdminAcordPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await acordApi.adminList({ status: statusFilter || undefined });
+      const data = await acordApi.adminList({
+        status: statusFilter || undefined,
+        brokerId: brokerFilter ? Number(brokerFilter) : undefined,
+      });
       setItems(data);
     } catch {
       toast.error('Nu s-au putut incarca acordurile');
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, brokerFilter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -495,6 +507,16 @@ export default function AdminAcordPage() {
           <option value="">Toate statusurile</option>
           {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
+        {isSuperAdmin && brokers.length > 0 && (
+          <select
+            value={brokerFilter}
+            onChange={e => setBrokerFilter(e.target.value)}
+            className="px-4 py-3 rounded-2xl bg-dark-700 border border-dark-500 text-light-90 focus:outline-none focus:border-brand-primary"
+          >
+            <option value="">Toti brokerii</option>
+            {brokers.map(b => <option key={b.id} value={b.id}>{b.displayName}</option>)}
+          </select>
+        )}
       </div>
 
       {loading ? (
@@ -520,6 +542,9 @@ export default function AdminAcordPage() {
                 <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-light-50">
                   <span>{item.telefon}</span>
                   {item.email && <span className="truncate">{item.email}</span>}
+                  {isSuperAdmin && item.brokerName && (
+                    <span className="px-2 py-0.5 rounded-full bg-brand-primary/10 text-brand-primary">{item.brokerName}</span>
+                  )}
                   <span>{formatDate(item.createdAt)}</span>
                 </div>
               </div>

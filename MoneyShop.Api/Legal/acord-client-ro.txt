@@ -8,20 +8,20 @@ MONEYSHOP FINTECH SRL, persoană juridică română, cu sediul social în Munici
 – Data înființării: 17.02.2026
 denumită în continuare MONEYSHOP FINTECH SRL,
 prin intermediarul/reprezentantul care acordă asistența:
-POPIX BROKERAGE CONSULTING SRL, persoană juridică română, cu sediul social în Municipiul Râmnicu Vâlcea, Str. Constantin Brâncuși nr. 8, județul Vâlcea, având:
-– CUI: 50477260
-– Nr. Registrul Comerțului: J2024018340008
-– EUID: ROONRC.J2024018340008
-– Data înființării: 27.08.2024
-Reprezentant / persoană care acordă asistența: ALEX MOORE
-Date de contact: 0744 686 946
+{{FIRMA}}, persoană juridică română, cu sediul social în {{FIRMA_SEDIU}}, având:
+– CUI: {{FIRMA_CUI}}
+– Nr. Registrul Comerțului: {{FIRMA_REG_COM}}
+– EUID: {{FIRMA_EUID}}
+– Data înființării: {{FIRMA_DATA_INFIINTARII}}
+Reprezentant / persoană care acordă asistența: {{REPREZENTANT}}
+Date de contact: {{REPREZENTANT_TELEFON}}
 și persoana care solicită serviciile de intermediere, denumită în continuare CONSUMATORUL,
 s-a încheiat prezentul Acord de reprezentare și de prelucrare a datelor cu caracter personal, prin care părțile stabilesc următoarele:
 1. MONEYSHOP FINTECH SRL ȘI SERVICIILE DE INTERMEDIERE
 1.1.
 MONEYSHOP FINTECH SRL se angajează să pună la dispoziția Consumatorului, în condițiile stabilite prin prezentul acord și prin documentele de informare aplicabile, informații privind produse și oferte de finanțare și să asigure asistență de specialitate în vederea identificării și obținerii unor finanțări acordate de instituții de credit și/sau instituții financiare nebancare care funcționează pe teritoriul României.
 1.2.
-MONEYSHOP FINTECH SRL, direct și/sau prin POPIX BROKERAGE CONSULTING SRL și persoana care acordă efectiv asistența, poate sprijini Consumatorul în:
+MONEYSHOP FINTECH SRL, direct și/sau prin {{FIRMA}} și persoana care acordă efectiv asistența, poate sprijini Consumatorul în:
 – identificarea produselor de finanțare corespunzătoare situației sale;
 – efectuarea unor simulări privind eligibilitatea și gradul de îndatorare;
 – completarea documentației necesare analizării solicitării de finanțare;
@@ -31,7 +31,7 @@ MONEYSHOP FINTECH SRL, direct și/sau prin POPIX BROKERAGE CONSULTING SRL și pe
 Transmiterea datelor și documentelor Consumatorului se va realiza numai în măsura necesară scopului pentru care acestea au fost colectate și în conformitate cu legislația aplicabilă privind protecția datelor cu caracter personal.
 1.3.
 Asistența acordată Consumatorului se referă, după caz, la completarea documentației cu informațiile furnizate de acesta, efectuarea simulărilor preliminare, identificarea unor produse de finanțare și transmiterea documentației către instituțiile selectate.
-MONEYSHOP FINTECH SRL și POPIX BROKERAGE CONSULTING SRL nu garantează aprobarea unei solicitări de credit.
+MONEYSHOP FINTECH SRL și {{FIRMA}} nu garantează aprobarea unei solicitări de credit.
 Decizia privind aprobarea sau respingerea finanțării, suma acordată, perioada, dobânda, costurile și celelalte condiții contractuale aparțin exclusiv instituției finanțatoare.
 1.4.
 Activitatea de intermediere se desfășoară cu respectarea legislației aplicabile, inclusiv, atunci când produsul solicitat intră în domeniul său de aplicare, a prevederilor OUG nr. 52/2016 privind contractele de credit oferite consumatorilor pentru bunuri imobile, precum și a celorlalte acte normative aplicabile activității de intermediere.
@@ -48,7 +48,7 @@ Consumatorul se obligă să furnizeze informații și documente reale, corecte, 
 Consumatorul este responsabil pentru exactitatea documentelor și informațiilor furnizate.
 3. PRELUCRAREA DATELOR CU CARACTER PERSONAL
 3.1.
-Pentru furnizarea serviciilor solicitate, MONEYSHOP FINTECH SRL și, după caz, POPIX BROKERAGE CONSULTING SRL vor putea colecta și prelucra date cu caracter personal ale Consumatorului în conformitate cu Regulamentul (UE) 2016/679 (GDPR) și legislația națională aplicabilă.
+Pentru furnizarea serviciilor solicitate, MONEYSHOP FINTECH SRL și, după caz, {{FIRMA}} vor putea colecta și prelucra date cu caracter personal ale Consumatorului în conformitate cu Regulamentul (UE) 2016/679 (GDPR) și legislația națională aplicabilă.
 3.2.
 În funcție de produsul solicitat și de informațiile necesare analizei, datele prelucrate pot include:
 – numele și prenumele;
@@ -110,7 +110,7 @@ Consumatorul înțelege că refuzul furnizării datelor strict necesare procesul
 Separat de prelucrarea necesară furnizării serviciului solicitat, Consumatorul poate opta pentru utilizarea datelor sale de contact în scopul transmiterii de informații comerciale privind produse, servicii, promoții sau alte oferte MONEYSHOP FINTECH SRL și/sau ale partenerilor săi, în condițiile legii.
 Consimțământul pentru marketing este opțional, iar refuzul sau retragerea acestuia nu condiționează furnizarea serviciilor de intermediere.
 7. TRANSMITEREA DOCUMENTAȚIEI CĂTRE FINANȚATORI
-Prin semnarea prezentului Acord, Consumatorul solicită ca MONEYSHOP FINTECH SRL și/sau POPIX BROKERAGE CONSULTING SRL să poată efectua demersurile necesare analizării solicitării sale și, după identificarea instituțiilor corespunzătoare și în condițiile convenite cu Consumatorul, să transmită informațiile și documentele necesare către instituțiile financiare relevante.
+Prin semnarea prezentului Acord, Consumatorul solicită ca MONEYSHOP FINTECH SRL și/sau {{FIRMA}} să poată efectua demersurile necesare analizării solicitării sale și, după identificarea instituțiilor corespunzătoare și în condițiile convenite cu Consumatorul, să transmită informațiile și documentele necesare către instituțiile financiare relevante.
 Consumatorul înțelege că fiecare instituție financiară poate solicita propriile documente, declarații și consimțăminte înainte de efectuarea verificărilor și/sau luarea unei decizii de creditare.
 8. TERMENUL PREVĂZUT DE OUG NR. 52/2016
 În situațiile în care sunt aplicabile prevederile OUG nr. 52/2016 și Consumatorul beneficiază de termenul legal pentru luarea deciziei privind apelarea la serviciile de intermediere, acesta confirmă că a fost informat cu privire la drepturile sale.
@@ -121,13 +121,13 @@ Prin semnarea prezentului document, Consumatorul declară că:
 – a citit și a înțeles prevederile prezentului Acord;
 – a fost informat cu privire la modul în care sunt prelucrate datele sale personale;
 – a fost informat cu privire la drepturile sale conform GDPR;
-– înțelege că MONEYSHOP FINTECH SRL și POPIX BROKERAGE CONSULTING SRL nu garantează aprobarea finanțării;
+– înțelege că MONEYSHOP FINTECH SRL și {{FIRMA}} nu garantează aprobarea finanțării;
 – înțelege că decizia finală de creditare aparține exclusiv instituției finanțatoare;
 – solicită efectuarea demersurilor necesare pentru identificarea și obținerea unei soluții de finanțare.
 10. ACCEPTARE ȘI SEMNĂTURĂ
 MONEYSHOP FINTECH SRL
 prin:
-POPIX BROKERAGE CONSULTING SRL
-CUI: 50477260
-Nr. Reg. Com.: J2024018340008
-Reprezentant / persoana care a acordat asistența: ALEX MOORE
+{{FIRMA}}
+CUI: {{FIRMA_CUI}}
+Nr. Reg. Com.: {{FIRMA_REG_COM}}
+Reprezentant / persoana care a acordat asistența: {{REPREZENTANT}}

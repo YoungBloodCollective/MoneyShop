@@ -235,6 +235,10 @@ namespace MoneyShop.Api.Controllers
                     }
                 });
             }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
             catch (SecurityTokenException ex)
             {
                 return Unauthorized(new { message = "Invalid Firebase token", error = ex.Message });

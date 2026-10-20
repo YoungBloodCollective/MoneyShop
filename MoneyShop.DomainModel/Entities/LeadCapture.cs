@@ -2,8 +2,9 @@ using System;
 
 namespace MoneyShop.DomainModel.Entities
 {
-    public class LeadCapture : IEntity
+    public class LeadCapture : IEntity, IBrokerOwned
     {
+        public int? BrokerProfileId { get; set; }
         public int Id { get; set; }
         public int? UserId { get; set; }
         public string NumePrenume { get; set; } = null!;
