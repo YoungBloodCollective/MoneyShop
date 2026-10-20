@@ -53,6 +53,18 @@ namespace MoneyShop.Api.Controllers
             return StatusCode(501, new { message = "Verified eligibility calculator not yet implemented" });
         }
 
+        [HttpGet("rates")]
+        public async Task<IActionResult> GetPublicRates()
+        {
+            var config = await _configService.GetActiveConfigAsync();
+            return Ok(new
+            {
+                version = config.Version,
+                np = new { config.Np.AprMin, config.Np.AprMax, config.Np.MaxTermMonths },
+                mortgage = new { config.Mortgage.PromoFixedMin, config.Mortgage.PromoFixedMax }
+            });
+        }
+
         [HttpGet("config")]
         [Authorize(Roles = "Administrator")]
         public async Task<IActionResult> GetConfig()

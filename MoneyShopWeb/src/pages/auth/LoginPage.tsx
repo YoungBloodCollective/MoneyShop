@@ -1,3 +1,4 @@
+import { useReturnPath } from '@/hooks/useReturnPath';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
@@ -8,6 +9,7 @@ import { signInWithGoogle } from '@/services/firebase/authHelpers';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const returnPath = useReturnPath();
   const { login, loginWithToken } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,7 +23,7 @@ export default function LoginPage() {
       const result = await signInWithGoogle();
       loginWithToken(result.token, { ...result.user, id: Number(result.user.id), role: result.user.role || 'User', kycStatus: (result.user.kycStatus as 'none' | 'pending' | 'verified' | 'rejected') || 'none', emailVerified: result.user.emailVerified ?? false, phoneVerified: result.user.phoneVerified ?? false });
       toast.success('Autentificare reusita!');
-      navigate('/dashboard');
+      navigate(returnPath, { replace: true });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Eroare la autentificare';
       if (!msg.includes('popup-closed')) {
@@ -42,7 +44,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
       toast.success('Autentificare reusita!');
-      navigate('/dashboard');
+      navigate(returnPath, { replace: true });
     } catch (err: unknown) {
       const msg = err && typeof err === 'object' && 'response' in err
         ? (err as { response?: { data?: { message?: string } } }).response?.data?.message

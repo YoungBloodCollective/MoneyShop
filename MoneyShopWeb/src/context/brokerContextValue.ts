@@ -27,6 +27,11 @@ function formatPhone(phone: string) {
   return digits.length === 10 ? `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}` : phone;
 }
 
+function phoneHref(phone: string) {
+  const digits = phone.replace(/[^\d+]/g, '');
+  return `tel:${/^0\d{9}$/.test(digits) ? `+40${digits.slice(1)}` : digits}`;
+}
+
 export function useBrokerContact() {
   const { profile } = useBroker();
   if (!profile) return { ...DEFAULT_CONTACT, isBrokerSite: false };
@@ -34,7 +39,7 @@ export function useBrokerContact() {
   return {
     name: profile.displayName,
     phone: profile.phone ? formatPhone(profile.phone) : DEFAULT_CONTACT.phone,
-    phoneHref: profile.phone ? `tel:${profile.phone.replace(/\s/g, '')}` : DEFAULT_CONTACT.phoneHref,
+    phoneHref: profile.phone ? phoneHref(profile.phone) : DEFAULT_CONTACT.phoneHref,
     email: profile.email || DEFAULT_CONTACT.email,
     isBrokerSite: true,
   };

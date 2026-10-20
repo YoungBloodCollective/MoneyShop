@@ -4,9 +4,11 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { GuestLayout } from '@/components/layout/GuestLayout';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { ProtectedRoute } from './ProtectedRoute';
+import { useBroker } from '@/context/brokerContextValue';
 
 // Lazy-loaded pages
 const LandingPage = lazy(() => import('@/pages/landing/LandingPage'));
+const BrokerHomePage = lazy(() => import('@/pages/broker-home/BrokerHomePage'));
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'));
 const OtpLoginPage = lazy(() => import('@/pages/auth/OtpLoginPage'));
@@ -71,12 +73,17 @@ function PageLoader() {
   );
 }
 
+function HomeRoute() {
+  const { profile } = useBroker();
+  return profile ? <BrokerHomePage /> : <LandingPage />;
+}
+
 export function AppRouter() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Landing */}
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<HomeRoute />} />
 
         {/* Public KYC scan page (phone browser, no layout) */}
         <Route path="/kyc/scan/:token" element={<KycScanPage />} />
