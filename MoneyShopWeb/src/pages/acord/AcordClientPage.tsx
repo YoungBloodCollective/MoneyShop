@@ -470,9 +470,6 @@ export default function AcordClientPage() {
           <div className="space-y-2.5 mb-5">
             <InfoCard title="Informații GDPR și Intermediere credit" onOpen={() => setOpenDoc('gdpr')} />
             {showMango && <InfoCard title={MANGO_TITLE} onOpen={() => setOpenDoc('mango')} />}
-            {consentText?.proCreditConsent && (
-              <InfoCard title={consentText.proCreditConsent.title} onOpen={() => setOpenDoc('procredit')} />
-            )}
           </div>
 
           <div className="space-y-2.5 mb-5">
@@ -487,6 +484,15 @@ export default function AcordClientPage() {
                 <span className="text-[12.5px] text-light-70 leading-snug">
                   {option.label}
                   {option.required && <span className="text-error-500"> *</span>}
+                  {option.key === 'intermediere' && consentText?.proCreditConsent && (
+                    <button
+                      type="button"
+                      onClick={e => { e.preventDefault(); setOpenDoc('procredit'); }}
+                      className="block mt-1 text-brand-primary font-medium underline underline-offset-2"
+                    >
+                      Citește acordul GDPR ProCredit Bank
+                    </button>
+                  )}
                 </span>
               </label>
             ))}
