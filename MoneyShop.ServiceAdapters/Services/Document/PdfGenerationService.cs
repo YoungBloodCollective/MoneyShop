@@ -395,6 +395,12 @@ public class PdfGenerationService : IPdfGenerationService
             logo);
     }
 
+    public byte[] GenerateProCreditConsentPdf(ProCreditConsentPdfInput input)
+    {
+        var templatePath = Path.Combine(AppContext.BaseDirectory, "Assets", "procredit-consimtamant.pdf");
+        return ProCreditConsentPdf.Build(input, File.ReadAllBytes(templatePath), LoadFont("DejaVuSans.ttf", StandardFonts.HELVETICA));
+    }
+
     private string MaskPhone(string? phone)
     {
         if (string.IsNullOrEmpty(phone) || phone.Length < 4)

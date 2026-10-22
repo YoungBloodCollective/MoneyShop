@@ -17,6 +17,7 @@ const FILE_LABELS: Record<string, string> = {
   signature: 'Semnatura',
   signed_agreement: 'Acord MoneyShop semnat',
   mango_agreement: 'Acord Mango Broker semnat',
+  procredit_consent: 'Acord GDPR ProCredit Bank semnat',
 };
 
 const TIP_ACT_LABELS: Record<string, string> = {

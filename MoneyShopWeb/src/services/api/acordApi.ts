@@ -18,6 +18,7 @@ export interface AcordConsentText {
   brokerName?: string | null;
   options: AcordConsentOption[];
   mangoAgreement?: { title: string; body: string } | null;
+  proCreditConsent?: { title: string; body: string } | null;
 }
 
 export interface AcordSignChoices {

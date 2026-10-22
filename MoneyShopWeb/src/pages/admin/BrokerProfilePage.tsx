@@ -143,6 +143,7 @@ export default function BrokerProfilePage() {
             ['Reprezentant', profile.reprezentantNume],
             ['Telefon reprezentant', profile.reprezentantTelefon],
             ['Acord Mango Broker', profile.mangoAgreementEnabled ? 'Da' : 'Nu'],
+            ['Acord GDPR ProCredit Bank', profile.proCreditConsentEnabled ? 'Da' : 'Nu'],
           ] as const).map(([label, value]) => (
             <div key={label} className="flex justify-between gap-4 border-b border-dark-600 pb-2">
               <span className="text-light-50 shrink-0">{label}</span>

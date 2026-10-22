@@ -33,6 +33,7 @@ public class AcordService : IAcordService
     private const int CLIENT_ROLE_ID = 1;
     private const int MAX_STARTS_PER_IP_PER_HOUR = 10;
     private const int MANGO_ARCHIVE_YEARS = 5;
+    private const int PROCREDIT_ARCHIVE_YEARS = 5;
     private static readonly CultureInfo RomanianCulture = CultureInfo.GetCultureInfo("ro-RO");
 
     private const string UNAVAILABLE_CONSENT =
@@ -244,6 +245,40 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         await TryReadDocumentAsync(acord);
         await TrySendSignedAgreementAsync(acord);
         await TrySendMangoAgreementAsync(acord);
+        TryCreateProCreditConsent(acord);
+    }
+
+    private void TryCreateProCreditConsent(AcordClient acord)
+    {
+        var identity = _brokerProfiles.GetLegalIdentity(acord.BrokerProfileId);
+        if (identity is not { ProCreditConsentEnabled: true }) return;
+
+        try
+        {
+            var signaturePng = LoadFileBytes(acord, "signature");
+            if (signaturePng == null)
+            {
+                _logger.LogWarning("No signature file found for acord {AcordId}; skipping ProCredit consent PDF", acord.AcordId);
+                return;
+            }
+
+            var pdf = _pdfGenerationService.GenerateProCreditConsentPdf(new ProCreditConsentPdfInput
+            {
+                FullName = $"{acord.Prenume} {acord.Nume}".ToUpper(RomanianCulture),
+                Telefon = acord.Telefon,
+                Email = acord.Email,
+                SignedOn = ToRomaniaTime(acord.SignedAt ?? DateTime.UtcNow),
+                SignaturePng = signaturePng
+            });
+
+            PersistFile(acord, "procredit_consent", pdf, $"acord-gdpr-procredit-{acord.AcordId}.pdf", "application/pdf",
+                DateTime.UtcNow.AddYears(PROCREDIT_ARCHIVE_YEARS));
+            _logger.LogInformation("ProCredit consent PDF stored for acord {AcordId}", acord.AcordId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not generate the ProCredit consent PDF for acord {AcordId}", acord.AcordId);
+        }
     }
 
     private async Task TrySendMangoAgreementAsync(AcordClient acord)
@@ -501,6 +536,9 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             Options = BuildOptions(),
             MangoAgreement = MangoAgreementEnabled && identity is { MangoAgreementEnabled: true }
                 ? new AcordDocumentText { Title = MangoAgreementText.DisplayTitle, Body = MangoAgreementText.BuildReadingText(ToMangoRepresentative(identity)) }
+                : null,
+            ProCreditConsent = identity is { ProCreditConsentEnabled: true }
+                ? new AcordDocumentText { Title = ProCreditConsentText.DisplayTitle, Body = ProCreditConsentText.Body }
                 : null
         };
     }

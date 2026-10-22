@@ -16,6 +16,17 @@ namespace MoneyShop.ServiceInterface.Interfaces.Document
         byte[] GenerateAcordAgreementPdf(AcordAgreementPdfInput input);
 
         byte[] GenerateMangoAgreementPdf(MangoAgreementPdfInput input);
+
+        byte[] GenerateProCreditConsentPdf(ProCreditConsentPdfInput input);
+    }
+
+    public class ProCreditConsentPdfInput
+    {
+        public string FullName { get; set; } = null!;
+        public string Telefon { get; set; } = null!;
+        public string? Email { get; set; }
+        public DateTime SignedOn { get; set; }
+        public byte[] SignaturePng { get; set; } = null!;
     }
 
     public class MangoAgreementPdfInput
