@@ -2,10 +2,13 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   Search, ArrowLeft, Phone, Mail, Calendar, ShieldCheck, ShieldAlert,
   FileText, Download, Loader2, PenLine, AlertTriangle, Trash2, Megaphone,
-  Check, XCircle,
+  Check, XCircle, Link2, Copy, MessageCircle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { acordApi, type AcordListItem, type AcordDetails, type AcordFileInfo } from '@/services/api/acordApi';
+import {
+  acordApi, type AcordListItem, type AcordDetails, type AcordFileInfo, type BankConsentBank, type BankConsentInfo,
+} from '@/services/api/acordApi';
+import { brokerSiteUrl } from '@/lib/brokerHost';
 import { brokersApi, type BrokerAdminItem } from '@/services/api/brokersApi';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -18,6 +21,7 @@ const FILE_LABELS: Record<string, string> = {
   signed_agreement: 'Acord MoneyShop semnat',
   mango_agreement: 'Acord Mango Broker semnat',
   procredit_consent: 'Acord GDPR ProCredit Bank semnat',
+  bank_consent_procredit: 'Consimtamant ProCredit Bank semnat',
 };
 
 const TIP_ACT_LABELS: Record<string, string> = {
@@ -39,6 +43,149 @@ const STATUS_STYLES: Record<string, string> = {
   completed: 'bg-success-500/15 text-success-400',
   rejected: 'bg-error-500/15 text-error-400',
 };
+
+function fileLabel(fileType: string) {
+  if (FILE_LABELS[fileType]) return FILE_LABELS[fileType];
+  return fileType.startsWith('bank_consent_') ? `Consimtamant ${fileType.slice('bank_consent_'.length)} semnat` : fileType;
+}
+
+const BANK_CONSENT_STATUS: Record<string, { label: string; className: string }> = {
+  pending: { label: 'Trimis, nesemnat', className: 'text-warning-500' },
+  signing: { label: 'Se semneaza', className: 'text-warning-500' },
+  signed: { label: 'Semnat', className: 'text-success-500' },
+  expired: { label: 'Expirat', className: 'text-light-50' },
+  replaced: { label: 'Inlocuit de un link nou', className: 'text-light-50' },
+};
+
+function consentLink(token: string, brokerSlug?: string | null) {
+  const path = `/consimtamant/${token}`;
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1' || !brokerSlug) return `${window.location.origin}${path}`;
+  return `${brokerSiteUrl(brokerSlug)}${path}`;
+}
+
+function whatsappLink(phone: string, text: string) {
+  const digits = phone.replace(/\D/g, '');
+  const international = /^0\d{9}$/.test(digits) ? `40${digits.slice(1)}` : digits;
+  return `https://wa.me/${international}?text=${encodeURIComponent(text)}`;
+}
+
+function BankConsentsSection({ acord, onSigned }: { acord: AcordDetails; onSigned: () => void }) {
+  const [banks, setBanks] = useState<BankConsentBank[]>([]);
+  const [requests, setRequests] = useState<BankConsentInfo[]>([]);
+  const [bankCode, setBankCode] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [link, setLink] = useState<{ url: string; bankName: string } | null>(null);
+
+  const loadRequests = useCallback(() => {
+    acordApi.adminBankConsents(acord.acordId).then(setRequests).catch(() => undefined);
+  }, [acord.acordId]);
+
+  useEffect(() => {
+    acordApi.adminBankConsentBanks()
+      .then(list => { setBanks(list); setBankCode(c => c || list[0]?.code || ''); })
+      .catch(() => undefined);
+    loadRequests();
+  }, [loadRequests]);
+
+  const create = async () => {
+    if (!bankCode) return;
+    setCreating(true);
+    try {
+      const created = await acordApi.adminCreateBankConsent(acord.acordId, bankCode);
+      setLink({ url: consentLink(created.token, created.brokerSlug), bankName: created.request.bankName });
+      loadRequests();
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
+      toast.error(msg || 'Nu am putut genera linkul');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const copy = async () => {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link.url);
+      toast.success('Link copiat');
+    } catch {
+      toast.error('Nu s-a putut copia linkul');
+    }
+  };
+
+  const refresh = () => {
+    loadRequests();
+    onSigned();
+  };
+
+  return (
+    <>
+      <h2 className="text-sm font-semibold text-light-60 uppercase tracking-wider mb-3">Consimtaminte banci</h2>
+      <div className="bg-dark-700 rounded-2xl p-5 mb-6">
+        {!acord.signedAt ? (
+          <p className="text-sm text-light-50">Clientul trebuie sa semneze intai acordul.</p>
+        ) : (
+          <>
+            <p className="text-sm text-light-60 mb-3">
+              Genereaza un link catre consimtamantul bancii, completat cu datele clientului. Linkul e valabil 7 zile.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={bankCode}
+                onChange={e => setBankCode(e.target.value)}
+                className="px-4 py-2.5 rounded-full bg-dark-600 border border-dark-500 text-light-90 text-sm"
+              >
+                {banks.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
+              </select>
+              <button
+                onClick={create}
+                disabled={creating || !bankCode}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-brand-primary text-white text-sm font-semibold disabled:opacity-60"
+              >
+                {creating ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />} Genereaza link
+              </button>
+            </div>
+            {link && (
+              <div className="mt-4 bg-dark-800 rounded-xl p-4">
+                <p className="text-xs text-light-50 mb-1">Link consimtamant {link.bankName}</p>
+                <p className="text-sm text-light-90 break-all mb-3">{link.url}</p>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={copy} className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-brand-primary text-white text-sm font-medium">
+                    <Copy size={15} /> Copiaza
+                  </button>
+                  <a
+                    href={whatsappLink(acord.telefon, `Buna, ${acord.prenume}! Te rog sa semnezi consimtamantul pentru ${link.bankName}: ${link.url}`)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-success-600 text-white text-sm font-medium"
+                  >
+                    <MessageCircle size={15} /> Trimite pe WhatsApp
+                  </a>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        {requests.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {requests.map(r => {
+              const status = BANK_CONSENT_STATUS[r.status] ?? { label: r.status, className: 'text-light-60' };
+              return (
+                <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 text-sm border-t border-dark-600 pt-2">
+                  <span className="text-light-80">{r.bankName} · {formatDate(r.createdAt)}</span>
+                  <span className={status.className}>{status.label}{r.signedAt ? ` · ${formatDate(r.signedAt)}` : ''}</span>
+                </div>
+              );
+            })}
+            <button onClick={refresh} className="text-xs text-light-50 hover:text-light-80 underline underline-offset-2">
+              Reincarca statusul
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
 
 function formatDate(value?: string) {
   if (!value) return '-';
@@ -96,7 +243,7 @@ function FilePreview({ file }: { file: AcordFileInfo }) {
   if (file.isDeleted) {
     return (
       <div className="bg-dark-700 rounded-2xl p-4">
-        <p className="text-sm font-medium text-light-70 mb-2">{FILE_LABELS[file.fileType] ?? file.fileType}</p>
+        <p className="text-sm font-medium text-light-70 mb-2">{fileLabel(file.fileType)}</p>
         <div className="flex items-center gap-2 text-light-40 text-sm">
           <Trash2 size={16} />
           <span>Sters automat la expirarea perioadei de pastrare</span>
@@ -108,7 +255,7 @@ function FilePreview({ file }: { file: AcordFileInfo }) {
   return (
     <div className="bg-dark-700 rounded-2xl p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-medium text-light-80">{FILE_LABELS[file.fileType] ?? file.fileType}</p>
+        <p className="text-sm font-medium text-light-80">{fileLabel(file.fileType)}</p>
         <button onClick={handleDownload} className="text-light-50 hover:text-light-90" title="Descarca">
           <Download size={16} />
         </button>
@@ -118,7 +265,7 @@ function FilePreview({ file }: { file: AcordFileInfo }) {
         <div className="rounded-xl overflow-hidden bg-dark-800 min-h-[120px] flex items-center justify-center">
           {loading && <Loader2 size={22} className="text-light-40 animate-spin" />}
           {failed && <span className="text-sm text-error-400">Nu s-a putut incarca</span>}
-          {url && <img src={url} alt={FILE_LABELS[file.fileType] ?? file.fileType} className="w-full object-contain max-h-72" />}
+          {url && <img src={url} alt={fileLabel(file.fileType)} className="w-full object-contain max-h-72" />}
         </div>
       ) : (
         <button onClick={handleDownload} className="flex items-center gap-2 text-sm text-brand-primary">
@@ -278,6 +425,8 @@ export default function AdminAcordPage() {
             {selected.files.map(f => <FilePreview key={f.fileId} file={f} />)}
           </div>
         )}
+
+        <BankConsentsSection acord={selected} onSigned={() => openDetails(selected.acordId)} />
 
         {!selected.automaticChecksRan && (
           <div className="flex items-start gap-3 bg-info-400/10 border border-info-400/30 rounded-2xl p-4 mb-6">

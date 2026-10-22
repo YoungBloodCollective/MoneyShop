@@ -219,7 +219,7 @@ export default function AcordClientPage() {
   });
 
   const [consentText, setConsentText] = useState<AcordConsentText | null>(null);
-  const [openDoc, setOpenDoc] = useState<'gdpr' | 'mango' | 'procredit' | null>(null);
+  const [openDoc, setOpenDoc] = useState<'gdpr' | 'mango' | null>(null);
   const [choices, setChoices] = useState<Record<string, boolean>>({
     intermediere: false, marketing: false, oug52Waiver: false,
   });
@@ -484,15 +484,6 @@ export default function AcordClientPage() {
                 <span className="text-[12.5px] text-light-70 leading-snug">
                   {option.label}
                   {option.required && <span className="text-error-500"> *</span>}
-                  {option.key === 'intermediere' && consentText?.proCreditConsent && (
-                    <button
-                      type="button"
-                      onClick={e => { e.preventDefault(); setOpenDoc('procredit'); }}
-                      className="block mt-1 text-brand-primary font-medium underline underline-offset-2"
-                    >
-                      Citește acordul GDPR ProCredit Bank
-                    </button>
-                  )}
                 </span>
               </label>
             ))}
@@ -536,9 +527,7 @@ export default function AcordClientPage() {
               <h2 className="font-semibold text-light-100 pr-4 leading-snug">
                 {openDoc === 'mango'
                   ? consentText?.mangoAgreement?.title ?? MANGO_TITLE
-                  : openDoc === 'procredit'
-                    ? consentText?.proCreditConsent?.title
-                    : consentText?.title ?? 'Informații GDPR și Intermediere credit'}
+                  : consentText?.title ?? 'Informații GDPR și Intermediere credit'}
               </h2>
               <button
                 onClick={() => setOpenDoc(null)}
@@ -550,9 +539,7 @@ export default function AcordClientPage() {
             </div>
             <div className="px-5 py-4 overflow-y-auto">
               <p className="text-[14px] text-light-80 whitespace-pre-wrap leading-relaxed">
-                {(openDoc === 'mango'
-                  ? consentText?.mangoAgreement?.body
-                  : openDoc === 'procredit' ? consentText?.proCreditConsent?.body : consentText?.body)
+                {(openDoc === 'mango' ? consentText?.mangoAgreement?.body : consentText?.body)
                   ?? 'Textul acordului nu este disponibil momentan.'}
               </p>
             </div>

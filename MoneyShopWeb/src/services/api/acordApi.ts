@@ -18,7 +18,6 @@ export interface AcordConsentText {
   brokerName?: string | null;
   options: AcordConsentOption[];
   mangoAgreement?: { title: string; body: string } | null;
-  proCreditConsent?: { title: string; body: string } | null;
 }
 
 export interface AcordSignChoices {
@@ -145,6 +144,41 @@ export interface AcordDetails {
   files: AcordFileInfo[];
 }
 
+export interface BankConsentBank {
+  code: string;
+  name: string;
+}
+
+export type BankConsentStatus = 'pending' | 'signing' | 'signed' | 'expired' | 'replaced';
+
+export interface BankConsentInfo {
+  id: string;
+  bankCode: string;
+  bankName: string;
+  status: BankConsentStatus;
+  createdAt: string;
+  expiresAt: string;
+  signedAt?: string | null;
+  fileId?: string | null;
+}
+
+export interface BankConsentCreated {
+  token: string;
+  brokerSlug?: string | null;
+  request: BankConsentInfo;
+}
+
+export interface BankConsentPublicView {
+  status: BankConsentStatus;
+  bankName: string;
+  title?: string | null;
+  body?: string | null;
+  fullName?: string | null;
+  telefon?: string | null;
+  email?: string | null;
+  signedAt?: string | null;
+}
+
 // The public flow runs without a JWT, so it must not go through the shared
 // apiClient - its 401 interceptor would redirect the client to the login page.
 const publicClient = axios.create({ baseURL: API_BASE_URL, timeout: 60000 });
@@ -204,4 +238,23 @@ export const acordApi = {
 
   adminUpdateStatus: (acordId: string, status: string, reviewNote?: string) =>
     apiClient.post(`/acord/admin/${acordId}/status`, { status, reviewNote }).then(r => r.data),
+
+  adminBankConsentBanks: () =>
+    apiClient.get('/acord/admin/bank-consent/banks').then(r => r.data as BankConsentBank[]),
+
+  adminBankConsents: (acordId: string) =>
+    apiClient.get(`/acord/admin/${acordId}/bank-consents`).then(r => r.data as BankConsentInfo[]),
+
+  adminCreateBankConsent: (acordId: string, bankCode: string) =>
+    apiClient.post(`/acord/admin/${acordId}/bank-consents`, { bankCode }).then(r => r.data as BankConsentCreated),
+
+  // ── Bank consent (public, token in the link) ──
+
+  getBankConsent: (token: string) =>
+    publicClient.get(`/bank-consent/${encodeURIComponent(token)}`).then(r => unwrap<BankConsentPublicView>(r.data)),
+
+  signBankConsent: (token: string, signatureDataUri: string) =>
+    publicClient
+      .post(`/bank-consent/${encodeURIComponent(token)}/sign`, { signatureDataUri, accepted: true })
+      .then(r => unwrap<{ success: boolean }>(r.data)),
 };

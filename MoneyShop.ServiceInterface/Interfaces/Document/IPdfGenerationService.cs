@@ -17,10 +17,10 @@ namespace MoneyShop.ServiceInterface.Interfaces.Document
 
         byte[] GenerateMangoAgreementPdf(MangoAgreementPdfInput input);
 
-        byte[] GenerateProCreditConsentPdf(ProCreditConsentPdfInput input);
+        byte[] GenerateBankConsentPdf(string bankCode, BankConsentPdfInput input);
     }
 
-    public class ProCreditConsentPdfInput
+    public class BankConsentPdfInput
     {
         public string FullName { get; set; } = null!;
         public string Telefon { get; set; } = null!;

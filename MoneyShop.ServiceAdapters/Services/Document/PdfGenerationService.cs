@@ -395,10 +395,12 @@ public class PdfGenerationService : IPdfGenerationService
             logo);
     }
 
-    public byte[] GenerateProCreditConsentPdf(ProCreditConsentPdfInput input)
+    public byte[] GenerateBankConsentPdf(string bankCode, BankConsentPdfInput input)
     {
-        var templatePath = Path.Combine(AppContext.BaseDirectory, "Assets", "procredit-consimtamant.pdf");
-        return ProCreditConsentPdf.Build(input, File.ReadAllBytes(templatePath), LoadFont("DejaVuSans.ttf", StandardFonts.HELVETICA));
+        var bank = BankConsentCatalog.Find(bankCode)
+            ?? throw new ArgumentException($"Unknown bank consent '{bankCode}'", nameof(bankCode));
+        var templatePath = Path.Combine(AppContext.BaseDirectory, "Assets", bank.TemplateFile);
+        return bank.Build(input, File.ReadAllBytes(templatePath), LoadFont("DejaVuSans.ttf", StandardFonts.HELVETICA));
     }
 
     private string MaskPhone(string? phone)
