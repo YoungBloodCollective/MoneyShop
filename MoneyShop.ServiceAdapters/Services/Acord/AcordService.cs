@@ -533,7 +533,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             IsPlaceholder = isPlaceholder,
             Available = identity != null,
             BrokerName = identity?.FirmaNume,
-            Options = BuildOptions(),
+            Options = BuildOptions(identity is { ProCreditConsentEnabled: true }),
             MangoAgreement = MangoAgreementEnabled && identity is { MangoAgreementEnabled: true }
                 ? new AcordDocumentText { Title = MangoAgreementText.DisplayTitle, Body = MangoAgreementText.BuildReadingText(ToMangoRepresentative(identity)) }
                 : null,
@@ -603,12 +603,14 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         return PLACEHOLDER_CONSENT;
     }
 
-    private static List<AcordConsentOption> BuildOptions() => new()
+    private static List<AcordConsentOption> BuildOptions(bool proCreditConsent) => new()
     {
         new AcordConsentOption
         {
             Key = "intermediere",
-            Label = "Sunt de acord cu prelucrarea datelor mele în scopul intermedierii creditului.",
+            Label = proCreditConsent
+                ? "Sunt de acord cu prelucrarea datelor mele în scopul intermedierii creditului, inclusiv cu transmiterea numelui, telefonului și e-mailului meu către ProCredit Bank S.A., conform Acordului GDPR ProCredit Bank."
+                : "Sunt de acord cu prelucrarea datelor mele în scopul intermedierii creditului.",
             Hint = "Fără acest acord, cererea nu poate fi analizată și transmisă.",
             Required = true
         },

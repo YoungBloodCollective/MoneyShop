@@ -31,7 +31,6 @@ internal static class ProCreditConsentPdf
             var signature = ImageDataFactory.Create(input.SignaturePng);
             var scale = System.Math.Min(140f / signature.GetWidth(), 44f / signature.GetHeight());
             last.AddImageWithTransformationMatrix(signature, signature.GetWidth() * scale, 0, 0, signature.GetHeight() * scale, 312, 316);
-            Write(last, font, $"Semnat electronic pe moneyshop.ro · {input.SignedOn:dd.MM.yyyy HH:mm}", 312, 306, 225, 6.5f);
             Write(last, font, input.SignedOn.ToString("dd.MM.yyyy"), 106, 289, 105);
         }
 
