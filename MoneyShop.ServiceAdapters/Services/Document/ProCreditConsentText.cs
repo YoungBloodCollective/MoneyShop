@@ -1,9 +1,10 @@
 namespace MoneyShop.ServiceAdapters.Services.Document;
 
 /// <summary>
-/// Reading copy of ProCredit Bank's Anexa nr. 1 shown on the acord page before signing.
-/// The signed PDF is the bank's own template (Assets/procredit-consimtamant.pdf), so keep
-/// this text in sync with that file when the bank sends a new version.
+/// Reading copy of ProCredit Bank's Anexa nr. 1 shown on the consent page before signing,
+/// with {{NUME}}, {{TELEFON}} and {{EMAIL}} filled from the request. The signed PDF is the
+/// bank's own template (Assets/procredit-consimtamant.pdf), so keep this text in sync with
+/// that file when the bank sends a new version.
 /// </summary>
 internal static class ProCreditConsentText
 {
@@ -14,7 +15,7 @@ internal static class ProCreditConsentText
 CONSIMȚĂMÂNT PRIVIND TRANSMITEREA DATELOR CU CARACTER PERSONAL
 - POTENȚIAL CLIENT - PERSOANĂ FIZICĂ -
 
-Subsemnatul (numele și prenumele din acest formular), număr de telefon (telefonul din acest formular) și adresă de e-mail (e-mailul din acest formular), prin prezenta îmi exprim acordul în mod expres și neechivoc ca datele mele cu caracter personal, astfel cum sunt menționate mai sus, să fie transmise către ProCredit Bank S.A., având sediul social în Calea Plevnei nr. 159, Sector 6, București, Complexul Business Garden, în scopul contactării mele pentru furnizarea de informații suplimentare cu privire la produsele și serviciile de finanțare oferite de către Bancă.
+Subsemnatul {{NUME}}, număr de telefon {{TELEFON}} și adresă de e-mail {{EMAIL}}, prin prezenta îmi exprim acordul în mod expres și neechivoc ca datele mele cu caracter personal, astfel cum sunt menționate mai sus, să fie transmise către ProCredit Bank S.A., având sediul social în Calea Plevnei nr. 159, Sector 6, București, Complexul Business Garden, în scopul contactării mele pentru furnizarea de informații suplimentare cu privire la produsele și serviciile de finanțare oferite de către Bancă.
 
 Datele personale vor face obiectul următoarelor operațiuni de prelucrare: colectare, înregistrare, organizare, structurare, stocare, utilizare și ulterior ștergere, cu respectarea duratei legale de retenție aplicabile. Prelucrarea se va realiza exclusiv pe teritoriul Uniunii Europene.
 
@@ -36,7 +37,5 @@ Detaliile de contact ale Autorității Naționale de Supraveghere a Prelucrării
 • E-mail: anspdcp@dataprotection.ro
 • Telefon: 40.318.059.211 / +40.318.059.212
 
-Am luat la cunoștință că îmi pot retrage consimțământul oricând, printr-o solicitare transmisă la adresa de e-mail: ROU.DPO@procredit-group.com.
-
-Semnătura și data se completează automat din semnătura acordului.";
+Am luat la cunoștință că îmi pot retrage consimțământul oricând, printr-o solicitare transmisă la adresa de e-mail: ROU.DPO@procredit-group.com.";
 }

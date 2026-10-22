@@ -70,6 +70,7 @@ public class MoneyShopDbContext : DbContext
 
     // Acord Clienti (public consent + document collection)
     public virtual DbSet<AcordClient> AcordClients { get; set; }
+    public virtual DbSet<BankConsentRequest> BankConsentRequests { get; set; }
     public virtual DbSet<BrokerProfile> BrokerProfiles { get; set; }
 
     public int? BrokerScopeId { get; set; }
@@ -654,10 +655,37 @@ public class MoneyShopDbContext : DbContext
             entity.HasIndex(e => e.UserId).IsUnique();
         });
 
+        modelBuilder.Entity<BankConsentRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("BankConsentRequests");
+
+            entity.Property(e => e.BankCode).HasMaxLength(30).IsRequired();
+            entity.Property(e => e.TokenHash).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.FullName).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Telefon).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Email).HasMaxLength(255);
+            entity.Property(e => e.Status).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.SignedIp).HasMaxLength(64);
+            entity.Property(e => e.SignedUserAgent).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
+            entity.Property(e => e.ExpiresAt).HasColumnType("datetime2");
+            entity.Property(e => e.SignedAt).HasColumnType("datetime2");
+
+            entity.HasOne<AcordClient>()
+                .WithMany()
+                .HasForeignKey(e => e.AcordId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(e => e.TokenHash).IsUnique();
+            entity.HasIndex(e => e.AcordId);
+        });
+
         ConfigureBrokerOwned<AcordClient>(modelBuilder);
         ConfigureBrokerOwned<Application>(modelBuilder);
         ConfigureBrokerOwned<Appointment>(modelBuilder);
         ConfigureBrokerOwned<LeadCapture>(modelBuilder);
+        ConfigureBrokerOwned<BankConsentRequest>(modelBuilder);
     }
 
     private void ConfigureBrokerOwned<TEntity>(ModelBuilder modelBuilder) where TEntity : class, IBrokerOwned

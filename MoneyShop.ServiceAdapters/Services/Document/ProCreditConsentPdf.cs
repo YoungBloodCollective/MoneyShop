@@ -17,7 +17,7 @@ internal static class ProCreditConsentPdf
     private const float FontSize = 10f;
     private const float MinFontSize = 6.5f;
 
-    public static byte[] Build(ProCreditConsentPdfInput input, byte[] template, PdfFont font)
+    public static byte[] Build(BankConsentPdfInput input, byte[] template, PdfFont font)
     {
         using var output = new MemoryStream();
         using (var pdf = new PdfDocument(new PdfReader(new MemoryStream(template)), new PdfWriter(output)))

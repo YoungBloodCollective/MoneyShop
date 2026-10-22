@@ -210,7 +210,6 @@ public class AcordConsentText
     public string? BrokerName { get; set; }
     public List<AcordConsentOption> Options { get; set; } = new();
     public AcordDocumentText? MangoAgreement { get; set; }
-    public AcordDocumentText? ProCreditConsent { get; set; }
 }
 
 public class AcordDocumentText
