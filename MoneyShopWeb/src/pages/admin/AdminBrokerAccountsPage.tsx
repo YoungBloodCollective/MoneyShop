@@ -12,7 +12,7 @@ const inputClass =
 
 type FormState = BrokerCreate & { newPassword?: string };
 
-const EMPTY: FormState = { nume: '', prenume: '', loginEmail: '', status: 'Active', mangoAgreementEnabled: false };
+const EMPTY: FormState = { nume: '', prenume: '', loginEmail: '', status: 'Active', mangoAgreementEnabled: false, proCreditConsentEnabled: false };
 
 const LEGAL_FIELDS: { key: keyof FormState; label: string; placeholder?: string; wide?: boolean }[] = [
   { key: 'firmaNume', label: 'Firma (intermediar)', placeholder: 'POPIX BROKERAGE CONSULTING SRL', wide: true },
@@ -39,6 +39,7 @@ function BrokerForm({ editing, onClose, onSaved }: { editing: BrokerProfile | nu
     ...EMPTY,
     ...Object.fromEntries(Object.entries(editing).map(([k, v]) => [k, v ?? ''])),
     mangoAgreementEnabled: editing.mangoAgreementEnabled,
+    proCreditConsentEnabled: editing.proCreditConsentEnabled,
   } as FormState : EMPTY);
   const [saving, setSaving] = useState(false);
 
@@ -141,6 +142,15 @@ function BrokerForm({ editing, onClose, onSaved }: { editing: BrokerProfile | nu
                 <input value={form.mangoEmail ?? ''} onChange={set('mangoEmail')} type="email" placeholder="nume@mangobroker.ro" className={inputClass} />
               </Field>
             )}
+            <label className="flex items-center gap-2.5 cursor-pointer mt-3">
+              <input
+                type="checkbox"
+                checked={!!form.proCreditConsentEnabled}
+                onChange={e => setForm(f => ({ ...f, proCreditConsentEnabled: e.target.checked }))}
+                className="w-5 h-5 rounded accent-brand-primary"
+              />
+              <span className="text-sm text-light-80">Acord GDPR ProCredit Bank (generat la fiecare acord semnat)</span>
+            </label>
           </section>
         </div>
 

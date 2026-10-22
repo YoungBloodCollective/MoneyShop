@@ -10,6 +10,7 @@ export interface BrokerPublicProfile {
   bio?: string | null;
   acordAvailable: boolean;
   mangoAgreementEnabled: boolean;
+  proCreditConsentEnabled: boolean;
 }
 
 export interface BrokerProfile {
@@ -36,6 +37,7 @@ export interface BrokerProfile {
   reprezentantTelefon?: string | null;
   mangoAgreementEnabled: boolean;
   mangoEmail?: string | null;
+  proCreditConsentEnabled: boolean;
   acordAvailable: boolean;
   createdAt: string;
 }
@@ -58,7 +60,7 @@ export type BrokerSelfUpdate = Partial<Pick<BrokerProfile, 'displayName' | 'publ
 
 export type BrokerAdminUpdate = BrokerSelfUpdate & Partial<Pick<BrokerProfile,
   'slug' | 'status' | 'plan' | 'firmaNume' | 'firmaSediu' | 'firmaCui' | 'firmaRegCom' | 'firmaEuid' |
-  'firmaDataInfiintarii' | 'reprezentantNume' | 'reprezentantTelefon' | 'mangoAgreementEnabled' | 'mangoEmail'>>;
+  'firmaDataInfiintarii' | 'reprezentantNume' | 'reprezentantTelefon' | 'mangoAgreementEnabled' | 'mangoEmail' | 'proCreditConsentEnabled'>>;
 
 export interface BrokerCreate extends BrokerAdminUpdate {
   nume: string;

@@ -57,7 +57,8 @@ public class BrokerProfileService : IBrokerProfileService
             Email = profile.PublicEmail,
             Bio = profile.Bio,
             AcordAvailable = HasLegalIdentity(profile),
-            MangoAgreementEnabled = profile.MangoAgreementEnabled
+            MangoAgreementEnabled = profile.MangoAgreementEnabled,
+            ProCreditConsentEnabled = profile.ProCreditConsentEnabled
         };
     }
 
@@ -101,7 +102,8 @@ public class BrokerProfileService : IBrokerProfileService
             ReprezentantNume = profile.ReprezentantNume!,
             ReprezentantTelefon = profile.ReprezentantTelefon!,
             MangoAgreementEnabled = profile.MangoAgreementEnabled,
-            MangoEmail = profile.MangoEmail
+            MangoEmail = profile.MangoEmail,
+            ProCreditConsentEnabled = profile.ProCreditConsentEnabled
         };
     }
 
@@ -349,6 +351,8 @@ public class BrokerProfileService : IBrokerProfileService
         if (profile.MangoAgreementEnabled && string.IsNullOrWhiteSpace(profile.MangoEmail))
             return "Pentru acordul Mango Broker este nevoie de emailul Mango al reprezentantului";
 
+        if (input.ProCreditConsentEnabled.HasValue) profile.ProCreditConsentEnabled = input.ProCreditConsentEnabled.Value;
+
         return null;
     }
 
@@ -440,6 +444,7 @@ public class BrokerProfileService : IBrokerProfileService
             ReprezentantTelefon = p.ReprezentantTelefon,
             MangoAgreementEnabled = p.MangoAgreementEnabled,
             MangoEmail = p.MangoEmail,
+            ProCreditConsentEnabled = p.ProCreditConsentEnabled,
             AcordAvailable = HasLegalIdentity(p),
             CreatedAt = p.CreatedAt
         };
