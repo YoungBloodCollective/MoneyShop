@@ -41,6 +41,22 @@ namespace MoneyShop.ServiceInterface.Interfaces.Document
         public string? BrokerCompany { get; set; }
         public string? BrokerRepresentative { get; set; }
 
+        /// <summary>
+        /// Ce cere doar cererea de credit, peste consimtamintele simple. Ce lipseste ramane
+        /// necompletat, ca brokerul sa stie ce are de adaugat.
+        /// </summary>
+        public string? PlaceOfBirth { get; set; }
+        public string? IdSeries { get; set; }
+        public string? IdNumber { get; set; }
+        public string? IssuedBy { get; set; }
+        public string? IssueDate { get; set; }
+        public string? StareCivila { get; set; }
+        public string? StareLocativa { get; set; }
+        public string? Studii { get; set; }
+        public string? FunctieActuala { get; set; }
+        public string? NumeFirma { get; set; }
+        public int? VechimeTotalaLuni { get; set; }
+
         /// <summary>Null on the blank copy the client reads before signing.</summary>
         public DateTime? SignedOn { get; set; }
         public byte[]? SignaturePng { get; set; }
