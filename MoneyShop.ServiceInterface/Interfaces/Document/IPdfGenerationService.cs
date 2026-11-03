@@ -17,7 +17,11 @@ namespace MoneyShop.ServiceInterface.Interfaces.Document
 
         byte[] GenerateMangoAgreementPdf(MangoAgreementPdfInput input);
 
-        byte[] GenerateBankConsentPdf(string bankCode, BankConsentPdfInput input);
+        /// <summary>
+        /// Fills one bank form. A null signature produces the unsigned copy the client
+        /// reads before signing.
+        /// </summary>
+        byte[] GenerateBankConsentPdf(string bankCode, string documentCode, BankConsentPdfInput input);
     }
 
     public class BankConsentPdfInput
@@ -25,8 +29,21 @@ namespace MoneyShop.ServiceInterface.Interfaces.Document
         public string FullName { get; set; } = null!;
         public string Telefon { get; set; } = null!;
         public string? Email { get; set; }
-        public DateTime SignedOn { get; set; }
-        public byte[] SignaturePng { get; set; } = null!;
+
+        /// <summary>
+        /// Only the forms that ask for it (Patria's ANAF consent) receive a CNP, and it is
+        /// typed by the client at signing time: the platform stores only a masked form.
+        /// </summary>
+        public string? Cnp { get; set; }
+        public string? Address { get; set; }
+        public string? BirthDate { get; set; }
+
+        public string? BrokerCompany { get; set; }
+        public string? BrokerRepresentative { get; set; }
+
+        /// <summary>Null on the blank copy the client reads before signing.</summary>
+        public DateTime? SignedOn { get; set; }
+        public byte[]? SignaturePng { get; set; }
     }
 
     public class MangoAgreementPdfInput

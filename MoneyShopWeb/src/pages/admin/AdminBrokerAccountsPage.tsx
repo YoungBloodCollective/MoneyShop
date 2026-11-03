@@ -136,6 +136,20 @@ function BrokerForm({ editing, onClose, onSaved }: { editing: BrokerProfile | nu
               />
               <span className="text-sm text-light-80">Reprezentant desemnat Mango Broker (trimite și acordul Mango)</span>
             </label>
+            <label className="block mt-4">
+              <span className="block text-sm text-light-60 mb-1.5">
+                Banci partenere (formularele lor se semneaza odata cu acordul)
+              </span>
+              <input
+                value={form.bankPreDocuments ?? ''}
+                onChange={set('bankPreDocuments')}
+                placeholder="procredit,patria,ing,bt"
+                className={inputClass}
+              />
+              <span className="block text-xs text-light-50 mt-1.5">
+                Coduri separate prin virgula. Lasa gol ca sa nu se genereze niciun formular bancar.
+              </span>
+            </label>
             {form.mangoAgreementEnabled && (
               <Field label="Email Mango al reprezentantului">
                 <input value={form.mangoEmail ?? ''} onChange={set('mangoEmail')} type="email" placeholder="nume@mangobroker.ro" className={inputClass} />

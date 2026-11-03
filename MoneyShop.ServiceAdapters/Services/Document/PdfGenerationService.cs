@@ -395,12 +395,12 @@ public class PdfGenerationService : IPdfGenerationService
             logo);
     }
 
-    public byte[] GenerateBankConsentPdf(string bankCode, BankConsentPdfInput input)
+    public byte[] GenerateBankConsentPdf(string bankCode, string documentCode, BankConsentPdfInput input)
     {
-        var bank = BankConsentCatalog.Find(bankCode)
-            ?? throw new ArgumentException($"Unknown bank consent '{bankCode}'", nameof(bankCode));
-        var templatePath = Path.Combine(AppContext.BaseDirectory, "Assets", bank.TemplateFile);
-        return bank.Build(input, File.ReadAllBytes(templatePath), LoadFont("DejaVuSans.ttf", StandardFonts.HELVETICA));
+        var document = BankConsentCatalog.Find(bankCode)?.Find(documentCode)
+            ?? throw new ArgumentException($"Unknown bank form '{bankCode}/{documentCode}'", nameof(documentCode));
+        var templatePath = Path.Combine(AppContext.BaseDirectory, "Assets", document.TemplateFile);
+        return document.Build(input, File.ReadAllBytes(templatePath), LoadFont("DejaVuSans.ttf", StandardFonts.HELVETICA));
     }
 
     private string MaskPhone(string? phone)

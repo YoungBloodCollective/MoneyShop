@@ -9,6 +9,7 @@ import { acordApi, type AcordConsentText } from '@/services/api/acordApi';
 import { useBroker } from '@/context/brokerContextValue';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { Logo } from '@/components/shared/Logo';
+import { API_BASE_URL } from '@/utils/constants';
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ACCEPTED = 'image/png,image/jpeg,image/jpg,image/heic,image/heif,application/pdf';
@@ -221,7 +222,7 @@ export default function AcordClientPage() {
   const [consentText, setConsentText] = useState<AcordConsentText | null>(null);
   const [openDoc, setOpenDoc] = useState<'gdpr' | 'mango' | null>(null);
   const [choices, setChoices] = useState<Record<string, boolean>>({
-    intermediere: false, marketing: false, oug52Waiver: false,
+    intermediere: false, marketing: false, oug52Waiver: false, banci: false,
   });
   const [signature, setSignature] = useState<string | null>(null);
 
@@ -315,6 +316,7 @@ export default function AcordClientPage() {
         acceptIntermediere: choices.intermediere,
         acceptMarketing: choices.marketing,
         waiveOug52: choices.oug52Waiver,
+        acceptBanci: choices.banci,
       });
       setDone(true);
     } catch (err) {
@@ -471,6 +473,38 @@ export default function AcordClientPage() {
             <InfoCard title="Informații GDPR și Intermediere credit" onOpen={() => setOpenDoc('gdpr')} />
             {showMango && <InfoCard title={MANGO_TITLE} onOpen={() => setOpenDoc('mango')} />}
           </div>
+
+          {consentText?.bankDocuments && (
+            <div className="mb-5">
+              <p className="text-sm font-semibold text-light-90 mb-1">
+                Formulare pentru băncile partenere
+              </p>
+              <p className="text-[12.5px] text-light-60 leading-snug mb-2.5">
+                Ca brokerul să poată cere oferte în numele tău de la {consentText.bankDocuments.bankNames},
+                fiecare bancă are propriul formular. Le semnezi acum, o singură dată, cu semnătura de mai jos.
+              </p>
+              <div className="space-y-1.5">
+                {consentText.bankDocuments.items.map(item => (
+                  <a
+                    key={`${item.bankName}-${item.title}`}
+                    href={`${API_BASE_URL}${item.url}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-start gap-2.5 rounded-xl bg-dark-800 ring-1 ring-dark-600 px-3.5 py-2.5"
+                  >
+                    <FileText size={15} className="text-brand-primary shrink-0 mt-0.5" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px] font-medium text-light-90">
+                        {item.bankName} — {item.title}
+                      </span>
+                      <span className="block text-[11.5px] text-light-60 leading-snug mt-0.5">{item.summary}</span>
+                    </span>
+                    <span className="text-[11.5px] font-medium text-brand-primary shrink-0 mt-0.5">Citește</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2.5 mb-5">
             {(consentText?.options?.length ? consentText.options : FALLBACK_CONSENT_OPTIONS).map(option => (

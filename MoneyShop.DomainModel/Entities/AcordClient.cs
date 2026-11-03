@@ -49,6 +49,7 @@ namespace MoneyShop.DomainModel.Entities
         public string? ConsentVersion { get; set; }
         public bool? MarketingAccepted { get; set; }
         public bool? Oug52Waived { get; set; }
+        public bool? BankDocumentsAccepted { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

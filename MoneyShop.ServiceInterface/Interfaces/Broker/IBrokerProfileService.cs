@@ -50,6 +50,7 @@ public class BrokerLegalIdentity
     public string ReprezentantTelefon { get; set; } = null!;
     public bool MangoAgreementEnabled { get; set; }
     public string? MangoEmail { get; set; }
+    public string? BankPreDocuments { get; set; }
 }
 
 public class BrokerProfileView
@@ -77,6 +78,7 @@ public class BrokerProfileView
     public string? ReprezentantTelefon { get; set; }
     public bool MangoAgreementEnabled { get; set; }
     public string? MangoEmail { get; set; }
+    public string? BankPreDocuments { get; set; }
     public bool AcordAvailable { get; set; }
     public DateTime CreatedAt { get; set; }
 }
@@ -120,6 +122,7 @@ public class BrokerAdminUpdateInput : BrokerSelfUpdateInput
     public string? ReprezentantTelefon { get; set; }
     public bool? MangoAgreementEnabled { get; set; }
     public string? MangoEmail { get; set; }
+    public string? BankPreDocuments { get; set; }
 }
 
 public class BrokerCreateInput : BrokerAdminUpdateInput

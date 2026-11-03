@@ -44,9 +44,29 @@ const STATUS_STYLES: Record<string, string> = {
   rejected: 'bg-error-500/15 text-error-400',
 };
 
+const BANK_NAMES: Record<string, string> = {
+  procredit: 'ProCredit Bank',
+  patria: 'Patria Bank',
+  ing: 'ING Bank',
+  bt: 'Banca Transilvania',
+};
+
+const BANK_DOC_NAMES: Record<string, string> = {
+  consimtamant: 'consimtamant',
+  anaf: 'acord ANAF',
+  'birou-credit': 'informare Birou de Credit',
+  gdpr: 'informare GDPR',
+  'nota-informare': 'nota de informare',
+  recomandare: 'formular de recomandare',
+};
+
 function fileLabel(fileType: string) {
   if (FILE_LABELS[fileType]) return FILE_LABELS[fileType];
-  return fileType.startsWith('bank_consent_') ? `Consimtamant ${fileType.slice('bank_consent_'.length)} semnat` : fileType;
+  if (!fileType.startsWith('bank_')) return fileType;
+
+  const [, bank, ...rest] = fileType.split('_');
+  const doc = rest.join('_');
+  return `${BANK_NAMES[bank] ?? bank} - ${BANK_DOC_NAMES[doc] ?? doc} semnat`;
 }
 
 const BANK_CONSENT_STATUS: Record<string, { label: string; className: string }> = {
@@ -127,7 +147,7 @@ function BankConsentsSection({ acord, onSigned }: { acord: AcordDetails; onSigne
         ) : (
           <>
             <p className="text-sm text-light-60 mb-3">
-              Genereaza un link catre consimtamantul bancii, completat cu datele clientului. Linkul e valabil 7 zile.
+              Genereaza un link catre formularele bancii, completate cu datele clientului. Linkul e valabil 7 zile.
             </p>
             <div className="flex flex-wrap gap-2">
               <select
@@ -135,7 +155,11 @@ function BankConsentsSection({ acord, onSigned }: { acord: AcordDetails; onSigne
                 onChange={e => setBankCode(e.target.value)}
                 className="px-4 py-2.5 rounded-full bg-dark-600 border border-dark-500 text-light-90 text-sm"
               >
-                {banks.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
+                {banks.map(b => (
+                  <option key={b.code} value={b.code}>
+                    {b.name}{b.documentCount > 1 ? ` (${b.documentCount} documente)` : ''}
+                  </option>
+                ))}
               </select>
               <button
                 onClick={create}
@@ -147,14 +171,14 @@ function BankConsentsSection({ acord, onSigned }: { acord: AcordDetails; onSigne
             </div>
             {link && (
               <div className="mt-4 bg-dark-800 rounded-xl p-4">
-                <p className="text-xs text-light-50 mb-1">Link consimtamant {link.bankName}</p>
+                <p className="text-xs text-light-50 mb-1">Link documente {link.bankName}</p>
                 <p className="text-sm text-light-90 break-all mb-3">{link.url}</p>
                 <div className="flex flex-wrap gap-2">
                   <button onClick={copy} className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-brand-primary text-white text-sm font-medium">
                     <Copy size={15} /> Copiaza
                   </button>
                   <a
-                    href={whatsappLink(acord.telefon, `Buna, ${acord.prenume}! Te rog sa semnezi consimtamantul pentru ${link.bankName}: ${link.url}`)}
+                    href={whatsappLink(acord.telefon, `Buna, ${acord.prenume}! Te rog sa semnezi documentele pentru ${link.bankName}: ${link.url}`)}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-success-600 text-white text-sm font-medium"

@@ -18,12 +18,26 @@ export interface AcordConsentText {
   brokerName?: string | null;
   options: AcordConsentOption[];
   mangoAgreement?: { title: string; body: string } | null;
+  bankDocuments?: AcordBankDocuments | null;
+}
+
+export interface AcordBankDocumentItem {
+  bankName: string;
+  title: string;
+  summary: string;
+  url: string;
+}
+
+export interface AcordBankDocuments {
+  bankNames: string;
+  items: AcordBankDocumentItem[];
 }
 
 export interface AcordSignChoices {
   acceptIntermediere: boolean;
   acceptMarketing: boolean;
   waiveOug52: boolean;
+  acceptBanci: boolean;
 }
 
 export interface AcordSubmitPayload {
@@ -48,6 +62,7 @@ export interface AcordSubmitPayload {
   acceptIntermediere: boolean;
   acceptMarketing: boolean;
   waiveOug52: boolean;
+  acceptBanci: boolean;
 }
 
 export interface AcordSubmitResult {
@@ -147,6 +162,7 @@ export interface AcordDetails {
 export interface BankConsentBank {
   code: string;
   name: string;
+  documentCount: number;
 }
 
 export type BankConsentStatus = 'pending' | 'signing' | 'signed' | 'expired' | 'replaced';
@@ -168,14 +184,25 @@ export interface BankConsentCreated {
   request: BankConsentInfo;
 }
 
+export interface BankConsentDocumentView {
+  code: string;
+  title: string;
+  summary: string;
+}
+
 export interface BankConsentPublicView {
   status: BankConsentStatus;
   bankName: string;
-  title?: string | null;
-  body?: string | null;
   fullName?: string | null;
   telefon?: string | null;
   email?: string | null;
+  requiresCnp: boolean;
+  cnpHint?: string | null;
+  requiresAddress: boolean;
+  address?: string | null;
+  requiresBirthDate: boolean;
+  birthDate?: string | null;
+  documents: BankConsentDocumentView[];
   signedAt?: string | null;
 }
 
@@ -219,6 +246,7 @@ export const acordApi = {
     fd.append('AcceptIntermediere', String(payload.acceptIntermediere));
     fd.append('AcceptMarketing', String(payload.acceptMarketing));
     fd.append('WaiveOug52', String(payload.waiveOug52));
+    fd.append('AcceptBanci', String(payload.acceptBanci));
 
     return publicClient.post('/acord/submit', fd, { timeout: 180000 }).then(r => unwrap<AcordSubmitResult>(r.data));
   },
@@ -253,8 +281,11 @@ export const acordApi = {
   getBankConsent: (token: string) =>
     publicClient.get(`/bank-consent/${encodeURIComponent(token)}`).then(r => unwrap<BankConsentPublicView>(r.data)),
 
-  signBankConsent: (token: string, signatureDataUri: string) =>
+  bankConsentDocumentUrl: (token: string, documentCode: string) =>
+    `${API_BASE_URL}/bank-consent/${encodeURIComponent(token)}/document/${encodeURIComponent(documentCode)}`,
+
+  signBankConsent: (token: string, signatureDataUri: string, extra?: { cnp?: string; address?: string; birthDate?: string }) =>
     publicClient
-      .post(`/bank-consent/${encodeURIComponent(token)}/sign`, { signatureDataUri, accepted: true })
+      .post(`/bank-consent/${encodeURIComponent(token)}/sign`, { signatureDataUri, accepted: true, ...extra })
       .then(r => unwrap<{ success: boolean }>(r.data)),
 };

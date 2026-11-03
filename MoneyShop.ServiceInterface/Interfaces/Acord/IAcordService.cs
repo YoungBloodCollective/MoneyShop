@@ -24,6 +24,9 @@ public interface IAcordService
 
     AcordConsentText GetConsentText(string? brokerSlug = null);
 
+    /// <summary>The blank form of a partner bank, for the client to read before signing.</summary>
+    AcordFileContent? GetBankDocumentTemplate(string bankCode, string documentCode);
+
     /// <summary>Clears stored ID data once its retention period has elapsed.</summary>
     int PurgeExpiredOcrData();
 
@@ -140,6 +143,9 @@ public class AcordSignChoices
     public bool AcceptIntermediere { get; set; }
     public bool AcceptMarketing { get; set; }
     public bool WaiveOug52 { get; set; }
+
+    /// <summary>Acordul ca formularele bancilor partenere sa fie semnate odata cu acordul.</summary>
+    public bool AcceptBanci { get; set; }
 }
 
 public class AcordSignContext
@@ -210,6 +216,29 @@ public class AcordConsentText
     public string? BrokerName { get; set; }
     public List<AcordConsentOption> Options { get; set; } = new();
     public AcordDocumentText? MangoAgreement { get; set; }
+
+    /// <summary>
+    /// Formularele bancilor partenere pe care clientul le semneaza odata cu acordul, ca sa
+    /// nu le mai semneze pe rand cand brokerul cere oferte.
+    /// </summary>
+    public AcordBankDocuments? BankDocuments { get; set; }
+}
+
+public class AcordBankDocuments
+{
+    /// <summary>Bancile, scrise pentru client: "Patria Bank, ING Bank si Banca Transilvania".</summary>
+    public string BankNames { get; set; } = null!;
+    public List<AcordBankDocumentItem> Items { get; set; } = new();
+}
+
+public class AcordBankDocumentItem
+{
+    public string BankName { get; set; } = null!;
+    public string Title { get; set; } = null!;
+    public string Summary { get; set; } = null!;
+
+    /// <summary>Formularul necompletat al bancii, ca sa il poata citi inainte de a semna.</summary>
+    public string Url { get; set; } = null!;
 }
 
 public class AcordDocumentText
