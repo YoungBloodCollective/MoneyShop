@@ -282,6 +282,17 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             BirthDate = NormaliseBirthDate(ocr?.BirthDate),
             BrokerCompany = identity?.FirmaNume,
             BrokerRepresentative = identity?.ReprezentantNume,
+            PlaceOfBirth = ocr?.PlaceOfBirth,
+            IdSeries = ocr?.IdSeries,
+            IdNumber = ocr?.IdNumber,
+            IssuedBy = ocr?.IssuedBy,
+            IssueDate = ocr?.IssueDate,
+            StareCivila = acord.StareCivila,
+            StareLocativa = acord.StareLocativa,
+            Studii = acord.Studii,
+            FunctieActuala = acord.FunctieActuala,
+            NumeFirma = acord.NumeFirma,
+            VechimeTotalaLuni = acord.VechimeTotalaAni is { } ani ? (int)Math.Round(ani * 12) : null,
             SignedOn = ToRomaniaTime(acord.SignedAt ?? DateTime.UtcNow),
             SignaturePng = signaturePng
         };

@@ -40,6 +40,12 @@ internal static class BankConsentCatalog
                 "patria-birou-credit.pdf",
                 PatriaBankForms.BirouCredit),
             new BankConsentDocument(
+                "cerere",
+                "Cerere de credit",
+                "Cererea cu care brokerul cere oferta de la bancă. Datele tale sunt completate; produsul și suma le alegeți împreună.",
+                "patria-cerere-credit.pdf",
+                PatriaCreditApplicationForm.Build),
+            new BankConsentDocument(
                 "gdpr",
                 "Informare privind prelucrarea datelor personale",
                 "Confirmi că ai primit informarea Patria Bank despre prelucrarea datelor tale personale.",

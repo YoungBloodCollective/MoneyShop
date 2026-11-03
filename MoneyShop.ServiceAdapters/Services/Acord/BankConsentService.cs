@@ -268,6 +268,7 @@ public class BankConsentService : IBankConsentService
             ? null
             : _context.KycSessions.FirstOrDefault(k => k.KycId == acord.KycId.Value);
         var identity = _brokerProfiles.GetLegalIdentity(request.BrokerProfileId);
+        var snapshot = DeserialiseOcr(acord?.OcrDataJson);
 
         return new BankConsentPdfInput
         {
@@ -279,6 +280,17 @@ public class BankConsentService : IBankConsentService
             BirthDate = supplied.BirthDate ?? FormatBirthDate(acord?.OcrDataJson),
             BrokerCompany = identity?.FirmaNume,
             BrokerRepresentative = identity?.ReprezentantNume,
+            PlaceOfBirth = snapshot?.PlaceOfBirth,
+            IdSeries = snapshot?.IdSeries,
+            IdNumber = snapshot?.IdNumber,
+            IssuedBy = snapshot?.IssuedBy,
+            IssueDate = snapshot?.IssueDate,
+            StareCivila = acord?.StareCivila,
+            StareLocativa = acord?.StareLocativa,
+            Studii = acord?.Studii,
+            FunctieActuala = acord?.FunctieActuala,
+            NumeFirma = acord?.NumeFirma,
+            VechimeTotalaLuni = acord?.VechimeTotalaAni is { } ani ? (int)Math.Round(ani * 12) : null,
             SignedOn = ToRomaniaTime(signedOn),
             SignaturePng = signaturePng
         };
@@ -328,20 +340,23 @@ public class BankConsentService : IBankConsentService
     /// The banks print the birth date as dd.MM.yyyy; the OCR hands it over in whichever
     /// shape the document used, so anything unparseable is left out rather than guessed.
     /// </summary>
-    private static string? FormatBirthDate(string? ocrDataJson)
+    private static AcordOcrSnapshot? DeserialiseOcr(string? ocrDataJson)
     {
         if (string.IsNullOrWhiteSpace(ocrDataJson)) return null;
 
-        string? raw;
         try
         {
-            raw = JsonSerializer.Deserialize<AcordOcrSnapshot>(ocrDataJson)?.BirthDate;
+            return JsonSerializer.Deserialize<AcordOcrSnapshot>(ocrDataJson);
         }
         catch (JsonException)
         {
             return null;
         }
+    }
 
+    private static string? FormatBirthDate(string? ocrDataJson)
+    {
+        var raw = DeserialiseOcr(ocrDataJson)?.BirthDate;
         if (string.IsNullOrWhiteSpace(raw)) return null;
 
         return DateTime.TryParseExact(raw.Trim(), BirthDateFormats, CultureInfo.InvariantCulture,
