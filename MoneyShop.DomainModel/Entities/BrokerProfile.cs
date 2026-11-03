@@ -27,6 +27,12 @@ namespace MoneyShop.DomainModel.Entities
         public bool MangoAgreementEnabled { get; set; }
         public string? MangoEmail { get; set; }
 
+        /// <summary>
+        /// Bancile partenere ale brokerului, separate prin virgula. Clientul semneaza
+        /// pre-documentele lor odata cu acordul. Gol inseamna oprit.
+        /// </summary>
+        public string? BankPreDocuments { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

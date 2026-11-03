@@ -62,6 +62,20 @@ public class AcordController : BaseController
         return Ok(_acordService.GetConsentText(broker));
     }
 
+    /// <summary>
+    /// The blank form of one partner bank, so the client can read it before agreeing on the
+    /// acord page. It is the bank's own public document, with nothing filled in.
+    /// </summary>
+    [HttpGet("bank-document/{bankCode}/{documentCode}")]
+    public IActionResult BankDocument(string bankCode, string documentCode)
+    {
+        var file = _acordService.GetBankDocumentTemplate(bankCode, documentCode);
+        if (file == null) return NotFound("Documentul nu este disponibil");
+
+        Response.Headers.ContentDisposition = $"inline; filename=\"{file.FileName}\"";
+        return File(file.Content, "application/pdf");
+    }
+
     [HttpPost("submit")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(40_000_000)]
@@ -136,7 +150,8 @@ public class AcordController : BaseController
                 {
                     AcceptIntermediere = request.AcceptIntermediere,
                     AcceptMarketing = request.AcceptMarketing,
-                    WaiveOug52 = request.WaiveOug52
+                    WaiveOug52 = request.WaiveOug52,
+                    AcceptBanci = request.AcceptBanci
                 }
             }, new AcordSignContext
             {
@@ -350,6 +365,7 @@ public class AcordSubmitRequest
     public bool AcceptIntermediere { get; set; }
     public bool AcceptMarketing { get; set; }
     public bool WaiveOug52 { get; set; }
+    public bool AcceptBanci { get; set; }
 }
 
 public class AcordStatusRequest

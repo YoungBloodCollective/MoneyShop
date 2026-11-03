@@ -33,6 +33,7 @@ public class AcordService : IAcordService
     private const int CLIENT_ROLE_ID = 1;
     private const int MAX_STARTS_PER_IP_PER_HOUR = 10;
     private const int MANGO_ARCHIVE_YEARS = 5;
+    private const int BANK_ARCHIVE_YEARS = 5;
     private static readonly CultureInfo RomanianCulture = CultureInfo.GetCultureInfo("ro-RO");
 
     private const string UNAVAILABLE_CONSENT =
@@ -190,11 +191,14 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             RecordConsent(acord, legalDoc, consentText, "ACORD_MARKETING", context);
         if (input.Choices.WaiveOug52)
             RecordConsent(acord, legalDoc, consentText, "ACORD_OUG52_WAIVER", context);
+        if (input.Choices.AcceptBanci && consentText.BankDocuments != null)
+            RecordConsent(acord, legalDoc, consentText, "ACORD_BANCI", context);
 
         acord.ConsentId = primary.ConsentId;
         acord.ConsentVersion = consentText.Version;
         acord.MarketingAccepted = input.Choices.AcceptMarketing;
         acord.Oug52Waived = input.Choices.WaiveOug52;
+        acord.BankDocumentsAccepted = input.Choices.AcceptBanci && consentText.BankDocuments != null;
         acord.SignedAt = DateTime.UtcNow;
         acord.CompletedAt = DateTime.UtcNow;
         acord.Status = "completed";
@@ -241,10 +245,77 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         var acord = _acordRepository.Get().FirstOrDefault(a => a.AcordId == acordId);
         if (acord == null) return;
 
-        await TryReadDocumentAsync(acord);
+        var ocr = await TryReadDocumentAsync(acord);
         await TrySendSignedAgreementAsync(acord);
         await TrySendMangoAgreementAsync(acord);
+        TryCreateBankDocuments(acord, ocr);
     }
+
+    /// <summary>
+    /// Fills the partner banks' own forms with the acord's data and the client's signature,
+    /// so the broker can ask those banks for offers without sending the client back to sign
+    /// each one. Nothing is emailed; the forms stay on the acord.
+    /// </summary>
+    private void TryCreateBankDocuments(AcordClient acord, OcrData? ocr)
+    {
+        if (acord.BankDocumentsAccepted != true) return;
+
+        var identity = _brokerProfiles.GetLegalIdentity(acord.BrokerProfileId);
+        var banks = BankConsentCatalog.Parse(identity?.BankPreDocuments);
+        if (banks.Count == 0) return;
+
+        var signaturePng = LoadFileBytes(acord, "signature");
+        if (signaturePng == null)
+        {
+            _logger.LogWarning("No signature file found for acord {AcordId}; skipping the bank forms", acord.AcordId);
+            return;
+        }
+
+        var kycSession = GetKycSession(acord);
+        var input = new BankConsentPdfInput
+        {
+            FullName = $"{acord.Prenume} {acord.Nume}".ToUpper(RomanianCulture),
+            Telefon = acord.Telefon,
+            Email = acord.Email,
+            Cnp = ocr?.Cnp,
+            Address = ocr?.Address ?? kycSession?.Address,
+            BirthDate = NormaliseBirthDate(ocr?.BirthDate),
+            BrokerCompany = identity?.FirmaNume,
+            BrokerRepresentative = identity?.ReprezentantNume,
+            SignedOn = ToRomaniaTime(acord.SignedAt ?? DateTime.UtcNow),
+            SignaturePng = signaturePng
+        };
+
+        foreach (var bank in banks)
+        {
+            foreach (var document in bank.Documents)
+            {
+                try
+                {
+                    var pdf = _pdfGenerationService.GenerateBankConsentPdf(bank.Code, document.Code, input);
+                    PersistFile(acord, BankConsentCatalog.FileType(bank.Code, document.Code), pdf,
+                        $"{bank.Code}-{document.Code}-{acord.AcordId}.pdf", "application/pdf",
+                        DateTime.UtcNow.AddYears(BANK_ARCHIVE_YEARS));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not build the {Bank}/{Document} form for acord {AcordId}",
+                        bank.Code, document.Code, acord.AcordId);
+                }
+            }
+        }
+
+        _logger.LogInformation("Bank forms stored for acord {AcordId}: {Banks}",
+            acord.AcordId, string.Join(", ", banks.Select(b => b.Code)));
+    }
+
+    /// <summary>The banks print the birth date as dd.MM.yyyy; anything else is left blank.</summary>
+    private static string? NormaliseBirthDate(string? value) =>
+        DateTime.TryParseExact((value ?? string.Empty).Trim(),
+            new[] { "dd.MM.yyyy", "dd/MM/yyyy", "dd-MM-yyyy", "yyyy-MM-dd", "yyyy/MM/dd", "ddMMyyyy" },
+            CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
+            ? parsed.ToString("dd.MM.yyyy")
+            : null;
 
     private async Task TrySendMangoAgreementAsync(AcordClient acord)
     {
@@ -413,15 +484,20 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
     /// Reads the document if the KYC service is reachable. A failure here never
     /// fails the submission — the documents are already stored.
     /// </summary>
-    private async Task TryReadDocumentAsync(AcordClient acord)
+    /// <summary>
+    /// Returns what the ID card said so the bank forms can print the CNP, the domicile and
+    /// the birth date. Only a masked CNP is persisted, so this is the one moment the real
+    /// one is available.
+    /// </summary>
+    private async Task<OcrData?> TryReadDocumentAsync(AcordClient acord)
     {
         var kycSession = GetKycSession(acord);
-        if (kycSession == null) return;
+        if (kycSession == null) return null;
 
         var front = LoadFileBytes(acord, "id_front");
-        if (front == null) return;
+        if (front == null) return null;
 
-        if (!await EnsureProviderSessionAsync(kycSession)) return;
+        if (!await EnsureProviderSessionAsync(kycSession)) return null;
 
         try
         {
@@ -435,10 +511,13 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
                 StoreIdentityData(acord, kycSession, ocr.OcrData, ocr.LogicValidation);
                 _context.SaveChanges();
             }
+
+            return ocr.OcrData;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Could not read document for acord {AcordId}; documents kept", acord.AcordId);
+            return null;
         }
     }
 
@@ -484,6 +563,24 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
     public AcordConsentText GetConsentText(string? brokerSlug = null) =>
         BuildConsentText(_brokerProfiles.GetLegalIdentity(_brokerProfiles.ResolveIntakeBrokerId(brokerSlug)));
 
+    public AcordFileContent? GetBankDocumentTemplate(string bankCode, string documentCode)
+    {
+        var bank = BankConsentCatalog.Find(bankCode);
+        var document = bank?.Find(documentCode);
+        if (bank == null || document == null) return null;
+
+        return new AcordFileContent
+        {
+            FileName = $"{bank.Code}-{document.Code}.pdf",
+            MimeType = "application/pdf",
+            Content = _pdfGenerationService.GenerateBankConsentPdf(bank.Code, document.Code, new BankConsentPdfInput
+            {
+                FullName = string.Empty,
+                Telefon = string.Empty
+            })
+        };
+    }
+
     private AcordConsentText BuildConsentText(BrokerLegalIdentity? identity)
     {
         var version = _configuration["Acord:ConsentVersion"];
@@ -498,12 +595,40 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             IsPlaceholder = isPlaceholder,
             Available = identity != null,
             BrokerName = identity?.FirmaNume,
-            Options = BuildOptions(),
+            Options = BuildOptions(BuildBankDocuments(identity)),
             MangoAgreement = MangoAgreementEnabled && identity is { MangoAgreementEnabled: true }
                 ? new AcordDocumentText { Title = MangoAgreementText.DisplayTitle, Body = MangoAgreementText.BuildReadingText(ToMangoRepresentative(identity)) }
-                : null
+                : null,
+            BankDocuments = BuildBankDocuments(identity)
         };
     }
+
+    /// <summary>
+    /// The partner banks' own forms, shown next to the acord so the client signs them once
+    /// instead of signing each bank separately when the broker goes looking for offers.
+    /// </summary>
+    private static AcordBankDocuments? BuildBankDocuments(BrokerLegalIdentity? identity)
+    {
+        var banks = BankConsentCatalog.Parse(identity?.BankPreDocuments);
+        if (banks.Count == 0) return null;
+
+        return new AcordBankDocuments
+        {
+            BankNames = JoinNames(banks.Select(b => b.Name).ToList()),
+            Items = banks.SelectMany(bank => bank.Documents.Select(document => new AcordBankDocumentItem
+            {
+                BankName = bank.Name,
+                Title = document.Title,
+                Summary = document.Summary,
+                Url = $"/acord/bank-document/{bank.Code}/{document.Code}"
+            })).ToList()
+        };
+    }
+
+    private static string JoinNames(IReadOnlyList<string> names) =>
+        names.Count <= 1
+            ? names.FirstOrDefault() ?? string.Empty
+            : string.Join(", ", names.Take(names.Count - 1)) + " și " + names[^1];
 
     private static string RenderConsent(string template, BrokerLegalIdentity identity)
     {
@@ -565,8 +690,10 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         return PLACEHOLDER_CONSENT;
     }
 
-    private static List<AcordConsentOption> BuildOptions() => new()
+    private static List<AcordConsentOption> BuildOptions(AcordBankDocuments? bankDocuments)
     {
+        var options = new List<AcordConsentOption>
+        {
         new AcordConsentOption
         {
             Key = "intermediere",
@@ -581,14 +708,26 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             Hint = "Opțional. Refuzul nu afectează serviciile de intermediere.",
             Required = false
         },
-        new AcordConsentOption
-        {
-            Key = "oug52Waiver",
-            Label = "Solicit începerea imediată a serviciilor și, în măsura permisă de lege, renunț la perioada de așteptare.",
-            Hint = "Opțional, conform OUG nr. 52/2016.",
-            Required = false
-        }
-    };
+            new AcordConsentOption
+            {
+                Key = "oug52Waiver",
+                Label = "Solicit începerea imediată a serviciilor și, în măsura permisă de lege, renunț la perioada de așteptare.",
+                Hint = "Opțional, conform OUG nr. 52/2016.",
+                Required = false
+            }
+        };
+
+        if (bankDocuments != null)
+            options.Insert(1, new AcordConsentOption
+            {
+                Key = "banci",
+                Label = $"Sunt de acord cu formularele de mai sus și ca datele mele să fie transmise către {bankDocuments.BankNames}, ca să îmi fie cerute oferte de credit.",
+                Hint = "Opțional. Le semnezi acum, o singură dată, ca să nu le semnezi pe rând la fiecare bancă.",
+                Required = false
+            });
+
+        return options;
+    }
 
     // ── Admin ──
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { CheckCircle, Clock, Loader2 } from 'lucide-react';
+import { CheckCircle, Clock, Loader2, FileText, ExternalLink } from 'lucide-react';
 import { acordApi, type BankConsentPublicView } from '@/services/api/acordApi';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { Logo } from '@/components/shared/Logo';
@@ -35,14 +35,18 @@ export default function BankConsentPage() {
   const { token = '' } = useParams();
   const [view, setView] = useState<BankConsentPublicView | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'invalid' | 'done'>('loading');
+  const [opened, setOpened] = useState<Record<string, boolean>>({});
   const [accepted, setAccepted] = useState(false);
+  const [cnp, setCnp] = useState('');
+  const [address, setAddress] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [signature, setSignature] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     acordApi.getBankConsent(token)
-      .then(v => { setView(v); setState('ready'); })
+      .then(v => { setView(v); setAddress(v.address ?? ''); setBirthDate(v.birthDate ?? ''); setState('ready'); })
       .catch(() => setState('invalid'));
   }, [token]);
 
@@ -51,7 +55,11 @@ export default function BankConsentPage() {
     setSubmitting(true);
     setError('');
     try {
-      await acordApi.signBankConsent(token, signature);
+      await acordApi.signBankConsent(token, signature, {
+        cnp: cnp || undefined,
+        address: address.trim() || undefined,
+        birthDate: birthDate.trim() || undefined,
+      });
       setState('done');
     } catch (err) {
       if (axios.isAxiosError(err) && !err.response) {
@@ -78,7 +86,7 @@ export default function BankConsentPage() {
       <StatusScreen
         icon={<CheckCircle size={46} className="text-success-600" />}
         title="Mulțumim!"
-        text={`Consimțământul pentru ${view?.bankName ?? 'bancă'} a fost semnat. Brokerul tău se ocupă de restul.`}
+        text={`Documentele pentru ${view?.bankName ?? 'bancă'} au fost semnate. Brokerul tău se ocupă de restul.`}
       />
     );
   }
@@ -93,12 +101,22 @@ export default function BankConsentPage() {
     );
   }
 
+  const cnpDigits = cnp.replace(/\D/g, '');
+  const cnpReady = !view.requiresCnp || cnpDigits.length === 13;
+  const cnpHintMismatch =
+    view.requiresCnp && cnpDigits.length === 13 && !!view.cnpHint && !cnpDigits.endsWith(view.cnpHint);
+  const addressReady = !view.requiresAddress || address.trim().length >= 10;
+  const birthDateReady = !view.requiresBirthDate || /^\d{2}\.\d{2}\.\d{4}$/.test(birthDate.trim());
+  const allOpened = view.documents.every(d => opened[d.code]);
+
   return (
     <Shell>
       <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/[0.04] p-5 sm:p-6">
-        <h1 className="text-[22px] leading-snug font-bold text-light-100">{view.title}</h1>
+        <h1 className="text-[22px] leading-snug font-bold text-light-100">
+          Documente pentru {view.bankName}
+        </h1>
         <p className="text-sm text-light-60 mt-1.5 mb-5">
-          Citește documentul de mai jos și semnează dacă ești de acord. Datele tale sunt deja completate.
+          Deschide și citește fiecare document, apoi semnează o singură dată. Datele tale sunt deja completate.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-5">
@@ -110,9 +128,90 @@ export default function BankConsentPage() {
           ))}
         </div>
 
-        <div className="border border-dark-600 rounded-xl px-4 py-3.5 max-h-[45vh] overflow-y-auto mb-5">
-          <p className="text-[13.5px] text-light-80 whitespace-pre-wrap leading-relaxed">{view.body}</p>
+        <div className="space-y-2.5 mb-5">
+          {view.documents.map(doc => (
+            <a
+              key={doc.code}
+              href={acordApi.bankConsentDocumentUrl(token, doc.code)}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => setOpened(prev => ({ ...prev, [doc.code]: true }))}
+              className={`flex items-start gap-3 rounded-xl px-4 py-3.5 ring-1 transition ${
+                opened[doc.code] ? 'bg-success-500/5 ring-success-500/40' : 'bg-dark-800 ring-dark-600'
+              }`}
+            >
+              <FileText size={18} className="text-brand-primary shrink-0 mt-0.5" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14px] font-semibold text-light-90">{doc.title}</span>
+                <span className="block text-[12.5px] text-light-60 leading-snug mt-0.5">{doc.summary}</span>
+                <span className="block text-[12px] font-medium text-brand-primary mt-1.5">
+                  {opened[doc.code] ? 'Deschide din nou' : 'Deschide documentul'}
+                </span>
+              </span>
+              <ExternalLink size={15} className="text-light-50 shrink-0 mt-0.5" />
+            </a>
+          ))}
         </div>
+
+        {view.requiresCnp && (
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-light-80 mb-1.5">
+              CNP <span className="text-error-500">*</span>
+            </label>
+            <input
+              value={cnp}
+              onChange={e => setCnp(e.target.value.replace(/\D/g, '').slice(0, 13))}
+              inputMode="numeric"
+              placeholder="Cele 13 cifre de pe actul tău"
+              className="w-full px-3.5 py-3 text-base rounded-xl bg-white ring-1 ring-dark-500 text-light-90 placeholder:text-light-50 focus:outline-none focus:ring-2 focus:ring-brand-primary transition"
+            />
+            <p className="text-[12px] text-light-60 mt-1.5">
+              {cnpHintMismatch
+                ? 'CNP-ul nu se potrivește cu actul încărcat la semnarea acordului.'
+                : 'Banca are nevoie de CNP ca să îți poată consulta veniturile la ANAF.'}
+            </p>
+          </div>
+        )}
+
+        {view.requiresAddress && (
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-light-80 mb-1.5">
+              Adresa de domiciliu <span className="text-error-500">*</span>
+            </label>
+            <textarea
+              value={address}
+              onChange={e => setAddress(e.target.value.slice(0, 250))}
+              rows={2}
+              placeholder="Strada, numărul, blocul, localitatea, județul"
+              className="w-full px-3.5 py-3 text-base rounded-xl bg-white ring-1 ring-dark-500 text-light-90 placeholder:text-light-50 focus:outline-none focus:ring-2 focus:ring-brand-primary transition"
+            />
+            <p className="text-[12px] text-light-60 mt-1.5">
+              {view.address
+                ? 'Am completat adresa din actul tău. Verific-o și corecteaz-o dacă e nevoie.'
+                : 'Scrie adresa exact cum apare pe actul tău de identitate.'}
+            </p>
+          </div>
+        )}
+
+        {view.requiresBirthDate && (
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-light-80 mb-1.5">
+              Data nașterii <span className="text-error-500">*</span>
+            </label>
+            <input
+              value={birthDate}
+              onChange={e => setBirthDate(e.target.value.replace(/[^\d.]/g, '').slice(0, 10))}
+              inputMode="numeric"
+              placeholder="zz.ll.aaaa"
+              className="w-full px-3.5 py-3 text-base rounded-xl bg-white ring-1 ring-dark-500 text-light-90 placeholder:text-light-50 focus:outline-none focus:ring-2 focus:ring-brand-primary transition"
+            />
+            <p className="text-[12px] text-light-60 mt-1.5">
+              {view.birthDate
+                ? 'Am completat data din actul tău. Verific-o și corecteaz-o dacă e nevoie.'
+                : 'Scrie data nașterii așa cum apare pe actul tău de identitate.'}
+            </p>
+          </div>
+        )}
 
         <label className="flex items-start gap-2.5 cursor-pointer mb-5">
           <input
@@ -122,9 +221,15 @@ export default function BankConsentPage() {
             className="mt-0.5 w-5 h-5 rounded accent-brand-primary shrink-0"
           />
           <span className="text-[13px] text-light-70 leading-snug">
-            Am citit și sunt de acord ca datele mele să fie transmise către {view.bankName}, conform documentului de mai sus.
+            Am citit documentele de mai sus și sunt de acord cu ele.
           </span>
         </label>
+
+        {!allOpened && accepted && (
+          <p className="text-[12px] text-warning-600 bg-warning-500/10 rounded-xl px-4 py-2.5 -mt-3 mb-5">
+            Deschide fiecare document înainte de a semna.
+          </p>
+        )}
 
         <p className="text-sm font-semibold text-light-90 mb-2">
           Semnătură <span className="font-normal text-light-60">(desenează în chenar)</span>
@@ -139,10 +244,10 @@ export default function BankConsentPage() {
         <button
           type="button"
           onClick={submit}
-          disabled={!accepted || !signature || submitting}
+          disabled={!accepted || !signature || !cnpReady || !addressReady || !birthDateReady || submitting}
           className="w-full py-4 mt-5 rounded-xl bg-success-600 hover:bg-success-500 text-white text-base font-semibold shadow-sm active:scale-[0.99] transition disabled:opacity-40 disabled:shadow-none"
         >
-          {submitting ? 'Se trimite...' : 'Semnează'}
+          {submitting ? 'Se trimite...' : view.documents.length > 1 ? 'Semnează toate documentele' : 'Semnează'}
         </button>
       </div>
     </Shell>

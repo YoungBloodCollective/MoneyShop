@@ -643,6 +643,7 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.ReprezentantNume).HasMaxLength(150);
             entity.Property(e => e.ReprezentantTelefon).HasMaxLength(30);
             entity.Property(e => e.MangoEmail).HasMaxLength(255);
+            entity.Property(e => e.BankPreDocuments).HasMaxLength(200);
             entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
 

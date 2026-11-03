@@ -53,6 +53,17 @@ public class BankConsentController : BaseController
         return view == null ? NotFound("Linkul nu este valid") : Ok(view);
     }
 
+    [HttpGet("bank-consent/{token}/document/{documentCode}")]
+    public IActionResult Document(string token, string documentCode)
+    {
+        var file = _bankConsentService.GetDocumentByToken(token, documentCode);
+        if (file == null) return NotFound("Documentul nu este disponibil");
+
+        // Shown in the browser's own viewer: the client reads the form before signing it.
+        Response.Headers.ContentDisposition = $"inline; filename=\"{file.FileName}\"";
+        return File(file.Content, "application/pdf");
+    }
+
     [HttpPost("bank-consent/{token}/sign")]
     public IActionResult Sign(string token, [FromBody] BankConsentSignRequest request)
     {
@@ -71,7 +82,12 @@ public class BankConsentController : BaseController
             return BadRequest("Semnatura nu este valida");
         }
 
-        var result = _bankConsentService.Sign(token, signature, GetClientIp(), Request.Headers.UserAgent.ToString());
+        var result = _bankConsentService.Sign(
+            token,
+            signature,
+            new BankConsentSignInput { Cnp = request.Cnp, Address = request.Address, BirthDate = request.BirthDate },
+            GetClientIp(),
+            Request.Headers.UserAgent.ToString());
         if (result.NotFound) return NotFound(result.Error ?? "Linkul nu este valid");
         if (!result.Success) return BadRequest(result.Error ?? "Nu am putut salva semnatura");
 
@@ -97,4 +113,13 @@ public class BankConsentSignRequest
 {
     public string? SignatureDataUri { get; set; }
     public bool Accepted { get; set; }
+
+    /// <summary>Only the banks whose forms ask for it; never stored, only printed on the form.</summary>
+    public string? Cnp { get; set; }
+
+    /// <summary>The domicile the client confirms, for the forms that print it.</summary>
+    public string? Address { get; set; }
+
+    /// <summary>The birth date the client confirms, for the forms that print it.</summary>
+    public string? BirthDate { get; set; }
 }
