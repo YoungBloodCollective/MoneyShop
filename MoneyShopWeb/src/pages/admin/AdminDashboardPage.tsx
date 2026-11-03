@@ -9,8 +9,17 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { adminApi } from '@/services/api/adminApi';
 import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
 import type { Application } from '@/types/application.types';
+import BrokerCrmDashboard from './BrokerCrmDashboard';
 
 export default function AdminDashboardPage() {
+  const { isSuperAdmin, isBroker } = useAuth();
+  if (isBroker && !isSuperAdmin) {
+    return <BrokerCrmDashboard />;
+  }
+  return <AdminOverview />;
+}
+
+function AdminOverview() {
   const { isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
