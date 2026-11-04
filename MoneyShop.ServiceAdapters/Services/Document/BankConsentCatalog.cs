@@ -46,6 +46,12 @@ internal static class BankConsentCatalog
                 "patria-cerere-credit.pdf",
                 PatriaCreditApplicationForm.Build),
             new BankConsentDocument(
+                "cerere-codebitor",
+                "Cerere de credit - formular pentru codebitor",
+                "Formularul pe care îl completează și îl semnează codebitorul tău, pe hârtie. Îl primești necompletat: datele codebitorului nu sunt la noi.",
+                "patria-cerere-codebitor.pdf",
+                PatriaCodebitorForm.Build),
+            new BankConsentDocument(
                 "gdpr",
                 "Informare privind prelucrarea datelor personale",
                 "Confirmi că ai primit informarea Patria Bank despre prelucrarea datelor tale personale.",
