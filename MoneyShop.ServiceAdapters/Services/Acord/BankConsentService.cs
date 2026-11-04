@@ -141,8 +141,13 @@ public class BankConsentService : IBankConsentService
 
     public BankConsentDocumentFile? GetDocumentByToken(string token, string documentCode)
     {
+        // The preview carries no signature and no CNP, so it stays safe to read whatever the
+        // link's status is. Gating it on "pending" meant that a link which had just been
+        // replaced by a new one (or signed, or had a sign interrupted) answered every document
+        // with a raw 404, while the already-open page still listed the forms — a dead end for
+        // the client. Viewing is always allowed; only signing still requires a pending link.
         var request = FindByToken(token);
-        if (request == null || EffectiveStatus(request) != STATUS_PENDING) return null;
+        if (request == null) return null;
 
         var bank = BankConsentCatalog.Find(request.BankCode);
         var document = bank?.Find(documentCode);
