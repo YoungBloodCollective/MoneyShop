@@ -138,6 +138,21 @@ function BankConsentsSection({ acord, onSigned }: { acord: AcordDetails; onSigne
     onSigned();
   };
 
+  const [codebitorLoading, setCodebitorLoading] = useState(false);
+  const downloadCodebitorForm = async () => {
+    setCodebitorLoading(true);
+    try {
+      const blob = await acordApi.brokerFormBlob('patria', 'cerere-codebitor');
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      toast.error('Nu am putut descarca formularul');
+    } finally {
+      setCodebitorLoading(false);
+    }
+  };
+
   return (
     <>
       <h2 className="text-sm font-semibold text-light-60 uppercase tracking-wider mb-3">Consimtaminte banci</h2>
@@ -206,6 +221,18 @@ function BankConsentsSection({ acord, onSigned }: { acord: AcordDetails; onSigne
             </button>
           </div>
         )}
+        <div className="mt-4 border-t border-dark-600 pt-3">
+          <p className="text-xs text-light-50 mb-2">
+            Ai nevoie de codebitor? Descarca formularul Patria pentru codebitor si completeaza-l pe hartie, cu el. Nu intra in pachetul semnat de client.
+          </p>
+          <button
+            onClick={downloadCodebitorForm}
+            disabled={codebitorLoading}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-dark-600 border border-dark-500 text-light-90 text-sm font-medium disabled:opacity-60"
+          >
+            {codebitorLoading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Formular codebitor (Patria)
+          </button>
+        </div>
       </div>
     </>
   );

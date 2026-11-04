@@ -578,7 +578,9 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
     {
         var bank = BankConsentCatalog.Find(bankCode);
         var document = bank?.Find(documentCode);
-        if (bank == null || document == null) return null;
+        // Broker-only forms (e.g. the codebitor request) are never part of what the client
+        // reads or signs, so the public preview does not serve them.
+        if (bank == null || document == null || document.BrokerOnly) return null;
 
         return new AcordFileContent
         {
@@ -588,6 +590,31 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             {
                 FullName = string.Empty,
                 Telefon = string.Empty
+            })
+        };
+    }
+
+    /// <summary>
+    /// A broker-only form the broker downloads to use on paper with a third party (the
+    /// codebitor), separate from anything the client signs. Only the channel and today's
+    /// date are filled; the rest is blank, for that person to complete in the broker's
+    /// presence. It carries no client data.
+    /// </summary>
+    public AcordFileContent? GetBrokerForm(string bankCode, string documentCode)
+    {
+        var bank = BankConsentCatalog.Find(bankCode);
+        var document = bank?.Find(documentCode);
+        if (bank == null || document == null || !document.BrokerOnly) return null;
+
+        return new AcordFileContent
+        {
+            FileName = $"{bank.Code}-{document.Code}.pdf",
+            MimeType = "application/pdf",
+            Content = _pdfGenerationService.GenerateBankConsentPdf(bank.Code, document.Code, new BankConsentPdfInput
+            {
+                FullName = string.Empty,
+                Telefon = string.Empty,
+                SignedOn = DateTime.UtcNow
             })
         };
     }

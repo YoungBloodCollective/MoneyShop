@@ -133,6 +133,7 @@ public class BankConsentService : IBankConsentService
         view.RequiresBirthDate = bank.Requires(BankConsentFields.BirthDate);
         view.BirthDate = view.RequiresBirthDate ? StoredBirthDate(request.AcordId) : null;
         view.Documents = bank.Documents
+            .Where(d => !d.BrokerOnly)
             .Select(d => new BankConsentDocumentView { Code = d.Code, Title = d.Title, Summary = d.Summary })
             .ToList();
 
@@ -219,7 +220,7 @@ public class BankConsentService : IBankConsentService
             var pdfInput = BuildInput(request, supplied, signaturePng, signedAt);
 
             Guid? firstFileId = null;
-            foreach (var document in bank.Documents)
+            foreach (var document in bank.Documents.Where(d => !d.BrokerOnly))
             {
                 var pdf = _pdfGenerationService.GenerateBankConsentPdf(bank.Code, document.Code, pdfInput);
                 var file = new KycFile

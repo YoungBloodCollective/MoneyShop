@@ -26,6 +26,7 @@ public interface IAcordService
 
     /// <summary>The blank form of a partner bank, for the client to read before signing.</summary>
     AcordFileContent? GetBankDocumentTemplate(string bankCode, string documentCode);
+    AcordFileContent? GetBrokerForm(string bankCode, string documentCode);
 
     /// <summary>Clears stored ID data once its retention period has elapsed.</summary>
     int PurgeExpiredOcrData();
