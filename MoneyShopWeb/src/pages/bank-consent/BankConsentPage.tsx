@@ -45,9 +45,30 @@ export default function BankConsentPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    acordApi.getBankConsent(token)
-      .then(v => { setView(v); setAddress(v.address ?? ''); setBirthDate(v.birthDate ?? ''); setState('ready'); })
-      .catch(() => setState('invalid'));
+    let cancelled = false;
+    const load = (initial: boolean) =>
+      acordApi.getBankConsent(token)
+        .then(v => {
+          if (cancelled) return;
+          setView(v);
+          if (initial) { setAddress(v.address ?? ''); setBirthDate(v.birthDate ?? ''); }
+          setState('ready');
+        })
+        .catch(() => { if (!cancelled) setState('invalid'); });
+
+    load(true);
+
+    // A broker can replace this link (or it can be signed or expire) while the client keeps
+    // the page open; re-check when the tab comes back so a dead link shows its status screen
+    // instead of forms that now answer 404.
+    const recheck = () => { if (document.visibilityState === 'visible') load(false); };
+    document.addEventListener('visibilitychange', recheck);
+    window.addEventListener('focus', recheck);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', recheck);
+      window.removeEventListener('focus', recheck);
+    };
   }, [token]);
 
   const submit = async () => {
@@ -67,6 +88,9 @@ export default function BankConsentPage() {
       } else {
         const msg = axios.isAxiosError(err) ? (err.response?.data?.message as string) : undefined;
         setError(msg || 'Nu am putut salva semnătura. Încearcă din nou.');
+        // The link may have been replaced, signed or expired since the page loaded; refresh
+        // the status so the client sees the right screen instead of retrying a dead link.
+        acordApi.getBankConsent(token).then(v => setView(v)).catch(() => undefined);
       }
     } finally {
       setSubmitting(false);
