@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { CheckCircle, Clock, Loader2, FileText, ExternalLink } from 'lucide-react';
+import { CheckCircle, Clock, Loader2, FileText, ExternalLink, Eye, X } from 'lucide-react';
 import { acordApi, type BankConsentPublicView } from '@/services/api/acordApi';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { Logo } from '@/components/shared/Logo';
@@ -36,6 +36,7 @@ export default function BankConsentPage() {
   const [view, setView] = useState<BankConsentPublicView | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'invalid' | 'done'>('loading');
   const [opened, setOpened] = useState<Record<string, boolean>>({});
+  const [viewing, setViewing] = useState<{ code: string; title: string } | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [cnp, setCnp] = useState('');
   const [address, setAddress] = useState('');
@@ -154,13 +155,14 @@ export default function BankConsentPage() {
 
         <div className="space-y-2.5 mb-5">
           {view.documents.map(doc => (
-            <a
+            <button
               key={doc.code}
-              href={acordApi.bankConsentDocumentUrl(token, doc.code)}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => setOpened(prev => ({ ...prev, [doc.code]: true }))}
-              className={`flex items-start gap-3 rounded-xl px-4 py-3.5 ring-1 transition ${
+              type="button"
+              onClick={() => {
+                setOpened(prev => ({ ...prev, [doc.code]: true }));
+                setViewing({ code: doc.code, title: doc.title });
+              }}
+              className={`flex w-full items-start gap-3 rounded-xl px-4 py-3.5 ring-1 text-left transition ${
                 opened[doc.code] ? 'bg-success-500/5 ring-success-500/40' : 'bg-dark-800 ring-dark-600'
               }`}
             >
@@ -172,8 +174,8 @@ export default function BankConsentPage() {
                   {opened[doc.code] ? 'Deschide din nou' : 'Deschide documentul'}
                 </span>
               </span>
-              <ExternalLink size={15} className="text-light-50 shrink-0 mt-0.5" />
-            </a>
+              <Eye size={15} className="text-light-50 shrink-0 mt-0.5" />
+            </button>
           ))}
         </div>
 
@@ -274,6 +276,36 @@ export default function BankConsentPage() {
           {submitting ? 'Se trimite...' : view.documents.length > 1 ? 'Semnează toate documentele' : 'Semnează'}
         </button>
       </div>
+
+      {viewing && (
+        <div className="fixed inset-0 z-50 bg-dark-900 flex flex-col">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-dark-600 shrink-0">
+            <span className="text-[14px] font-semibold text-light-90 truncate">{viewing.title}</span>
+            <div className="flex items-center gap-3 shrink-0">
+              <a
+                href={acordApi.bankConsentDocumentUrl(token, viewing.code)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 text-[12px] font-medium text-brand-primary"
+              >
+                <ExternalLink size={13} /> Filă nouă
+              </a>
+              <button
+                type="button"
+                onClick={() => setViewing(null)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-dark-700 text-light-90 text-[13px] font-medium"
+              >
+                <X size={15} /> Închide
+              </button>
+            </div>
+          </div>
+          <iframe
+            title={viewing.title}
+            src={acordApi.bankConsentDocumentUrl(token, viewing.code)}
+            className="flex-1 w-full bg-white"
+          />
+        </div>
+      )}
     </Shell>
   );
 }
