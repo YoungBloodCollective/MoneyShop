@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Acord;
+using MoneyShop.ServiceInterface.Interfaces.Subject;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -202,6 +203,30 @@ public class AcordController : BaseController
         return File(file.Content, file.MimeType, file.FileName);
     }
 
+    /// <summary>
+    /// Reveals the full CNP to an operator. It is a POST, and the number travels only in the
+    /// response body, so it never lands in a URL, a query string, a browser history entry or
+    /// an access log. Every call writes a row to the CNP access log.
+    /// </summary>
+    [HttpPost("admin/{acordId}/cnp")]
+    [Authorize(Roles = "Administrator,Broker")]
+    public IActionResult AdminRevealCnp(Guid acordId, [FromBody] AcordCnpRevealRequest? request)
+    {
+        var cnp = _acordService.RevealCnpForAdmin(acordId, new CnpAccessContext
+        {
+            ActorUserId = GetActorUserId(),
+            ActorRole = User.IsInRole("Administrator") ? "Administrator" : "Broker",
+            Reason = string.IsNullOrWhiteSpace(request?.Reason) ? "admin_view" : request.Reason.Trim(),
+            Ip = GetClientIp(),
+            UserAgent = Request.Headers.UserAgent.FirstOrDefault()
+        });
+
+        if (cnp == null) return NotFound("CNP-ul nu este disponibil pentru acest dosar");
+
+        Response.Headers.CacheControl = "no-store";
+        return Ok(new { cnp });
+    }
+
     [HttpPost("admin/{acordId}/status")]
     [Authorize(Roles = "Administrator,Broker")]
     public IActionResult AdminUpdateStatus(Guid acordId, [FromBody] AcordStatusRequest request)
@@ -216,6 +241,14 @@ public class AcordController : BaseController
     }
 
     // ── Helpers ──
+
+    private int? GetActorUserId()
+    {
+        var claim = User.FindFirst("Id")?.Value
+                 ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        return int.TryParse(claim, out var id) ? id : null;
+    }
 
     private string? GetClientIp()
     {
@@ -372,4 +405,10 @@ public class AcordStatusRequest
 {
     public string Status { get; set; } = null!;
     public string? ReviewNote { get; set; }
+}
+
+public class AcordCnpRevealRequest
+{
+    /// <summary>Why the operator is reading the number; stored with the access record.</summary>
+    public string? Reason { get; set; }
 }

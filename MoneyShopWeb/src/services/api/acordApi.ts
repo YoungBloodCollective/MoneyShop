@@ -149,6 +149,7 @@ export interface AcordDetails {
   completedAt?: string;
   expiresAt: string;
   cnpMasked?: string;
+  cnpAvailable: boolean;
   address?: string;
   automaticChecksRan: boolean;
   ocr?: AcordOcrSnapshot | null;
@@ -266,6 +267,11 @@ export const acordApi = {
 
   adminUpdateStatus: (acordId: string, status: string, reviewNote?: string) =>
     apiClient.post(`/acord/admin/${acordId}/status`, { status, reviewNote }).then(r => r.data),
+
+  // POST, not GET: the CNP comes back in the response body and never in a URL. Every call
+  // is recorded server-side against the subject.
+  adminRevealCnp: (acordId: string, reason?: string) =>
+    apiClient.post(`/acord/admin/${acordId}/cnp`, { reason }).then(r => (r.data as { cnp: string }).cnp),
 
   adminBankConsentBanks: () =>
     apiClient.get('/acord/admin/bank-consent/banks').then(r => r.data as BankConsentBank[]),

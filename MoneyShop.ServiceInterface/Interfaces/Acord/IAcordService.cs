@@ -1,4 +1,5 @@
 using MoneyShop.ServiceInterface.Interfaces.Kyc;
+using MoneyShop.ServiceInterface.Interfaces.Subject;
 
 namespace MoneyShop.ServiceInterface.Interfaces.Acord;
 
@@ -35,6 +36,12 @@ public interface IAcordService
     AcordDetails? GetDetailsForAdmin(Guid acordId);
     AcordFileContent? GetFileForAdmin(Guid fileId);
     bool UpdateStatusForAdmin(Guid acordId, string status, string? reviewNote);
+
+    /// <summary>
+    /// The full CNP for an operator to read on screen. Every call is recorded against the
+    /// subject; null means there is no stored CNP for this acord.
+    /// </summary>
+    string? RevealCnpForAdmin(Guid acordId, CnpAccessContext access);
 }
 
 // ── Inputs ──
@@ -305,6 +312,10 @@ public class AcordDetails
     public DateTime ExpiresAt { get; set; }
 
     public string? CnpMasked { get; set; }
+
+    /// <summary>True when a full CNP is stored and the operator can ask to see it.</summary>
+    public bool CnpAvailable { get; set; }
+
     public string? Address { get; set; }
     public AcordOcrSnapshot? Ocr { get; set; }
     public List<AcordLabeledValue> DeclaredData { get; set; } = new();
