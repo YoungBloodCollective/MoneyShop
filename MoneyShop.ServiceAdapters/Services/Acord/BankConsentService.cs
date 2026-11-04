@@ -13,6 +13,7 @@ using MoneyShop.ServiceAdapters.Services.Document;
 using MoneyShop.ServiceInterface.Interfaces.Acord;
 using MoneyShop.ServiceInterface.Interfaces.Broker;
 using MoneyShop.ServiceInterface.Interfaces.Document;
+using MoneyShop.ServiceInterface.Interfaces.Subject;
 
 namespace MoneyShop.ServiceAdapters.Services.Acord;
 
@@ -31,9 +32,6 @@ public class BankConsentService : IBankConsentService
     private static readonly CultureInfo RomanianCulture = CultureInfo.GetCultureInfo("ro-RO");
     private static readonly byte[] PngMagic = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
 
-    /// <summary>Weights of the Romanian CNP check digit, in order.</summary>
-    private static readonly int[] CnpWeights = { 2, 7, 9, 1, 4, 6, 3, 5, 8, 2, 7, 9 };
-
     private static readonly string[] BirthDateFormats =
     {
         "dd.MM.yyyy", "dd/MM/yyyy", "dd-MM-yyyy", "yyyy-MM-dd", "yyyy/MM/dd", "ddMMyyyy"
@@ -42,17 +40,20 @@ public class BankConsentService : IBankConsentService
     private readonly MoneyShopDbContext _context;
     private readonly IPdfGenerationService _pdfGenerationService;
     private readonly IBrokerProfileService _brokerProfiles;
+    private readonly ISubjectService _subjectService;
     private readonly ILogger<BankConsentService> _logger;
 
     public BankConsentService(
         MoneyShopDbContext context,
         IPdfGenerationService pdfGenerationService,
         IBrokerProfileService brokerProfiles,
+        ISubjectService subjectService,
         ILogger<BankConsentService> logger)
     {
         _context = context;
         _pdfGenerationService = pdfGenerationService;
         _brokerProfiles = brokerProfiles;
+        _subjectService = subjectService;
         _logger = logger;
     }
 
@@ -126,7 +127,9 @@ public class BankConsentService : IBankConsentService
         view.FullName = request.FullName;
         view.Telefon = request.Telefon;
         view.Email = request.Email;
-        view.RequiresCnp = bank.Requires(BankConsentFields.Cnp);
+        // A client whose CNP is already stored does not retype it; the form is filled from
+        // storage when they sign. Only the ones from before that still have to.
+        view.RequiresCnp = bank.Requires(BankConsentFields.Cnp) && !HasStoredCnp(request.AcordId);
         view.CnpHint = view.RequiresCnp ? LastFourOfMaskedCnp(request.AcordId) : null;
         view.RequiresAddress = bank.Requires(BankConsentFields.Address);
         view.Address = view.RequiresAddress ? StoredAddress(request.AcordId) : null;
@@ -187,13 +190,21 @@ public class BankConsentService : IBankConsentService
 
         if (bank.Requires(BankConsentFields.Cnp))
         {
-            supplied.Cnp = new string((input.Cnp ?? string.Empty).Where(char.IsDigit).ToArray());
-            if (!IsValidCnp(supplied.Cnp))
-                return new BankConsentSignResult { Error = "CNP-ul nu este valid. Verifica cele 13 cifre de pe actul de identitate." };
+            // The stored CNP is the one the client already proved with their ID document, so
+            // it wins over anything typed into this form. Typing is only the path for the
+            // subjects from before the CNP was kept.
+            supplied.Cnp = StoredCnp(request, ip, userAgent);
 
-            var expectedLastFour = LastFourOfMaskedCnp(request.AcordId);
-            if (expectedLastFour != null && !supplied.Cnp.EndsWith(expectedLastFour, StringComparison.Ordinal))
-                return new BankConsentSignResult { Error = "CNP-ul nu se potriveste cu actul incarcat la semnarea acordului." };
+            if (supplied.Cnp == null)
+            {
+                supplied.Cnp = CnpIdentity.Digits(input.Cnp);
+                if (!CnpIdentity.IsValid(supplied.Cnp))
+                    return new BankConsentSignResult { Error = "CNP-ul nu este valid. Verifica cele 13 cifre de pe actul de identitate." };
+
+                var expectedLastFour = LastFourOfMaskedCnp(request.AcordId);
+                if (expectedLastFour != null && !supplied.Cnp.EndsWith(expectedLastFour, StringComparison.Ordinal))
+                    return new BankConsentSignResult { Error = "CNP-ul nu se potriveste cu actul incarcat la semnarea acordului." };
+            }
         }
 
         if (bank.Requires(BankConsentFields.Address) &&
@@ -264,8 +275,10 @@ public class BankConsentService : IBankConsentService
     }
 
     /// <summary>
-    /// Everything the forms can carry. The address and birth date come from the ID card the
-    /// client uploaded with the acord; the CNP is never stored, so it is passed in.
+    /// Everything the forms can carry. The address comes from the ID card the client
+    /// uploaded with the acord. The CNP is resolved before this call - out of storage when
+    /// the subject has one, otherwise from what the client typed - so the preview, which
+    /// passes an empty input, still carries no CNP.
     /// </summary>
     private BankConsentPdfInput BuildInput(BankConsentRequest request, BankConsentSignInput supplied, byte[]? signaturePng, DateTime signedOn)
     {
@@ -283,7 +296,7 @@ public class BankConsentService : IBankConsentService
             Email = request.Email,
             Cnp = supplied.Cnp,
             Address = string.IsNullOrWhiteSpace(supplied.Address) ? kycSession?.Address : supplied.Address,
-            BirthDate = supplied.BirthDate ?? FormatBirthDate(acord?.OcrDataJson),
+            BirthDate = supplied.BirthDate ?? StoredBirthDate(request.AcordId),
             BrokerCompany = identity?.FirmaNume,
             BrokerRepresentative = identity?.ReprezentantNume,
             PlaceOfBirth = snapshot?.PlaceOfBirth,
@@ -302,11 +315,62 @@ public class BankConsentService : IBankConsentService
         };
     }
 
-    private string? StoredBirthDate(Guid acordId) =>
-        FormatBirthDate(_context.AcordClients.IgnoreQueryFilters()
+    private int? UserIdFor(Guid acordId) =>
+        _context.AcordClients.IgnoreQueryFilters()
+            .Where(a => a.AcordId == acordId)
+            .Select(a => (int?)a.UserId)
+            .FirstOrDefault();
+
+    private bool HasStoredCnp(Guid acordId)
+    {
+        var userId = UserIdFor(acordId);
+        return userId.HasValue && (_subjectService.GetSubjectByUserId(userId.Value)?.HasStoredCnp ?? false);
+    }
+
+    /// <summary>
+    /// The full CNP out of storage, or null when this subject predates it. Reading it is
+    /// recorded against the client who is signing.
+    /// </summary>
+    private string? StoredCnp(BankConsentRequest request, string? ip, string? userAgent)
+    {
+        var userId = UserIdFor(request.AcordId);
+        if (!userId.HasValue) return null;
+
+        try
+        {
+            return _subjectService.RevealCnpByUserId(userId.Value, new CnpAccessContext
+            {
+                ActorUserId = userId.Value,
+                ActorRole = "Client",
+                Reason = "bank_consent_form",
+                AcordId = request.AcordId,
+                Ip = ip,
+                UserAgent = userAgent
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not read the stored CNP for bank consent {RequestId}", request.Id);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The birth date the CNP itself carries, which outranks the document reader: the CNP
+    /// is checksum-verified digits, the OCR value is a best-effort read of a photograph.
+    /// Falls back to the OCR value for subjects whose CNP was never stored.
+    /// </summary>
+    private string? StoredBirthDate(Guid acordId)
+    {
+        var userId = UserIdFor(acordId);
+        var derived = userId.HasValue ? _subjectService.GetSubjectByUserId(userId.Value)?.BirthDate : null;
+        if (derived != null) return CnpIdentity.Format(derived);
+
+        return FormatBirthDate(_context.AcordClients.IgnoreQueryFilters()
             .Where(a => a.AcordId == acordId)
             .Select(a => a.OcrDataJson)
             .FirstOrDefault());
+    }
 
     /// <summary>
     /// Accepts what a client types and refuses anything that is not a plausible adult birth
@@ -360,34 +424,8 @@ public class BankConsentService : IBankConsentService
         }
     }
 
-    private static string? FormatBirthDate(string? ocrDataJson)
-    {
-        var raw = DeserialiseOcr(ocrDataJson)?.BirthDate;
-        if (string.IsNullOrWhiteSpace(raw)) return null;
-
-        return DateTime.TryParseExact(raw.Trim(), BirthDateFormats, CultureInfo.InvariantCulture,
-            DateTimeStyles.None, out var parsed)
-            ? parsed.ToString("dd.MM.yyyy")
-            : null;
-    }
-
-    /// <summary>
-    /// Official check digit of the Romanian CNP, so a mistyped number is caught before it
-    /// reaches the bank.
-    /// </summary>
-    private static bool IsValidCnp(string cnp)
-    {
-        if (cnp.Length != 13 || cnp[0] == '0') return false;
-
-        var sum = 0;
-        for (var i = 0; i < 12; i++)
-            sum += (cnp[i] - '0') * CnpWeights[i];
-
-        var check = sum % 11;
-        if (check == 10) check = 1;
-
-        return check == cnp[12] - '0';
-    }
+    private static string? FormatBirthDate(string? ocrDataJson) =>
+        CnpIdentity.Format(CnpIdentity.ParseDocumentDate(DeserialiseOcr(ocrDataJson)?.BirthDate));
 
     private BankConsentRequest? FindByToken(string token)
     {

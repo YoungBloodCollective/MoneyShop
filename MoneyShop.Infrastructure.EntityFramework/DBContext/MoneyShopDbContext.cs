@@ -39,6 +39,7 @@ public class MoneyShopDbContext : DbContext
 
     // Subject Map Entity (CNP Pseudonymization)
     public virtual DbSet<SubjectMap> SubjectMaps { get; set; }
+    public virtual DbSet<CnpAccessLog> CnpAccessLogs { get; set; }
 
     // KYC Entities
     public virtual DbSet<KycSession> KycSessions { get; set; }
@@ -317,6 +318,9 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.SubjectId).HasMaxLength(19).IsRequired(); // "MS-" + 16 chars
             entity.Property(e => e.CnpHash).IsRequired();
             entity.Property(e => e.CnpLast4).HasMaxLength(4);
+            entity.Property(e => e.CnpEncrypted).HasColumnType("varbinary(256)");
+            entity.Property(e => e.Sex).HasMaxLength(1);
+            entity.Property(e => e.BirthDate).HasColumnType("date");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
 
             entity.HasOne(d => d.User)
@@ -326,6 +330,23 @@ public class MoneyShopDbContext : DbContext
 
             entity.HasIndex(e => e.CnpHash).IsUnique();
             entity.HasIndex(e => e.UserId).IsUnique();
+        });
+
+        // CNP access log: one row per reading of a full CNP
+        modelBuilder.Entity<CnpAccessLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("CnpAccessLogs");
+
+            entity.Property(e => e.SubjectId).HasMaxLength(19).IsRequired();
+            entity.Property(e => e.ActorRole).HasMaxLength(50);
+            entity.Property(e => e.Reason).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Ip).HasMaxLength(64);
+            entity.Property(e => e.UserAgent).HasMaxLength(500);
+            entity.Property(e => e.AccessedAt).HasColumnType("datetime2");
+
+            entity.HasIndex(e => new { e.SubjectId, e.AccessedAt });
+            entity.HasIndex(e => e.ActorUserId);
         });
 
         // KYC Configuration
