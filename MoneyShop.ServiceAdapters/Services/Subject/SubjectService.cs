@@ -8,29 +8,41 @@ using MoneyShop.DomainServices.RepositoryInterfaces.Subject;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using SubjectMapEntity = MoneyShop.DomainModel.Entities.SubjectMap;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace MoneyShop.ServiceAdapters.Services.Subject;
 
 public class SubjectService : ISubjectService
 {
     private readonly ISubjectMapRepository _subjectMapRepository;
+    private readonly ICnpAccessLogRepository _cnpAccessLogRepository;
+    private readonly ICnpProtector _cnpProtector;
     private readonly MoneyShopDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<SubjectService> _logger;
     private const string PEPPER1_KEY = "Subject:Pepper1";
     private const string PEPPER2_KEY = "Subject:Pepper2";
 
     public SubjectService(
         ISubjectMapRepository subjectMapRepository,
+        ICnpAccessLogRepository cnpAccessLogRepository,
+        ICnpProtector cnpProtector,
         MoneyShopDbContext context,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger<SubjectService> logger)
     {
         _subjectMapRepository = subjectMapRepository;
+        _cnpAccessLogRepository = cnpAccessLogRepository;
+        _cnpProtector = cnpProtector;
         _context = context;
         _configuration = configuration;
+        _logger = logger;
     }
 
     /// <summary>
-    /// Creates or gets a subject_id for a user based on CNP
+    /// Creates or gets a subject_id for a user based on CNP. This is the one place the raw
+    /// CNP enters the system, so it is also where it is encrypted and where sex and birth
+    /// date are derived - reads afterwards never need the plaintext.
     /// </summary>
     public SubjectMapResult GetOrCreateSubject(int userId, string cnp)
     {
@@ -44,19 +56,19 @@ public class SubjectService : ISubjectService
 
         var cnpHash = ComputeCnpHash(cnp, pepper1);
 
+        // EF translates == on byte[] to a binary comparison in SQL; SequenceEqual does not
+        // translate and throws at query time, so the lookup has to use ==.
         var existingSubject = _subjectMapRepository.Get()
-            .FirstOrDefault(s => s.CnpHash.SequenceEqual(cnpHash));
+            .FirstOrDefault(s => s.CnpHash == cnpHash);
 
         if (existingSubject != null)
         {
-            return new SubjectMapResult
-            {
-                SubjectId = existingSubject.SubjectId,
-                CnpHash = existingSubject.CnpHash,
-                CnpLast4 = existingSubject.CnpLast4,
-                CnpMasked = MaskCnp(existingSubject.CnpLast4),
-                IsNew = false
-            };
+            // A subject created before the CNP was kept - or while no key was configured -
+            // has the plaintext in hand right now and will not again, so it is filled in.
+            if (Enrich(existingSubject, cnp))
+                _context.SaveChanges();
+
+            return ToResult(existingSubject, isNew: false);
         }
 
         var subjectId = GenerateSubjectId(cnp, pepper2);
@@ -71,17 +83,12 @@ public class SubjectService : ISubjectService
             CreatedAt = DateTime.UtcNow
         };
 
+        Enrich(subject, cnp);
+
         _subjectMapRepository.Insert(subject);
         _context.SaveChanges();
 
-        return new SubjectMapResult
-        {
-            SubjectId = subject.SubjectId,
-            CnpHash = subject.CnpHash,
-            CnpLast4 = subject.CnpLast4,
-            CnpMasked = MaskCnp(subject.CnpLast4),
-            IsNew = true
-        };
+        return ToResult(subject, isNew: true);
     }
 
     /// <summary>
@@ -92,17 +99,7 @@ public class SubjectService : ISubjectService
         var subject = _subjectMapRepository.Get()
             .FirstOrDefault(s => s.UserId == userId);
 
-        if (subject == null)
-            return null;
-
-        return new SubjectMapResult
-        {
-            SubjectId = subject.SubjectId,
-            CnpHash = subject.CnpHash,
-            CnpLast4 = subject.CnpLast4,
-            CnpMasked = MaskCnp(subject.CnpLast4),
-            IsNew = false
-        };
+        return subject == null ? null : ToResult(subject, isNew: false);
     }
 
     /// <summary>
@@ -113,18 +110,118 @@ public class SubjectService : ISubjectService
         var subject = _subjectMapRepository.Get()
             .FirstOrDefault(s => s.SubjectId == subjectId);
 
-        if (subject == null)
-            return null;
-
-        return new SubjectMapResult
-        {
-            SubjectId = subject.SubjectId,
-            CnpHash = subject.CnpHash,
-            CnpLast4 = subject.CnpLast4,
-            CnpMasked = MaskCnp(subject.CnpLast4),
-            IsNew = false
-        };
+        return subject == null ? null : ToResult(subject, isNew: false);
     }
+
+    public string? RevealCnpByUserId(int userId, CnpAccessContext access)
+    {
+        if (access == null) throw new ArgumentNullException(nameof(access));
+        if (string.IsNullOrWhiteSpace(access.Reason))
+            throw new ArgumentException("A reason is required to read a CNP", nameof(access));
+
+        var subject = _subjectMapRepository.Get()
+            .FirstOrDefault(s => s.UserId == userId);
+
+        if (subject?.CnpEncrypted == null) return null;
+
+        var cnp = _cnpProtector.Unprotect(subject.CnpEncrypted);
+        if (cnp == null) return null;
+
+        // Recorded before the value is handed over, so a caller that fails downstream still
+        // leaves the reading on the record.
+        WriteAccessLog(subject.SubjectId, access);
+
+        return cnp;
+    }
+
+    public bool LogCnpAccess(int userId, CnpAccessContext access)
+    {
+        if (access == null) throw new ArgumentNullException(nameof(access));
+        if (string.IsNullOrWhiteSpace(access.Reason))
+            throw new ArgumentException("A reason is required to log a CNP access", nameof(access));
+
+        var subject = _subjectMapRepository.Get()
+            .FirstOrDefault(s => s.UserId == userId);
+
+        if (subject == null) return false;
+
+        WriteAccessLog(subject.SubjectId, access);
+        return true;
+    }
+
+    private void WriteAccessLog(string subjectId, CnpAccessContext access)
+    {
+        _cnpAccessLogRepository.Insert(new CnpAccessLog
+        {
+            Id = Guid.NewGuid(),
+            SubjectId = subjectId,
+            ActorUserId = access.ActorUserId,
+            ActorRole = Truncate(access.ActorRole, 50),
+            Reason = Truncate(access.Reason, 100)!,
+            AcordId = access.AcordId,
+            Ip = Truncate(access.Ip, 64),
+            UserAgent = Truncate(access.UserAgent, 500),
+            AccessedAt = DateTime.UtcNow
+        });
+        _context.SaveChanges();
+    }
+
+    /// <summary>
+    /// Fills in everything derived from the plaintext CNP. Returns true when the row changed.
+    /// A missing encryption key is not fatal: the subject still works for matching and
+    /// masking, it simply carries no stored CNP.
+    /// </summary>
+    private bool Enrich(SubjectMapEntity subject, string cnp)
+    {
+        var changed = false;
+
+        if (subject.CnpEncrypted == null && _cnpProtector.IsConfigured)
+        {
+            try
+            {
+                subject.CnpEncrypted = _cnpProtector.Protect(cnp);
+                changed = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Could not encrypt the CNP for subject {SubjectId}", subject.SubjectId);
+            }
+        }
+
+        var identity = CnpIdentity.Parse(cnp);
+
+        if (subject.Sex == null && identity.Sex != null)
+        {
+            subject.Sex = identity.Sex;
+            changed = true;
+        }
+
+        if (subject.BirthDate == null && identity.BirthDate != null)
+        {
+            subject.BirthDate = identity.BirthDate;
+            changed = true;
+        }
+
+        if (subject.CnpLast4 == null && cnp.Length >= 4)
+        {
+            subject.CnpLast4 = cnp.Substring(cnp.Length - 4);
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private static SubjectMapResult ToResult(SubjectMapEntity subject, bool isNew) => new()
+    {
+        SubjectId = subject.SubjectId,
+        CnpHash = subject.CnpHash,
+        CnpLast4 = subject.CnpLast4,
+        CnpMasked = MaskCnp(subject.CnpLast4),
+        Sex = subject.Sex,
+        BirthDate = subject.BirthDate,
+        HasStoredCnp = subject.CnpEncrypted != null,
+        IsNew = isNew
+    };
 
     public static string MaskCnp(string? cnpLast4)
     {
@@ -133,6 +230,9 @@ public class SubjectService : ISubjectService
 
         return $"******{cnpLast4}";
     }
+
+    private static string? Truncate(string? value, int max) =>
+        value == null ? null : value.Length <= max ? value : value[..max];
 
     private byte[] ComputeCnpHash(string cnp, string pepper)
     {

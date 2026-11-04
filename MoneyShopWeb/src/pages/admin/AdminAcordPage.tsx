@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   Search, ArrowLeft, Phone, Mail, Calendar, ShieldCheck, ShieldAlert,
   FileText, Download, Loader2, PenLine, AlertTriangle, Trash2, Megaphone,
-  Check, XCircle, Link2, Copy, MessageCircle,
+  Check, XCircle, Link2, Copy, MessageCircle, Eye, EyeOff,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -331,6 +331,52 @@ function FilePreview({ file }: { file: AcordFileInfo }) {
   );
 }
 
+/**
+ * Shows the CNP masked, and the full number on request. Every reveal is a round trip:
+ * the number is not in the details payload, so it is not sitting in memory or in the
+ * network tab until someone actually asks for it, and each ask is recorded server-side.
+ */
+function CnpField({ acordId, masked, available }: { acordId: string; masked?: string | null; available: boolean }) {
+  const [cnp, setCnp] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const reveal = async () => {
+    setLoading(true);
+    try {
+      setCnp(await acordApi.adminRevealCnp(acordId));
+    } catch {
+      toast.error('Nu s-a putut afisa CNP-ul');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <span className="inline-flex items-center gap-2 justify-end">
+      <span className={cnp ? 'font-mono' : undefined}>{cnp ?? masked ?? '—'}</span>
+      {available && !cnp && (
+        <button
+          onClick={reveal}
+          disabled={loading}
+          title="Afisarea CNP-ului complet se inregistreaza"
+          className="text-light-50 hover:text-light-90 disabled:opacity-50 shrink-0"
+        >
+          {loading ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />}
+        </button>
+      )}
+      {cnp && (
+        <button
+          onClick={() => setCnp(null)}
+          title="Ascunde"
+          className="text-light-50 hover:text-light-90 shrink-0"
+        >
+          <EyeOff size={14} />
+        </button>
+      )}
+    </span>
+  );
+}
+
 export default function AdminAcordPage() {
   const [items, setItems] = useState<AcordListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -523,7 +569,12 @@ export default function AdminAcordPage() {
               {([
                 ['Nume', selected.ocr.lastName],
                 ['Prenume', selected.ocr.firstName],
-                ['CNP', selected.ocr.cnpMasked],
+                ['CNP', <CnpField
+                  key="cnp"
+                  acordId={selected.acordId}
+                  masked={selected.ocr.cnpMasked}
+                  available={selected.cnpAvailable}
+                />],
                 ['Serie act', selected.ocr.idSeries],
                 ['Numar act', selected.ocr.idNumber],
                 ['Data nasterii', selected.ocr.birthDate],
@@ -597,7 +648,13 @@ export default function AdminAcordPage() {
             <div className="flex justify-between gap-4">
               <span className="text-light-50">CNP</span>
               <span className="text-light-90">
-                {selected.cnpMasked ?? (selected.automaticChecksRan ? 'necitit' : 'neverificat')}
+                {selected.cnpMasked || selected.cnpAvailable ? (
+                  <CnpField
+                    acordId={selected.acordId}
+                    masked={selected.cnpMasked}
+                    available={selected.cnpAvailable}
+                  />
+                ) : (selected.automaticChecksRan ? 'necitit' : 'neverificat')}
               </span>
             </div>
             <div className="flex justify-between gap-4">

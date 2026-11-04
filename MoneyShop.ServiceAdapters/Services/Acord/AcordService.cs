@@ -853,6 +853,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             CompletedAt = acord.CompletedAt,
             ExpiresAt = acord.ExpiresAt,
             CnpMasked = kycSession?.Cnp,
+            CnpAvailable = _subjectService.GetSubjectByUserId(acord.UserId)?.HasStoredCnp ?? false,
             Address = kycSession?.Address,
             AutomaticChecksRan = !string.IsNullOrEmpty(kycSession?.ProviderTransactionId),
             Ocr = DeserialiseOcr(acord.OcrDataJson),
@@ -895,14 +896,25 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         return details;
     }
 
-    public AcordFileContent? GetFileForAdmin(Guid fileId)
+    public AcordFileContent? GetFileForAdmin(Guid fileId, CnpAccessContext? access = null)
     {
         var file = _kycFileRepository.Get().FirstOrDefault(f => f.FileId == fileId);
         if (file == null || file.DeletedAt != null || string.IsNullOrEmpty(file.FileContentBase64))
             return null;
 
-        if (!_acordRepository.Get().Any(a => a.KycId == file.KycId))
+        // FirstOrDefault, not Any: the acord lookup also carries the broker scope (a broker
+        // only reaches their own clients' files) and gives us the subject to log against.
+        var acord = _acordRepository.Get().FirstOrDefault(a => a.KycId == file.KycId);
+        if (acord == null)
             return null;
+
+        // A signed bank form that prints the CNP is one more place the number is read back, so
+        // downloading it is written to the CNP access log, next to the explicit reveals.
+        if (access != null && FilePrintsCnp(file.FileType))
+        {
+            access.AcordId ??= acord.AcordId;
+            _subjectService.LogCnpAccess(acord.UserId, access);
+        }
 
         return new AcordFileContent
         {
@@ -910,6 +922,19 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             MimeType = file.MimeType,
             Content = Convert.FromBase64String(file.FileContentBase64)
         };
+    }
+
+    /// <summary>
+    /// A signed bank form is stored as bank_{bank}_{doc}; the ones whose bank asks for a CNP
+    /// print it on the page, so reading the file is reading the CNP.
+    /// </summary>
+    private static bool FilePrintsCnp(string? fileType)
+    {
+        if (string.IsNullOrEmpty(fileType) || !fileType.StartsWith("bank_", StringComparison.Ordinal))
+            return false;
+
+        var parts = fileType.Split('_');
+        return parts.Length >= 2 && (BankConsentCatalog.Find(parts[1])?.Requires(BankConsentFields.Cnp) ?? false);
     }
 
     public bool UpdateStatusForAdmin(Guid acordId, string status, string? reviewNote)
@@ -922,6 +947,15 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         acord.UpdatedAt = DateTime.UtcNow;
         _context.SaveChanges();
         return true;
+    }
+
+    public string? RevealCnpForAdmin(Guid acordId, CnpAccessContext access)
+    {
+        var acord = _acordRepository.Get().FirstOrDefault(a => a.AcordId == acordId);
+        if (acord == null) return null;
+
+        access.AcordId = acordId;
+        return _subjectService.RevealCnpByUserId(acord.UserId, access);
     }
 
     // ── Helpers ──
@@ -994,14 +1028,17 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
     private void StoreIdentityData(AcordClient acord, KycSession kycSession, OcrData ocr, LogicValidation? validation)
     {
         string? cnpMasked = null;
+        SubjectMapResult? subject = null;
 
         if (!string.IsNullOrWhiteSpace(ocr.Cnp))
         {
             try
             {
-                // The raw CNP is never persisted - only the peppered hash in
-                // SubjectMap plus a masked form for display.
-                cnpMasked = _subjectService.GetOrCreateSubject(acord.UserId, ocr.Cnp).CnpMasked;
+                // The CNP goes to SubjectMap encrypted, next to the peppered hash used for
+                // matching and the masked form used for display. The session itself still
+                // only ever holds the mask.
+                subject = _subjectService.GetOrCreateSubject(acord.UserId, ocr.Cnp);
+                cnpMasked = subject.CnpMasked;
             }
             catch (Exception ex)
             {
@@ -1032,13 +1069,53 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             ConfidenceScore = ocr.ConfidenceScore,
             IsNewFormat = ocr.IsNewFormat,
             CnpChecksumValid = validation?.CnpChecksumValid,
-            CnpBirthDateMatch = validation?.CnpBirthDateMatch,
-            CnpSexMatch = validation?.CnpSexMatch,
+            CnpBirthDateMatch = BirthDateMatch(acord, subject, ocr, validation),
+            CnpSexMatch = SexMatch(acord, subject, ocr, validation),
             DocumentNotExpired = validation?.DocumentNotExpired,
             ValidationErrors = validation?.Errors ?? new List<string>()
         };
 
         acord.OcrDataJson = JsonSerializer.Serialize(snapshot);
+    }
+
+    /// <summary>
+    /// The CNP and the printed birth date are two readings of the same fact, and the
+    /// snapshot keeps both verbatim: the OCR value stays exactly as it was read, the
+    /// CNP-derived one lives on the subject. This only records whether they agree, and
+    /// leaves the external validator's answer alone when it gave one. A disagreement is an
+    /// operator signal, not something to quietly pick a winner for, so it is flagged and
+    /// logged rather than resolved here.
+    /// </summary>
+    private bool? BirthDateMatch(AcordClient acord, SubjectMapResult? subject, OcrData ocr, LogicValidation? validation)
+    {
+        if (validation?.CnpBirthDateMatch != null) return validation.CnpBirthDateMatch;
+
+        var fromDocument = CnpIdentity.ParseDocumentDate(ocr.BirthDate);
+        if (subject?.BirthDate == null || fromDocument == null) return null;
+
+        var matches = subject.BirthDate.Value.Date == fromDocument.Value.Date;
+        if (!matches)
+            _logger.LogWarning(
+                "Birth date from the CNP does not match the one read from the document for acord {AcordId}",
+                acord.AcordId);
+
+        return matches;
+    }
+
+    private bool? SexMatch(AcordClient acord, SubjectMapResult? subject, OcrData ocr, LogicValidation? validation)
+    {
+        if (validation?.CnpSexMatch != null) return validation.CnpSexMatch;
+
+        var fromDocument = ocr.Sex?.Trim();
+        if (subject?.Sex == null || string.IsNullOrEmpty(fromDocument)) return null;
+
+        var matches = string.Equals(subject.Sex, fromDocument[..1], StringComparison.OrdinalIgnoreCase);
+        if (!matches)
+            _logger.LogWarning(
+                "Sex from the CNP does not match the one read from the document for acord {AcordId}",
+                acord.AcordId);
+
+        return matches;
     }
 
     private async Task TryFaceCompareAsync(AcordClient acord, KycSession kycSession, byte[] selfie)
