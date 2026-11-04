@@ -56,8 +56,10 @@ public class SubjectService : ISubjectService
 
         var cnpHash = ComputeCnpHash(cnp, pepper1);
 
+        // EF translates == on byte[] to a binary comparison in SQL; SequenceEqual does not
+        // translate and throws at query time, so the lookup has to use ==.
         var existingSubject = _subjectMapRepository.Get()
-            .FirstOrDefault(s => s.CnpHash.SequenceEqual(cnpHash));
+            .FirstOrDefault(s => s.CnpHash == cnpHash);
 
         if (existingSubject != null)
         {
