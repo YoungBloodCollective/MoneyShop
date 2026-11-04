@@ -50,7 +50,8 @@ internal static class BankConsentCatalog
                 "Cerere de credit - formular pentru codebitor",
                 "Formularul pe care îl completează și îl semnează codebitorul tău, pe hârtie. Îl primești necompletat: datele codebitorului nu sunt la noi.",
                 "patria-cerere-codebitor.pdf",
-                PatriaCodebitorForm.Build),
+                PatriaCodebitorForm.Build,
+                BrokerOnly: true),
             new BankConsentDocument(
                 "gdpr",
                 "Informare privind prelucrarea datelor personale",
@@ -151,4 +152,8 @@ internal sealed record BankConsentDocument(
     string Title,
     string Summary,
     string TemplateFile,
-    Func<BankConsentPdfInput, byte[], PdfFont, byte[]> Build);
+    Func<BankConsentPdfInput, byte[], PdfFont, byte[]> Build,
+    // A broker-only form is never shown to the client and never part of what they sign; the
+    // broker downloads it separately. The codebitor form is one: it belongs to another person,
+    // so it must not sit in the client's package.
+    bool BrokerOnly = false);

@@ -76,6 +76,22 @@ public class AcordController : BaseController
         return File(file.Content, "application/pdf");
     }
 
+    /// <summary>
+    /// A broker-only form (e.g. the Patria codebitor request) the broker downloads to use on
+    /// paper with a third party, separate from what the client signs. It carries no client
+    /// data, so it is not broker-scoped — any broker may pull the blank form.
+    /// </summary>
+    [HttpGet("admin/broker-form/{bankCode}/{documentCode}")]
+    [Authorize(Roles = "Administrator,Broker")]
+    public IActionResult BrokerForm(string bankCode, string documentCode)
+    {
+        var file = _acordService.GetBrokerForm(bankCode, documentCode);
+        if (file == null) return NotFound("Formularul nu este disponibil");
+
+        Response.Headers.ContentDisposition = $"inline; filename=\"{file.FileName}\"";
+        return File(file.Content, "application/pdf");
+    }
+
     [HttpPost("submit")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(40_000_000)]
