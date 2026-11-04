@@ -37,6 +37,21 @@ export default function BankConsentPage() {
   const [state, setState] = useState<'loading' | 'ready' | 'invalid' | 'done'>('loading');
   const [opened, setOpened] = useState<Record<string, boolean>>({});
   const [viewing, setViewing] = useState<{ code: string; title: string } | null>(null);
+  const [viewUrl, setViewUrl] = useState<string | null>(null);
+
+  // Fetch the document and show it from a same-origin blob URL: cross-origin PDFs do not
+  // render inside an iframe in every browser, a blob does. The "Filă nouă" link stays as a
+  // fallback for the browsers (notably iOS Safari) that refuse to show a PDF in a frame.
+  useEffect(() => {
+    if (!viewing) { setViewUrl(null); return; }
+    let url: string | null = null;
+    let cancelled = false;
+    fetch(acordApi.bankConsentDocumentUrl(token, viewing.code))
+      .then(r => r.blob())
+      .then(b => { if (!cancelled) { url = URL.createObjectURL(b); setViewUrl(url); } })
+      .catch(() => { if (!cancelled) setViewUrl(null); });
+    return () => { cancelled = true; if (url) URL.revokeObjectURL(url); };
+  }, [viewing, token]);
   const [accepted, setAccepted] = useState(false);
   const [cnp, setCnp] = useState('');
   const [address, setAddress] = useState('');
@@ -299,11 +314,17 @@ export default function BankConsentPage() {
               </button>
             </div>
           </div>
-          <iframe
-            title={viewing.title}
-            src={acordApi.bankConsentDocumentUrl(token, viewing.code)}
-            className="flex-1 w-full bg-white"
-          />
+          {viewUrl ? (
+            <iframe
+              title={viewing.title}
+              src={viewUrl}
+              className="flex-1 w-full bg-white"
+            />
+          ) : (
+            <div className="flex-1 flex items-center justify-center bg-white">
+              <Loader2 size={28} className="text-brand-primary animate-spin" />
+            </div>
+          )}
         </div>
       )}
     </Shell>
