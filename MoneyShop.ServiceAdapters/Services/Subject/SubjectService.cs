@@ -280,11 +280,13 @@ public class SubjectService : ISubjectService
 
     private string GetPepper(string key)
     {
-        var pepper = _configuration[key];
+        // The pepper is what keeps the CNP hash and the subject id from being brute-forced
+        // over the finite space of valid CNPs, so it must be a real secret. No public default:
+        // a missing pepper fails loudly instead of silently hashing under a known value.
+        var pepper = _configuration[key] ?? _configuration["Subject:DefaultPepper"];
         if (string.IsNullOrEmpty(pepper))
-        {
-            pepper = _configuration["Subject:DefaultPepper"] ?? "MoneyShop_Default_Pepper_Change_In_Production_2024";
-        }
+            throw new InvalidOperationException(
+                $"No CNP pepper configured ('{key}' or 'Subject:DefaultPepper'). Set it as an app setting / Key Vault reference.");
         return pepper;
     }
 }
