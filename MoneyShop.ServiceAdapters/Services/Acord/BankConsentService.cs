@@ -188,23 +188,22 @@ public class BankConsentService : IBankConsentService
             BirthDate = input.BirthDate?.Trim(),
         };
 
-        if (bank.Requires(BankConsentFields.Cnp))
+        // Reading the stored CNP writes an access-log row, so it waits until this request has
+        // claimed the signature below: a double-send then logs one read, not two. The stored
+        // CNP is the one the client already proved with their ID document, so it wins over
+        // anything typed. Typing is only the path for subjects from before the CNP was kept,
+        // and that path carries no stored read, so it is validated up front as before.
+        var usesStoredCnp = bank.Requires(BankConsentFields.Cnp) && HasStoredCnp(request.AcordId);
+
+        if (bank.Requires(BankConsentFields.Cnp) && !usesStoredCnp)
         {
-            // The stored CNP is the one the client already proved with their ID document, so
-            // it wins over anything typed into this form. Typing is only the path for the
-            // subjects from before the CNP was kept.
-            supplied.Cnp = StoredCnp(request, ip, userAgent);
+            supplied.Cnp = CnpIdentity.Digits(input.Cnp);
+            if (!CnpIdentity.IsValid(supplied.Cnp))
+                return new BankConsentSignResult { Error = "CNP-ul nu este valid. Verifica cele 13 cifre de pe actul de identitate." };
 
-            if (supplied.Cnp == null)
-            {
-                supplied.Cnp = CnpIdentity.Digits(input.Cnp);
-                if (!CnpIdentity.IsValid(supplied.Cnp))
-                    return new BankConsentSignResult { Error = "CNP-ul nu este valid. Verifica cele 13 cifre de pe actul de identitate." };
-
-                var expectedLastFour = LastFourOfMaskedCnp(request.AcordId);
-                if (expectedLastFour != null && !supplied.Cnp.EndsWith(expectedLastFour, StringComparison.Ordinal))
-                    return new BankConsentSignResult { Error = "CNP-ul nu se potriveste cu actul incarcat la semnarea acordului." };
-            }
+            var expectedLastFour = LastFourOfMaskedCnp(request.AcordId);
+            if (expectedLastFour != null && !supplied.Cnp.EndsWith(expectedLastFour, StringComparison.Ordinal))
+                return new BankConsentSignResult { Error = "CNP-ul nu se potriveste cu actul incarcat la semnarea acordului." };
         }
 
         if (bank.Requires(BankConsentFields.Address) &&
@@ -226,6 +225,11 @@ public class BankConsentService : IBankConsentService
 
         try
         {
+            // Only the request that won the claim reads the stored CNP, so the access log
+            // gets one row per signature even if the client double-sends.
+            if (usesStoredCnp)
+                supplied.Cnp = StoredCnp(request, ip, userAgent);
+
             var acord = _context.AcordClients.IgnoreQueryFilters().First(a => a.AcordId == request.AcordId);
             var signedAt = DateTime.UtcNow;
             var pdfInput = BuildInput(request, supplied, signaturePng, signedAt);

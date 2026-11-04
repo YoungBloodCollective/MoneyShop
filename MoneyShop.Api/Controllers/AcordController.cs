@@ -214,7 +214,14 @@ public class AcordController : BaseController
     [Authorize(Roles = "Administrator,Broker")]
     public IActionResult AdminFile(Guid fileId)
     {
-        var file = _acordService.GetFileForAdmin(fileId);
+        var file = _acordService.GetFileForAdmin(fileId, new CnpAccessContext
+        {
+            ActorUserId = GetActorUserId(),
+            ActorRole = User.IsInRole("Administrator") ? "Administrator" : "Broker",
+            Reason = "file_download",
+            Ip = GetClientIp(),
+            UserAgent = Request.Headers.UserAgent.FirstOrDefault()
+        });
         if (file == null) return NotFound("Fisierul nu este disponibil");
         return File(file.Content, file.MimeType, file.FileName);
     }

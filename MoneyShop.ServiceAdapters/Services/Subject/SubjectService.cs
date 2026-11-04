@@ -129,10 +129,32 @@ public class SubjectService : ISubjectService
 
         // Recorded before the value is handed over, so a caller that fails downstream still
         // leaves the reading on the record.
+        WriteAccessLog(subject.SubjectId, access);
+
+        return cnp;
+    }
+
+    public bool LogCnpAccess(int userId, CnpAccessContext access)
+    {
+        if (access == null) throw new ArgumentNullException(nameof(access));
+        if (string.IsNullOrWhiteSpace(access.Reason))
+            throw new ArgumentException("A reason is required to log a CNP access", nameof(access));
+
+        var subject = _subjectMapRepository.Get()
+            .FirstOrDefault(s => s.UserId == userId);
+
+        if (subject == null) return false;
+
+        WriteAccessLog(subject.SubjectId, access);
+        return true;
+    }
+
+    private void WriteAccessLog(string subjectId, CnpAccessContext access)
+    {
         _cnpAccessLogRepository.Insert(new CnpAccessLog
         {
             Id = Guid.NewGuid(),
-            SubjectId = subject.SubjectId,
+            SubjectId = subjectId,
             ActorUserId = access.ActorUserId,
             ActorRole = Truncate(access.ActorRole, 50),
             Reason = Truncate(access.Reason, 100)!,
@@ -142,8 +164,6 @@ public class SubjectService : ISubjectService
             AccessedAt = DateTime.UtcNow
         });
         _context.SaveChanges();
-
-        return cnp;
     }
 
     /// <summary>

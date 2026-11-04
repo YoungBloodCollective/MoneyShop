@@ -896,14 +896,25 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         return details;
     }
 
-    public AcordFileContent? GetFileForAdmin(Guid fileId)
+    public AcordFileContent? GetFileForAdmin(Guid fileId, CnpAccessContext? access = null)
     {
         var file = _kycFileRepository.Get().FirstOrDefault(f => f.FileId == fileId);
         if (file == null || file.DeletedAt != null || string.IsNullOrEmpty(file.FileContentBase64))
             return null;
 
-        if (!_acordRepository.Get().Any(a => a.KycId == file.KycId))
+        // FirstOrDefault, not Any: the acord lookup also carries the broker scope (a broker
+        // only reaches their own clients' files) and gives us the subject to log against.
+        var acord = _acordRepository.Get().FirstOrDefault(a => a.KycId == file.KycId);
+        if (acord == null)
             return null;
+
+        // A signed bank form that prints the CNP is one more place the number is read back, so
+        // downloading it is written to the CNP access log, next to the explicit reveals.
+        if (access != null && FilePrintsCnp(file.FileType))
+        {
+            access.AcordId ??= acord.AcordId;
+            _subjectService.LogCnpAccess(acord.UserId, access);
+        }
 
         return new AcordFileContent
         {
@@ -911,6 +922,19 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             MimeType = file.MimeType,
             Content = Convert.FromBase64String(file.FileContentBase64)
         };
+    }
+
+    /// <summary>
+    /// A signed bank form is stored as bank_{bank}_{doc}; the ones whose bank asks for a CNP
+    /// print it on the page, so reading the file is reading the CNP.
+    /// </summary>
+    private static bool FilePrintsCnp(string? fileType)
+    {
+        if (string.IsNullOrEmpty(fileType) || !fileType.StartsWith("bank_", StringComparison.Ordinal))
+            return false;
+
+        var parts = fileType.Split('_');
+        return parts.Length >= 2 && (BankConsentCatalog.Find(parts[1])?.Requires(BankConsentFields.Cnp) ?? false);
     }
 
     public bool UpdateStatusForAdmin(Guid acordId, string status, string? reviewNote)

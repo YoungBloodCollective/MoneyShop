@@ -35,7 +35,7 @@ public interface IAcordService
     // ── Admin ──
     List<AcordListItem> ListForAdmin(string? status, string? search, int? brokerId = null);
     AcordDetails? GetDetailsForAdmin(Guid acordId);
-    AcordFileContent? GetFileForAdmin(Guid fileId);
+    AcordFileContent? GetFileForAdmin(Guid fileId, CnpAccessContext? access = null);
     bool UpdateStatusForAdmin(Guid acordId, string status, string? reviewNote);
 
     /// <summary>

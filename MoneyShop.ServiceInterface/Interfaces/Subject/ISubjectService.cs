@@ -13,6 +13,13 @@ namespace MoneyShop.ServiceInterface.Interfaces.Subject
         /// unknown or has no stored CNP, in which case nothing is recorded.
         /// </summary>
         string? RevealCnpByUserId(int userId, CnpAccessContext access);
+
+        /// <summary>
+        /// Records that a full CNP was read back somewhere other than the reveal endpoint —
+        /// e.g. a signed bank form that prints it, downloaded by an operator — without
+        /// decrypting anything. Returns false when the subject is unknown, so nothing is logged.
+        /// </summary>
+        bool LogCnpAccess(int userId, CnpAccessContext access);
     }
 
     /// <summary>
