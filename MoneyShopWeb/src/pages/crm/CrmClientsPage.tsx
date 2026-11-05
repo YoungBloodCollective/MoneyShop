@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Phone, Mail, ChevronRight } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmClientListItem } from '@/types/crm.types';
-import { PageHeader, Spinner, EmptyState, StatusPill, moneyShort, relTime, initials } from './crmShared';
+import { PageHeader, SkeletonTable, EmptyState, StatusPill, moneyShort, relTime, initials } from './crmShared';
 
 export default function CrmClientsPage() {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ export default function CrmClientsPage() {
       (c.email ?? '').toLowerCase().includes(t));
   }, [clients, q]);
 
-  if (loading) return <Spinner />;
+  if (loading) return (<div className="space-y-6"><PageHeader title="Clienți" /><SkeletonTable rows={6} /></div>);
 
   return (
     <div className="space-y-6">
