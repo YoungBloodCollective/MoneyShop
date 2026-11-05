@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { GuestLayout } from '@/components/layout/GuestLayout';
 import { PublicLayout } from '@/components/layout/PublicLayout';
+import { CrmLayout } from '@/components/crm/CrmLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { useBroker } from '@/context/brokerContextValue';
 
@@ -65,6 +66,14 @@ const AdminPartnersPage = lazy(() => import('@/pages/admin/AdminPartnersPage'));
 const AdminAcordPage = lazy(() => import('@/pages/admin/AdminAcordPage'));
 const AdminBrokerAccountsPage = lazy(() => import('@/pages/admin/AdminBrokerAccountsPage'));
 const BrokerProfilePage = lazy(() => import('@/pages/admin/BrokerProfilePage'));
+
+const CrmDashboardPage = lazy(() => import('@/pages/crm/CrmDashboardPage'));
+const CrmClientsPage = lazy(() => import('@/pages/crm/CrmClientsPage'));
+const CrmClientDetailPage = lazy(() => import('@/pages/crm/CrmClientDetailPage'));
+const CrmDosarePage = lazy(() => import('@/pages/crm/CrmDosarePage'));
+const CrmOffersPage = lazy(() => import('@/pages/crm/CrmOffersPage'));
+const CrmLeadsPage = lazy(() => import('@/pages/crm/CrmLeadsPage'));
+const CrmAutomationsPage = lazy(() => import('@/pages/crm/CrmAutomationsPage'));
 
 function PageLoader() {
   return (
@@ -158,6 +167,17 @@ export function AppRouter() {
           <Route path="/admin/acord" element={<ProtectedRoute adminOnly><AdminAcordPage /></ProtectedRoute>} />
           <Route path="/admin/brokeri" element={<ProtectedRoute superAdminOnly><AdminBrokerAccountsPage /></ProtectedRoute>} />
           <Route path="/admin/profil" element={<ProtectedRoute brokerOnly><BrokerProfilePage /></ProtectedRoute>} />
+        </Route>
+
+        {/* CRM — per-broker, own light-theme shell (outside AppLayout) */}
+        <Route element={<ProtectedRoute adminOnly><CrmLayout /></ProtectedRoute>}>
+          <Route path="/crm" element={<CrmDashboardPage />} />
+          <Route path="/crm/clienti" element={<CrmClientsPage />} />
+          <Route path="/crm/clienti/:userId" element={<CrmClientDetailPage />} />
+          <Route path="/crm/dosare" element={<CrmDosarePage />} />
+          <Route path="/crm/oferte" element={<CrmOffersPage />} />
+          <Route path="/crm/leaduri" element={<CrmLeadsPage />} />
+          <Route path="/crm/automatizari" element={<CrmAutomationsPage />} />
         </Route>
 
         {/* Catch-all */}
