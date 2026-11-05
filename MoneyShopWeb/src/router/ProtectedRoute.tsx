@@ -25,9 +25,15 @@ export function ProtectedRoute({ children, adminOnly, superAdminOnly, brokerOnly
     return <Navigate to="/admin" replace />;
   }
 
-  // Admin users go to admin panel, not user dashboard
-  if (isAdmin && !(adminOnly || superAdminOnly || brokerOnly) && !location.pathname.startsWith('/admin')) {
-    return <Navigate to="/admin" replace />;
+  // Brokers live in the dedicated CRM; super-admins in the full admin panel.
+  const adminHome = isSuperAdmin ? '/admin' : '/crm';
+  if (
+    isAdmin &&
+    !(adminOnly || superAdminOnly || brokerOnly) &&
+    !location.pathname.startsWith('/admin') &&
+    !location.pathname.startsWith('/crm')
+  ) {
+    return <Navigate to={adminHome} replace />;
   }
 
   // No longer force redirect to onboarding — users can access the app
