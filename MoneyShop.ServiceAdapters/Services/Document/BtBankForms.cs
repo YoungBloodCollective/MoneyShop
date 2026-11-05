@@ -7,9 +7,9 @@ internal static class BtBankForms
 {
     /// <summary>
     /// Formular de recomandare - the client agrees that the broker passes their name,
-    /// birth date and phone to Banca Transilvania. The partner representative's own
-    /// signature block stays empty: it is the broker's declaration that they checked the
-    /// client's ID in person, so the broker signs it themselves.
+    /// birth date and phone to Banca Transilvania. The partner representative block
+    /// (company, representative name and stamp) is pre-printed on the template PDF, so
+    /// only the client's own fields are filled in here.
     /// </summary>
     public static byte[] Recomandare(BankConsentPdfInput input, byte[] template, PdfFont font)
     {
@@ -23,8 +23,6 @@ internal static class BtBankForms
             .Text(1, 183f, 239.1f, 310f, input.FullName)
             .Text(1, 82f, 222f, 160f, BankFormFiller.Date(input.SignedOn))
             .Signature(1, 118f, 201f, 150f, 26f, input.SignaturePng)
-            .Text(1, 377f, 170.9f, 180f, input.BrokerCompany, 8f)
-            .Text(1, 235f, 153.9f, 320f, input.BrokerRepresentative, 9f)
             .Build();
     }
 }
