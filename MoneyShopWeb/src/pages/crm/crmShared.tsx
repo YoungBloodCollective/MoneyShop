@@ -1,6 +1,18 @@
-import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
+// CRM-local status labels (with diacritics) and light-theme pills. The admin panel uses its
+// own dark pills + APPLICATION_STATUS_LABELS; the CRM keeps a polished copy of its own.
+const STATUS_LABEL: Record<string, string> = {
+  INREGISTRAT: 'Înregistrat',
+  IN_ANALIZA: 'În analiză',
+  NEVOIE_DOCUMENTE: 'Nevoie de documente',
+  PREAPROBAT: 'Pre-aprobat',
+  OFERTA_TRANSMISA: 'Ofertă transmisă',
+  ACCEPTAT_CLIENT: 'Acceptat de client',
+  RESPINS: 'Respins',
+  TRIMIS_LA_BANCA: 'Trimis la bancă',
+  APROBAT_BANCA: 'Aprobat de bancă',
+  DISBURSAT: 'Debursat',
+};
 
-// Light-theme status pills for the CRM (the admin panel uses dark pills).
 const STATUS_PILL: Record<string, string> = {
   INREGISTRAT: 'bg-slate-100 text-slate-600',
   IN_ANALIZA: 'bg-amber-50 text-amber-700',
@@ -16,13 +28,28 @@ const STATUS_PILL: Record<string, string> = {
 
 export function statusLabel(status?: string): string {
   if (!status) return '—';
-  return APPLICATION_STATUS_LABELS[status] ?? status;
+  return STATUS_LABEL[status] ?? status;
+}
+
+const CREDIT_TYPE_LABEL: Record<string, string> = {
+  ipotecar: 'Ipotecar',
+  nevoi_personale: 'Nevoi personale',
+  refinantare: 'Refinanțare',
+  prima_casa: 'Prima Casă',
+  noua_casa: 'Noua Casă',
+};
+
+export function creditTypeLabel(type?: string | null): string {
+  if (!type) return '—';
+  if (CREDIT_TYPE_LABEL[type]) return CREDIT_TYPE_LABEL[type];
+  const t = type.replace(/_/g, ' ');
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
 export function StatusPill({ status }: { status?: string }) {
   const cls = (status && STATUS_PILL[status]) || 'bg-slate-100 text-slate-600';
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${cls}`}>
+    <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${cls}`}>
       {statusLabel(status)}
     </span>
   );
