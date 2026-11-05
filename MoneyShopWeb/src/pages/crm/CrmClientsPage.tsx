@@ -47,10 +47,10 @@ export default function CrmClientsPage() {
       {filtered.length === 0 ? (
         <EmptyState message="Niciun client găsit." />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <table className="w-full min-w-[720px] text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
+              <tr className="whitespace-nowrap border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
                 <th className="px-5 py-3 font-medium">Client</th>
                 <th className="px-5 py-3 font-medium">Contact</th>
                 <th className="px-5 py-3 font-medium text-center">Dosare</th>
@@ -77,14 +77,14 @@ export default function CrmClientsPage() {
                   </td>
                   <td className="px-5 py-3 text-slate-500">
                     <div className="space-y-0.5">
-                      {c.phone && <div className="flex items-center gap-1.5"><Phone className="h-3 w-3" />{c.phone}</div>}
-                      {c.email && <div className="flex items-center gap-1.5 truncate max-w-[200px]"><Mail className="h-3 w-3" />{c.email}</div>}
+                      {c.phone && <div className="flex items-center gap-1.5"><Phone className="h-3 w-3 shrink-0" />{c.phone}</div>}
+                      {c.email && <div className="flex min-w-0 max-w-[220px] items-center gap-1.5"><Mail className="h-3 w-3 shrink-0" /><span className="truncate">{c.email}</span></div>}
                     </div>
                   </td>
                   <td className="px-5 py-3 text-center font-semibold text-slate-700">{c.filesCount}</td>
                   <td className="px-5 py-3"><StatusPill status={c.lastStatus} /></td>
-                  <td className="px-5 py-3 text-right font-medium text-slate-700">{c.approvedVolume > 0 ? moneyShort(c.approvedVolume) : '—'}</td>
-                  <td className="px-5 py-3 text-slate-400">{relTime(c.lastActivityAt)}</td>
+                  <td className="whitespace-nowrap px-5 py-3 text-right font-medium text-slate-700">{c.approvedVolume > 0 ? moneyShort(c.approvedVolume) : '—'}</td>
+                  <td className="whitespace-nowrap px-5 py-3 text-slate-400">{relTime(c.lastActivityAt)}</td>
                   <td className="px-5 py-3 text-right"><ChevronRight className="h-4 w-4 text-slate-300" /></td>
                 </tr>
               ))}

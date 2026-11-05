@@ -45,10 +45,10 @@ export default function CrmOffersPage() {
       {filtered.length === 0 ? (
         <EmptyState message="Nicio ofertă bancară încă. Se adaugă pe măsură ce potrivești dosare cu bănci." />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <table className="w-full min-w-[780px] text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
+              <tr className="whitespace-nowrap border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
                 <th className="px-5 py-3 font-medium">Bancă</th>
                 <th className="px-5 py-3 font-medium">Dosar</th>
                 <th className="px-5 py-3 font-medium">Client</th>
@@ -67,12 +67,12 @@ export default function CrmOffersPage() {
                       <span className="font-medium text-slate-800">{o.bankName}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-3 font-semibold text-slate-700">#{o.fileCode}</td>
+                  <td className="whitespace-nowrap px-5 py-3 font-semibold text-slate-700">#{o.fileCode}</td>
                   <td className="px-5 py-3 text-slate-600">{o.clientName}</td>
-                  <td className="px-5 py-3 text-right text-slate-700">{money(o.requestedAmount)}</td>
+                  <td className="whitespace-nowrap px-5 py-3 text-right text-slate-700">{money(o.requestedAmount)}</td>
                   <td className="px-5 py-3 text-right font-semibold text-slate-800">{o.commissionPercent}%</td>
                   <td className="px-5 py-3"><StatusPill status={o.status} /></td>
-                  <td className="px-5 py-3 text-slate-400">{dateShort(o.createdAt)}</td>
+                  <td className="whitespace-nowrap px-5 py-3 text-slate-400">{dateShort(o.createdAt)}</td>
                 </tr>
               ))}
             </tbody>

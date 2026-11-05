@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmClientDetail } from '@/types/crm.types';
-import { Spinner, StatusPill, money, dateShort, initials } from './crmShared';
+import { Spinner, StatusPill, money, dateShort, initials, creditTypeLabel } from './crmShared';
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -107,7 +107,7 @@ export default function CrmClientDetailPage() {
                         <StatusPill status={file.status} />
                       </div>
                       <div className="mt-0.5 text-xs text-slate-400">
-                        {file.typeCredit ?? 'credit'} · {money(file.requestedAmount)}{file.requestedTermMonths ? ` · ${file.requestedTermMonths} luni` : ''} · {dateShort(file.createdAt)}
+                        {creditTypeLabel(file.typeCredit)} · {money(file.requestedAmount)}{file.requestedTermMonths ? ` · ${file.requestedTermMonths} luni` : ''} · {dateShort(file.createdAt)}
                       </div>
                     </div>
                     {file.sumaAprobata != null && (

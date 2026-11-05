@@ -57,8 +57,8 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
 
             summary.StatusBreakdown = new List<CrmStatusSlice>
             {
-                new() { Key = "analiza", Label = "In analiza", Count = apps.Count(a => InAnaliza.Contains(a.Status)) },
-                new() { Key = "banca", Label = "La banca", Count = apps.Count(a => a.Status == TRIMIS_LA_BANCA) },
+                new() { Key = "analiza", Label = "În analiză", Count = apps.Count(a => InAnaliza.Contains(a.Status)) },
+                new() { Key = "banca", Label = "La bancă", Count = apps.Count(a => a.Status == TRIMIS_LA_BANCA) },
                 new() { Key = "aprobate", Label = "Aprobate", Count = apps.Count(a => a.Status == APROBAT_BANCA) },
                 new() { Key = "debursate", Label = "Debursate", Count = apps.Count(a => a.Status == DISBURSAT) },
             };
@@ -100,13 +100,13 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
 
         private static string StatusLabel(string status) => status switch
         {
-            INREGISTRAT => "Inregistrat",
-            IN_ANALIZA => "In analiza",
-            NEVOIE_DOCUMENTE => "Nevoie documente",
+            INREGISTRAT => "Înregistrat",
+            IN_ANALIZA => "În analiză",
+            NEVOIE_DOCUMENTE => "Nevoie de documente",
             PREAPROBAT => "Pre-aprobat",
-            TRIMIS_LA_BANCA => "Trimis la banca",
-            APROBAT_BANCA => "Aprobat de banca",
-            DISBURSAT => "Disbursat",
+            TRIMIS_LA_BANCA => "Trimis la bancă",
+            APROBAT_BANCA => "Aprobat de bancă",
+            DISBURSAT => "Debursat",
             RESPINS => "Respins",
             _ => status,
         };
