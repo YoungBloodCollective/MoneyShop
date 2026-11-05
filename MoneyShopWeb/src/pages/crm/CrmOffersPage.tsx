@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Landmark, Search } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmOfferItem } from '@/types/crm.types';
-import { PageHeader, Spinner, EmptyState, StatusPill, money, dateShort } from './crmShared';
+import { PageHeader, SkeletonTable, EmptyState, StatusPill, money, dateShort } from './crmShared';
 
 export default function CrmOffersPage() {
   const [offers, setOffers] = useState<CrmOfferItem[]>([]);
@@ -26,7 +26,7 @@ export default function CrmOffersPage() {
       o.bankName.toLowerCase().includes(t));
   }, [offers, q]);
 
-  if (loading) return <Spinner />;
+  if (loading) return (<div className="space-y-6"><PageHeader title="Oferte bancare" /><SkeletonTable rows={6} /></div>);
 
   return (
     <div className="space-y-6">

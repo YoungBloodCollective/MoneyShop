@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Phone, Mail, MapPin, AlertTriangle } from 'lucide-react';
 import { adminApi, type LeadItem } from '@/services/api/adminApi';
-import { PageHeader, Spinner, EmptyState, money, dateShort, initials } from './crmShared';
+import { PageHeader, SkeletonCards, EmptyState, money, dateShort, initials } from './crmShared';
 
 export default function CrmLeadsPage() {
   const [leads, setLeads] = useState<LeadItem[]>([]);
@@ -26,7 +26,7 @@ export default function CrmLeadsPage() {
       (l.oras ?? '').toLowerCase().includes(t));
   }, [leads, q]);
 
-  if (loading) return <Spinner />;
+  if (loading) return (<div className="space-y-6"><PageHeader title="Lead-uri" /><SkeletonCards count={6} /></div>);
 
   return (
     <div className="space-y-6">

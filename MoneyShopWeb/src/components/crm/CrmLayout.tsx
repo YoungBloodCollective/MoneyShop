@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getBrokerSlug } from '@/lib/brokerHost';
+import { CrmCommandPalette } from './CrmCommandPalette';
 
 interface NavItem {
   label: string;
@@ -88,6 +89,7 @@ export function CrmLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLDivElement>(null);
   const { user, logout, isSuperAdmin } = useAuth();
@@ -101,6 +103,10 @@ export function CrmLayout() {
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') { setUserMenuOpen(false); setBellOpen(false); }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen(v => !v);
+      }
     }
     document.addEventListener('mousedown', onDocMouseDown);
     document.addEventListener('keydown', onKey);
@@ -143,14 +149,14 @@ export function CrmLayout() {
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
 
-          <div className="relative hidden sm:block flex-1 max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Caută clienți, dosare..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-primary focus:bg-white focus:outline-none"
-            />
-          </div>
+          <button
+            onClick={() => setPaletteOpen(true)}
+            className="relative hidden max-w-md flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-2.5 text-sm hover:border-slate-300 hover:bg-white sm:flex"
+          >
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <span className="flex-1 text-left text-slate-400">Caută clienți, dosare...</span>
+            <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-400">⌘K</kbd>
+          </button>
 
           <div className="flex flex-1 sm:flex-none items-center justify-end gap-1.5">
             {/* Notifications */}
@@ -218,11 +224,13 @@ export function CrmLayout() {
         </header>
 
         <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-7xl px-4 lg:px-8 py-6">
+          <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
             <Outlet />
           </div>
         </main>
       </div>
+
+      <CrmCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );
 }
