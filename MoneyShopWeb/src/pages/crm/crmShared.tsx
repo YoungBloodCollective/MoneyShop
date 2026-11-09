@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 // CRM-local status labels (with diacritics) and light-theme pills. The admin panel uses its
 // own dark pills + APPLICATION_STATUS_LABELS; the CRM keeps a polished copy of its own.
 const STATUS_LABEL: Record<string, string> = {
@@ -165,6 +166,94 @@ export function SkeletonCards({ count = 6 }: { count?: number }) {
           <div className="mt-4 h-10 animate-pulse rounded-lg bg-slate-50" />
         </div>
       ))}
+    </div>
+  );
+}
+
+// ── Status segments (quick filters shared by Clienți & Dosare) ───────────────
+export const STATUS_SEGMENTS: { key: string; label: string }[] = [
+  { key: 'toate', label: 'Toate' },
+  { key: 'analiza', label: 'În analiză' },
+  { key: 'banca', label: 'La bancă' },
+  { key: 'aprobate', label: 'Aprobate' },
+  { key: 'debursate', label: 'Debursate' },
+  { key: 'respins', label: 'Respinse' },
+];
+
+/// Folds a concrete status into the segment it belongs to.
+export function statusGroup(status?: string): string {
+  switch (status) {
+    case 'TRIMIS_LA_BANCA': return 'banca';
+    case 'APROBAT_BANCA': return 'aprobate';
+    case 'DISBURSAT': return 'debursate';
+    case 'RESPINS': return 'respins';
+    default: return 'analiza';
+  }
+}
+
+export function matchesSegment(status: string | undefined, segment: string): boolean {
+  return segment === 'toate' || statusGroup(status) === segment;
+}
+
+export function SegmentChips({
+  segments, active, onChange, counts,
+}: {
+  segments: { key: string; label: string }[];
+  active: string;
+  onChange: (key: string) => void;
+  counts?: Record<string, number>;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {segments.map(seg => {
+        const on = active === seg.key;
+        const count = counts?.[seg.key];
+        return (
+          <button
+            key={seg.key}
+            onClick={() => onChange(seg.key)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+              on ? 'bg-brand-primary text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            {seg.label}
+            {typeof count === 'number' && (
+              <span className={`rounded-full px-1.5 text-xs ${on ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>{count}</span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Pagination ───────────────────────────────────────────────────────────────
+export function usePaged<T>(items: T[], pageSize = 25) {
+  const [page, setPage] = useState(1);
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  useEffect(() => { if (page > pageCount) setPage(1); }, [page, pageCount]);
+  const start = (page - 1) * pageSize;
+  const slice = items.slice(start, start + pageSize);
+  return { page, setPage, pageCount, slice, total: items.length, pageSize };
+}
+
+export function Pagination({
+  page, pageCount, total, pageSize, onPage,
+}: {
+  page: number; pageCount: number; total: number; pageSize: number; onPage: (p: number) => void;
+}) {
+  if (pageCount <= 1) return null;
+  const from = (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
+  const btn = 'rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40';
+  return (
+    <div className="flex items-center justify-between px-1 pt-1 text-sm text-slate-500">
+      <span>{from}–{to} din {total}</span>
+      <div className="flex items-center gap-2">
+        <button className={btn} disabled={page <= 1} onClick={() => onPage(page - 1)}>Anterior</button>
+        <span className="px-1 text-slate-400">{page} / {pageCount}</span>
+        <button className={btn} disabled={page >= pageCount} onClick={() => onPage(page + 1)}>Următor</button>
+      </div>
     </div>
   );
 }
