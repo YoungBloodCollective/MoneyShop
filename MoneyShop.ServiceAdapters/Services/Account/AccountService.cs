@@ -6,7 +6,6 @@ using System.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
 using MoneyShop.DomainModel.Entities;
-using AutoMapper;
 using MoneyShop.ServiceInterface.Interfaces.Account;
 using MoneyShop.ServiceInterface.Dtos.Account;
 using MoneyShop.ServiceInterface.SharedDtos;
@@ -28,7 +27,6 @@ public class AccountService : IAccountService
     private readonly IConsentRepository _consentRepository;
     private readonly IMandateRepository _mandateRepository;
     private readonly MoneyShopDbContext _context;
-    private readonly IMapper _mapper;
     private readonly CurrentUserDto _currentUser;
     private readonly UserValidator _userValidator;
     private readonly RegisterUserValidator _registerUserValidator;
@@ -39,7 +37,6 @@ public class AccountService : IAccountService
         IConsentRepository consentRepository,
         IMandateRepository mandateRepository,
         MoneyShopDbContext context,
-        IMapper mapper,
         CurrentUserDto currentUser)
     {
         _userRepository = userRepository;
@@ -47,25 +44,54 @@ public class AccountService : IAccountService
         _consentRepository = consentRepository;
         _mandateRepository = mandateRepository;
         _context = context;
-        _mapper = mapper;
         _currentUser = currentUser;
         _registerUserValidator = new RegisterUserValidator();
         _userValidator = new UserValidator(_userRepository);
     }
 
+    private const string Pbkdf2Prefix = "PBKDF2-SHA256$";
+    private const int Pbkdf2Iterations = 210_000;
+    private const int MaxFailedLoginAttempts = 5;
+    private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
+
+    public static bool NeedsRehash(string stored) => stored == null || !stored.StartsWith(Pbkdf2Prefix, StringComparison.Ordinal);
+
     public static bool VerifyPassword(string enteredPassword, string hashedPassword)
     {
-        string enteredPasswordHash = HashPassword(enteredPassword);
-        return enteredPasswordHash == hashedPassword;
+        if (enteredPassword == null || hashedPassword == null)
+        {
+            return false;
+        }
+
+        if (hashedPassword.StartsWith(Pbkdf2Prefix, StringComparison.Ordinal))
+        {
+            var parts = hashedPassword.Split('$');
+            if (parts.Length != 4 || !int.TryParse(parts[1], out var iterations) || iterations <= 0)
+            {
+                return false;
+            }
+            try
+            {
+                var salt = Convert.FromBase64String(parts[2]);
+                var expected = Convert.FromBase64String(parts[3]);
+                var actual = Rfc2898DeriveBytes.Pbkdf2(enteredPassword, salt, iterations, HashAlgorithmName.SHA256, expected.Length);
+                return CryptographicOperations.FixedTimeEquals(actual, expected);
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+        }
+
+        var legacy = Encoding.UTF8.GetBytes(Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(enteredPassword))));
+        return CryptographicOperations.FixedTimeEquals(legacy, Encoding.UTF8.GetBytes(hashedPassword));
     }
 
     public static string HashPassword(string password)
     {
-        using (SHA256 sha256 = SHA256.Create())
-        {
-            byte[] hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(hashedBytes);
-        }
+        var salt = RandomNumberGenerator.GetBytes(16);
+        var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, Pbkdf2Iterations, HashAlgorithmName.SHA256, 32);
+        return $"{Pbkdf2Prefix}{Pbkdf2Iterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
     }
 
     public CurrentUserDto Login(string email, string password)
@@ -80,11 +106,28 @@ public class AccountService : IAccountService
             return new CurrentUserDto { IsAuthenticated = false };
         }
 
+        if (user.LockoutEndUtc.HasValue && user.LockoutEndUtc.Value > DateTime.UtcNow)
+        {
+            throw new AccountLockedException(user.LockoutEndUtc.Value);
+        }
+
         var storedHashedPassword = user.Parola;
         bool isAuthenticated = VerifyPassword(password, storedHashedPassword);
 
         if (isAuthenticated)
         {
+            if (NeedsRehash(user.Parola) || user.FailedLoginAttempts != 0 || user.LockoutEndUtc.HasValue)
+            {
+                if (NeedsRehash(user.Parola))
+                {
+                    user.Parola = HashPassword(password);
+                }
+                user.FailedLoginAttempts = 0;
+                user.LockoutEndUtc = null;
+                _userRepository.Update(user);
+                _context.SaveChanges();
+            }
+
             // Safely get role, default to "Utilizator" if role not found
             string role = userRoles.ContainsKey(user.IdRol) ? userRoles[user.IdRol] : "Utilizator";
 
@@ -97,8 +140,16 @@ public class AccountService : IAccountService
                 Role = role
             };
         }
-        else
-            return new CurrentUserDto { IsAuthenticated = false };
+
+        user.FailedLoginAttempts++;
+        if (user.FailedLoginAttempts >= MaxFailedLoginAttempts)
+        {
+            user.LockoutEndUtc = DateTime.UtcNow.Add(LockoutDuration);
+            user.FailedLoginAttempts = 0;
+        }
+        _userRepository.Update(user);
+        _context.SaveChanges();
+        return new CurrentUserDto { IsAuthenticated = false };
     }
 
     public void RegisterNewUser(RegisterModel model)
@@ -112,7 +163,7 @@ public class AccountService : IAccountService
             throw new Exception("Un cont cu acest email există deja.");
         }
 
-        var user = _mapper.Map<RegisterModel, Utilizatori>(model);
+        var user = ToUtilizatori(model);
         user.Mail = model.Email;
         user.NumarTelefon = model.Phone;
         user.Username = model.Email;
@@ -321,12 +372,29 @@ public class AccountService : IAccountService
         return true;
     }
 
+    private static Utilizatori ToUtilizatori(RegisterModel model) => new()
+    {
+        Parola = model.Password,
+        Prenume = model.LastName,
+        Nume = model.FirstName,
+        Mail = model.Email
+    };
+
+    private static UserModelEdit ToUserModelEdit(Utilizatori user) => new()
+    {
+        Id = user.IdUtilizator,
+        BirthDay = user.DataNastere ?? default,
+        Email = user.Mail,
+        FirstName = user.Nume,
+        LastName = user.Prenume
+    };
+
     public UserModelEdit GetUserById()
     {
         UserRoles usersList = new UserRoles();
         Dictionary<int, string> userRoles = usersList.CreateUserRolesDictionary();
         var user = _userRepository.Get().Where(u => u.IdUtilizator == _currentUser.Id).FirstOrDefault();
-        var userModelEdit = _mapper.Map<Utilizatori, UserModelEdit>(user);
+        var userModelEdit = ToUserModelEdit(user);
         userModelEdit.Roles = userRoles;
         return userModelEdit;
     }
@@ -357,7 +425,7 @@ public class AccountService : IAccountService
         };
     }
 
-    public CurrentUserDto SocialLogin(string firebaseUid, string email, string name)
+    public CurrentUserDto SocialLogin(string firebaseUid, string email, string name, bool emailVerified = false)
     {
         var userRoles = new UserRoles();
         var rolesDict = userRoles.CreateUserRolesDictionary();
@@ -365,6 +433,8 @@ public class AccountService : IAccountService
         if (user == null)
         {
             user = _userRepository.Get().FirstOrDefault(u => u.Mail == email && u.IsDeleted != true);
+            if (user != null && !emailVerified)
+                throw new InvalidOperationException("Adresa de e-mail nu este verificată la furnizorul de autentificare.");
             if (user != null && user.IdRol != 1)
                 throw new InvalidOperationException("Pentru acest cont foloseste autentificarea cu email si parola.");
             if (user != null)
@@ -386,7 +456,7 @@ public class AccountService : IAccountService
                 Mail = email,
                 Username = email,
                 FirebaseUid = firebaseUid,
-                EmailVerified = true,
+                EmailVerified = emailVerified,
                 PhoneVerified = false,
                 IdRol = 1,
                 IsDeleted = false

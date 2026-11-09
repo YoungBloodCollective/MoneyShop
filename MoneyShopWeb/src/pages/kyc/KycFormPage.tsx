@@ -10,10 +10,10 @@ export default function KycFormPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('status');
   const [kycStatus, setKycStatus] = useState<KycStatusResponse | null>(null);
-  const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
+  const [, setOcrResult] = useState<OcrResult | null>(null);
   const [decision, setDecision] = useState<DecisionResponse | null>(null);
   const [frontImage, setFrontImage] = useState<File | null>(null);
-  const [selfieData, setSelfieData] = useState<string | null>(null);
+  const [, setSelfieData] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);

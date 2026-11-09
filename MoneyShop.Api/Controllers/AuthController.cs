@@ -12,6 +12,7 @@ using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using MoneyShop.Api.Services;
 using Microsoft.Extensions.Logging;
+using MoneyShop.ServiceInterface.Interfaces.Audit;
 
 namespace MoneyShop.Api.Controllers
 {
@@ -26,9 +27,10 @@ namespace MoneyShop.Api.Controllers
         private readonly IKycSessionRepository _kycSessionRepository;
         private readonly FirebaseTokenVerifier _firebaseVerifier;
         private readonly ILogger<AuthController> _logger;
+        private readonly IAuditService _audit;
         private const string GenericError = "A apărut o eroare. Încearcă din nou.";
 
-        public AuthController(IAccountService accountService, JwtTokenGenerator jwtService, IUserRepository userRepository, IOtpService otpService, IKycSessionRepository kycSessionRepository, FirebaseTokenVerifier firebaseVerifier, ILogger<AuthController> logger)
+        public AuthController(IAccountService accountService, JwtTokenGenerator jwtService, IUserRepository userRepository, IOtpService otpService, IKycSessionRepository kycSessionRepository, FirebaseTokenVerifier firebaseVerifier, ILogger<AuthController> logger, IAuditService audit)
         {
             _accountService = accountService;
             _jwtService = jwtService;
@@ -37,6 +39,16 @@ namespace MoneyShop.Api.Controllers
             _kycSessionRepository = kycSessionRepository;
             _firebaseVerifier = firebaseVerifier;
             _logger = logger;
+            _audit = audit;
+        }
+
+        private string LoginAuditId(string email)
+        {
+            var normalized = email.Trim().ToLowerInvariant();
+            var existing = _userRepository.Get().Where(u => u.Mail == email && u.IsDeleted != true).Select(u => (int?)u.IdUtilizator).FirstOrDefault();
+            return existing.HasValue
+                ? existing.Value.ToString()
+                : Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(normalized)));
         }
 
         /// <summary>
@@ -124,9 +136,11 @@ namespace MoneyShop.Api.Controllers
 
                 if (!user.IsAuthenticated)
                 {
+                    _audit.Log("User", LoginAuditId(model.Email), "login_failed", null, new { method = "password" });
                     return Unauthorized(new { message = "Invalid email or password" });
                 }
 
+                _audit.Log("User", user.Id.ToString(), "login_success", null, new { method = "password" });
                 var token = _jwtService.GenerateToken(user.Id, user.Email, user.FirstName, user.Role);
 
                 // Look up verification flags from database
@@ -155,6 +169,11 @@ namespace MoneyShop.Api.Controllers
                     }
                 });
             }
+            catch (AccountLockedException)
+            {
+                _audit.Log("User", LoginAuditId(model.Email), "login_locked", null, new { method = "password" });
+                return StatusCode(423, new { message = "Cont blocat temporar. Încearcă din nou în 15 minute." });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Login failed");
@@ -177,11 +196,12 @@ namespace MoneyShop.Api.Controllers
                 {
                     return BadRequest(new { message = "Firebase token does not contain an email" });
                 }
-                var user = _accountService.SocialLogin(firebaseUser.Uid, firebaseUser.Email, firebaseUser.Name);
+                var user = _accountService.SocialLogin(firebaseUser.Uid, firebaseUser.Email, firebaseUser.Name, firebaseUser.EmailVerified);
                 if (!user.IsAuthenticated)
                 {
                     return StatusCode(500, new { message = "Failed to create or find user" });
                 }
+                _audit.Log("User", user.Id.ToString(), "login_success", null, new { method = "firebase" });
                 var token = _jwtService.GenerateToken(user.Id, user.Email, user.FirstName, user.Role);
                 var dbUser = _userRepository.Get().FirstOrDefault(u => u.IdUtilizator == user.Id);
                 var kycSession = _kycSessionRepository.Get()

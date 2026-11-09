@@ -84,14 +84,21 @@ export default function Camera({
   const analysisCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const stableFramesRef = useRef(0);
   const autoCapturedRef = useRef(false);
+  const [stableFrames, setStableFrames] = useState(0);
+  const [autoCaptured, setAutoCaptured] = useState(false);
   const captureRef = useRef<(() => void) | undefined>(undefined);
 
   // Determine whether auto-capture should be active
   const shouldAutoCapture = autoCapture !== undefined ? autoCapture : facingMode === "environment";
 
+  const [prevFacingMode, setPrevFacingMode] = useState(facingMode);
+  if (prevFacingMode !== facingMode) {
+    setPrevFacingMode(facingMode);
+    setError(null);
+  }
+
   const startCamera = useCallback(async () => {
     try {
-      setError(null);
       // Stop any existing stream first
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -130,14 +137,14 @@ export default function Camera({
         try { await videoRef.current.play(); } catch { /* already playing or will autoplay */ }
       }
     } catch {
-      setError(
+      throw new Error(
         "Nu s-a putut accesa camera. Verifică permisiunile browserului."
       );
     }
   }, [facingMode]);
 
   useEffect(() => {
-    startCamera();
+    startCamera().catch((e: Error) => setError(e.message));
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -248,6 +255,8 @@ export default function Camera({
         stableFramesRef.current = 0;
       }
 
+      setStableFrames(stableFramesRef.current);
+      setAutoCaptured(autoCapturedRef.current);
       rafRef.current = requestAnimationFrame(loop);
     };
 
@@ -260,7 +269,7 @@ export default function Camera({
 
   // Auto-capture progress (0..1) for visual indicator
   const autoProgress = shouldAutoCapture
-    ? Math.min(stableFramesRef.current / AUTO_CAPTURE_FRAMES, 1)
+    ? Math.min(stableFrames / AUTO_CAPTURE_FRAMES, 1)
     : 0;
 
   if (error) {
@@ -281,7 +290,7 @@ export default function Camera({
         </svg>
         <p className="text-center mb-4">{error}</p>
         <button
-          onClick={startCamera}
+          onClick={() => { setError(null); startCamera().catch((e: Error) => setError(e.message)); }}
           className="px-6 py-3 bg-indigo-600 rounded-lg font-medium"
         >
           Încearcă din nou
@@ -334,7 +343,7 @@ export default function Camera({
           className="relative w-20 h-20 rounded-full border-4 border-white flex items-center justify-center disabled:opacity-40 active:scale-95 transition-transform"
         >
           {/* Auto-capture progress ring */}
-          {shouldAutoCapture && isSharp && !autoCapturedRef.current && (
+          {shouldAutoCapture && isSharp && !autoCaptured && (
             <svg
               className="absolute inset-0 w-full h-full -rotate-90"
               viewBox="0 0 80 80"

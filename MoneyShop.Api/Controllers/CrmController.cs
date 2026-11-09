@@ -2,6 +2,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MoneyShop.ServiceInterface.Interfaces.Audit;
 using MoneyShop.ServiceInterface.Interfaces.Crm;
 
 namespace MoneyShop.Api.Controllers
@@ -13,11 +14,13 @@ namespace MoneyShop.Api.Controllers
     {
         private readonly ICrmDashboardService _dashboard;
         private readonly ICrmService _crm;
+        private readonly IAuditService _audit;
 
-        public CrmController(ICrmDashboardService dashboard, ICrmService crm)
+        public CrmController(ICrmDashboardService dashboard, ICrmService crm, IAuditService audit)
         {
             _dashboard = dashboard;
             _crm = crm;
+            _audit = audit;
         }
 
         [HttpGet("dashboard")]
@@ -60,6 +63,7 @@ namespace MoneyShop.Api.Controllers
         {
             var file = _crm.GetClientAnaf(userId);
             if (file == null) return NotFound("Clientul nu are document ANAF.");
+            _audit.Log("KycFile", userId.ToString(), "file_read", newValue: new { userId, fileName = file.FileName }, reason: "anaf_download");
             return File(file.Content, file.MimeType, file.FileName);
         }
 

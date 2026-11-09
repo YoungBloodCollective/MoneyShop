@@ -18,6 +18,7 @@ using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using MoneyShop.ServiceAdapters.Services.Document;
 using MoneyShop.ServiceAdapters.Services.Otp;
 using MoneyShop.ServiceInterface.Interfaces.Acord;
+using MoneyShop.ServiceInterface.Interfaces.Audit;
 using MoneyShop.ServiceInterface.Interfaces.Broker;
 using MoneyShop.ServiceInterface.Interfaces.Document;
 using MoneyShop.ServiceInterface.Interfaces.Kyc;
@@ -60,6 +61,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
     private readonly IConfiguration _configuration;
     private readonly ILogger<AcordService> _logger;
     private readonly IBrokerProfileService _brokerProfiles;
+    private readonly IAuditService _audit;
 
     public AcordService(
         IAcordClientRepository acordRepository,
@@ -74,7 +76,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         MoneyShopDbContext context,
         IConfiguration configuration,
         ILogger<AcordService> logger,
-        IBrokerProfileService brokerProfiles)
+        IBrokerProfileService brokerProfiles,
+        IAuditService audit)
     {
         _acordRepository = acordRepository;
         _kycSessionRepository = kycSessionRepository;
@@ -89,6 +92,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         _configuration = configuration;
         _logger = logger;
         _brokerProfiles = brokerProfiles;
+        _audit = audit;
     }
 
     private int RetentionDays =>
@@ -916,6 +920,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             _subjectService.LogCnpAccess(acord.UserId, access);
         }
 
+        _audit.Log("KycFile", fileId.ToString(), "file_read", newValue: new { fileType = file.FileType, acordId = acord.AcordId });
+
         return new AcordFileContent
         {
             FileName = file.FileName,
@@ -1245,10 +1251,13 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
     /// </summary>
     public int PurgeExpiredOcrData()
     {
-        var cutoff = DateTime.UtcNow.AddDays(-RetentionDays);
+        var now = DateTime.UtcNow;
+        var cutoff = now.AddDays(-RetentionDays);
+        var unset = default(DateTime);
 
         var stale = _acordRepository.Get()
-            .Where(a => a.OcrDataJson != null && a.CreatedAt < cutoff)
+            .Where(a => a.OcrDataJson != null &&
+                        (a.ExpiresAt > unset ? a.ExpiresAt <= now : a.CreatedAt < cutoff))
             .ToList();
 
         foreach (var acord in stale)

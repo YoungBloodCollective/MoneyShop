@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Phone, Mail, MapPin, AlertTriangle } from 'lucide-react';
 import { adminApi, type LeadItem } from '@/services/api/adminApi';
-import { PageHeader, SkeletonCards, EmptyState, money, dateShort, initials } from './crmShared';
+import { PageHeader, SkeletonCards, EmptyState } from './crmShared';
+import { money, dateShort, initials } from './crmHelpers';
 
 export default function CrmLeadsPage() {
   const [leads, setLeads] = useState<LeadItem[]>([]);

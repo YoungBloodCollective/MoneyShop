@@ -1,12 +1,7 @@
-using MoneyShop.ServiceInterface.Interfaces.Acord;
-using MoneyShop.ServiceInterface.Interfaces.Kyc;
+using MoneyShop.ServiceInterface.Interfaces.Retention;
 
 namespace MoneyShop.Api.Services;
 
-/// <summary>
-/// Periodically erases KYC and Acord documents whose retention period has elapsed.
-/// Without this, uploaded identity documents would be kept indefinitely.
-/// </summary>
 public class DataRetentionHostedService : BackgroundService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromHours(6);
@@ -39,18 +34,12 @@ public class DataRetentionHostedService : BackgroundService
             try
             {
                 using var scope = _scopeFactory.CreateScope();
-                var kycService = scope.ServiceProvider.GetRequiredService<IKycService>();
-                var acordService = scope.ServiceProvider.GetRequiredService<IAcordService>();
-
-                var erased = kycService.MarkExpiredFilesForDeletion();
-                var purged = acordService.PurgeExpiredOcrData();
-
-                if (erased > 0 || purged > 0)
-                {
-                    _logger.LogInformation(
-                        "Data retention: erased {Files} expired file(s), purged ID data from {Acords} acord(s)",
-                        erased, purged);
-                }
+                var sweeper = scope.ServiceProvider.GetRequiredService<IRetentionSweeper>();
+                await sweeper.SweepAsync(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
             }
             catch (Exception ex)
             {

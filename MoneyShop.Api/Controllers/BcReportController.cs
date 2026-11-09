@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MoneyShop.ServiceInterface.Interfaces.Audit;
 using MoneyShop.ServiceInterface.Interfaces.BcReport;
 using System.Security.Claims;
 
@@ -11,10 +12,12 @@ namespace MoneyShop.Api.Controllers;
 public class BcReportController : BaseController
 {
     private readonly IBcReportService _bcReportService;
+    private readonly IAuditService _audit;
 
-    public BcReportController(IBcReportService bcReportService)
+    public BcReportController(IBcReportService bcReportService, IAuditService audit)
     {
         _bcReportService = bcReportService;
+        _audit = audit;
     }
 
     private int GetUserId()
@@ -59,6 +62,8 @@ public class BcReportController : BaseController
             if (report == null)
                 return Ok(new { isEmpty = true });
 
+            _audit.Log("BcReport", "latest", "file_read", newValue: new { ownerUserId = userId }, reason: "get_latest");
+
             return Ok(report);
         }
         catch (Exception ex)
@@ -75,6 +80,8 @@ public class BcReportController : BaseController
             var report = _bcReportService.GetById(id, GetUserId());
             if (report == null)
                 return NotFound("Report not found");
+
+            _audit.Log("BcReport", id.ToString(), "file_read");
 
             return Ok(report);
         }

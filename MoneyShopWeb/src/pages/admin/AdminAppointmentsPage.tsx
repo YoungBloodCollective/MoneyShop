@@ -5,6 +5,7 @@ import { Phone, Mail, MapPin, CreditCard, Clock, UserPlus, AlertTriangle, Gavel 
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api/apiClient';
 import { adminApi } from '@/services/api/adminApi';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 
 interface Appointment {
@@ -71,11 +72,11 @@ export default function AdminAppointmentsPage() {
   const convertToLead = async (id: number) => {
     setConverting(id);
     try {
-      const result = await adminApi.convertAppointmentToLead(id);
+      await adminApi.convertAppointmentToLead(id);
       toast.success('Lead creat! Redirectionare...');
       navigate('/admin/leads');
-    } catch (err: any) {
-      if (err?.response?.status === 409) {
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
         toast.error('Lead-ul exista deja');
       } else {
         toast.error('Eroare la conversie');

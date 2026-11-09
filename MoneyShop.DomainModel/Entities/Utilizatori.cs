@@ -32,6 +32,10 @@ public partial class Utilizatori : IEntity
 
     public bool? IsDeleted { get; set; }
 
+    public int FailedLoginAttempts { get; set; }
+
+    public DateTime? LockoutEndUtc { get; set; }
+
     // OTP & Session navigation
     public virtual ICollection<OtpChallenge> OtpChallenges { get; set; } = new List<OtpChallenge>();
     public virtual ICollection<Session> Sessions { get; set; } = new List<Session>();

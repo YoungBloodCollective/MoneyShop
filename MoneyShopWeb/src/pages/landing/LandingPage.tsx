@@ -5,6 +5,7 @@ import { Phone, Lock, ChevronLeft, ChevronRight, CheckCircle2, Shield, Award, Cl
 import { useAuth } from '@/hooks/useAuth';
 import { useInView } from '@/hooks/useInView';
 import { apiClient } from '@/services/api/apiClient';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const creditOptions = [
@@ -140,8 +141,9 @@ export default function LandingPage() {
         intarzieriBirou: progForm.intarzieriBirou,
         popriRecuperare: progForm.popriRecuperare,
       });
-      if ((window as any).gtag) {
-        (window as any).gtag('event', 'conversion', {
+      const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
+      if (gtag) {
+        gtag('event', 'conversion', {
           send_to: 'AW-18083608146/HriFCOibyZocENLs965D',
           value: 1.0,
           currency: 'RON',
@@ -152,14 +154,14 @@ export default function LandingPage() {
       setProgAgreed(false);
       setProgMarketing(false);
       navigate('/multumim');
-    } catch (err: any) {
-      if (err?.response?.status === 409) {
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
         setShowProgrameaza(false);
         setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
         setProgAgreed(false);
         setProgMarketing(false);
         toast.success('Te avem deja pe lista! Un consultant te va contacta in curand.', { duration: 6000 });
-      } else if (err?.response?.status === 400 && err?.response?.data?.code === 'salary_too_low') {
+      } else if (axios.isAxiosError(err) && err.response?.status === 400 && err.response?.data?.code === 'salary_too_low') {
         toast.error('Salariul net minim acceptat este 2.500 RON (salariul minim pe economie).', { duration: 6000 });
       } else {
         toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
@@ -185,8 +187,9 @@ export default function LandingPage() {
         intarzieriBirou: inlineForm.intarzieriBirou,
         popriRecuperare: inlineForm.popriRecuperare,
       });
-      if ((window as any).gtag) {
-        (window as any).gtag('event', 'conversion', {
+      const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
+      if (gtag) {
+        gtag('event', 'conversion', {
           send_to: 'AW-18083608146/HriFCOibyZocENLs965D',
           value: 1.0,
           currency: 'RON',
@@ -198,14 +201,14 @@ export default function LandingPage() {
       setInlineAgreed(false);
       setInlineMarketing(false);
       toast.success('Cererea ta a fost inregistrata! Te vom contacta in curand.');
-    } catch (err: any) {
-      if (err?.response?.status === 409) {
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
         setInlineSuccess(true);
         setInlineAlreadyRegistered(true);
         setInlineForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
         setInlineAgreed(false);
         setInlineMarketing(false);
-      } else if (err?.response?.status === 400 && err?.response?.data?.code === 'salary_too_low') {
+      } else if (axios.isAxiosError(err) && err.response?.status === 400 && err.response?.data?.code === 'salary_too_low') {
         toast.error('Salariul net minim acceptat este 2.500 RON (salariul minim pe economie).', { duration: 6000 });
       } else {
         toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
@@ -669,7 +672,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Telefon *</label>
-                    <input type="tel" required pattern="[0-9+\s\-]{8,15}" value={inlineForm.telefon} onChange={e => { const v = e.target.value.replace(/[^0-9+\s\-]/g, ''); setInlineForm(f => ({ ...f, telefon: v })); }} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
+                    <input type="tel" required pattern="[0-9+\s\-]{8,15}" value={inlineForm.telefon} onChange={e => { const v = e.target.value.replace(/[^0-9+\s-]/g, ''); setInlineForm(f => ({ ...f, telefon: v })); }} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
@@ -987,7 +990,7 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Telefon *</label>
-                  <input type="tel" required pattern="[0-9+\s\-]{8,15}" value={partnerForm.telefon} onChange={e => { const v = e.target.value.replace(/[^0-9+\s\-]/g, ''); setPartnerForm(f => ({ ...f, telefon: v })); }} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
+                  <input type="tel" required pattern="[0-9+\s\-]{8,15}" value={partnerForm.telefon} onChange={e => { const v = e.target.value.replace(/[^0-9+\s-]/g, ''); setPartnerForm(f => ({ ...f, telefon: v })); }} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
@@ -1100,7 +1103,7 @@ export default function LandingPage() {
                   required
                   pattern="[0-9+\s\-]{8,15}"
                   value={progForm.telefon}
-                  onChange={e => { const v = e.target.value.replace(/[^0-9+\s\-]/g, ''); setProgForm(f => ({ ...f, telefon: v })); }}
+                  onChange={e => { const v = e.target.value.replace(/[^0-9+\s-]/g, ''); setProgForm(f => ({ ...f, telefon: v })); }}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                 />
               </div>

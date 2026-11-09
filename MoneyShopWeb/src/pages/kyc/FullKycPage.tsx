@@ -153,6 +153,14 @@ export default function FullKycPage() {
     setPreviewUrl(null);
   }, [previewUrl]);
 
+  // Handle step errors with retry tracking
+  const handleStepError = useCallback((err: unknown, currentStep: Step) => {
+    const msg = extractError(err);
+    setError(msg);
+    setFailedStep(currentStep);
+    setStep("error");
+  }, []);
+
   const handleConfirm = useCallback(async () => {
     if (!pendingBlob) return;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -197,7 +205,7 @@ export default function FullKycPage() {
       setPendingBlob(null);
       setStep("active_liveness");
     }
-  }, [pendingBlob, previewUrl, step, ocrRetryCount]);
+  }, [pendingBlob, previewUrl, step, ocrRetryCount, handleStepError]);
 
   const handleRetryFront = useCallback(() => {
     setFraudWarnings([]);
@@ -245,14 +253,6 @@ export default function FullKycPage() {
     setFailedStep(null);
     setRetryCount(0);
     setStep("front");
-  }, []);
-
-  // Handle step errors with retry tracking
-  const handleStepError = useCallback((err: unknown, currentStep: Step) => {
-    const msg = extractError(err);
-    setError(msg);
-    setFailedStep(currentStep);
-    setStep("error");
   }, []);
 
   // Active liveness complete → run submissions

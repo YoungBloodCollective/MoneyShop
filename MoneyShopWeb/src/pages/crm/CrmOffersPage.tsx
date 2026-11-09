@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Landmark, Search } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmOfferItem } from '@/types/crm.types';
-import { PageHeader, SkeletonTable, EmptyState, StatusPill, money, dateShort } from './crmShared';
+import { PageHeader, SkeletonTable, EmptyState, StatusPill } from './crmShared';
+import { money, dateShort } from './crmHelpers';
 
 export default function CrmOffersPage() {
   const [offers, setOffers] = useState<CrmOfferItem[]>([]);
