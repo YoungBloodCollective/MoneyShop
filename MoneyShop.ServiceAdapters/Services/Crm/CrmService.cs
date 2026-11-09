@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using Microsoft.Extensions.Configuration;
+using MoneyShop.DomainModel.Entities;
 using MoneyShop.DomainServices.RepositoryInterfaces.Application;
+using MoneyShop.DomainServices.RepositoryInterfaces.Kyc;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using MoneyShop.ServiceInterface.Interfaces.Crm;
 
@@ -15,14 +19,23 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
     public class CrmService : ICrmService
     {
         private static readonly string[] ClosedStatuses = { "DISBURSAT", "RESPINS" };
+        private const string AnafType = "anaf_income";
 
         private readonly IApplicationRepository _applications;
+        private readonly IKycFileRepository _kycFiles;
         private readonly MoneyShopDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public CrmService(IApplicationRepository applications, MoneyShopDbContext context)
+        public CrmService(
+            IApplicationRepository applications,
+            IKycFileRepository kycFiles,
+            MoneyShopDbContext context,
+            IConfiguration configuration)
         {
             _applications = applications;
+            _kycFiles = kycFiles;
             _context = context;
+            _configuration = configuration;
         }
 
         public List<CrmClientListItem> GetClients()
@@ -67,6 +80,12 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
 
             var acord = _context.AcordClients.Where(a => a.UserId == userId)
                 .OrderByDescending(a => a.AcordId).FirstOrDefault();
+
+            var anaf = acord?.KycId == null ? null
+                : _context.KycFiles
+                    .Where(f => f.KycId == acord.KycId.Value && f.FileType == AnafType && f.DeletedAt == null)
+                    .OrderByDescending(f => f.CreatedAt)
+                    .FirstOrDefault();
 
             var latest = apps.OrderByDescending(a => a.UpdatedAt).First();
 
@@ -119,6 +138,9 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                     LivenessPassed = acord.LivenessPassed,
                     FaceMatchPassed = acord.FaceMatchPassed,
                 },
+                CanAttachAnaf = acord?.KycId != null,
+                AnafFileName = anaf?.FileName,
+                AnafUploadedAt = anaf?.CreatedAt,
             };
         }
 
@@ -185,6 +207,76 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                     };
                 })
                 .ToList();
+        }
+
+        private AcordClient? FindAcord(int userId) =>
+            _context.AcordClients.Where(a => a.UserId == userId)
+                .OrderByDescending(a => a.AcordId).FirstOrDefault();
+
+        public CrmAnafFile? GetClientAnaf(int userId)
+        {
+            var acord = FindAcord(userId);
+            if (acord?.KycId == null) return null;
+
+            var file = _context.KycFiles
+                .Where(f => f.KycId == acord.KycId.Value && f.FileType == AnafType && f.DeletedAt == null)
+                .OrderByDescending(f => f.CreatedAt)
+                .FirstOrDefault();
+
+            if (file?.FileContentBase64 == null) return null;
+
+            return new CrmAnafFile
+            {
+                Content = Convert.FromBase64String(file.FileContentBase64),
+                FileName = file.FileName,
+                MimeType = file.MimeType,
+            };
+        }
+
+        public CrmAnafUploadResult UploadClientAnaf(int userId, byte[] content, string fileName, string mimeType)
+        {
+            var acord = FindAcord(userId);
+            if (acord?.KycId == null) return new CrmAnafUploadResult { Ok = false, Reason = "no_acord" };
+
+            byte[] hash;
+            using (var sha = SHA256.Create()) hash = sha.ComputeHash(content);
+
+            var retentionDays = _configuration.GetValue<int?>("Acord:RetentionDays") ?? 30;
+            var expires = DateTime.UtcNow.AddDays(retentionDays);
+
+            var existing = _context.KycFiles
+                .FirstOrDefault(f => f.KycId == acord.KycId.Value && f.FileType == AnafType && f.DeletedAt == null);
+
+            if (existing != null)
+            {
+                existing.FileName = fileName;
+                existing.MimeType = mimeType;
+                existing.FileSize = content.LongLength;
+                existing.Sha256Hash = hash;
+                existing.FileContentBase64 = Convert.ToBase64String(content);
+                existing.CreatedAt = DateTime.UtcNow;
+                existing.ExpiresAt = expires;
+                _kycFiles.Update(existing);
+            }
+            else
+            {
+                _kycFiles.Insert(new KycFile
+                {
+                    FileId = Guid.NewGuid(),
+                    KycId = acord.KycId.Value,
+                    FileType = AnafType,
+                    FileName = fileName,
+                    MimeType = mimeType,
+                    FileSize = content.LongLength,
+                    Sha256Hash = hash,
+                    FileContentBase64 = Convert.ToBase64String(content),
+                    CreatedAt = DateTime.UtcNow,
+                    ExpiresAt = expires,
+                });
+            }
+
+            _context.SaveChanges();
+            return new CrmAnafUploadResult { Ok = true };
         }
 
         private static string FullName(string? nume, string? prenume, int userId)

@@ -96,6 +96,9 @@ export interface CrmClientDetail {
   files: CrmClientFile[];
   documents: CrmClientDocument[];
   kyc?: CrmKycSnapshot;
+  canAttachAnaf: boolean;
+  anafFileName?: string;
+  anafUploadedAt?: string;
 }
 
 export interface CrmFileListItem {
