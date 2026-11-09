@@ -25,4 +25,13 @@ export const crmApi = {
     const { data } = await apiClient.get<CrmOfferItem[]>('/crm/offers');
     return data;
   },
+  async uploadAnaf(userId: number, file: File): Promise<void> {
+    const fd = new FormData();
+    fd.append('file', file);
+    await apiClient.post(`/crm/clients/${userId}/anaf`, fd);
+  },
+  async getAnafBlob(userId: number): Promise<Blob> {
+    const { data } = await apiClient.get(`/crm/clients/${userId}/anaf`, { responseType: 'blob' });
+    return data as Blob;
+  },
 };

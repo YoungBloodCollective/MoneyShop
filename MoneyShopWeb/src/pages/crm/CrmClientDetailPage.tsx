@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -67,6 +67,71 @@ function CrediusForwardButton({ applicationId }: { applicationId: number }) {
   );
 }
 
+function AnafCard({ client, userId, onChange }: { client: CrmClientDetail; userId: number; onChange: () => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    try {
+      await crmApi.uploadAnaf(userId, file);
+      toast.success('Document ANAF încărcat.');
+      onChange();
+    } catch (err) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      toast.error(status === 409
+        ? 'Clientul nu are încă un acord — ANAF se atașează după acord.'
+        : 'Nu am putut încărca documentul.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const view = async () => {
+    try {
+      const blob = await crmApi.getAnafBlob(userId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      toast.error('Nu am putut deschide documentul.');
+    }
+  };
+
+  return (
+    <Card title="Venituri ANAF" icon={FileText}>
+      {!client.canAttachAnaf ? (
+        <p className="py-2 text-sm text-slate-400">Clientul nu are încă un acord — documentul ANAF se poate atașa după semnarea acordului.</p>
+      ) : (
+        <div className="space-y-3">
+          {client.anafFileName ? (
+            <div className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5">
+              <div className="min-w-0">
+                <div className="truncate text-sm font-medium text-slate-700">{client.anafFileName}</div>
+                <div className="text-xs text-slate-400">{client.anafUploadedAt ? dateShort(client.anafUploadedAt) : ''}</div>
+              </div>
+              <button onClick={view} className="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">Vezi</button>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400">Niciun document ANAF încărcat.</p>
+          )}
+          <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*" className="hidden" onChange={onPick} />
+          <button
+            onClick={() => inputRef.current?.click()}
+            disabled={busy}
+            className="w-full rounded-xl border border-dashed border-slate-300 py-2.5 text-sm font-medium text-slate-600 hover:border-brand-primary hover:text-brand-primary disabled:opacity-50"
+          >
+            {busy ? 'Se încarcă…' : client.anafFileName ? 'Înlocuiește documentul' : 'Încarcă Situația ANAF (din SPV)'}
+          </button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function CrmClientDetailPage() {
   const { userId } = useParams();
   const navigate = useNavigate();
@@ -82,6 +147,8 @@ export default function CrmClientDetailPage() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [userId]);
+
+  const refreshClient = () => crmApi.getClient(Number(userId)).then(setClient).catch(() => undefined);
 
   if (loading) return <Spinner />;
   if (notFound || !client) {
@@ -208,6 +275,8 @@ export default function CrmClientDetailPage() {
               </div>
             ) : <p className="py-2 text-sm text-slate-400">Fără acord/KYC</p>}
           </Card>
+
+          <AnafCard client={client} userId={Number(userId)} onChange={refreshClient} />
 
           <Card title="Rezumat" icon={Wallet}>
             <InfoRow label="Total dosare" value={client.files.length} />
