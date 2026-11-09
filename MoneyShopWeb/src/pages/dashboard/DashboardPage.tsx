@@ -9,6 +9,7 @@ import { applicationsApi } from '@/services/api/applicationsApi';
 import { userFinancialDataApi, type UserFinancialData } from '@/services/api/userFinancialDataApi';
 import { bcReportApi, type BcReportSummaryDto } from '@/services/api/bcReportApi';
 import type { Application } from '@/types/application.types';
+import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
 
 function SkeletonBox() {
   return (
@@ -300,11 +301,11 @@ export default function DashboardPage() {
                   <p className="text-xs text-light-60">{new Date(app.createdAt).toLocaleDateString('ro-RO')}</p>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  app.status === 'APROBAT' ? 'bg-success-500/15 text-success-400' :
+                  app.status === 'APROBAT_BANCA' ? 'bg-success-500/15 text-success-400' :
                   app.status === 'RESPINS' ? 'bg-error-500/15 text-error-400' :
                   'bg-warning-500/15 text-warning-400'
                 }`}>
-                  {app.status}
+                  {APPLICATION_STATUS_LABELS[app.status] || app.status}
                 </span>
               </div>
             ))}

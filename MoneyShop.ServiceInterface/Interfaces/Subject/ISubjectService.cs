@@ -4,7 +4,7 @@ namespace MoneyShop.ServiceInterface.Interfaces.Subject
 {
     public interface ISubjectService
     {
-        SubjectMapResult GetOrCreateSubject(int userId, string cnp);
+        SubjectMapResult GetOrCreateSubject(int userId, string cnp, bool allowExistingOtherUser = false);
         SubjectMapResult? GetSubjectByUserId(int userId);
         SubjectMapResult? GetSubjectById(string subjectId);
 
@@ -20,6 +20,11 @@ namespace MoneyShop.ServiceInterface.Interfaces.Subject
         /// decrypting anything. Returns false when the subject is unknown, so nothing is logged.
         /// </summary>
         bool LogCnpAccess(int userId, CnpAccessContext access);
+    }
+
+    public class SubjectConflictException : Exception
+    {
+        public SubjectConflictException() : base("CNP-ul nu poate fi asociat acestui cont.") { }
     }
 
     /// <summary>

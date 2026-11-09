@@ -15,6 +15,7 @@ const SOURCE_LABELS: Record<string, string> = {
 export default function AdminLeadsPage() {
   const [leads, setLeads] = useState<LeadItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<LeadItem | null>(null);
   const [notes, setNotes] = useState('');
@@ -22,8 +23,12 @@ export default function AdminLeadsPage() {
 
   const loadLeads = async () => {
     setLoading(true);
-    const data = await adminApi.getLeads();
-    setLeads(data);
+    setError(false);
+    try {
+      setLeads(await adminApi.getLeads());
+    } catch {
+      setError(true);
+    }
     setLoading(false);
   };
 
@@ -147,6 +152,7 @@ export default function AdminLeadsPage() {
           className="w-full h-11 pl-11 pr-4 rounded-xl bg-dark-700 border border-dark-400 text-light-90 placeholder:text-light-50 focus:border-brand-primary focus:outline-none transition-colors"
         />
       </div>
+      {error && <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">Nu s-au putut încărca datele. Încearcă din nou.</p>}
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="w-8 h-8 border-3 border-brand-primary border-t-transparent rounded-full animate-spin" />

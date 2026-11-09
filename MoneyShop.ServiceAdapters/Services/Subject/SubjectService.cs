@@ -44,7 +44,7 @@ public class SubjectService : ISubjectService
     /// CNP enters the system, so it is also where it is encrypted and where sex and birth
     /// date are derived - reads afterwards never need the plaintext.
     /// </summary>
-    public SubjectMapResult GetOrCreateSubject(int userId, string cnp)
+    public SubjectMapResult GetOrCreateSubject(int userId, string cnp, bool allowExistingOtherUser = false)
     {
         if (string.IsNullOrWhiteSpace(cnp))
         {
@@ -63,6 +63,9 @@ public class SubjectService : ISubjectService
 
         if (existingSubject != null)
         {
+            if (existingSubject.UserId != userId && !allowExistingOtherUser)
+                throw new SubjectConflictException();
+
             // A subject created before the CNP was kept - or while no key was configured -
             // has the plaintext in hand right now and will not again, so it is filled in.
             if (Enrich(existingSubject, cnp))

@@ -1,18 +1,15 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Phone, Camera, CheckCircle, Shield } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import { authApi } from '@/services/api/authApi';
 import { kycApi } from '@/services/api/kycApi';
 import { useAuthStore } from '@/store/authStore';
-import { useIsDesktop } from '@/hooks/useMediaQuery';
 
 type Step = 'email' | 'phone' | 'kyc' | 'done';
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
-  const isDesktop = useIsDesktop();
   const user = useAuthStore(s => s.user);
   const setUser = useAuthStore(s => s.setUser);
 
@@ -30,10 +27,6 @@ export default function OnboardingPage() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [phoneInput, setPhoneInput] = useState(user?.phone || '');
-  const [kycToken, setKycToken] = useState('');
-  const [kycQrUrl, setKycQrUrl] = useState('');
-  const [kycStatus, setKycStatus] = useState('');
-  const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   // Redirect to dashboard if already completed
   useEffect(() => {
@@ -54,11 +47,6 @@ export default function OnboardingPage() {
       }).catch(() => { /* ignore - status check failed, proceed normally */ });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Cleanup polling on unmount
-  useEffect(() => {
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, []);
 
   // ── Email Verification ──
 
@@ -131,52 +119,7 @@ export default function OnboardingPage() {
 
   // ── KYC ──
 
-  const startKyc = async () => {
-    setLoading(true);
-    try {
-      const res = await kycApi.startScanSession();
-      if (res.status === 'already_verified') {
-        if (user) setUser({ ...user, kycStatus: 'verified' });
-        setStep('done');
-        toast.success('KYC deja verificat!');
-        return;
-      }
-
-      const kycVerifyUrl = `/kyc/verify/${res.externalSessionId}?token=${res.externalToken}`;
-
-      // Mobile: navigate to integrated KYC page
-      if (!isDesktop) {
-        navigate(kycVerifyUrl);
-        return;
-      }
-
-      // Desktop: show QR code for mobile KYC + poll for completion
-      setKycToken(res.accessToken);
-      setKycQrUrl(`${window.location.origin}${kycVerifyUrl}`);
-      setKycStatus('pending');
-      pollRef.current = setInterval(async () => {
-        try {
-          const status = await kycApi.getScanStatus(res.accessToken);
-          setKycStatus(status.status);
-          if (status.status === 'verified') {
-            clearInterval(pollRef.current);
-            if (user) setUser({ ...user, kycStatus: 'verified' });
-            setStep('done');
-            toast.success('KYC verificat cu succes!');
-          } else if (status.status === 'rejected') {
-            clearInterval(pollRef.current);
-            toast.error(status.rejectionReason || 'KYC respins');
-          }
-        } catch { /* ignore polling errors */ }
-      }, 5000);
-    } catch {
-      toast.error('Eroare la initierea KYC');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const qrUrl = kycQrUrl;
+  const startKyc = () => navigate('/kyc/verify');
 
   // ── Step indicators ──
   const steps: { key: Step; label: string; icon: React.ReactNode }[] = [
@@ -319,87 +262,26 @@ export default function OnboardingPage() {
                 <div>
                   <h1 className="text-xl font-bold text-light-100">Verificare identitate</h1>
                   <p className="text-sm text-light-60">
-                    {isDesktop ? 'Scaneaza codul QR cu telefonul' : 'Fotografiaza actul de identitate'}
+                    Fotografiaza actul de identitate
                   </p>
                 </div>
               </div>
 
-              {!kycToken ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-light-70">
-                    {isDesktop
-                      ? 'Vei primi un cod QR pe care il scanezi cu telefonul mobil. Pe telefon vei fotografia actul de identitate si vei face un selfie.'
-                      : 'Vei fotografia actul de identitate si vei face un selfie pentru verificarea identitatii.'
-                    }
-                  </p>
-                  <button onClick={startKyc} disabled={loading}
-                    className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-brand-primary/25 flex items-center justify-center gap-2">
-                    {loading ? 'Se initializeaza...' : (
-                      <>
-                        {!isDesktop && <Camera size={18} />}
-                        {isDesktop ? 'Incepe verificarea' : 'Deschide camera'}
-                      </>
-                    )}
+              <div className="space-y-4">
+                <p className="text-sm text-light-70">
+                  Vei fotografia actul de identitate si vei face un selfie pentru verificarea identitatii.
+                </p>
+                <button onClick={startKyc}
+                  className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-all hover:shadow-lg hover:shadow-brand-primary/25 flex items-center justify-center gap-2">
+                  <Camera size={18} />
+                  Deschide camera
+                </button>
+                <div className="mt-4 text-center">
+                  <button onClick={() => navigate('/dashboard')} className="text-sm text-light-50 hover:text-light-70 underline">
+                    Finalizeaza mai tarziu
                   </button>
-                  <div className="mt-4 text-center">
-                    <button onClick={() => navigate('/dashboard')} className="text-sm text-light-50 hover:text-light-70 underline">
-                      Finalizeaza mai tarziu
-                    </button>
-                  </div>
                 </div>
-              ) : (
-                /* Desktop only: QR code + polling (mobile navigates away) */
-                <div className="space-y-5 text-center">
-                  <div className="bg-white p-4 rounded-xl inline-block mx-auto">
-                    <QRCodeSVG value={qrUrl} size={200} level="M" />
-                  </div>
-
-                  <div className="flex flex-col gap-3 text-left">
-                    {[
-                      'Deschide camera telefonului',
-                      'Scaneaza codul QR',
-                      'Urmeaza instructiunile pe telefon',
-                    ].map((text, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full bg-brand-primary/15 text-brand-primary flex items-center justify-center text-xs font-bold shrink-0">
-                          {i + 1}
-                        </div>
-                        <span className="text-sm text-light-70">{text}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-xs text-light-50">
-                      {kycStatus === 'pending'
-                        ? 'Se asteapta finalizarea verificarii...'
-                        : kycStatus === 'rejected'
-                        ? 'Verificarea a fost respinsa. Incearca din nou.'
-                        : 'Pregatit pentru scanare'}
-                    </p>
-                  </div>
-
-                  {kycStatus === 'pending' && (
-                    <div className="flex items-center justify-center gap-2 text-brand-primary">
-                      <div className="w-4 h-4 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
-                      <span className="text-sm">Se asteapta...</span>
-                    </div>
-                  )}
-
-                  {kycStatus === 'rejected' && (
-                    <button onClick={() => { setKycToken(''); setKycStatus(''); startKyc(); }}
-                      className="w-full h-12 rounded-full bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-all hover:shadow-lg hover:shadow-brand-primary/25">
-                      Reincearca verificarea
-                    </button>
-                  )}
-
-                  <div className="mt-2">
-                    <button onClick={() => navigate('/dashboard')} className="text-sm text-light-50 hover:text-light-70 underline">
-                      Finalizeaza mai tarziu
-                    </button>
-                  </div>
-                </div>
-              )}
+              </div>
             </>
           )}
 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using MoneyShop.ServiceInterface.SharedDtos;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Application;
 using MoneyShop.ServiceInterface.Interfaces.Broker;
@@ -25,7 +26,6 @@ namespace MoneyShop.Api.Controllers
         public int Id { get; set; }
         public string? TypeCredit { get; set; }
         public string? TipOperatiune { get; set; }
-        public string? Status { get; set; }
         public decimal? RequestedAmount { get; set; }
         public int? RequestedTermMonths { get; set; }
         public string? Purpose { get; set; }
@@ -166,7 +166,6 @@ namespace MoneyShop.Api.Controllers
             existing.RequestedAmount = request.RequestedAmount ?? existing.RequestedAmount;
             existing.RequestedTermMonths = request.RequestedTermMonths ?? existing.RequestedTermMonths;
             existing.Purpose = request.Purpose ?? existing.Purpose;
-            existing.Status = request.Status ?? existing.Status;
             existing.UpdatedAt = DateTime.UtcNow;
 
             var updated = _applicationService.UpdateApplication(existing);
@@ -181,6 +180,8 @@ namespace MoneyShop.Api.Controllers
 
             var userId = GetCurrentUserId();
             if (application.UserId != userId) return Forbid();
+
+            if (application.Status != ApplicationStatuses.INREGISTRAT) return Conflict("Application is already being processed and cannot be deleted");
 
             _applicationService.DeleteApplication(id);
             return NoContent();

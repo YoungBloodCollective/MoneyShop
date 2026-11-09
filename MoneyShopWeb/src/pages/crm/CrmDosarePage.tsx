@@ -9,13 +9,13 @@ import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
 import {
   PageHeader, SkeletonTable, EmptyState, StatusPill, money, dateShort,
   creditTypeLabel, statusColor, statusLabel,
-  SegmentChips, STATUS_SEGMENTS, matchesSegment, usePaged, Pagination,
+  SegmentChips, FILE_STATUS_SEGMENTS, matchesSegment, usePaged, Pagination,
 } from './crmShared';
 
 const STATUS_OPTIONS = Object.entries(APPLICATION_STATUS_LABELS);
 const COLUMNS = [
   'INREGISTRAT', 'IN_ANALIZA', 'NEVOIE_DOCUMENTE', 'PREAPROBAT',
-  'TRIMIS_LA_BANCA', 'APROBAT_BANCA', 'DISBURSAT', 'RESPINS',
+  'OFERTA_TRANSMISA', 'ACCEPTAT_CLIENT', 'TRIMIS_LA_BANCA', 'APROBAT_BANCA', 'DISBURSAT', 'RESPINS',
 ];
 const SEG_KEY = 'moneyshop:crm-dosare-seg';
 
@@ -25,7 +25,7 @@ export default function CrmDosarePage() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [segment, setSegment] = useState<string>(() => {
-    try { return localStorage.getItem(SEG_KEY) || 'toate'; } catch { return 'toate'; }
+    try { const v = localStorage.getItem(SEG_KEY); return v && v !== 'none' ? v : 'toate'; } catch { return 'toate'; }
   });
   const [view, setView] = useState<'list' | 'board'>('list');
   const [draggedId, setDraggedId] = useState<number | null>(null);
@@ -55,7 +55,7 @@ export default function CrmDosarePage() {
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { toate: files.length };
-    for (const seg of STATUS_SEGMENTS) {
+    for (const seg of FILE_STATUS_SEGMENTS) {
       if (seg.key !== 'toate') c[seg.key] = files.filter(x => matchesSegment(x.status, seg.key)).length;
     }
     return c;
@@ -66,6 +66,7 @@ export default function CrmDosarePage() {
   function moveCard(id: number, toStatus: string) {
     const file = files.find(f => f.id === id);
     if (!file || file.status === toStatus) return;
+    if ((toStatus === 'RESPINS' || toStatus === 'DISBURSAT') && !window.confirm(`Sigur muți dosarul #${file.code} în „${statusLabel(toStatus)}”? Acțiunea poate notifica clientul.`)) return;
     const prev = file.status;
     setFiles(fs => fs.map(f => (f.id === id ? { ...f, status: toStatus } : f)));
     adminApi.updateStatus(id, toStatus)
@@ -79,6 +80,7 @@ export default function CrmDosarePage() {
   async function bulkSetStatus(toStatus: string) {
     const ids = [...selected];
     if (ids.length === 0) return;
+    if (!window.confirm(`Sigur schimbi statusul a ${ids.length} dosare în „${statusLabel(toStatus)}”?`)) return;
     setFiles(fs => fs.map(f => (ids.includes(f.id) ? { ...f, status: toStatus } : f)));
     setSelected(new Set());
     const results = await Promise.allSettled(ids.map(id => adminApi.updateStatus(id, toStatus)));
@@ -130,7 +132,7 @@ export default function CrmDosarePage() {
       <PageHeader title="Dosare" subtitle={`${files.length} dosare în total`} action={toggle} />
 
       {view === 'list' && (
-        <SegmentChips segments={STATUS_SEGMENTS} active={segment} onChange={setSegment} counts={counts} />
+        <SegmentChips segments={FILE_STATUS_SEGMENTS} active={segment} onChange={setSegment} counts={counts} />
       )}
 
       <div className="relative min-w-[220px] max-w-md">

@@ -36,7 +36,11 @@ namespace MoneyShop.Api.Controllers
                 var userId = GetUserId();
                 var result = _subjectService.GetOrCreateSubject(userId, model.Cnp);
 
-                return Ok(new { subjectId = result.SubjectId, cnpMasked = result.CnpMasked, isNew = result.IsNew });
+                return Ok(new { subjectId = result.SubjectId, cnpMasked = result.CnpMasked });
+            }
+            catch (SubjectConflictException)
+            {
+                return Conflict(new { message = "CNP-ul nu poate fi asociat acestui cont." });
             }
             catch (Exception ex)
             {

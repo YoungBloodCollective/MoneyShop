@@ -6,12 +6,14 @@ import { PageHeader, SkeletonCards, EmptyState, money, dateShort, initials } fro
 export default function CrmLeadsPage() {
   const [leads, setLeads] = useState<LeadItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [q, setQ] = useState('');
 
   useEffect(() => {
     let active = true;
     adminApi.getLeads()
       .then(d => { if (active) setLeads(d); })
+      .catch(() => { if (active) setError(true); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
@@ -42,7 +44,9 @@ export default function CrmLeadsPage() {
         />
       </div>
 
-      {filtered.length === 0 ? (
+      {error && <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">Nu s-au putut încărca datele. Încearcă din nou.</p>}
+
+      {filtered.length === 0 && !error ? (
         <EmptyState message="Niciun lead încă." />
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">

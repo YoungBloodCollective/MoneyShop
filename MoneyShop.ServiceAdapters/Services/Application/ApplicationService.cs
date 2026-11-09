@@ -1,5 +1,6 @@
 using MoneyShop.DomainModel.Entities;
 using MoneyShop.ServiceInterface.Interfaces.Application;
+using MoneyShop.ServiceInterface.SharedDtos;
 using MoneyShop.DomainServices.RepositoryInterfaces.Application;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using System.Text.Json;
@@ -57,16 +58,34 @@ public class ApplicationService : IApplicationService
         return application;
     }
 
-    public void UpdateApplicationStatus(int applicationId, string status)
+    public void UpdateStatus(int id, string newStatus, int? actorUserId, string? actorRole, string? note)
     {
-        var application = GetApplicationById(applicationId);
-        if (application != null)
+        if (!ApplicationStatuses.IsValid(newStatus))
+            throw new ArgumentException("Invalid status");
+
+        var application = GetApplicationById(id);
+        if (application == null)
+            throw new KeyNotFoundException("Application not found");
+
+        var current = application.Status;
+        if (!ApplicationStatuses.CanTransition(current, newStatus))
+            throw new InvalidOperationException($"Transition {current} -> {newStatus} is not allowed");
+
+        var now = DateTime.UtcNow;
+        _context.ApplicationStatusHistories.Add(new ApplicationStatusHistory
         {
-            application.Status = status;
-            application.UpdatedAt = DateTime.UtcNow;
-            _applicationRepository.Update(application);
-            _context.SaveChanges();
-        }
+            ApplicationId = application.Id,
+            FromStatus = current,
+            ToStatus = newStatus,
+            ChangedByUserId = actorUserId,
+            ChangedByRole = actorRole,
+            Note = note,
+            ChangedAt = now
+        });
+        application.Status = newStatus;
+        application.UpdatedAt = now;
+        _applicationRepository.Update(application);
+        _context.SaveChanges();
     }
 
     public void DeleteApplication(int id)

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Auth;
 using System;
@@ -21,6 +22,7 @@ namespace MoneyShop.Api.Controllers
         }
 
         [HttpPost("request")]
+        [EnableRateLimiting("auth")]
         public IActionResult RequestOtp([FromBody] OtpRequestModel model)
         {
             if (model == null || string.IsNullOrEmpty(model.Phone) || string.IsNullOrEmpty(model.Purpose))
@@ -42,6 +44,7 @@ namespace MoneyShop.Api.Controllers
         }
 
         [HttpPost("verify")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> VerifyOtp([FromBody] OtpVerifyModel model)
         {
             if (model == null ||

@@ -155,19 +155,6 @@ public static class ApiRoutes
         public const string DeleteDocument = "document/delete";
     }
 
-    public static class Ocr
-    {
-        public const string Controller = $"{Base}/ocr";
-        public const string ProcessId = "process-id";
-    }
-
-    public static class OpenAIPlugin
-    {
-        public const string Controller = $"{Base}/openai-plugin";
-        public const string Info = "info";
-        public const string Prompt = "prompt";
-    }
-
     public static class Otp
     {
         public const string Controller = $"{Base}/otp";
@@ -194,17 +181,6 @@ public static class ApiRoutes
         public const string Controller = $"{Base}/telemetry";
         public const string TrackEvent = "track-event";
         public const string TrackException = "track-exception";
-    }
-
-    public static class TestConnection
-    {
-        public const string Controller = $"{Base}/testconnection";
-    }
-
-    public static class DatabaseTest
-    {
-        public const string Controller = $"{Base}/databasetest";
-        public const string Test = "test";
     }
 
     public static class UserFinancialData

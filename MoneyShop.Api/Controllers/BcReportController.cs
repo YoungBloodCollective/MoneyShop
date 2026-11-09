@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.BcReport;
 using System.Security.Claims;
-using iText.Kernel.Pdf;
-using iText.Kernel.Pdf.Canvas.Parser;
 
 namespace MoneyShop.Api.Controllers;
 
@@ -84,27 +82,5 @@ public class BcReportController : BaseController
         {
             return BadRequest(ex.Message);
         }
-    }
-
-    [HttpPost("debug-text")]
-    [AllowAnonymous]
-    [Consumes("multipart/form-data")]
-    [RequestSizeLimit(30_000_000)]
-    public IActionResult DebugText(IFormFile file)
-    {
-        if (file == null || file.Length == 0)
-            return BadRequest("No file uploaded");
-        using var ms = new MemoryStream();
-        file.CopyTo(ms);
-        ms.Position = 0;
-        using var reader = new PdfReader(ms);
-        using var pdfDoc = new PdfDocument(reader);
-        var pages = new List<object>();
-        for (int i = 1; i <= pdfDoc.GetNumberOfPages(); i++)
-        {
-            var text = PdfTextExtractor.GetTextFromPage(pdfDoc.GetPage(i));
-            pages.Add(new { page = i, text });
-        }
-        return Ok(new { totalPages = pdfDoc.GetNumberOfPages(), pages });
     }
 }

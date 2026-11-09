@@ -60,6 +60,7 @@ public class BcReportService : IBcReportService
         decimal monthlyObligations = (data.BankingIndicators?.TotalMonthlyPayment ?? 0)
                                    + (data.NonBankingIndicators?.TotalMonthlyPayment ?? 0);
 
+        data.SubjectCnp = MaskCnp(data.SubjectCnp);
         // Serialize parsed data
         var parsedDataJson = JsonSerializer.Serialize(data, JsonOptions);
         var warningsJson = JsonSerializer.Serialize(parseResult.Warnings, JsonOptions);
@@ -255,6 +256,13 @@ public class BcReportService : IBcReportService
         _context.SaveChanges();
     }
 
+    private static string? MaskCnp(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+        if (value.Contains('*')) return value;
+        return value.Length >= 4 ? "*********" + value[^4..] : "*********";
+    }
+
     private static BcReportSummaryDto MapToDto(DomainModel.Entities.BcReport report)
     {
         BcParsedData? parsedData = null;
@@ -262,6 +270,8 @@ public class BcReportService : IBcReportService
         {
             try { parsedData = JsonSerializer.Deserialize<BcParsedData>(report.ParsedDataJson, JsonOptions); }
             catch { /* ignore deserialization errors */ }
+            if (parsedData != null)
+                parsedData.SubjectCnp = MaskCnp(parsedData.SubjectCnp);
         }
 
         List<string> warnings = new();

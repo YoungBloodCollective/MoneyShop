@@ -97,8 +97,7 @@ export function AppRouter() {
 
         {/* Public KYC scan page (phone browser, no layout) */}
         <Route path="/kyc/scan/:token" element={<KycScanPage />} />
-        <Route path="/kyc/verify" element={<FullKycPage />} />
-        <Route path="/kyc/verify/:sessionId" element={<FullKycPage />} />
+        <Route path="/kyc/verify" element={<ProtectedRoute skipOnboardingCheck><FullKycPage /></ProtectedRoute>} />
 
         {/* Public client consent + document upload (shared link, no layout) */}
         <Route path="/acord" element={<AcordClientPage />} />
@@ -153,7 +152,7 @@ export function AppRouter() {
           <Route path="/profile/mandates" element={<MandateManagementPage />} />
           <Route path="/profile/brokers" element={<BrokerDirectoryPage />} />
           <Route path="/profile/schedule-call" element={<ScheduleCallPage />} />
-          <Route path="/profile/invoicing" element={<InvoicingPage />} />
+          <Route path="/profile/invoicing" element={<ProtectedRoute adminOnly><InvoicingPage /></ProtectedRoute>} />
 
           {/* Admin routes */}
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboardPage /></ProtectedRoute>} />

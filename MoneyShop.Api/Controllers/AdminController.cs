@@ -7,6 +7,8 @@ using MoneyShop.DomainModel.Entities;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using System.Security.Claims;
+using MoneyShop.ServiceInterface.SharedDtos;
 
 namespace MoneyShop.Api.Controllers
 {
@@ -60,7 +62,18 @@ namespace MoneyShop.Api.Controllers
             if (application == null)
                 return NotFound(new { message = "Application not found" });
 
-            _applicationService.UpdateApplicationStatus(id, request.Status);
+            try
+            {
+                _applicationService.UpdateStatus(id, request.Status, GetActorUserId(), GetActorRole(), null);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
             return Ok(new { message = "Status updated successfully" });
         }
 
@@ -74,13 +87,36 @@ namespace MoneyShop.Api.Controllers
             if (application == null)
                 return NotFound(new { message = "Application not found" });
 
+            if (request.SumaAprobata == null || request.SumaAprobata <= 0)
+                return BadRequest(new { message = "SumaAprobata must be greater than 0" });
+            if (request.DataDisbursare == null || request.DataDisbursare > DateTime.UtcNow.AddDays(1))
+                return BadRequest(new { message = "DataDisbursare is required and cannot be in the future" });
+            if (request.Comision != null && request.Comision < 0)
+                return BadRequest(new { message = "Comision cannot be negative" });
+
+            var alreadyDisbursed = application.Status == ApplicationStatuses.DISBURSAT;
+            if (!alreadyDisbursed && !ApplicationStatuses.CanTransition(application.Status, ApplicationStatuses.DISBURSAT))
+                return Conflict(new { message = $"Transition {application.Status} -> {ApplicationStatuses.DISBURSAT} is not allowed" });
+
             application.SumaAprobata = request.SumaAprobata;
             application.Comision = request.Comision;
             application.DataDisbursare = request.DataDisbursare;
-            application.Status = "DISBURSAT";
-
             _applicationService.UpdateApplication(application);
+
+            if (!alreadyDisbursed)
+                _applicationService.UpdateStatus(id, ApplicationStatuses.DISBURSAT, GetActorUserId(), GetActorRole(), "Disbursement registered");
             return Ok(new { message = "Disbursement info updated successfully" });
+        }
+
+        private int? GetActorUserId()
+        {
+            var value = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(value, out var id) ? id : null;
+        }
+
+        private string? GetActorRole()
+        {
+            return User.FindFirst(ClaimTypes.Role)?.Value;
         }
 
         /// <summary>

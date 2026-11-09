@@ -156,13 +156,11 @@ export default function RegisterPage() {
         phone: form.phone,
         password: form.password,
         confirmPassword: form.confirmPassword,
-        acceptTerms: true,
-        acceptGdpr: true,
-        acceptCosts: true,
-        mandateAnaf: true,
-        ipAddress: '',
+        acceptTerms: form.acceptTerms,
+        acceptGdpr: form.acceptGdpr,
+        acceptCosts: form.acceptCosts,
+        mandateAnaf: form.mandateAnaf,
         userAgent: navigator.userAgent,
-        deviceHash: btoa(navigator.userAgent).slice(0, 32),
       });
       loginWithToken(res.token, res.user);
       toast.success('Cont creat! Continua cu verificarea.');

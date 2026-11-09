@@ -69,8 +69,8 @@ public class OtpService : IOtpService
         var otp = GenerateRandomOtp();
         var otpId = Guid.NewGuid();
 
-        // Hash OTP with pepper (from config or default)
-        var pepper = _configuration["Otp:Pepper"] ?? "default-pepper-change-in-production";
+        // Hash OTP with pepper
+        var pepper = _configuration["Otp:Pepper"] ?? throw new InvalidOperationException("Otp:Pepper is not configured");
         var otpHash = ComputeOtpHash(otp, purpose, phoneOrEmail, pepper);
 
         // Determine expiry based on purpose
@@ -107,11 +107,6 @@ public class OtpService : IOtpService
         else if (isPhone)
         {
             _ = _smsService.SendVerificationCodeAsync(phoneOrEmail, otp);
-        }
-        else
-        {
-            // Fallback: log it
-            Console.WriteLine($"[DEV] OTP for {phoneOrEmail} ({purpose}): {otp} (expires in {expiryMinutes} min)");
         }
 
         return new OtpRequestResult
@@ -155,7 +150,7 @@ public class OtpService : IOtpService
         }
 
         // Verify hash
-        var pepper = _configuration["Otp:Pepper"] ?? "default-pepper-change-in-production";
+        var pepper = _configuration["Otp:Pepper"] ?? throw new InvalidOperationException("Otp:Pepper is not configured");
         var computedHash = ComputeOtpHash(code, purpose, phoneOrEmail, pepper);
 
         if (!challenge.OtpHash.SequenceEqual(computedHash))
@@ -185,8 +180,7 @@ public class OtpService : IOtpService
 
     private string GenerateRandomOtp()
     {
-        var random = new Random();
-        return random.Next(100000, 999999).ToString();
+        return System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
     }
 
     private byte[] ComputeOtpHash(string otp, string purpose, string phoneOrEmail, string pepper)

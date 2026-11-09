@@ -180,7 +180,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             acord.HasProofOfAddress = true;
         }
 
-        PersistFile(acord, "signature", input.SignaturePng, "signature.png", "image/png");
+        PersistFile(acord, "signature", input.SignaturePng, "signature.png", "image/png", DateTime.UtcNow.AddYears(BANK_ARCHIVE_YEARS));
         _context.SaveChanges();
 
         var consentText = BuildConsentText(identity);
@@ -465,7 +465,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
                     .ToList()
             });
 
-            PersistFile(acord, "signed_agreement", pdf, fileName, "application/pdf");
+            PersistFile(acord, "signed_agreement", pdf, fileName, "application/pdf", DateTime.UtcNow.AddYears(BANK_ARCHIVE_YEARS));
 
             if (string.IsNullOrWhiteSpace(acord.Email)) return;
 
@@ -1037,7 +1037,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
                 // The CNP goes to SubjectMap encrypted, next to the peppered hash used for
                 // matching and the masked form used for display. The session itself still
                 // only ever holds the mask.
-                subject = _subjectService.GetOrCreateSubject(acord.UserId, ocr.Cnp);
+                subject = _subjectService.GetOrCreateSubject(acord.UserId, ocr.Cnp, allowExistingOtherUser: true);
                 cnpMasked = subject.CnpMasked;
             }
             catch (Exception ex)

@@ -63,7 +63,7 @@ public class BcReportParserService : IBcReportParserService
             {
                 var value = trimmed.Replace("CNP/CUI:", "").Trim();
                 if (!string.IsNullOrEmpty(value))
-                    data.SubjectCnp = value;
+                    data.SubjectCnp = value.Length >= 4 ? "*********" + value[^4..] : "*********";
             }
             if (trimmed.StartsWith("Data emiterii:"))
             {

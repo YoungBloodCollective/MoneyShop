@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Account;
 using MoneyShop.ServiceInterface.Dtos.Account;
@@ -10,6 +11,7 @@ using MoneyShop.DomainServices.RepositoryInterfaces.Kyc;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using MoneyShop.Api.Services;
+using Microsoft.Extensions.Logging;
 
 namespace MoneyShop.Api.Controllers
 {
@@ -23,8 +25,10 @@ namespace MoneyShop.Api.Controllers
         private readonly IOtpService _otpService;
         private readonly IKycSessionRepository _kycSessionRepository;
         private readonly FirebaseTokenVerifier _firebaseVerifier;
+        private readonly ILogger<AuthController> _logger;
+        private const string GenericError = "A apărut o eroare. Încearcă din nou.";
 
-        public AuthController(IAccountService accountService, JwtTokenGenerator jwtService, IUserRepository userRepository, IOtpService otpService, IKycSessionRepository kycSessionRepository, FirebaseTokenVerifier firebaseVerifier)
+        public AuthController(IAccountService accountService, JwtTokenGenerator jwtService, IUserRepository userRepository, IOtpService otpService, IKycSessionRepository kycSessionRepository, FirebaseTokenVerifier firebaseVerifier, ILogger<AuthController> logger)
         {
             _accountService = accountService;
             _jwtService = jwtService;
@@ -32,12 +36,14 @@ namespace MoneyShop.Api.Controllers
             _otpService = otpService;
             _kycSessionRepository = kycSessionRepository;
             _firebaseVerifier = firebaseVerifier;
+            _logger = logger;
         }
 
         /// <summary>
         /// Register a new user
         /// </summary>
         [HttpPost("register")]
+        [EnableRateLimiting("auth")]
         public IActionResult Register([FromBody] RegisterModel model)
         {
             if (model == null || !ModelState.IsValid)
@@ -89,27 +95,14 @@ namespace MoneyShop.Api.Controllers
                     }
                 });
             }
-            catch (Microsoft.Data.SqlClient.SqlException sqlEx)
+            catch (Exception ex) when (ex.Message == "Un cont cu acest email există deja.")
             {
-                return StatusCode(500, new {
-                    message = "Database error occurred",
-                    error = sqlEx.Message,
-                    errorNumber = sqlEx.Number,
-                    state = sqlEx.State,
-                    server = sqlEx.Server,
-                    suggestion = sqlEx.Number == 4060 ? "Database name might be incorrect. Check if 'moneyshop' database exists." :
-                                  sqlEx.Number == 18456 ? "Login failed. Check username and password in connection string." :
-                                  sqlEx.Number == 2 ? "Cannot connect to server. Check Azure SQL firewall settings and network connectivity." :
-                                  "Check Azure SQL Database configuration and firewall settings."
-                });
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                return BadRequest(new {
-                    message = ex.Message,
-                    errorType = ex.GetType().Name,
-                    innerException = ex.InnerException?.Message
-                });
+                _logger.LogError(ex, "Registration failed");
+                return StatusCode(500, new { message = GenericError });
             }
         }
 
@@ -117,6 +110,7 @@ namespace MoneyShop.Api.Controllers
         /// Login with email and password
         /// </summary>
         [HttpPost("login")]
+        [EnableRateLimiting("auth")]
         public IActionResult Login([FromBody] LoginModel model)
         {
             if (model == null || string.IsNullOrEmpty(model.Email) || string.IsNullOrEmpty(model.Password))
@@ -161,39 +155,15 @@ namespace MoneyShop.Api.Controllers
                     }
                 });
             }
-            catch (Microsoft.Data.SqlClient.SqlException sqlEx)
-            {
-                var isConnectionError = sqlEx.Number == 0 ||
-                    (sqlEx.Message != null && (
-                        sqlEx.Message.Contains("network-related", StringComparison.OrdinalIgnoreCase) ||
-                        sqlEx.Message.Contains("establishing a connection", StringComparison.OrdinalIgnoreCase) ||
-                        sqlEx.Message.Contains("server was not found", StringComparison.OrdinalIgnoreCase)));
-
-                var suggestion = isConnectionError
-                    ? "Cannot reach SQL Server. For Azure SQL: 1) Azure Portal -> your SQL server -> Networking -> add your client IP to the firewall (or allow Azure services). 2) Check VPN/proxy and that port 1433 is allowed."
-                    : "Check that the Utilizatori table has required columns (e.g. Skills, Description). Run Fix_Missing_Columns.sql if needed.";
-
-                return StatusCode(500, new
-                {
-                    message = isConnectionError ? "Database connection failed" : "Database error during login",
-                    error = sqlEx.Message,
-                    errorNumber = sqlEx.Number,
-                    suggestion
-                });
-            }
             catch (Exception ex)
             {
-                return StatusCode(500, new
-                {
-                    message = "Login failed with unexpected error",
-                    error = ex.Message,
-                    innerError = ex.InnerException?.Message,
-                    errorType = ex.GetType().Name
-                });
+                _logger.LogError(ex, "Login failed");
+                return StatusCode(500, new { message = GenericError });
             }
         }
 
         [HttpPost("social-login")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> SocialLogin([FromBody] SocialLoginModel model)
         {
             if (model == null || string.IsNullOrEmpty(model.IdToken))
@@ -241,11 +211,13 @@ namespace MoneyShop.Api.Controllers
             }
             catch (SecurityTokenException ex)
             {
-                return Unauthorized(new { message = "Invalid Firebase token", error = ex.Message });
+                _logger.LogWarning(ex, "Invalid Firebase token");
+                return Unauthorized(new { message = "Invalid Firebase token" });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Social login failed", error = ex.Message });
+                _logger.LogError(ex, "Social login failed");
+                return StatusCode(500, new { message = GenericError });
             }
         }
 
@@ -330,9 +302,14 @@ namespace MoneyShop.Api.Controllers
                     expiresInSeconds = result.ExpiresInSeconds
                 });
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex) when (ex.Message.StartsWith("Too many"))
             {
                 return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Verification request failed");
+                return StatusCode(500, new { message = GenericError });
             }
         }
 
@@ -377,9 +354,14 @@ namespace MoneyShop.Api.Controllers
                     expiresInSeconds = result.ExpiresInSeconds
                 });
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex) when (ex.Message.StartsWith("Too many"))
             {
                 return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Verification request failed");
+                return StatusCode(500, new { message = GenericError });
             }
         }
 
@@ -434,9 +416,14 @@ namespace MoneyShop.Api.Controllers
                     emailVerified = true
                 });
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex) when (ex.Message.StartsWith("Too many"))
             {
                 return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Verification request failed");
+                return StatusCode(500, new { message = GenericError });
             }
         }
 
@@ -494,9 +481,14 @@ namespace MoneyShop.Api.Controllers
                     phoneVerified = true
                 });
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex) when (ex.Message.StartsWith("Too many"))
             {
                 return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Verification request failed");
+                return StatusCode(500, new { message = GenericError });
             }
         }
 

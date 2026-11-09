@@ -18,7 +18,9 @@ namespace MoneyShop.Infrastructure.EntityFramework.Extensions.Security
         public string GenerateToken(int userId, string email, string name, string role)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
-            var secretKey = jwtSettings["SecretKey"] ?? "MoneyShop_SecretKey_Minimum_32_Characters_Long_For_Security_2024";
+            var secretKey = jwtSettings["SecretKey"];
+            if (string.IsNullOrWhiteSpace(secretKey) || Encoding.UTF8.GetByteCount(secretKey) < 32)
+                throw new InvalidOperationException("JwtSettings:SecretKey is missing or shorter than 32 bytes");
             var issuer = jwtSettings["Issuer"] ?? "MoneyShop";
             var audience = jwtSettings["Audience"] ?? "MoneyShopUsers";
             var expirationMinutes = int.Parse(jwtSettings["ExpirationMinutes"] ?? "1440");

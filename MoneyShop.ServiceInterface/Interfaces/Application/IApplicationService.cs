@@ -8,7 +8,7 @@ namespace MoneyShop.ServiceInterface.Interfaces.Application
         ApplicationEntity? GetApplicationById(int id);
         List<ApplicationEntity> GetUserApplications(int userId);
         ApplicationEntity UpdateApplication(ApplicationEntity application);
-        void UpdateApplicationStatus(int applicationId, string status);
+        void UpdateStatus(int id, string newStatus, int? actorUserId, string? actorRole, string? note);
         void DeleteApplication(int id);
     }
 }

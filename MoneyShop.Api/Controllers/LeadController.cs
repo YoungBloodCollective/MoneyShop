@@ -58,7 +58,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Eroare la capturarea lead-ului");
-                return StatusCode(500, new { error = "eroare_server", code = ex.Message });
+                return StatusCode(500, new { error = "eroare_server" });
             }
         }
 
@@ -137,7 +137,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Eroare la procesarea lead next");
-                return StatusCode(500, new { error = "eroare_server", code = ex.Message });
+                return StatusCode(500, new { error = "eroare_server" });
             }
         }
 

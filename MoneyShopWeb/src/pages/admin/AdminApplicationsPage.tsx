@@ -36,13 +36,19 @@ export default function AdminApplicationsPage() {
   const [disbursement, setDisbursement] = useState<DisbursementRequest>({});
   const [savingDisbursement, setSavingDisbursement] = useState(false);
 
+  const [error, setError] = useState(false);
+
   const loadApplications = async () => {
     setLoading(true);
+    setError(false);
     const filters: { status?: string; typeCredit?: string } = {};
     if (statusFilter) filters.status = statusFilter;
     if (typeFilter) filters.typeCredit = typeFilter;
-    const apps = await adminApi.getApplications(filters);
-    setApplications(apps);
+    try {
+      setApplications(await adminApi.getApplications(filters));
+    } catch {
+      setError(true);
+    }
     setLoading(false);
   };
 
@@ -239,6 +245,8 @@ export default function AdminApplicationsPage() {
           )}
         </div>
       </div>
+
+      {error && <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">Nu s-au putut încărca datele. Încearcă din nou.</p>}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
