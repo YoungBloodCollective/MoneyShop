@@ -212,18 +212,4 @@ public static class ApiRoutes
         public const string Controller = $"{Base}/userfinancialdata";
         public const string MyData = "my-data";
     }
-
-    public static class Go2Credit
-    {
-        public const string Controller = $"{Base}/go2credit";
-        public const string Inrolari = "inrolari";
-        public const string InrolariWithDocumentsJson = "inrolari/with-documents-json";
-        public const string Liveness = "inrolari/{{id}}/liveness";
-        public const string AcordAnaf = "inrolari/{{id}}/acord-anaf";
-        public const string SignAnaf = "inrolari/{{id}}/sign-anaf";
-        public const string GetInrolare = "inrolari/{{id}}";
-        public const string GetAnaf = "inrolari/{{id}}/anaf";
-        public const string UploadDocuments = "inrolari/{{id}}/documents";
-        public const string Webhooks = "webhooks";
-    }
 }
