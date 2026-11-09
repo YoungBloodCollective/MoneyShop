@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Phone, Mail, CalendarDays, CheckCircle2, XCircle,
-  FileText, FolderKanban, Wallet, ShieldCheck, TrendingUp,
-} from 'lucide-react';
+  FileText, FolderKanban, Wallet, ShieldCheck, TrendingUp, Send,} from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
+import { crediusApi } from '@/services/api/crediusApi';
 import type { CrmClientDetail } from '@/types/crm.types';
 import { Spinner, StatusPill, money, dateShort, initials, creditTypeLabel } from './crmShared';
 
@@ -35,6 +36,34 @@ function Check({ ok, label }: { ok: boolean; label: string }) {
       {ok ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <XCircle className="h-4 w-4 text-slate-300" />}
       <span className={ok ? 'text-slate-700' : 'text-slate-400'}>{label}</span>
     </div>
+  );
+}
+
+
+function CrediusForwardButton({ applicationId }: { applicationId: number }) {
+  const [sending, setSending] = useState(false);
+  const send = async () => {
+    if (!window.confirm('Confirmi că ai acordul clientului pentru a trimite datele către Credius?')) return;
+    setSending(true);
+    try {
+      const r = await crediusApi.forward(applicationId);
+      if (!r.configured) toast('Integrarea Credius nu este încă configurată.', { icon: 'ℹ️' });
+      else if (r.success) toast.success('Trimis către Credius.');
+      else toast.error(r.message || 'Credius a respins cererea.');
+    } catch {
+      toast.error('Nu am putut trimite către Credius.');
+    } finally {
+      setSending(false);
+    }
+  };
+  return (
+    <button
+      onClick={send}
+      disabled={sending}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+    >
+      <Send className="h-3.5 w-3.5" /> {sending ? 'Se trimite…' : 'Credius'}
+    </button>
   );
 }
 
@@ -110,12 +139,15 @@ export default function CrmClientDetailPage() {
                         {creditTypeLabel(file.typeCredit)} · {money(file.requestedAmount)}{file.requestedTermMonths ? ` · ${file.requestedTermMonths} luni` : ''} · {dateShort(file.createdAt)}
                       </div>
                     </div>
-                    {file.sumaAprobata != null && (
-                      <div className="text-right">
-                        <div className="text-xs text-slate-400">Aprobat</div>
-                        <div className="font-semibold text-emerald-600">{money(file.sumaAprobata)}</div>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {file.sumaAprobata != null && (
+                        <div className="text-right">
+                          <div className="text-xs text-slate-400">Aprobat</div>
+                          <div className="font-semibold text-emerald-600">{money(file.sumaAprobata)}</div>
+                        </div>
+                      )}
+                      <CrediusForwardButton applicationId={file.id} />
+                    </div>
                   </div>
                 ))}
               </div>
