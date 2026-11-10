@@ -3,10 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Phone, Mail, ChevronRight } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmClientListItem } from '@/types/crm.types';
-import {
-  PageHeader, SkeletonTable, EmptyState, StatusPill, moneyShort, relTime, initials,
-  SegmentChips, CLIENT_STATUS_SEGMENTS, matchesSegment, usePaged, Pagination,
-} from './crmShared';
+import { PageHeader, SkeletonTable, EmptyState, StatusPill, SegmentChips, Pagination } from './crmShared';
+import { moneyShort, relTime, initials, CLIENT_STATUS_SEGMENTS, matchesSegment, usePaged } from './crmHelpers';
 
 const SEG_KEY = 'moneyshop:crm-clienti-seg';
 

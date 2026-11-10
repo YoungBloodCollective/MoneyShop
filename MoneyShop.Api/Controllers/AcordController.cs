@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Acord;
+using MoneyShop.ServiceInterface.Interfaces.Audit;
 using MoneyShop.ServiceInterface.Interfaces.Subject;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -49,11 +50,13 @@ public class AcordController : BaseController
 
     private readonly IAcordService _acordService;
     private readonly ILogger<AcordController> _logger;
+    private readonly IAuditService _audit;
 
-    public AcordController(IAcordService acordService, ILogger<AcordController> logger)
+    public AcordController(IAcordService acordService, ILogger<AcordController> logger, IAuditService audit)
     {
         _acordService = acordService;
         _logger = logger;
+        _audit = audit;
     }
 
     // ── Public flow ──
@@ -247,6 +250,8 @@ public class AcordController : BaseController
         });
 
         if (cnp == null) return NotFound("CNP-ul nu este disponibil pentru acest dosar");
+
+        _audit.Log("AcordClient", acordId.ToString(), "cnp_reveal", reason: string.IsNullOrWhiteSpace(request?.Reason) ? "admin_view" : request.Reason.Trim());
 
         Response.Headers.CacheControl = "no-store";
         return Ok(new { cnp });

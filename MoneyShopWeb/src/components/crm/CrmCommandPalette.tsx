@@ -39,8 +39,14 @@ export function CrmCommandPalette({ open, onClose }: { open: boolean; onClose: (
     crmApi.getFiles().then(setFiles).catch(() => setFiles([]));
   }, [open, clients]);
 
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) { setQ(''); setSel(0); }
+  }
+
   useEffect(() => {
-    if (open) { setQ(''); setSel(0); setTimeout(() => inputRef.current?.focus(), 0); }
+    if (open) setTimeout(() => inputRef.current?.focus(), 0);
   }, [open]);
 
   const items = useMemo<Item[]>(() => {
@@ -57,8 +63,6 @@ export function CrmCommandPalette({ open, onClose }: { open: boolean; onClose: (
       .map<Item>(f => ({ key: `f-${f.id}`, title: `#${f.code}`, subtitle: f.clientName, to: `/crm/clienti/${f.userId}`, icon: FolderKanban, group: 'Dosare' }));
     return [...pages, ...cl, ...fl];
   }, [q, clients, files]);
-
-  useEffect(() => { setSel(0); }, [q]);
 
   if (!open) return null;
 
@@ -84,7 +88,7 @@ export function CrmCommandPalette({ open, onClose }: { open: boolean; onClose: (
           <input
             ref={inputRef}
             value={q}
-            onChange={e => setQ(e.target.value)}
+            onChange={e => { setQ(e.target.value); setSel(0); }}
             onKeyDown={onKeyDown}
             placeholder="Caută clienți, dosare, pagini..."
             className="w-full bg-transparent py-4 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"

@@ -7,7 +7,8 @@ import {
 import { crmApi } from '@/services/api/crmApi';
 import { crediusApi } from '@/services/api/crediusApi';
 import type { CrmClientDetail } from '@/types/crm.types';
-import { Spinner, StatusPill, money, dateShort, initials, creditTypeLabel } from './crmShared';
+import { Spinner, StatusPill } from './crmShared';
+import { money, dateShort, initials, creditTypeLabel } from './crmHelpers';
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (

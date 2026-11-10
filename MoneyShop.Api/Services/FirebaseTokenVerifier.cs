@@ -47,7 +47,9 @@ public class FirebaseTokenVerifier
             throw new SecurityTokenException("Token missing user_id claim");
         var email = jwtToken.Payload.TryGetValue("email", out var emailVal) ? emailVal?.ToString() : null;
         var name = jwtToken.Payload.TryGetValue("name", out var nameVal) ? nameVal?.ToString() : null;
-        return new FirebaseUserInfo { Uid = uid, Email = email, Name = name };
+        var emailVerified = jwtToken.Payload.TryGetValue("email_verified", out var evVal) &&
+            (evVal is bool evBool ? evBool : string.Equals(evVal?.ToString(), "true", StringComparison.OrdinalIgnoreCase));
+        return new FirebaseUserInfo { Uid = uid, Email = email, Name = name, EmailVerified = emailVerified };
     }
 
     private async Task<Dictionary<string, SecurityKey>> GetSigningKeysAsync()
@@ -82,4 +84,5 @@ public class FirebaseUserInfo
     public string Uid { get; set; } = null!;
     public string? Email { get; set; }
     public string? Name { get; set; }
+    public bool EmailVerified { get; set; }
 }

@@ -269,6 +269,71 @@ namespace MoneyShop.Api.Controllers
             await _leadCaptureRepository.SaveChangesAsync();
             return Ok(new { message = "Notes updated successfully" });
         }
+
+        [HttpGet("audit")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> GetAuditEvents(
+            [FromQuery] string? entityType,
+            [FromQuery] string? entityId,
+            [FromQuery] int? actorUserId,
+            [FromQuery] string? action,
+            [FromQuery] DateTime? from,
+            [FromQuery] DateTime? to,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
+        {
+            page = Math.Max(page, 1);
+            pageSize = Math.Clamp(pageSize, 1, 200);
+
+            var query = _context.AuditEvents.AsNoTracking().AsQueryable();
+            if (!string.IsNullOrWhiteSpace(entityType)) query = query.Where(e => e.EntityType == entityType);
+            if (!string.IsNullOrWhiteSpace(entityId)) query = query.Where(e => e.EntityId == entityId);
+            if (actorUserId.HasValue) query = query.Where(e => e.ActorUserId == actorUserId);
+            if (!string.IsNullOrWhiteSpace(action)) query = query.Where(e => e.Action == action);
+            if (from.HasValue) query = query.Where(e => e.OccurredAt >= from.Value);
+            if (to.HasValue) query = query.Where(e => e.OccurredAt <= to.Value);
+
+            var total = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(e => e.OccurredAt)
+                .ThenByDescending(e => e.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return Ok(new { total, items });
+        }
+
+        [HttpGet("audit/cnp-access")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> GetCnpAccessLog(
+            [FromQuery] string? subjectId,
+            [FromQuery] int? actorUserId,
+            [FromQuery] Guid? acordId,
+            [FromQuery] DateTime? from,
+            [FromQuery] DateTime? to,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
+        {
+            page = Math.Max(page, 1);
+            pageSize = Math.Clamp(pageSize, 1, 200);
+
+            var query = _context.CnpAccessLogs.AsNoTracking().AsQueryable();
+            if (!string.IsNullOrWhiteSpace(subjectId)) query = query.Where(e => e.SubjectId == subjectId);
+            if (actorUserId.HasValue) query = query.Where(e => e.ActorUserId == actorUserId);
+            if (acordId.HasValue) query = query.Where(e => e.AcordId == acordId);
+            if (from.HasValue) query = query.Where(e => e.AccessedAt >= from.Value);
+            if (to.HasValue) query = query.Where(e => e.AccessedAt <= to.Value);
+
+            var total = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(e => e.AccessedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return Ok(new { total, items });
+        }
     }
 
     public class UpdateLeadNotesRequest

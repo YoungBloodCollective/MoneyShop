@@ -22,6 +22,12 @@ public class BrokerScopeMiddleware
 
     public async Task InvokeAsync(HttpContext context, MoneyShopDbContext db)
     {
+        if (context.User.Identity?.IsAuthenticated == true)
+        {
+            int? actorId = int.TryParse(context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var parsedId) ? parsedId : null;
+            db.AuditActor = (actorId, context.User.FindFirst(ClaimTypes.Role)?.Value, context.Connection.RemoteIpAddress?.ToString());
+        }
+
         if (context.User.Identity?.IsAuthenticated == true && context.User.IsInRole("Broker"))
         {
             int.TryParse(context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);

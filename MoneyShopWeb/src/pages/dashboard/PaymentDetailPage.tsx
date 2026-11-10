@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, CalendarClock, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { bcReportApi, type BcReportSummaryDto } from '@/services/api/bcReportApi';
-import { userFinancialDataApi, type UserFinancialData } from '@/services/api/userFinancialDataApi';
+import { userFinancialDataApi } from '@/services/api/userFinancialDataApi';
 
 interface DisplayCredit {
   name: string;

@@ -46,10 +46,10 @@ export default function KycScanPage() {
     : null;
   const [step, setStep] = useState<ScanStep>('loading');
   const [error, setError] = useState('');
-  const [processing, setProcessing] = useState(false);
+  const [, setProcessing] = useState(false);
   const [docFrontBlob, setDocFrontBlob] = useState<Blob | null>(null);
   const [docBackBlob, setDocBackBlob] = useState<Blob | null>(null);
-  const [selfieBlob, setSelfieBlob] = useState<Blob | null>(null);
+  const [, setSelfieBlob] = useState<Blob | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 

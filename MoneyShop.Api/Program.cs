@@ -3,7 +3,6 @@ using MoneyShop.Infrastructure.EntityFramework.Extensions.Configurations;
 using MoneyShop.Infrastructure.EntityFramework.Extensions.LoggingConfiguration;
 using MoneyShop.Infrastructure.EntityFramework.Extensions.Exceptions.Middleware;
 using MoneyShop.ServiceInterface.SharedDtos;
-using MoneyShop.ServiceAdapters.Mapping;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -13,7 +12,6 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Microsoft.ApplicationInsights.AspNetCore;
 using Microsoft.ApplicationInsights.Extensibility;
-using AutoMapper;
 using System.Security.Claims;
 using System.Text;
 using MoneyShop.Api.Services;
@@ -283,12 +281,6 @@ builder.Services.AddScoped(s =>
         Email = userEmailClaim ?? string.Empty,
         Role = userRoleClaim ?? string.Empty
     };
-});
-
-// ── AutoMapper ──
-builder.Services.AddAutoMapper(cfg =>
-{
-    cfg.AddProfile<MappingProfile>();
 });
 
 // ── Application Insights (conditional) ──

@@ -75,7 +75,103 @@ public class MoneyShopDbContext : DbContext
     public virtual DbSet<BankConsentRequest> BankConsentRequests { get; set; }
     public virtual DbSet<BrokerProfile> BrokerProfiles { get; set; }
 
+    public virtual DbSet<RetentionRun> RetentionRuns { get; set; }
+
     public int? BrokerScopeId { get; set; }
+
+    public virtual DbSet<AuditEvent> AuditEvents { get; set; }
+
+    public (int? UserId, string? Role, string? Ip)? AuditActor { get; set; }
+
+    private static readonly HashSet<string> AuditedTypes = new()
+    {
+        nameof(Application), nameof(AcordClient), nameof(KycSession), nameof(KycFile),
+        nameof(Consent), nameof(Mandate), nameof(BrokerProfile), nameof(BankConsentRequest)
+    };
+
+    private static readonly HashSet<string> AuditedUserProperties = new()
+    {
+        nameof(Utilizatori.IdRol), nameof(Utilizatori.Parola), nameof(Utilizatori.IsDeleted)
+    };
+
+    private static readonly HashSet<string> AuditRedactedProperties = new()
+    {
+        "Cnp", "CnpEncrypted", "FileContentBase64", "Token", "TokenHash",
+        "OcrDataJson", "ParsedDataJson", "SignaturePng", "FileContent",
+        "Address", "City", "PostalCode", "Adresa", "Email", "Mail", "Telefon", "NumarTelefon",
+        "Phone", "Nume", "Prenume", "FullName", "Name", "DataNastere", "BirthDate", "Username"
+    };
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        AddAuditEvents();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        AddAuditEvents();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void AddAuditEvents()
+    {
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
+            .Where(e => AuditedTypes.Contains(e.Metadata.ClrType.Name) || e.Entity is Utilizatori)
+            .ToList();
+        if (entries.Count == 0) return;
+
+        var actor = AuditActor;
+        var rows = new List<AuditEvent>();
+        foreach (var entry in entries)
+        {
+            var deleted = entry.State == EntityState.Deleted;
+            var isUser = entry.Entity is Utilizatori;
+            var changed = entry.Properties
+                .Where(p => deleted || (p.IsModified && !Equals(p.OriginalValue, p.CurrentValue)))
+                .Where(p => !isUser || AuditedUserProperties.Contains(p.Metadata.Name))
+                .ToList();
+            if (changed.Count == 0) continue;
+
+            var key = entry.Metadata.FindPrimaryKey();
+            var entityId = key == null
+                ? string.Empty
+                : string.Join(",", key.Properties.Select(k => entry.Property(k.Name).CurrentValue?.ToString()));
+
+            var oldValues = new Dictionary<string, object?>();
+            var newValues = new Dictionary<string, object?>();
+            foreach (var property in changed)
+            {
+                var name = property.Metadata.Name;
+                oldValues[name] = AuditValue(name, property.OriginalValue);
+                if (!deleted) newValues[name] = AuditValue(name, property.CurrentValue);
+            }
+
+            rows.Add(new AuditEvent
+            {
+                OccurredAt = DateTime.UtcNow,
+                ActorUserId = actor?.UserId,
+                ActorRole = actor?.Role,
+                ActorIp = actor?.Ip,
+                BrokerProfileId = BrokerScopeId is > 0 ? BrokerScopeId : null,
+                EntityType = entry.Metadata.ClrType.Name,
+                EntityId = entityId.Length > 64 ? entityId.Substring(0, 64) : entityId,
+                Action = deleted ? "deleted" : "updated",
+                OldValueJson = System.Text.Json.JsonSerializer.Serialize(oldValues),
+                NewValueJson = deleted ? null : System.Text.Json.JsonSerializer.Serialize(newValues)
+            });
+        }
+
+        if (rows.Count > 0) AuditEvents.AddRange(rows);
+    }
+
+    private static object? AuditValue(string name, object? value)
+    {
+        if (name == "Parola") return "***";
+        if (AuditRedactedProperties.Contains(name)) return "<redacted>";
+        return value is string text && text.Length > 1000 ? text.Substring(0, 1000) : value;
+    }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -108,6 +204,8 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.EmailVerified).HasDefaultValueSql("((0))");
             entity.Property(e => e.PhoneVerified).HasDefaultValueSql("((0))");
             entity.Property(e => e.FirebaseUid).HasMaxLength(128);
+            entity.Property(e => e.FailedLoginAttempts).HasDefaultValue(0);
+            entity.Property(e => e.LockoutEndUtc).HasColumnType("datetime2");
         });
 
         // MoneyShop Entities Configuration
@@ -369,6 +467,26 @@ public class MoneyShopDbContext : DbContext
             entity.HasIndex(e => e.ActorUserId);
         });
 
+        modelBuilder.Entity<AuditEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("AuditEvents");
+
+            entity.Property(e => e.OccurredAt).HasColumnType("datetime2");
+            entity.Property(e => e.ActorRole).HasMaxLength(20);
+            entity.Property(e => e.ActorIp).HasMaxLength(45);
+            entity.Property(e => e.EntityType).HasMaxLength(40).IsRequired();
+            entity.Property(e => e.EntityId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Action).HasMaxLength(40).IsRequired();
+            entity.Property(e => e.OldValueJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.NewValueJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.Reason).HasMaxLength(500);
+
+            entity.HasIndex(e => new { e.EntityType, e.EntityId, e.OccurredAt });
+            entity.HasIndex(e => new { e.ActorUserId, e.OccurredAt });
+            entity.HasIndex(e => e.OccurredAt);
+        });
+
         // KYC Configuration
         modelBuilder.Entity<KycSession>(entity =>
         {
@@ -412,6 +530,7 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
             entity.Property(e => e.ExpiresAt).HasColumnType("datetime2");
             entity.Property(e => e.DeletedAt).HasColumnType("datetime2");
+            entity.Property(e => e.DeletedReason).HasMaxLength(30);
 
             entity.HasOne(d => d.KycSession)
                 .WithMany(p => p.KycFiles)
@@ -721,6 +840,20 @@ public class MoneyShopDbContext : DbContext
 
             entity.HasIndex(e => e.TokenHash).IsUnique();
             entity.HasIndex(e => e.AcordId);
+        });
+
+        modelBuilder.Entity<RetentionRun>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("RetentionRuns");
+
+            entity.Property(e => e.StartedAt).HasColumnType("datetime2");
+            entity.Property(e => e.FinishedAt).HasColumnType("datetime2");
+            entity.Property(e => e.Status).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.SummaryJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.Error).HasMaxLength(2000);
+
+            entity.HasIndex(e => e.StartedAt);
         });
 
         ConfigureBrokerOwned<AcordClient>(modelBuilder);

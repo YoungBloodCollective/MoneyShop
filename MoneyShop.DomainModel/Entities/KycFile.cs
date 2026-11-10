@@ -18,6 +18,7 @@ namespace MoneyShop.DomainModel.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime ExpiresAt { get; set; } // CreatedAt + 30 days
         public DateTime? DeletedAt { get; set; } // When file was deleted
+        public string? DeletedReason { get; set; }
 
         // Navigation
         public virtual KycSession KycSession { get; set; } = null!;

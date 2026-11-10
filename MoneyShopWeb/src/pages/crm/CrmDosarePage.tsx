@@ -6,11 +6,8 @@ import { crmApi } from '@/services/api/crmApi';
 import { adminApi } from '@/services/api/adminApi';
 import type { CrmFileListItem } from '@/types/crm.types';
 import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
-import {
-  PageHeader, SkeletonTable, EmptyState, StatusPill, money, dateShort,
-  creditTypeLabel, statusColor, statusLabel,
-  SegmentChips, FILE_STATUS_SEGMENTS, matchesSegment, usePaged, Pagination,
-} from './crmShared';
+import { PageHeader, SkeletonTable, EmptyState, StatusPill, SegmentChips, Pagination } from './crmShared';
+import { money, dateShort, creditTypeLabel, statusColor, statusLabel, FILE_STATUS_SEGMENTS, matchesSegment, usePaged } from './crmHelpers';
 
 const STATUS_OPTIONS = Object.entries(APPLICATION_STATUS_LABELS);
 const COLUMNS = [
@@ -41,7 +38,12 @@ export default function CrmDosarePage() {
   }, []);
 
   useEffect(() => { try { localStorage.setItem(SEG_KEY, segment); } catch { /* ignore */ } }, [segment]);
-  useEffect(() => { setSelected(new Set()); }, [segment, q]);
+  const resetKey = `${segment}\u0000${q}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
+    setSelected(new Set());
+  }
 
   const searched = useMemo(() => {
     const t = q.trim().toLowerCase();

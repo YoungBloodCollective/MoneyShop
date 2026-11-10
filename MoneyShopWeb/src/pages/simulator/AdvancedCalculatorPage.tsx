@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, CreditCard, Home, CheckCircle, AlertTriangle, XCircle,
-  ShieldCheck, ShieldAlert, ShieldX, TrendingUp, Phone, Calculator, Loader2,
-  Info, Building2, FileText, Wallet, ChevronRight, Sparkles,
+  ShieldCheck, ShieldAlert, ShieldX, TrendingUp, Phone, Loader2,
+  Info, Building2, FileText, Wallet, Sparkles,
 } from 'lucide-react';
 import { bcReportApi, type BcReportSummaryDto } from '@/services/api/bcReportApi';
 import { userFinancialDataApi, type UserFinancialData, type SaveFinancialDataRequest } from '@/services/api/userFinancialDataApi';

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Search, ArrowLeft, ChevronDown, Save,
   FileText, Calendar, Banknote, User, Hash,
@@ -38,7 +38,7 @@ export default function AdminApplicationsPage() {
 
   const [error, setError] = useState(false);
 
-  const loadApplications = async () => {
+  const loadApplications = useCallback(async () => {
     setLoading(true);
     setError(false);
     const filters: { status?: string; typeCredit?: string } = {};
@@ -50,11 +50,11 @@ export default function AdminApplicationsPage() {
       setError(true);
     }
     setLoading(false);
-  };
+  }, [statusFilter, typeFilter]);
 
   useEffect(() => {
     loadApplications();
-  }, [statusFilter, typeFilter]);
+  }, [loadApplications]);
 
   const filtered = applications.filter(a => {
     if (!search) return true;

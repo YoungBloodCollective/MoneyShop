@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using MoneyShop.DomainServices.RepositoryInterfaces.Application;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
+using MoneyShop.ServiceInterface.Interfaces.Audit;
 using MoneyShop.ServiceInterface.Interfaces.Credius;
 
 namespace MoneyShop.Api.Controllers
@@ -25,17 +26,20 @@ namespace MoneyShop.Api.Controllers
         private readonly IApplicationRepository _applications;
         private readonly MoneyShopDbContext _context;
         private readonly ILogger<CrediusController> _logger;
+        private readonly IAuditService _audit;
 
         public CrediusController(
             ICrediusService credius,
             IApplicationRepository applications,
             MoneyShopDbContext context,
-            ILogger<CrediusController> logger)
+            ILogger<CrediusController> logger,
+            IAuditService audit)
         {
             _credius = credius;
             _applications = applications;
             _context = context;
             _logger = logger;
+            _audit = audit;
         }
 
         [HttpGet("status")]
@@ -81,6 +85,8 @@ namespace MoneyShop.Api.Controllers
                 app.Id, app.UserId, actorIdClaim, consent.ConsentId);
 
             var result = await _credius.ForwardLeadAsync(input);
+            if (result.Success)
+                _audit.Log("Application", app.Id.ToString(), "data_transfer", newValue: new { recipient = "Credius", fields = new[] { "nume", "prenume", "telefon", "email", "suma", "tipCredit" }, consentId = consent.ConsentId });
             return Ok(result);
         }
     }

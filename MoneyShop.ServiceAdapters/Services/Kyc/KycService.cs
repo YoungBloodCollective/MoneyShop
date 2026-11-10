@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using MoneyShop.DomainModel.Entities;
 using MoneyShop.ServiceInterface.Interfaces.Kyc;
 using MoneyShop.DomainServices.RepositoryInterfaces.Kyc;
@@ -261,36 +262,18 @@ public class KycService : IKycService
         {
             session.VerifiedAt = DateTime.UtcNow;
 
-            // Hard delete all KYC files immediately upon approval
+            var now = DateTime.UtcNow;
             var files = _kycFileRepository.Get()
                 .Where(f => f.KycId == kycId && f.DeletedAt == null)
                 .ToList();
 
             foreach (var file in files)
             {
-                if (!string.IsNullOrEmpty(file.BlobPath))
-                {
-                    try
-                    {
-                        var filePath = Path.Combine(
-                            System.IO.Directory.GetCurrentDirectory(),
-                            "wwwroot",
-                            file.BlobPath
-                        );
-
-                        if (System.IO.File.Exists(filePath))
-                        {
-                            System.IO.File.Delete(filePath);
-                        }
-                    }
-                    catch
-                    {
-                        // Log error but continue with database deletion
-                    }
-                }
-
-                // Hard delete from database
-                _kycFileRepository.Delete(file);
+                file.FileContentBase64 = null;
+                file.BlobPath = null;
+                file.DeletedAt = now;
+                file.DeletedReason = "verified";
+                _kycFileRepository.Update(file);
             }
         }
 
@@ -436,19 +419,14 @@ public class KycService : IKycService
     /// </summary>
     public int MarkExpiredFilesForDeletion()
     {
-        var expiredFiles = _kycFileRepository.Get()
-            .Where(f => f.ExpiresAt < DateTime.UtcNow && f.DeletedAt == null)
-            .ToList();
+        var now = DateTime.UtcNow;
 
-        foreach (var file in expiredFiles)
-        {
-            file.FileContentBase64 = null;
-            file.BlobPath = null;
-            file.DeletedAt = DateTime.UtcNow;
-            _kycFileRepository.Update(file);
-        }
-
-        _context.SaveChanges();
-        return expiredFiles.Count;
+        return _context.KycFiles
+            .Where(f => f.ExpiresAt <= now && f.DeletedAt == null)
+            .ExecuteUpdate(f => f
+                .SetProperty(x => x.FileContentBase64, (string?)null)
+                .SetProperty(x => x.BlobPath, (string?)null)
+                .SetProperty(x => x.DeletedAt, now)
+                .SetProperty(x => x.DeletedReason, "expired"));
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MoneyShop.DomainServices.RepositoryInterfaces.Account;
 using MoneyShop.DomainServices.RepositoryInterfaces.Auth;
 using MoneyShop.Infrastructure.EntityFramework.Extensions.Security;
+using MoneyShop.ServiceInterface.Interfaces.Audit;
 
 namespace MoneyShop.Api.Controllers
 {
@@ -16,9 +17,12 @@ namespace MoneyShop.Api.Controllers
     {
         private readonly IOtpService _otpService;
 
-        public OtpController(IOtpService otpService)
+        private readonly IAuditService _audit;
+
+        public OtpController(IOtpService otpService, IAuditService audit)
         {
             _otpService = otpService;
+            _audit = audit;
         }
 
         [HttpPost("request")]
@@ -60,7 +64,14 @@ namespace MoneyShop.Api.Controllers
                 var result = _otpService.VerifyOtp(model.OtpId, model.Phone, model.Purpose, model.Code, ip);
 
                 if (!result.IsValid)
+                {
+                    if (model.Purpose == "LOGIN_SMS")
+                    {
+                        var failedUser = FindUserByPhone(HttpContext.RequestServices.GetRequiredService<IUserRepository>(), model.Phone);
+                        _audit.Log("User", failedUser != null ? failedUser.IdUtilizator.ToString() : "unknown", "login_failed", null, new { method = "otp_sms" });
+                    }
                     return Unauthorized(new { message = result.Message });
+                }
 
                 var userRepository = HttpContext.RequestServices.GetRequiredService<IUserRepository>();
 
@@ -106,6 +117,8 @@ namespace MoneyShop.Api.Controllers
 
                     sessionRepository.Insert(session);
                     await sessionRepository.SaveChangesAsync();
+
+                    _audit.Log("User", user.IdUtilizator.ToString(), "login_success", null, new { method = "otp_sms" });
 
                     var userRoles = new UserRoles();
                     var rolesDict = userRoles.CreateUserRolesDictionary();

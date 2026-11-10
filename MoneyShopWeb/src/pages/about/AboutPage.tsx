@@ -40,7 +40,7 @@ function RevealSection({ children, delay = 0, className = '' }: { children: Reac
 
 export default function AboutPage() {
   const navigate = useNavigate();
-  const statsView = useInView(0.2);
+  const { ref: statsRef, isVisible: statsVisible } = useInView(0.2);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-16">
@@ -54,11 +54,11 @@ export default function AboutPage() {
           </p>
         </div>
       </RevealSection>
-      <div ref={statsView.ref} className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div ref={statsRef} className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {stats.map((s, i) => (
           <div
             key={s.label}
-            className={`bg-white rounded-2xl p-5 text-center shadow-sm border border-gray-100 transition-all duration-700 ease-out ${statsView.isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}
+            className={`bg-white rounded-2xl p-5 text-center shadow-sm border border-gray-100 transition-all duration-700 ease-out ${statsVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}
             style={{ transitionDelay: `${i * 100}ms` }}
           >
             <p className="text-2xl sm:text-3xl font-bold text-blue-600">{s.value}</p>

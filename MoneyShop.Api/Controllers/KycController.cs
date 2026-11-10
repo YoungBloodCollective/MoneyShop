@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MoneyShop.ServiceInterface.Interfaces.Audit;
 using MoneyShop.ServiceInterface.Interfaces.Kyc;
 using System.Security.Claims;
 using MoneyShop.DomainServices.RepositoryInterfaces.Kyc;
@@ -17,19 +18,22 @@ namespace MoneyShop.Api.Controllers
         private readonly IConfiguration _configuration;
         private readonly IKycSessionRepository _kycSessionRepository;
         private readonly ILogger<KycController> _logger;
+        private readonly IAuditService _audit;
 
         public KycController(
             IKycService kycService,
             IWebHostEnvironment environment,
             IConfiguration configuration,
             IKycSessionRepository kycSessionRepository,
-            ILogger<KycController> logger)
+            ILogger<KycController> logger,
+            IAuditService audit)
         {
             _kycService = kycService;
             _environment = environment;
             _configuration = configuration;
             _kycSessionRepository = kycSessionRepository;
             _logger = logger;
+            _audit = audit;
         }
 
         private static string? MaskCnp(string? value)
@@ -221,6 +225,8 @@ namespace MoneyShop.Api.Controllers
                 if (session == null)
                     return NotFound(new { message = "KYC session not found" });
 
+                _audit.Log("KycSession", kycId.ToString(), "file_read", newValue: new { fileCount = session.Files?.Count() ?? 0 });
+
                 return Ok(new
                 {
                     kycId = session.KycId, userId = session.UserId, userName = session.UserName,
@@ -253,6 +259,8 @@ namespace MoneyShop.Api.Controllers
                 var file = _kycService.GetKycFile(fileId);
                 if (file == null)
                     return NotFound(new { message = "File not found" });
+
+                _audit.Log("KycFile", fileId.ToString(), "file_read", newValue: new { fileType = file.FileType });
 
                 return Ok(new
                 {
