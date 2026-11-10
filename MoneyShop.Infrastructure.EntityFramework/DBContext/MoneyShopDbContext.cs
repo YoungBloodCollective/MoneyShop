@@ -23,6 +23,7 @@ public class MoneyShopDbContext : DbContext
 
     // MoneyShop Entities
     public virtual DbSet<Application> Applications { get; set; }
+    public virtual DbSet<ApplicationStatusHistory> ApplicationStatusHistories { get; set; }
     public virtual DbSet<Document> Documents { get; set; }
     public virtual DbSet<Bank> Banks { get; set; }
     public virtual DbSet<ApplicationBank> ApplicationBanks { get; set; }
@@ -330,6 +331,25 @@ public class MoneyShopDbContext : DbContext
 
             entity.HasIndex(e => e.CnpHash).IsUnique();
             entity.HasIndex(e => e.UserId).IsUnique();
+        });
+
+        modelBuilder.Entity<ApplicationStatusHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("ApplicationStatusHistories");
+
+            entity.Property(e => e.FromStatus).HasMaxLength(50);
+            entity.Property(e => e.ToStatus).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.ChangedByRole).HasMaxLength(20);
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.ChangedAt).HasColumnType("datetime2");
+
+            entity.HasOne(e => e.Application)
+                .WithMany()
+                .HasForeignKey(e => e.ApplicationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.ApplicationId, e.ChangedAt });
         });
 
         // CNP access log: one row per reading of a full CNP

@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using Microsoft.ApplicationInsights.AspNetCore;
 using Microsoft.ApplicationInsights.Extensibility;
 using AutoMapper;
@@ -44,16 +47,31 @@ if (builder.Environment.IsDevelopment())
 
 }
 
-// ── Request body size ──
-// Three 10MB uploads plus a signature exceed the 30MB framework default, so the
-// cap is raised for every environment rather than only in development.
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.Limits.MaxRequestBodySize = 40_000_000; // 40MB
-});
-
 // ── Serilog Logging ──
 builder.Host.ConfigureSerilogLogging(builder.Configuration);
+
+// ── Forwarded headers ──
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    o.ForwardLimit = 1;
+    o.KnownNetworks.Clear();
+    o.KnownProxies.Clear();
+});
+
+// ── Rate limiting ──
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = 429;
+    o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        HttpMethods.IsOptions(ctx.Request.Method)
+            ? RateLimitPartition.GetNoLimiter("options")
+            : RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "anon", _ => new FixedWindowRateLimiterOptions { PermitLimit = 600, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    o.AddPolicy("public-form", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "anon", _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
+    o.AddPolicy("auth", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "anon", _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(5), QueueLimit = 0 }));
+});
 
 // ── Controllers (API only, no views) ──
 builder.Services.AddControllers()
@@ -66,15 +84,8 @@ builder.Services.AddControllers()
 // ── FormOptions for large uploads (base64 images) ──
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.ValueLengthLimit = int.MaxValue;
-    options.KeyLengthLimit = int.MaxValue;
+    options.ValueLengthLimit = 4_000_000;
     options.MultipartBodyLengthLimit = 40_000_000;
-    options.MultipartBoundaryLengthLimit = int.MaxValue;
-    options.MultipartHeadersLengthLimit = int.MaxValue;
-    options.MultipartHeadersCountLimit = int.MaxValue;
-    options.BufferBodyLengthLimit = 40_000_000;
-    options.BufferBody = true;
-    options.MemoryBufferThreshold = int.MaxValue;
 });
 
 // ── CORS for React Native (web, iOS, Android) ──
@@ -84,44 +95,51 @@ builder.Services.AddCors(options =>
     {
         var origins = new List<string>
         {
-            "http://localhost:8081",
-            "http://localhost:8082",
-            "http://localhost:19006",
-            "http://localhost:19000",
-            "http://localhost:5173",
-            "http://localhost:5174",
-            "http://localhost:3000",
-            "exp://localhost:8081",
-            "http://127.0.0.1:8081",
-            "http://127.0.0.1:8082",
-            "http://127.0.0.1:19006",
-            "http://127.0.0.1:19000",
             "https://black-grass-037518603.6.azurestaticapps.net",
             "https://gentle-tree-0f5cdaa03.1.azurestaticapps.net",
             "https://moneyshop.ro",
-            "https://www.moneyshop.ro",
-            "null"
+            "https://www.moneyshop.ro"
         };
 
-        var localIp = builder.Configuration["LocalIP"];
-        if (!string.IsNullOrEmpty(localIp))
+        if (builder.Environment.IsDevelopment())
         {
             origins.AddRange(new[]
             {
-                $"http://{localIp}:8081",
-                $"http://{localIp}:8082",
-                $"http://{localIp}:19006",
-                $"http://{localIp}:19000",
-                $"exp://{localIp}:8081",
-                $"http://{localIp}:5260"
+                "http://localhost:8081",
+                "http://localhost:8082",
+                "http://localhost:19006",
+                "http://localhost:19000",
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "http://localhost:3000",
+                "exp://localhost:8081",
+                "http://127.0.0.1:8081",
+                "http://127.0.0.1:8082",
+                "http://127.0.0.1:19006",
+                "http://127.0.0.1:19000"
             });
+
+            var localIp = builder.Configuration["LocalIP"];
+            if (!string.IsNullOrEmpty(localIp))
+            {
+                origins.AddRange(new[]
+                {
+                    $"http://{localIp}:8081",
+                    $"http://{localIp}:8082",
+                    $"http://{localIp}:19006",
+                    $"http://{localIp}:19000",
+                    $"exp://{localIp}:8081",
+                    $"http://{localIp}:5260"
+                });
+            }
         }
 
         var rootDomain = builder.Configuration["Brokers:RootDomain"] ?? "moneyshop.ro";
         policy.SetIsOriginAllowed(origin =>
                 origins.Contains(origin) ||
                 (Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps &&
-                 uri.Host.EndsWith("." + rootDomain, StringComparison.OrdinalIgnoreCase)))
+                 uri.Host.EndsWith("." + rootDomain, StringComparison.OrdinalIgnoreCase) &&
+                 System.Text.RegularExpressions.Regex.IsMatch(uri.Host[..^(rootDomain.Length + 1)], "^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$")))
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
@@ -200,7 +218,11 @@ DependencyInjectionConfig.ConfigureServices(builder.Services);
 
 // ── JWT Bearer Authentication ONLY (API-only, no cookies) ──
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? "MoneyShop_SecretKey_Minimum_32_Characters_Long_For_Security_2024";
+var secretKey = jwtSettings["SecretKey"];
+if (string.IsNullOrWhiteSpace(secretKey) || Encoding.UTF8.GetByteCount(secretKey) < 32)
+{
+    throw new InvalidOperationException("JwtSettings:SecretKey is missing or shorter than 32 bytes");
+}
 var issuer = jwtSettings["Issuer"] ?? "MoneyShop";
 var audience = jwtSettings["Audience"] ?? "MoneyShopUsers";
 
@@ -292,9 +314,6 @@ else
 // ── Data Retention (erases expired KYC / Acord documents) ──
 builder.Services.AddHostedService<MoneyShop.Api.Services.DataRetentionHostedService>();
 
-// ── SignalR (if needed for real-time features) ──
-builder.Services.AddSignalR();
-
 // ── Firebase Token Verifier ──
 builder.Services.AddSingleton(sp =>
 {
@@ -308,8 +327,39 @@ var app = builder.Build();
 
 Console.WriteLine($"[MoneyShop.Api] Environment: {app.Environment.EnvironmentName}");
 
+// ── Forwarded headers (must be first) ──
+app.UseForwardedHeaders();
+
 // ── Exception Handler Middleware (Infrastructure) ──
 app.UseRuntimeExceptionHandler();
+
+// ── Security headers ──
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        var headers = context.Response.Headers;
+        headers["X-Content-Type-Options"] = "nosniff";
+        headers["Referrer-Policy"] = "no-referrer";
+        headers["X-Frame-Options"] = "DENY";
+        if (!context.Request.Path.StartsWithSegments("/swagger"))
+        {
+            headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
+        }
+        headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+        if (context.Request.Path.StartsWithSegments("/api") && !headers.ContainsKey("Cache-Control"))
+        {
+            headers["Cache-Control"] = "no-store";
+        }
+        return Task.CompletedTask;
+    });
+    await next();
+});
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
 
 // ── Routing ──
 app.UseRouting();
@@ -317,16 +367,8 @@ app.UseRouting();
 // ── CORS (before auth) ──
 app.UseCors("AllowReactNative");
 
-// ── CORS preflight: respond to OPTIONS with 204 ──
-app.Use(async (context, next) =>
-{
-    if (context.Request.Method == "OPTIONS")
-    {
-        context.Response.StatusCode = 204;
-        return;
-    }
-    await next();
-});
+// ── Rate limiting ──
+app.UseRateLimiter();
 
 // ── Request logging (Development) ──
 if (app.Environment.IsDevelopment())

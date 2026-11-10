@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Kyc;
 using System.Security.Claims;
 using MoneyShop.DomainServices.RepositoryInterfaces.Kyc;
+using Microsoft.Extensions.Logging;
 
 namespace MoneyShop.Api.Controllers
 {
@@ -15,17 +16,28 @@ namespace MoneyShop.Api.Controllers
         private readonly IWebHostEnvironment _environment;
         private readonly IConfiguration _configuration;
         private readonly IKycSessionRepository _kycSessionRepository;
+        private readonly ILogger<KycController> _logger;
 
         public KycController(
             IKycService kycService,
             IWebHostEnvironment environment,
             IConfiguration configuration,
-            IKycSessionRepository kycSessionRepository)
+            IKycSessionRepository kycSessionRepository,
+            ILogger<KycController> logger)
         {
             _kycService = kycService;
             _environment = environment;
             _configuration = configuration;
             _kycSessionRepository = kycSessionRepository;
+            _logger = logger;
+        }
+
+        private static string? MaskCnp(string? value)
+        {
+            if (string.IsNullOrEmpty(value)) return null;
+            if (value.Contains('*')) return value;
+            if (value.Length != 13 || !value.All(char.IsDigit)) return null;
+            return "*********" + value[^4..];
         }
 
         private int GetUserId()
@@ -119,14 +131,8 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                var errorDetails = new
-                {
-                    message = ex.Message,
-                    type = ex.GetType().Name,
-                    innerException = ex.InnerException?.Message,
-                    stackTrace = ex.StackTrace
-                };
-                return BadRequest(errorDetails);
+                _logger.LogError(ex, "KYC file upload failed");
+                return BadRequest(new { message = "Încărcarea fișierului a eșuat. Încearcă din nou." });
             }
         }
 
@@ -152,7 +158,7 @@ namespace MoneyShop.Api.Controllers
                     expiresAt = result.ExpiresAt,
                     rejectionReason = result.RejectionReason,
                     files = result.Files,
-                    cnp = session?.Cnp,
+                    cnp = MaskCnp(session?.Cnp),
                     address = session?.Address,
                     city = session?.City,
                     county = session?.County,
@@ -228,7 +234,7 @@ namespace MoneyShop.Api.Controllers
                         dataUri = !string.IsNullOrEmpty(f.FileContentBase64) ? $"data:{f.MimeType};base64,{f.FileContentBase64}" : null,
                         createdAt = f.CreatedAt
                     }),
-                    cnp = session.Cnp, address = session.Address, city = session.City,
+                    cnp = MaskCnp(session.Cnp), address = session.Address, city = session.City,
                     county = session.County, postalCode = session.PostalCode
                 });
             }
@@ -293,7 +299,8 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message, details = ex.ToString() });
+                _logger.LogError(ex, "KYC form data update failed");
+                return BadRequest(new { message = "Actualizarea datelor a eșuat. Încearcă din nou." });
             }
         }
 

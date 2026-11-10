@@ -50,7 +50,7 @@ Conformitate:
         _configuration = configuration;
         _logger = logger;
 
-        // Use Azure OpenAI configuration (same keys as AzureOpenAIPluginService)
+        // Use Azure OpenAI configuration
         _endpoint = _configuration["AzureOpenAI:Endpoint"] ?? "";
         _apiKey = _configuration["AzureOpenAI:ApiKey"] ?? "";
         _deploymentName = _configuration["AzureOpenAI:DeploymentName"] ?? "gpt-4o-mini";

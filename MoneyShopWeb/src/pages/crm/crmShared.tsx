@@ -171,7 +171,7 @@ export function SkeletonCards({ count = 6 }: { count?: number }) {
 }
 
 // ── Status segments (quick filters shared by Clienți & Dosare) ───────────────
-export const STATUS_SEGMENTS: { key: string; label: string }[] = [
+export const FILE_STATUS_SEGMENTS: { key: string; label: string }[] = [
   { key: 'toate', label: 'Toate' },
   { key: 'analiza', label: 'În analiză' },
   { key: 'banca', label: 'La bancă' },
@@ -180,13 +180,25 @@ export const STATUS_SEGMENTS: { key: string; label: string }[] = [
   { key: 'respins', label: 'Respinse' },
 ];
 
+export const CLIENT_STATUS_SEGMENTS: { key: string; label: string }[] = [
+  ...FILE_STATUS_SEGMENTS,
+  { key: 'none', label: 'Fără dosar' },
+];
+
 /// Folds a concrete status into the segment it belongs to.
-export function statusGroup(status?: string): string {
+export function statusGroup(status?: string | null): string {
+  if (!status) return 'none';
   switch (status) {
     case 'TRIMIS_LA_BANCA': return 'banca';
     case 'APROBAT_BANCA': return 'aprobate';
     case 'DISBURSAT': return 'debursate';
     case 'RESPINS': return 'respins';
+    case 'INREGISTRAT':
+    case 'IN_ANALIZA':
+    case 'NEVOIE_DOCUMENTE':
+    case 'PREAPROBAT':
+    case 'OFERTA_TRANSMISA':
+    case 'ACCEPTAT_CLIENT': return 'analiza';
     default: return 'analiza';
   }
 }

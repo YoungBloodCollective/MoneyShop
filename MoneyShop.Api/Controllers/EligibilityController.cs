@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Eligibility;
@@ -23,6 +24,7 @@ namespace MoneyShop.Api.Controllers
 
         [HttpPost("simple")]
         [AllowAnonymous]
+        [EnableRateLimiting("public-form")]
         public async Task<IActionResult> CalculateSimple([FromBody] CalcSimpleRequest request)
         {
             if (request == null)

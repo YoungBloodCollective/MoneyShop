@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Broker;
 using System.Security.Claims;
 using System.IO;
+using Microsoft.Extensions.Logging;
 
 namespace MoneyShop.Api.Controllers
 {
@@ -12,10 +13,12 @@ namespace MoneyShop.Api.Controllers
     public class BrokerController : BaseController
     {
         private readonly IBrokerDirectoryService _brokerService;
+        private readonly ILogger<BrokerController> _logger;
 
-        public BrokerController(IBrokerDirectoryService brokerService)
+        public BrokerController(IBrokerDirectoryService brokerService, ILogger<BrokerController> logger)
         {
             _brokerService = brokerService;
+            _logger = logger;
         }
 
         private int GetUserId()
@@ -62,7 +65,8 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                _logger.LogError(ex, "Broker directory request failed");
+                return BadRequest(new { message = "A apărut o eroare. Încearcă din nou." });
             }
         }
 
@@ -86,7 +90,8 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                _logger.LogError(ex, "Broker directory request failed");
+                return BadRequest(new { message = "A apărut o eroare. Încearcă din nou." });
             }
         }
 
@@ -101,11 +106,13 @@ namespace MoneyShop.Api.Controllers
             }
             catch (FileNotFoundException ex)
             {
-                return NotFound(new { message = ex.Message });
+                _logger.LogWarning(ex, "Broker directory file not found");
+                return NotFound(new { message = "Resource not found" });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                _logger.LogError(ex, "Broker directory request failed");
+                return BadRequest(new { message = "A apărut o eroare. Încearcă din nou." });
             }
         }
     }

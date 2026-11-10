@@ -53,6 +53,16 @@ namespace MoneyShop.Api.Controllers
             var app = _applications.Get().FirstOrDefault(a => a.Id == request.ApplicationId);
             if (app == null) return NotFound("Dosarul nu a fost găsit.");
 
+            var consent = _context.Consents
+                .Where(c => c.UserId == app.UserId
+                    && (c.ConsentType == "ACORD_INTERMEDIERE" || c.ConsentType == "ACORD_BANCI")
+                    && c.Status == "granted"
+                    && c.RevokedAt == null)
+                .OrderByDescending(c => c.GrantedAt)
+                .FirstOrDefault();
+            if (consent == null)
+                return BadRequest(new { message = "Clientul nu are un acord de intermediere activ." });
+
             var user = _context.Utilizatoris.FirstOrDefault(u => u.IdUtilizator == app.UserId);
 
             var input = new CrediusLeadInput
@@ -66,7 +76,9 @@ namespace MoneyShop.Api.Controllers
                 PartnerReference = $"MS-{app.Id}"
             };
 
-            _logger.LogInformation("Credius forward requested for application {AppId} with consent", app.Id);
+            var actorIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            _logger.LogInformation("Credius forward requested: ApplicationId={ApplicationId}, UserId={UserId}, ActorUserId={ActorUserId}, ConsentId={ConsentId}",
+                app.Id, app.UserId, actorIdClaim, consent.ConsentId);
 
             var result = await _credius.ForwardLeadAsync(input);
             return Ok(result);

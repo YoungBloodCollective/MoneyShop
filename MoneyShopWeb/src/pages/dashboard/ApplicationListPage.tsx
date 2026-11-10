@@ -34,13 +34,14 @@ export default function ApplicationListPage() {
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
     applicationsApi.getAll()
       .then(apps => setApplications(apps))
-      .catch(() => {})
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -60,6 +61,8 @@ export default function ApplicationListPage() {
           <Plus size={18} /> Aplicatie noua
         </button>
       </div>
+
+      {error && <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">Nu s-au putut încărca aplicațiile. Încearcă din nou.</p>}
 
       {/* Search */}
       <div className="relative">

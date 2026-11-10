@@ -5,7 +5,7 @@ import { crmApi } from '@/services/api/crmApi';
 import type { CrmClientListItem } from '@/types/crm.types';
 import {
   PageHeader, SkeletonTable, EmptyState, StatusPill, moneyShort, relTime, initials,
-  SegmentChips, STATUS_SEGMENTS, matchesSegment, usePaged, Pagination,
+  SegmentChips, CLIENT_STATUS_SEGMENTS, matchesSegment, usePaged, Pagination,
 } from './crmShared';
 
 const SEG_KEY = 'moneyshop:crm-clienti-seg';
@@ -31,7 +31,7 @@ export default function CrmClientsPage() {
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { toate: clients.length };
-    for (const seg of STATUS_SEGMENTS) {
+    for (const seg of CLIENT_STATUS_SEGMENTS) {
       if (seg.key !== 'toate') c[seg.key] = clients.filter(x => matchesSegment(x.lastStatus, seg.key)).length;
     }
     return c;
@@ -52,7 +52,7 @@ export default function CrmClientsPage() {
     <div className="space-y-5">
       <PageHeader title="Clienți" subtitle={`${clients.length} clienți în portofoliul tău`} />
 
-      <SegmentChips segments={STATUS_SEGMENTS} active={segment} onChange={setSegment} counts={counts} />
+      <SegmentChips segments={CLIENT_STATUS_SEGMENTS} active={segment} onChange={setSegment} counts={counts} />
 
       <div className="relative max-w-md">
         <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />

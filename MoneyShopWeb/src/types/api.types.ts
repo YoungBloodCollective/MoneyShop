@@ -24,9 +24,9 @@ export interface RegisterRequest {
   mandateAnaf: boolean;
   mandateBiroCredit?: boolean;
   shareToBroker?: boolean;
-  ipAddress: string;
+  ipAddress?: string;
   userAgent: string;
-  deviceHash: string;
+  deviceHash?: string;
   consentTimestamp?: string;
 }
 

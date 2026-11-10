@@ -40,7 +40,10 @@ export default function KycScanPage() {
   const { token } = useParams<{ token: string }>();
   const [searchParams] = useSearchParams();
   const navigateFn = useNavigate();
-  const returnTo = searchParams.get('returnTo');
+  const rawReturnTo = searchParams.get('returnTo');
+  const returnTo = rawReturnTo
+    ? (rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//') && !rawReturnTo.startsWith('/\\') ? rawReturnTo : '/')
+    : null;
   const [step, setStep] = useState<ScanStep>('loading');
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(false);

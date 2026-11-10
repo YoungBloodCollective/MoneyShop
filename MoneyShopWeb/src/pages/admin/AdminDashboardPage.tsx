@@ -24,11 +24,12 @@ function AdminOverview() {
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     adminApi.getApplications().then(apps => {
       setApplications(apps);
-    }).finally(() => setLoading(false));
+    }).catch(() => setError(true)).finally(() => setLoading(false));
   }, []);
 
   // Compute stats
@@ -123,6 +124,8 @@ function AdminOverview() {
           <p className="text-light-60 text-sm">Sumar general al platformei</p>
         </div>
       </div>
+
+      {error && <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">Nu s-au putut încărca datele. Încearcă din nou.</p>}
 
       {/* Stats cards */}
       {loading ? (

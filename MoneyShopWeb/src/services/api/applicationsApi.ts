@@ -4,13 +4,8 @@ import type { Application, CreateApplicationRequest } from '@/types/application.
 
 export const applicationsApi = {
   async getAll(): Promise<Application[]> {
-    try {
-      const response = await apiClient.get<Application[]>('/applications');
-      return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-      console.error('Error fetching applications:', error);
-      return [];
-    }
+    const response = await apiClient.get<Application[]>('/applications');
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   async getById(id: number): Promise<Application> {

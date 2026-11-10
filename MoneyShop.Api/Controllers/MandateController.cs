@@ -162,7 +162,7 @@ namespace MoneyShop.Api.Controllers
             if (request == null)
                 return BadRequest(new { message = "Invalid request" });
 
-            var targetUserId = IsAdmin && request.UserId > 0 ? request.UserId : CurrentUserId;
+            var targetUserId = CurrentUserId;
             var user = _userRepository.Get().FirstOrDefault(u => u.IdUtilizator == targetUserId);
             if (user == null) return NotFound(new { message = "User not found" });
 
@@ -174,7 +174,7 @@ namespace MoneyShop.Api.Controllers
                 Scope = request.Scope ?? "credit_eligibility_only",
                 Status = "active",
                 GrantedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddDays(request.ExpiresInDays > 0 ? request.ExpiresInDays : 30),
+                ExpiresAt = DateTime.UtcNow.AddDays(Math.Clamp(request.ExpiresInDays, 1, 30)),
                 ConsentEventId = request.ConsentEventId
             };
 
@@ -187,7 +187,7 @@ namespace MoneyShop.Api.Controllers
                 ConsentType = $"MANDATE_{request.MandateType ?? "ANAF"}",
                 Status = "granted",
                 GrantedAt = DateTime.UtcNow,
-                ConsentTextSnapshot = request.ConsentText ?? GetDefaultConsentText(request.MandateType),
+                ConsentTextSnapshot = GetDefaultConsentText(request.MandateType),
                 Ip = HttpContext.Connection.RemoteIpAddress?.ToString(),
                 UserAgent = HttpContext.Request.Headers["User-Agent"].ToString(),
                 SourceChannel = request.SourceChannel ?? "web"

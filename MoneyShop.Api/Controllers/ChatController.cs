@@ -66,7 +66,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Eroare la procesarea chat request");
-                return StatusCode(500, new { error = "eroare_server", code = ex.Message });
+                return StatusCode(500, new { error = "eroare_server" });
             }
         }
 

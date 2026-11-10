@@ -9,7 +9,7 @@ namespace MoneyShop.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Roles = "Administrator")]
     public class OblioController : BaseController
     {
         private readonly IOblioApiService _oblioService;

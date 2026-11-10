@@ -1,23 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { QRCodeSVG } from "qrcode.react";
-import {
-  createSession,
-  submitOcr,
-  submitLiveness,
-  submitFaceCompare,
-  submitActiveLiveness,
-} from "./services/kycExternalApi";
-import { connectToKycSession, disconnect } from "./services/signalr";
-function useIsMobileKyc() {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
-  }, []);
-  return isMobile;
-}
+import { useNavigate } from "react-router-dom";
+import { kycApi } from "@/services/api/kycApi";
+import { useAuthStore } from "@/store/authStore";
 import Camera from "./components/Camera";
 import ConsentGate from "./components/ConsentGate";
 import DocumentOverlay from "./components/DocumentOverlay";
@@ -32,6 +16,8 @@ import type {
   FaceCompareResult,
   ActiveLivenessResult,
 } from "./types";
+
+const toFile = (b: Blob) => (b instanceof File ? b : new File([b], "image.jpg", { type: b.type || "image/jpeg" }));
 
 const MAX_RETRIES = 3;
 const MAX_OCR_RETRIES = 2;
@@ -50,20 +36,11 @@ type Step =
   | "error";
 
 export default function FullKycPage() {
-  const isMobile = useIsMobileKyc();
   const navigate = useNavigate();
-  const params = useParams<{ sessionId?: string }>();
-  const [searchParams] = useSearchParams();
-
-  const qrSessionId = params.sessionId || "";
-  const qrToken = searchParams.get("token") || "";
-
-  const [sessionId, setSessionId] = useState(qrSessionId);
-  const [token, setToken] = useState(qrToken);
-  // QR arrivals go to a camera permission gate first, not directly to "front"
-  const [step, setStep] = useState<Step>(qrSessionId ? "consent" : "consent");
-  const [qrPhase, setQrPhase] = useState<"idle" | "loading" | "waiting" | "processing">("idle");
-  const isQrSession = !!qrSessionId;
+  const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+  const [step, setStep] = useState<Step>("consent");
+  const [starting, setStarting] = useState(false);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
@@ -87,8 +64,42 @@ export default function FullKycPage() {
   const [activeLivenessCameraReady, setActiveLivenessCameraReady] = useState(false);
   const [ocrRetryCount, setOcrRetryCount] = useState(0);
   const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [decision, setDecision] = useState<{ code: number; reason?: string } | null>(null);
+  const [polledStatus, setPolledStatus] = useState<"verified" | "rejected" | null>(null);
 
-  useEffect(() => () => { disconnect(); }, []);
+  useEffect(() => {
+    if (step !== "done" || !decision || decision.code === 9001 || decision.code === 9102) return;
+    let cancelled = false;
+    let ticks = 0;
+    let failures = 0;
+    const stop = () => clearInterval(timer);
+    const tick = async () => {
+      ticks += 1;
+      try {
+        const status = await kycApi.getStatus();
+        if (cancelled) return;
+        failures = 0;
+        if (status.status === "verified") {
+          const current = useAuthStore.getState().user;
+          if (current) useAuthStore.getState().setUser({ ...current, kycStatus: "verified" });
+          setPolledStatus("verified");
+          stop();
+          return;
+        }
+        if (status.status === "rejected" || status.status === "expired") {
+          setPolledStatus("rejected");
+          stop();
+          return;
+        }
+      } catch {
+        failures += 1;
+      }
+      if (failures >= 5 || ticks >= 60) stop();
+    };
+    const timer = setInterval(tick, 2500);
+    tick();
+    return () => { cancelled = true; stop(); };
+  }, [step, decision]);
 
   // Delay mounting Active Liveness camera so previous stream is fully released
   useEffect(() => {
@@ -100,11 +111,7 @@ export default function FullKycPage() {
     return () => clearTimeout(t);
   }, [step]);
 
-  // Pre-warm camera permissions for both rear and front cameras on page load.
-  // Skip for QR sessions — mobile browsers block getUserMedia without user gesture from external links.
-  // QR sessions will request permission via an explicit button tap instead.
   useEffect(() => {
-    if (isQrSession) return;
     (async () => {
       try {
         const rear = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
@@ -115,64 +122,25 @@ export default function FullKycPage() {
         front.getTracks().forEach((t) => t.stop());
       } catch { /* permission denied or unavailable */ }
     })();
-  }, [isQrSession]);
-
-  // For QR sessions: request camera permission on user tap (provides gesture context)
-  const handleQrCameraStart = useCallback(async () => {
-    try {
-      const rear = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-      rear.getTracks().forEach((t) => t.stop());
-      try {
-        const front = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-        front.getTracks().forEach((t) => t.stop());
-      } catch { /* front camera optional */ }
-      setStep("front");
-    } catch {
-      // Try just any camera
-      try {
-        const any = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        any.getTracks().forEach((t) => t.stop());
-        setStep("front");
-      } catch {
-        setStep("front"); // Camera component will show its own error
-      }
-    }
   }, []);
 
   const startSession = useCallback(async () => {
-    setQrPhase("loading");
+    setStarting(true);
     try {
-      const session = await createSession();
-      setSessionId(session.sessionId);
-      setToken(session.token);
-
-      if (isMobile) {
-        setStep("front");
+      const session = await kycApi.startSession();
+      if (session.status === "already_verified") {
+        if (user) setUser({ ...user, kycStatus: "verified" });
+        navigate("/onboarding", { replace: true });
         return;
       }
-
-      setQrPhase("waiting");
-      await connectToKycSession(session.sessionId, {
-        onStatus: (s) => {
-          if (s === "processing" || s === "comparing") setQrPhase("processing");
-        },
-        onOcrCompleted: (r) => setOcrResult(r),
-        onLivenessCompleted: (r) => setLivenessResult(r as any),
-        onActiveLivenessCompleted: (r) => setActiveLivenessResult(r),
-        onCompareCompleted: (r) => {
-          setCompareResult(r);
-          setStep("done");
-        },
-        onFailed: (err) => {
-          setError(err.error);
-          setStep("error");
-        },
-      });
+      setStep("front");
     } catch {
       setError("Nu s-a putut crea sesiunea.");
       setStep("error");
+    } finally {
+      setStarting(false);
     }
-  }, [isMobile]);
+  }, [navigate, user, setUser]);
 
   const handleCapture = useCallback((blob: Blob) => {
     setPendingBlob(blob);
@@ -198,10 +166,10 @@ export default function FullKycPage() {
 
       try {
         const [ocr, authCheck] = await Promise.all([
-          submitOcr(sessionId, token, front),
+          kycApi.submitDocument(toFile(front)),
           analyzeDocumentAuthenticity(front),
         ]);
-        setOcrResult(ocr);
+        setOcrResult(ocr as OcrOnlyResult);
         const newFormat = ocr.ocrData?.isNewFormat ?? false;
         setIsNewFormat(newFormat);
         isNewFormatRef.current = newFormat;
@@ -229,7 +197,7 @@ export default function FullKycPage() {
       setPendingBlob(null);
       setStep("active_liveness");
     }
-  }, [pendingBlob, previewUrl, step, sessionId, token]);
+  }, [pendingBlob, previewUrl, step, ocrRetryCount]);
 
   const handleRetryFront = useCallback(() => {
     setFraudWarnings([]);
@@ -266,6 +234,19 @@ export default function FullKycPage() {
     setFailedStep(null);
   }, [failedStep, retryCount]);
 
+  const handleRestart = useCallback(() => {
+    setOcrResult(null);
+    setLivenessResult(null);
+    setCompareResult(null);
+    setActiveLivenessResult(null);
+    setDecision(null);
+    setPolledStatus(null);
+    setError(null);
+    setFailedStep(null);
+    setRetryCount(0);
+    setStep("front");
+  }, []);
+
   // Handle step errors with retry tracking
   const handleStepError = useCallback((err: unknown, currentStep: Step) => {
     const msg = extractError(err);
@@ -287,21 +268,21 @@ export default function FullKycPage() {
         // 1. Re-submit OCR with full-res if new format with back image
         if (newFmt && back) {
           setStatusMsg("Se extrag datele complete...");
-          const fullOcr = await submitOcr(sessionId, token, front, back);
-          setOcrResult(fullOcr);
+          const fullOcr = await kycApi.submitDocument(toFile(front), toFile(back));
+          setOcrResult(fullOcr as OcrOnlyResult);
         }
 
         // 2. Save selfie server-side
         setStatusMsg("Se salvează selfie-ul...");
-        const liveness = await submitLiveness(sessionId, token, selfie);
-        setLivenessResult(liveness);
+        const liveness = await kycApi.submitLiveness(toFile(selfie));
+        setLivenessResult(liveness as LivenessOnlyResult);
 
         // 3. Active liveness (challenges + face comparison with selfie)
         setStatusMsg("Se verifică identitatea...");
-        const alResult = await submitActiveLiveness(
-          sessionId, token, alBlob,
+        const alResult = await kycApi.submitActiveLiveness(
+          toFile(alBlob),
           logs.map((l) => ({ type: l.type, passed: l.passed, durationMs: l.durationMs }))
-        );
+        ) as ActiveLivenessResult;
         setActiveLivenessResult(alResult);
 
         if (alResult.decision === "fail") {
@@ -311,8 +292,14 @@ export default function FullKycPage() {
 
         // 4. Face compare: document vs active liveness selfie
         setStatusMsg("Se compară fețele...");
-        const compare = await submitFaceCompare(sessionId, token, null, alBlob);
+        const compareResponse = await kycApi.submitFaceCompare(toFile(front), toFile(alBlob));
+        const compare = compareResponse.faceCompare as FaceCompareResult;
         setCompareResult(compare);
+        setDecision({ code: compareResponse.decision.code, reason: compareResponse.decision.reason });
+        if (compareResponse.decision.code === 9001) {
+          const current = useAuthStore.getState().user;
+          if (current) useAuthStore.getState().setUser({ ...current, kycStatus: "verified" });
+        }
 
         if (compare.decision === "fail") {
           handleStepError(new Error(compare.reasonCode || "Fețele nu corespund"), "active_liveness");
@@ -324,12 +311,8 @@ export default function FullKycPage() {
         handleStepError(err, "active_liveness");
       }
     },
-    [sessionId, token, handleStepError]
+    [handleStepError]
   );
-
-  const mobileUrl = sessionId
-    ? `${window.location.origin}/kyc/${sessionId}?token=${token}`
-    : "";
 
   const stepConfig: Record<string, { facing: "user" | "environment"; instruction: string; label: string; overlay: React.ReactNode }> = {
     front: { facing: "environment", instruction: "Pozitionează fața buletinului în cadru", label: "Față buletin", overlay: <DocumentOverlay /> },
@@ -348,78 +331,10 @@ export default function FullKycPage() {
 
   // ─── GDPR Consent ──────────────────────────────────────────────────
   if (step === "consent") {
-    if (isQrSession) {
-      // QR sessions: show a camera permission gate with a start button (provides user gesture for getUserMedia)
-      return (
-        <div className="min-h-[100dvh] bg-slate-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 sm:p-8 text-center">
-            <svg className="w-16 h-16 text-indigo-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">Verificare identitate</h1>
-            <p className="text-slate-500 text-sm mb-6">
-              Vom folosi camera pentru a fotografia buletinul și a face verificarea live.
-            </p>
-            <button
-              onClick={handleQrCameraStart}
-              className="w-full py-4 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-xl transition-colors text-lg active:scale-[0.98]"
-            >
-              Pornește camera
-            </button>
-          </div>
-        </div>
-      );
-    }
     return <ConsentGate onAccept={() => setStep("init")} />;
   }
 
-  // ─── Desktop: QR flow ──────────────────────────────────────────────
-  if (!isMobile && step === "init") {
-    return (
-      <div className="min-h-[100dvh] bg-slate-50 flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">KYC Complet</h1>
-            <p className="text-slate-500 mt-1 text-sm sm:text-base">OCR + Liveness + Comparare</p>
-          </div>
-          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
-            {qrPhase === "idle" && (
-              <div className="text-center">
-                <p className="text-slate-500 text-sm mb-6">
-                  Vei scana buletinul și vei face verificarea folosind telefonul.
-                </p>
-                <button onClick={startSession} className="w-full py-4 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-xl transition-colors text-lg active:scale-[0.98]">
-                  Generează cod QR
-                </button>
-              </div>
-            )}
-            {qrPhase === "loading" && <Spinner text="Se creează sesiunea..." />}
-            {qrPhase === "waiting" && (
-              <div className="text-center">
-                <p className="text-slate-700 font-medium mb-4">Scanează codul QR cu telefonul</p>
-                <div className="bg-white p-4 rounded-xl border border-slate-100 inline-block mb-4">
-                  <QRCodeSVG value={mobileUrl} size={220} level="M" />
-                </div>
-                <p className="text-slate-400 text-xs break-all px-4">{mobileUrl}</p>
-                <div className="flex items-center justify-center gap-2 text-sm text-indigo-500 mt-4">
-                  <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
-                  Se așteaptă scanarea...
-                </div>
-              </div>
-            )}
-            {qrPhase === "processing" && <Spinner text="Se procesează..." />}
-          </div>
-
-          {(ocrResult || livenessResult || activeLivenessResult || compareResult) && (
-            <ResultsDisplay ocr={ocrResult} liveness={livenessResult} activeLiveness={activeLivenessResult} compare={compareResult} />
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ─── Mobile init ───────────────────────────────────────────────────
-  if (isMobile && step === "init") {
+  if (step === "init") {
     return (
       <div className="min-h-[100dvh] bg-slate-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 sm:p-8 text-center">
@@ -427,8 +342,8 @@ export default function FullKycPage() {
           <p className="text-slate-500 text-sm mb-6">
             Vei fotografia buletinul și vei face o verificare live.
           </p>
-          <button onClick={startSession} className="w-full py-4 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-xl text-lg active:scale-[0.98]">
-            Începe verificarea
+          <button onClick={startSession} disabled={starting} className="w-full py-4 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-semibold rounded-xl text-lg active:scale-[0.98]">
+            {starting ? "Se creează sesiunea..." : "Începe verificarea"}
           </button>
         </div>
       </div>
@@ -594,7 +509,7 @@ export default function FullKycPage() {
     return (
       <div className="min-h-[100dvh] bg-slate-50 p-4 sm:p-6 overflow-y-auto">
         <div className="max-w-md mx-auto pb-6">
-          <ResultsDisplay ocr={ocrResult} liveness={livenessResult} activeLiveness={activeLivenessResult} compare={compareResult} />
+          <ResultsDisplay ocr={ocrResult} liveness={livenessResult} activeLiveness={activeLivenessResult} compare={compareResult} decision={decision} polledStatus={polledStatus} onRetry={handleRestart} />
           <button onClick={() => navigate("/onboarding")} className="w-full mt-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl active:scale-[0.98]">
             Verificare nouă
           </button>
@@ -645,42 +560,31 @@ function StepBar({ current, steps }: { current: number; steps: string[] }) {
   );
 }
 
-function Spinner({ text }: { text: string }) {
-  return (
-    <div className="flex flex-col items-center py-8">
-      <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-      <p className="text-slate-500 mt-4 text-sm">{text}</p>
-    </div>
-  );
-}
-
 function ResultsDisplay({
   ocr,
   liveness,
   activeLiveness,
   compare,
+  decision,
+  polledStatus,
+  onRetry,
 }: {
   ocr: OcrOnlyResult | null;
   liveness: LivenessOnlyResult | null;
   activeLiveness: ActiveLivenessResult | null;
   compare: FaceCompareResult | null;
+  decision: { code: number; reason?: string } | null;
+  polledStatus: "verified" | "rejected" | null;
+  onRetry: () => void;
 }) {
-  const allPassed =
-    ocr?.decision === "pass" &&
-    liveness?.decision === "pass" &&
-    compare?.decision === "pass" &&
-    (!activeLiveness || activeLiveness.decision === "pass");
-
-  const anyFailed =
-    ocr?.decision === "fail" ||
-    liveness?.decision === "fail" ||
-    compare?.decision === "fail" ||
-    activeLiveness?.decision === "fail";
-
-  const overallDecision = allPassed ? "pass" : anyFailed ? "fail" : "review";
-  const decisionLabel = overallDecision === "pass" ? "VERIFICARE REUȘITĂ" : overallDecision === "fail" ? "VERIFICARE EȘUATĂ" : "NECESITĂ REVIZUIRE";
+  const overallDecision =
+    decision?.code === 9001 || polledStatus === "verified" ? "pass"
+    : decision?.code === 9102 || polledStatus === "rejected" ? "fail"
+    : "review";
+  const decisionLabel = overallDecision === "pass" ? "VERIFICARE REUȘITĂ" : overallDecision === "fail" ? "VERIFICARE EȘUATĂ" : "Verificarea este în curs de analiză";
   const decisionColor = overallDecision === "pass" ? "text-emerald-500" : overallDecision === "fail" ? "text-rose-500" : "text-amber-500";
   const decisionBg = overallDecision === "pass" ? "bg-emerald-50 border-emerald-200" : overallDecision === "fail" ? "bg-rose-50 border-rose-200" : "bg-amber-50 border-amber-200";
+  const rejectionReason = decision?.reason?.trim() || "Identitatea nu a putut fi confirmată. Te rugăm să încerci din nou.";
 
   const failures: string[] = [];
   if (ocr?.decision === "fail") failures.push(`OCR: ${ocr.reasonCode}${ocr.error ? " — " + ocr.error : ""}`);
@@ -703,6 +607,12 @@ function ResultsDisplay({
     <div className="space-y-4 mt-4">
       <div className={`rounded-2xl border p-5 text-center ${decisionBg}`}>
         <h2 className={`text-xl sm:text-2xl font-bold ${decisionColor}`}>{decisionLabel}</h2>
+        {overallDecision === "fail" && (
+          <>
+            <p className="mt-2 text-sm text-rose-700">{rejectionReason}</p>
+            <button onClick={onRetry} className="mt-4 px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-semibold active:scale-[0.98]">Reîncearcă</button>
+          </>
+        )}
         {overallDecision !== "pass" && failures.length > 0 && (
           <div className="mt-4 text-left">
             <p className="text-xs uppercase tracking-wider font-semibold text-slate-500 mb-2">Probleme detectate:</p>

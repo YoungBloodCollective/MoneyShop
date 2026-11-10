@@ -59,17 +59,12 @@ export const adminApi = {
    * GET /api/admin/applications?status=&typeCredit=
    */
   async getApplications(filters?: { status?: string; typeCredit?: string }): Promise<Application[]> {
-    try {
-      const params = new URLSearchParams();
-      if (filters?.status) params.set('status', filters.status);
-      if (filters?.typeCredit) params.set('typeCredit', filters.typeCredit);
-      const query = params.toString();
-      const response = await apiClient.get<Application[]>(`/admin/applications${query ? `?${query}` : ''}`);
-      return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-      console.error('Error fetching admin applications:', error);
-      return [];
-    }
+    const params = new URLSearchParams();
+    if (filters?.status) params.set('status', filters.status);
+    if (filters?.typeCredit) params.set('typeCredit', filters.typeCredit);
+    const query = params.toString();
+    const response = await apiClient.get<Application[]>(`/admin/applications${query ? `?${query}` : ''}`);
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   /**
@@ -93,19 +88,14 @@ export const adminApi = {
    * GET /api/admin/reports/monthly?month=&year=&bankName=&typeCredit=&status=
    */
   async getMonthlyReport(params: MonthlyReportParams): Promise<MonthlyReportItem[]> {
-    try {
-      const query = new URLSearchParams();
-      query.set('month', params.month.toString());
-      query.set('year', params.year.toString());
-      if (params.bankName) query.set('bankName', params.bankName);
-      if (params.typeCredit) query.set('typeCredit', params.typeCredit);
-      if (params.status) query.set('status', params.status);
-      const response = await apiClient.get<MonthlyReportItem[]>(`/admin/reports/monthly?${query.toString()}`);
-      return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-      console.error('Error fetching monthly report:', error);
-      return [];
-    }
+    const query = new URLSearchParams();
+    query.set('month', params.month.toString());
+    query.set('year', params.year.toString());
+    if (params.bankName) query.set('bankName', params.bankName);
+    if (params.typeCredit) query.set('typeCredit', params.typeCredit);
+    if (params.status) query.set('status', params.status);
+    const response = await apiClient.get<MonthlyReportItem[]>(`/admin/reports/monthly?${query.toString()}`);
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   /**
@@ -113,13 +103,8 @@ export const adminApi = {
    * POST /api/admin/reports/export
    */
   async getLeads(): Promise<LeadItem[]> {
-    try {
-      const response = await apiClient.get<LeadItem[]>('/admin/leads');
-      return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-      console.error('Error fetching leads:', error);
-      return [];
-    }
+    const response = await apiClient.get<LeadItem[]>('/admin/leads');
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   async updateLeadNotes(id: number, notes: string): Promise<void> {
@@ -132,12 +117,7 @@ export const adminApi = {
   },
 
   async exportReport(request: ExportReportRequest): Promise<MonthlyReportItem[]> {
-    try {
-      const response = await apiClient.post<MonthlyReportItem[]>('/admin/reports/export', request);
-      return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-      console.error('Error exporting report:', error);
-      return [];
-    }
+    const response = await apiClient.post<MonthlyReportItem[]>('/admin/reports/export', request);
+    return Array.isArray(response.data) ? response.data : [];
   },
 };

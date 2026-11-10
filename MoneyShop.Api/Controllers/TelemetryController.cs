@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.ApplicationInsights;
 
@@ -5,6 +6,7 @@ namespace MoneyShop.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class TelemetryController : BaseController
     {
         private readonly TelemetryClient _telemetryClient;

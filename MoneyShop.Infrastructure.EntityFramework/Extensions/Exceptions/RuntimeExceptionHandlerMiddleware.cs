@@ -49,7 +49,9 @@ public class RuntimeExceptionHandlerMiddleware
         };
 
         context.Response.StatusCode = (int)statusCode;
-        var response = new ApiResponse.ApiResponse(statusCode, message);
+        object response = statusCode == HttpStatusCode.InternalServerError
+            ? new { status = "Failure", statusCode, message, correlationId = context.TraceIdentifier }
+            : new ApiResponse.ApiResponse(statusCode, message);
         var json = JsonSerializer.Serialize(response);
         await context.Response.WriteAsync(json);
     }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,7 @@ namespace MoneyShop.Api.Controllers
 
         [HttpPost]
         [AllowAnonymous]
+        [EnableRateLimiting("public-form")]
         public async Task<IActionResult> Create([FromBody] CreateAppointmentRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Nume) || string.IsNullOrWhiteSpace(request.Telefon))

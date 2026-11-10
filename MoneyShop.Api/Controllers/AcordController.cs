@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Acord;
@@ -96,6 +97,7 @@ public class AcordController : BaseController
     [HttpPost("submit")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(40_000_000)]
+    [EnableRateLimiting("public-form")]
     public async Task<IActionResult> Submit([FromForm] AcordSubmitRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Nume) || request.Nume.Trim().Length < 2)

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Kyc;
+using MoneyShop.ServiceInterface.Interfaces.Subject;
 using MoneyShop.DomainServices.RepositoryInterfaces.Kyc;
 using MoneyShop.DomainModel.Entities;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
@@ -18,17 +19,20 @@ namespace MoneyShop.Api.Controllers;
 public class KycVerifyController : ControllerBase
 {
     private readonly IExternalKycService _externalKyc;
+    private readonly ISubjectService _subjectService;
     private readonly IKycSessionRepository _kycSessionRepository;
     private readonly MoneyShopDbContext _context;
     private readonly ILogger<KycVerifyController> _logger;
 
     public KycVerifyController(
         IExternalKycService externalKyc,
+        ISubjectService subjectService,
         IKycSessionRepository kycSessionRepository,
         MoneyShopDbContext context,
         ILogger<KycVerifyController> logger)
     {
         _externalKyc = externalKyc;
+        _subjectService = subjectService;
         _kycSessionRepository = kycSessionRepository;
         _context = context;
         _logger = logger;
@@ -120,7 +124,7 @@ public class KycVerifyController : ControllerBase
             // Store extracted data if OCR succeeded
             if (result.OcrData != null && result.Decision == "pass")
             {
-                session.Cnp = result.OcrData.Cnp;
+                session.Cnp = MaskCnp(session.UserId, result.OcrData.Cnp);
                 session.Address = result.OcrData.Address;
                 session.City = result.OcrData.PlaceOfBirth;
                 _context.SaveChanges();
@@ -238,7 +242,7 @@ public class KycVerifyController : ControllerBase
                 // Store extracted person data
                 if (decision.Person != null)
                 {
-                    session.Cnp = decision.Person.IdNumber;
+                    session.Cnp = MaskCnp(session.UserId, decision.Person.IdNumber);
                     session.City = decision.Person.PlaceOfBirth;
                     if (decision.Person.Addresses?.Count > 0)
                         session.Address = decision.Person.Addresses[0].FullAddress;
@@ -308,6 +312,21 @@ public class KycVerifyController : ControllerBase
             .Where(k => k.UserId == userId && k.KycType == "USER_KYC" && k.Status == "pending")
             .OrderByDescending(k => k.CreatedAt)
             .FirstOrDefault();
+    }
+
+    private string? MaskCnp(int userId, string? cnp)
+    {
+        if (string.IsNullOrWhiteSpace(cnp)) return null;
+
+        try
+        {
+            return _subjectService.GetOrCreateSubject(userId, cnp).CnpMasked;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not pseudonymise CNP for user {UserId}", userId);
+            return null;
+        }
     }
 
     private int? GetCurrentUserId()
