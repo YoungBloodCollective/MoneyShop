@@ -72,7 +72,7 @@ public class FirebaseTokenVerifier
                     .Replace("-----END CERTIFICATE-----", "")
                     .Replace("\n", "")
             );
-            var cert = new X509Certificate2(certBytes);
+            var cert = X509CertificateLoader.LoadCertificate(certBytes);
             _cachedKeys[kid] = new X509SecurityKey(cert);
         }
         return _cachedKeys;
