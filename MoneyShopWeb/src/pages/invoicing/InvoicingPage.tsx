@@ -21,6 +21,15 @@ export default function InvoicingPage() {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  const loadClients = async (cif: string) => {
+    try {
+      const c = await oblioApi.getClients(cif);
+      setClients(c);
+    } catch {
+      // clients may not exist yet
+    }
+  };
+
   useEffect(() => {
     oblioApi.getCompanies()
       .then(c => {
@@ -33,15 +42,6 @@ export default function InvoicingPage() {
       .catch(() => toast.error('Eroare la incarcarea companiilor'))
       .finally(() => setLoading(false));
   }, []);
-
-  const loadClients = async (cif: string) => {
-    try {
-      const c = await oblioApi.getClients(cif);
-      setClients(c);
-    } catch {
-      // clients may not exist yet
-    }
-  };
 
   const update = (field: string, value: string) =>
     setInvoiceForm(prev => ({ ...prev, [field]: value }));

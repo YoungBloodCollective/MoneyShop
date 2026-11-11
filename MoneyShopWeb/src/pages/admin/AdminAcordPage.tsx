@@ -408,7 +408,7 @@ export default function AdminAcordPage() {
     }
   }, [statusFilter, brokerFilter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { queueMicrotask(load); }, [load]);
 
   const openDetails = async (acordId: string) => {
     setLoadingDetails(true);

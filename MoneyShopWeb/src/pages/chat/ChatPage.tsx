@@ -18,6 +18,8 @@ const suggestedQuestions = [
   'Este serviciul gratuit?',
 ];
 
+const newMessageId = () => Date.now().toString();
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -52,7 +54,7 @@ export default function ChatPage() {
   const sendText = async (text: string) => {
     if (!text || loading) return;
     const userMsg: Message = {
-      id: Date.now().toString(),
+      id: newMessageId(),
       role: 'user',
       content: text,
       timestamp: new Date(),

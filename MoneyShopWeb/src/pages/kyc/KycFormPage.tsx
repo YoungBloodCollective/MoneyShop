@@ -19,11 +19,6 @@ export default function KycFormPage() {
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    checkStatus();
-    return () => { streamRef.current?.getTracks().forEach(t => t.stop()); };
-  }, []);
-
   const checkStatus = async () => {
     try {
       const status = await kycApi.getStatus();
@@ -33,6 +28,11 @@ export default function KycFormPage() {
       setStep('document');
     }
   };
+
+  useEffect(() => {
+    queueMicrotask(checkStatus);
+    return () => { streamRef.current?.getTracks().forEach(t => t.stop()); };
+  }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -44,7 +44,7 @@ export default function KycScanPage() {
   const returnTo = rawReturnTo
     ? (rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//') && !rawReturnTo.startsWith('/\\') ? rawReturnTo : '/')
     : null;
-  const [step, setStep] = useState<ScanStep>('loading');
+  const [step, setStep] = useState<ScanStep>(token ? 'loading' : 'invalid');
   const [error, setError] = useState('');
   const [, setProcessing] = useState(false);
   const [docFrontBlob, setDocFrontBlob] = useState<Blob | null>(null);
@@ -52,10 +52,17 @@ export default function KycScanPage() {
   const [, setSelfieBlob] = useState<Blob | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [cameraActive, setCameraActive] = useState(false);
+
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+    setCameraActive(false);
+  }, []);
 
   // Validate token on mount
   useEffect(() => {
-    if (!token) { setStep('invalid'); return; }
+    if (!token) return;
     scanApi.getSession(token)
       .then(session => {
         if (session.status === 'verified') { setStep('done'); }
@@ -68,7 +75,7 @@ export default function KycScanPage() {
   // Cleanup camera on unmount
   useEffect(() => {
     return () => { stopCamera(); };
-  }, []);
+  }, [stopCamera]);
 
   const startCamera = useCallback(async (facingMode: 'environment' | 'user' = 'environment') => {
     stopCamera();
@@ -77,6 +84,7 @@ export default function KycScanPage() {
         video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
       });
       streamRef.current = stream;
+      setCameraActive(true);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
@@ -84,12 +92,7 @@ export default function KycScanPage() {
     } catch {
       setError('Nu s-a putut accesa camera. Permite accesul la camera.');
     }
-  }, []);
-
-  const stopCamera = () => {
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    streamRef.current = null;
-  };
+  }, [stopCamera]);
 
   const capturePhoto = (): Blob | null => {
     const video = videoRef.current;
@@ -309,7 +312,7 @@ export default function KycScanPage() {
 
       {/* Controls */}
       <div className="p-4 space-y-3">
-        {!streamRef.current ? (
+        {!cameraActive ? (
           <button onClick={onStartCapture}
             className="w-full py-4 rounded-full bg-brand-primary text-white font-semibold flex items-center justify-center gap-2">
             <Camera size={20} /> Deschide camera

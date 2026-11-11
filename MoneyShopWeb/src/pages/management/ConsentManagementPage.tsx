@@ -25,8 +25,6 @@ export default function ConsentManagementPage() {
   const [consents, setConsents] = useState<ConsentInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadConsents(); }, []);
-
   const loadConsents = async () => {
     try {
       const res = await consentApi.listConsents();
@@ -37,6 +35,8 @@ export default function ConsentManagementPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => { queueMicrotask(loadConsents); }, []);
 
   const revoke = async (consentId: string) => {
     try {

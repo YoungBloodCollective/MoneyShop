@@ -53,7 +53,7 @@ export default function AdminApplicationsPage() {
   }, [statusFilter, typeFilter]);
 
   useEffect(() => {
-    loadApplications();
+    queueMicrotask(loadApplications);
   }, [loadApplications]);
 
   const filtered = applications.filter(a => {

@@ -17,27 +17,24 @@ export function ChatWidget() {
   const [initialized, setInitialized] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Load initial message when chat is first opened
-  useEffect(() => {
-    if (open && !initialized) {
-      chatApi.getInitialMessage().then(res => {
-        setMessages([{
-          id: 'init',
-          role: 'assistant',
-          content: res.mesaj,
-          timestamp: new Date(),
-        }]);
-      }).catch(() => {
-        setMessages([{
-          id: 'init',
-          role: 'assistant',
-          content: 'Buna! Sunt asistentul virtual MoneyShop. Cu ce te pot ajuta?',
-          timestamp: new Date(),
-        }]);
-      });
-      setInitialized(true);
-    }
-  }, [open, initialized]);
+  const loadInitialMessage = () => {
+    chatApi.getInitialMessage().then(res => {
+      setMessages([{
+        id: 'init',
+        role: 'assistant',
+        content: res.mesaj,
+        timestamp: new Date(),
+      }]);
+    }).catch(() => {
+      setMessages([{
+        id: 'init',
+        role: 'assistant',
+        content: 'Buna! Sunt asistentul virtual MoneyShop. Cu ce te pot ajuta?',
+        timestamp: new Date(),
+      }]);
+    });
+    setInitialized(true);
+  };
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -168,7 +165,10 @@ export function ChatWidget() {
 
       {/* Floating Bubble */}
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          if (!open && !initialized) loadInitialMessage();
+          setOpen(!open);
+        }}
         className={`fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-[60] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${
           open
             ? 'bg-dark-700 border border-dark-400 scale-0 opacity-0 pointer-events-none'

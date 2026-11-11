@@ -62,6 +62,11 @@ export default function FullKycPage() {
   const [retryCount, setRetryCount] = useState(0);
   const [statusMsg, setStatusMsg] = useState("Se procesează...");
   const [activeLivenessCameraReady, setActiveLivenessCameraReady] = useState(false);
+  const [prevStep, setPrevStep] = useState(step);
+  if (prevStep !== step) {
+    setPrevStep(step);
+    if (step !== "active_liveness") setActiveLivenessCameraReady(false);
+  }
   const [ocrRetryCount, setOcrRetryCount] = useState(0);
   const [missingFields, setMissingFields] = useState<string[]>([]);
   const [decision, setDecision] = useState<{ code: number; reason?: string } | null>(null);
@@ -103,10 +108,7 @@ export default function FullKycPage() {
 
   // Delay mounting Active Liveness camera so previous stream is fully released
   useEffect(() => {
-    if (step !== "active_liveness") {
-      setActiveLivenessCameraReady(false);
-      return;
-    }
+    if (step !== "active_liveness") return;
     const t = setTimeout(() => setActiveLivenessCameraReady(true), 400);
     return () => clearTimeout(t);
   }, [step]);

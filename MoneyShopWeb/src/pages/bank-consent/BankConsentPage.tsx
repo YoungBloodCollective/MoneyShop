@@ -43,7 +43,7 @@ export default function BankConsentPage() {
   // render inside an iframe in every browser, a blob does. The "Filă nouă" link stays as a
   // fallback for the browsers (notably iOS Safari) that refuse to show a PDF in a frame.
   useEffect(() => {
-    if (!viewing) { setViewUrl(null); return; }
+    if (!viewing) return;
     let url: string | null = null;
     let cancelled = false;
     fetch(acordApi.bankConsentDocumentUrl(token, viewing.code))
@@ -307,7 +307,7 @@ export default function BankConsentPage() {
               </a>
               <button
                 type="button"
-                onClick={() => setViewing(null)}
+                onClick={() => { setViewing(null); setViewUrl(null); }}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-dark-700 text-light-90 text-[13px] font-medium"
               >
                 <X size={15} /> Închide

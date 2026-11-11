@@ -32,7 +32,7 @@ export default function AdminLeadsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { loadLeads(); }, []);
+  useEffect(() => { queueMicrotask(loadLeads); }, []);
 
   const filtered = leads.filter(l => {
     if (!search) return true;

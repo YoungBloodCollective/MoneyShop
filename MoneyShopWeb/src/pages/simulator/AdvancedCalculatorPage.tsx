@@ -132,7 +132,7 @@ export default function AdvancedCalculatorPage() {
   }, []);
 
   useEffect(() => {
-    if (step === 1) loadUserData();
+    if (step === 1) queueMicrotask(loadUserData);
   }, [step, loadUserData]);
 
   const avgSalary = useMemo(() => {

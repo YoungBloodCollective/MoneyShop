@@ -14,22 +14,6 @@ export default function AdminBrokersPage() {
   const PAGE_SIZE = 20;
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    loadAll();
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(1);
-      setLoading(true);
-      brokerApi.searchBrokers(search || undefined, 500)
-        .then(res => setBrokers(res.brokers || []))
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
   const loadAll = async () => {
     setLoading(true);
     try {
@@ -45,6 +29,22 @@ export default function AdminBrokersPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    queueMicrotask(loadAll);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      setLoading(true);
+      brokerApi.searchBrokers(search || undefined, 500)
+        .then(res => setBrokers(res.brokers || []))
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

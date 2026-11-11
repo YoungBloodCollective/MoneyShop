@@ -16,16 +16,6 @@ export default function BrokerDirectoryPage() {
   const PAGE_SIZE = 20;
   const [page, setPage] = useState(1);
 
-  useEffect(() => { loadBrokers(); }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(1);
-      loadBrokers(search || undefined);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
   const loadBrokers = async (q?: string) => {
     setLoading(true);
     try {
@@ -37,6 +27,16 @@ export default function BrokerDirectoryPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => { queueMicrotask(loadBrokers); }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      loadBrokers(search || undefined);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const paginatedBrokers = brokers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const totalPages = Math.ceil(brokers.length / PAGE_SIZE);
