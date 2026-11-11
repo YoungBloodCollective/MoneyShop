@@ -69,7 +69,16 @@ jobs:
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_API_URL: https://moneyshop20260107220205-adbnf8c7a2fec4d4.canadacentral-01.azurewebsites.net/api
-      - run: cd MoneyShopWeb && npx playwright install --with-deps chromium
+      - name: Install Playwright chromium (retry on transient network failures)
+        shell: bash
+        run: |
+          cd MoneyShopWeb
+          for i in 1 2 3 4; do
+            npx playwright install --with-deps chromium && exit 0
+            echo "playwright install failed (attempt $i), retrying in 30s"
+            sleep 30
+          done
+          exit 1
       - run: cd MoneyShopWeb && npm run test:smoke
         env:
           CI: true
