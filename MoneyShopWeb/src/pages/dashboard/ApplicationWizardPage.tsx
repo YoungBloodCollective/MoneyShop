@@ -32,7 +32,7 @@ export default function ApplicationWizardPage() {
   const brokerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (brokerSearch.length < 2) { setBrokerResults([]); return; }
+    if (brokerSearch.length < 2) return;
     const timer = setTimeout(async () => {
       try {
         const res = await apiClient.get(`/broker/search?search=${encodeURIComponent(brokerSearch)}&limit=10`);
@@ -51,6 +51,11 @@ export default function ApplicationWizardPage() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  const changeBrokerSearch = (value: string) => {
+    setBrokerSearch(value);
+    if (value.length < 2) setBrokerResults([]);
+  };
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
 
@@ -156,7 +161,7 @@ export default function ApplicationWizardPage() {
               {selectedBroker ? (
                 <div className="flex items-center justify-between h-12 px-4 rounded-xl bg-dark-600 border border-brand-primary/30">
                   <span className="text-sm text-light-90">{selectedBroker.name} — {selectedBroker.company}</span>
-                  <button onClick={() => { setSelectedBroker(null); setBrokerSearch(''); }} className="text-light-50 hover:text-light-80"><X size={16} /></button>
+                  <button onClick={() => { setSelectedBroker(null); changeBrokerSearch(''); }} className="text-light-50 hover:text-light-80"><X size={16} /></button>
                 </div>
               ) : (
                 <div className="relative">
@@ -164,7 +169,7 @@ export default function ApplicationWizardPage() {
                   <input
                     type="text"
                     value={brokerSearch}
-                    onChange={e => setBrokerSearch(e.target.value)}
+                    onChange={e => changeBrokerSearch(e.target.value)}
                     onFocus={() => brokerResults.length > 0 && setBrokerDropdownOpen(true)}
                     placeholder="Cauta broker dupa nume..."
                     className="w-full h-12 pl-10 pr-4 rounded-xl bg-dark-600 border border-dark-400 text-light-90 placeholder:text-light-50 focus:border-brand-primary focus:outline-none transition-colors"
@@ -176,7 +181,7 @@ export default function ApplicationWizardPage() {
                   {brokerResults.map((b, i) => (
                     <button
                       key={i}
-                      onClick={() => { setSelectedBroker(b); setBrokerDropdownOpen(false); setBrokerSearch(''); }}
+                      onClick={() => { setSelectedBroker(b); setBrokerDropdownOpen(false); changeBrokerSearch(''); }}
                       className="w-full text-left px-4 py-3 text-sm hover:bg-dark-500 transition-colors border-b border-dark-400/50 last:border-0"
                     >
                       <p className="text-light-90 font-medium">{b.name}</p>

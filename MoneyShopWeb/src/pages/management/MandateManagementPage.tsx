@@ -9,8 +9,6 @@ export default function MandateManagementPage() {
   const [mandates, setMandates] = useState<MandateInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadMandates(); }, []);
-
   const loadMandates = async () => {
     try {
       const res = await mandateApi.listMandates();
@@ -21,6 +19,8 @@ export default function MandateManagementPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => { queueMicrotask(loadMandates); }, []);
 
   const revoke = async (mandateId: string) => {
     try {

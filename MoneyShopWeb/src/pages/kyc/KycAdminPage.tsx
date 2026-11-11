@@ -11,10 +11,6 @@ export default function KycAdminPage() {
   const [loading, setLoading] = useState(true);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  useEffect(() => {
-    loadPending();
-  }, []);
-
   const loadPending = async () => {
     try {
       const data = await kycApi.getAllPending();
@@ -25,6 +21,10 @@ export default function KycAdminPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    queueMicrotask(loadPending);
+  }, []);
 
   const viewDetails = async (kycId: string) => {
     try {

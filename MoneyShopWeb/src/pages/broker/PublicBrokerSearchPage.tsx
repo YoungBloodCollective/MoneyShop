@@ -9,10 +9,6 @@ export default function PublicBrokerSearchPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadBrokers();
-  }, []);
-
   const loadBrokers = async (q?: string) => {
     setLoading(true);
     try {
@@ -24,6 +20,10 @@ export default function PublicBrokerSearchPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    queueMicrotask(loadBrokers);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

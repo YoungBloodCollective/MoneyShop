@@ -16,11 +16,6 @@ export default function AdminKycPage() {
   const [updating, setUpdating] = useState(false);
   const [stats, setStats] = useState<{ total: number; verified: number; pending: number; rejected: number } | null>(null);
 
-  useEffect(() => {
-    loadPending();
-    loadStats();
-  }, []);
-
   const loadStats = async () => {
     try {
       const data = await kycApi.getStats();
@@ -39,6 +34,11 @@ export default function AdminKycPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    queueMicrotask(loadPending);
+    queueMicrotask(loadStats);
+  }, []);
 
   const viewDetails = async (kycId: string) => {
     try {

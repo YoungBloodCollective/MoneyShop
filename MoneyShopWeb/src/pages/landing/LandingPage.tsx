@@ -241,11 +241,11 @@ export default function LandingPage() {
     }
   };
 
-  const stepsSection = useInView(0.1);
-  const statsSection = useInView(0.3);
+  const { ref: stepsRef, isVisible: stepsVisible } = useInView(0.1);
+  const { ref: statsRef, isVisible: statsVisible } = useInView(0.3);
 
-  const clientCount = useCountUp(5000, 800, statsSection.isVisible);
-  const bankCount = useCountUp(10, 1200, statsSection.isVisible);
+  const clientCount = useCountUp(5000, 800, statsVisible);
+  const bankCount = useCountUp(10, 1200, statsVisible);
 
   const results = useMemo(() => {
     const termMonths = calcMaxTerm(loanType, incomeType, gender, birthYear, birthMonth);
@@ -743,11 +743,11 @@ export default function LandingPage() {
           <h2 className="text-center text-2xl lg:text-3xl font-extrabold text-gray-900 mb-10 lg:mb-14">
             <span className="border-b-4 border-blue-600 pb-2">Cum functioneaza?</span>
           </h2>
-          <div ref={stepsSection.ref} className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-5 items-stretch">
+          <div ref={stepsRef} className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-5 items-stretch">
             {howItWorks.map((step, i) => (
               <div
                 key={step.num}
-                className={`relative transition-all duration-700 ease-out ${stepsSection.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                className={`relative transition-all duration-700 ease-out ${stepsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
                 style={{ transitionDelay: `${i * 150}ms` }}
               >
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden h-full flex flex-col">
@@ -771,7 +771,7 @@ export default function LandingPage() {
                 </div>
                 {i < howItWorks.length - 1 && (
                   <div
-                    className={`hidden lg:flex absolute top-[38%] -right-[14px] z-10 transition-all duration-500 ${stepsSection.isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-0'}`}
+                    className={`hidden lg:flex absolute top-[38%] -right-[14px] z-10 transition-all duration-500 ${stepsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-0'}`}
                     style={{ transitionDelay: `${i * 150 + 400}ms` }}
                   >
                     <div className="w-7 h-7 rounded-full bg-blue-600 shadow-lg shadow-blue-600/30 flex items-center justify-center animate-arrow-pulse">
@@ -783,7 +783,7 @@ export default function LandingPage() {
             ))}
             {/* Broker autorizat — 5th card */}
             <div
-              className={`col-span-2 lg:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-700 ease-out overflow-hidden flex flex-col h-full ${stepsSection.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+              className={`col-span-2 lg:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-700 ease-out overflow-hidden flex flex-col h-full ${stepsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
               style={{ transitionDelay: '600ms' }}
             >
               <div className="aspect-square overflow-hidden bg-gray-100">
@@ -812,9 +812,9 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════ TRUST / STATS BAR ══════════ */}
-      <section ref={statsSection.ref} className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 py-5">
+      <section ref={statsRef} className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 py-5">
         <div className="max-w-7xl mx-auto px-4">
-          <div className={`flex flex-wrap items-center justify-center gap-5 sm:gap-8 lg:gap-12 transition-all duration-700 ease-out ${statsSection.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+          <div className={`flex flex-wrap items-center justify-center gap-5 sm:gap-8 lg:gap-12 transition-all duration-700 ease-out ${statsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
             <div className="flex items-center gap-2.5">
               <Users size={22} className="text-blue-400 shrink-0" />
               <div>
