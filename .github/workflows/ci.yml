@@ -93,7 +93,7 @@ jobs:
       - run: dotnet restore MoneyShop.Api/MoneyShop.Api.csproj -r linux-x64
       - run: dotnet publish MoneyShop.Api/MoneyShop.Api.csproj -c Release -r linux-x64 --self-contained false -o ./publish
       - run: cd publish && zip -qr ../publish.zip .
-      - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
