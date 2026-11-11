@@ -5,7 +5,7 @@ export default defineConfig({
   retries: 0,
   reporter: 'list',
   timeout: 30_000,
-  use: { baseURL: 'http://127.0.0.1:4173' },
+  use: { baseURL: 'http://127.0.0.1:4173', channel: process.env.CI ? 'chrome' : undefined },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: 'npm run preview -- --port 4173 --strictPort --host 127.0.0.1',
