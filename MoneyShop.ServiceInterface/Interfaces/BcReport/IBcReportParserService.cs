@@ -5,6 +5,7 @@ namespace MoneyShop.ServiceInterface.Interfaces.BcReport;
 public interface IBcReportParserService
 {
     BcParseResult ParsePdf(byte[] pdfBytes);
+    BcParseResult ParseText(string fullText);
 }
 
 public class BcParseResult

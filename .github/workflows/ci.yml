@@ -45,6 +45,7 @@ jobs:
           dotnet-version: '10.0.x'
       - run: dotnet restore MoneyShop.Api/MoneyShop.Api.csproj -r linux-x64
       - run: dotnet build MoneyShop.sln -c Release --nologo
+      - run: dotnet test MoneyShop.sln -c Release --no-build --nologo
       - name: Fail on vulnerable NuGet packages
         shell: bash
         run: |
