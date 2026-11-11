@@ -11,11 +11,26 @@ public class BcReportParserService : IBcReportParserService
 {
     public BcParseResult ParsePdf(byte[] pdfBytes)
     {
+        string fullText;
+        try
+        {
+            fullText = ExtractText(pdfBytes);
+        }
+        catch (Exception ex)
+        {
+            var failed = new BcParseResult();
+            failed.Warnings.Add($"Critical parse error: {ex.Message}");
+            return failed;
+        }
+        return ParseText(fullText);
+    }
+
+    public BcParseResult ParseText(string fullText)
+    {
         var result = new BcParseResult();
         var data = result.Data;
         try
         {
-            var fullText = ExtractText(pdfBytes);
             var lines = fullText.Split('\n').ToList();
             ParseSubjectInfo(lines, data, result.Warnings);
             ParseFicoScore(lines, data, result.Warnings);
@@ -46,33 +61,50 @@ public class BcReportParserService : IBcReportParserService
         return sb.ToString();
     }
 
+    private static readonly Regex CnpRegex = new(@"(?<!\d)(\d{13})(?!\d)");
+
     private static void ParseSubjectInfo(List<string> lines, BcParsedData data, List<string> warnings)
     {
         for (int i = 0; i < lines.Count; i++)
         {
             var trimmed = lines[i].Trim();
-            if (trimmed.StartsWith("Numele:"))
+            var norm = NormalizeRo(trimmed);
+            if (data.SubjectName == null && trimmed.StartsWith("Numele:"))
             {
-                var value = trimmed.Replace("Numele:", "").Trim();
-                if (!string.IsNullOrEmpty(value))
-                    data.SubjectName = value;
-                else if (i + 1 < lines.Count && !string.IsNullOrWhiteSpace(lines[i + 1]))
+                var inline = trimmed["Numele:".Length..].Trim();
+                if (inline.Length > 0)
+                    data.SubjectName = inline;
+                else if (i > 0 && IsNameLine(lines[i - 1]))
+                    data.SubjectName = lines[i - 1].Trim();
+                else if (i + 1 < lines.Count && IsNameLine(lines[i + 1]))
                     data.SubjectName = lines[i + 1].Trim();
             }
-            if (trimmed.StartsWith("CNP/CUI:"))
+            if (data.SubjectCnp == null && (norm.Contains("Data nașterii") || norm.StartsWith("CNP/CUI") || norm.Contains("pentru CNP")))
             {
-                var value = trimmed.Replace("CNP/CUI:", "").Trim();
-                if (!string.IsNullOrEmpty(value))
-                    data.SubjectCnp = value.Length >= 4 ? "*********" + value[^4..] : "*********";
+                var match = CnpRegex.Match(trimmed);
+                if (match.Success)
+                    data.SubjectCnp = MaskCnp(match.Groups[1].Value);
             }
-            if (trimmed.StartsWith("Data emiterii:"))
+            if (data.ReportDate == null && trimmed.StartsWith("Data emiterii:"))
             {
                 var dateMatch = Regex.Match(trimmed, @"(\d{2}-\d{2}-\d{4})");
                 if (dateMatch.Success)
                     data.ReportDate = dateMatch.Groups[1].Value;
             }
         }
+        if (data.SubjectCnp == null)
+            warnings.Add("CNP-ul subiectului nu a fost gasit in antet");
+        if (data.SubjectName == null)
+            warnings.Add("Numele subiectului nu a fost gasit in antet");
     }
+
+    private static bool IsNameLine(string line)
+    {
+        var t = line.Trim();
+        return t.Length > 0 && !t.Contains(':') && !t.StartsWith('=') && !Regex.IsMatch(t, @"\d");
+    }
+
+    private static string MaskCnp(string cnp) => "*********" + cnp[^4..];
 
     private static void ParseFicoScore(List<string> lines, BcParsedData data, List<string> warnings)
     {

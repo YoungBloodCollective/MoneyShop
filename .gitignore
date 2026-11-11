@@ -405,3 +405,5 @@ appsettings.Development.json
 appsettings.*.json
 !appsettings.json
 **/secrets.json
+# Test results
+MoneyShop.Tests/TestResults/
