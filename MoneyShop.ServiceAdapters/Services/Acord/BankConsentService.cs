@@ -11,6 +11,7 @@ using MoneyShop.DomainModel.Entities;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using MoneyShop.ServiceAdapters.Services.Document;
 using MoneyShop.ServiceInterface.Interfaces.Acord;
+using MoneyShop.ServiceInterface.Interfaces.Audit;
 using MoneyShop.ServiceInterface.Interfaces.Broker;
 using MoneyShop.ServiceInterface.Interfaces.Document;
 using MoneyShop.ServiceInterface.Interfaces.Subject;
@@ -24,6 +25,8 @@ public class BankConsentService : IBankConsentService
     private const int MAX_SIGNATURE_BYTES = 1024 * 1024;
     private const int MIN_ADDRESS_LENGTH = 10;
     private const int MAX_ADDRESS_LENGTH = 250;
+    private const string CODEBITOR_BANK = "patria";
+    private const string CODEBITOR_DOCUMENT = "cerere-codebitor";
     private const string STATUS_PENDING = "pending";
     private const string STATUS_SIGNING = "signing";
     private const string STATUS_SIGNED = "signed";
@@ -41,6 +44,7 @@ public class BankConsentService : IBankConsentService
     private readonly IPdfGenerationService _pdfGenerationService;
     private readonly IBrokerProfileService _brokerProfiles;
     private readonly ISubjectService _subjectService;
+    private readonly IAuditService _audit;
     private readonly ILogger<BankConsentService> _logger;
 
     public BankConsentService(
@@ -48,12 +52,14 @@ public class BankConsentService : IBankConsentService
         IPdfGenerationService pdfGenerationService,
         IBrokerProfileService brokerProfiles,
         ISubjectService subjectService,
+        IAuditService audit,
         ILogger<BankConsentService> logger)
     {
         _context = context;
         _pdfGenerationService = pdfGenerationService;
         _brokerProfiles = brokerProfiles;
         _subjectService = subjectService;
+        _audit = audit;
         _logger = logger;
     }
 
@@ -286,21 +292,28 @@ public class BankConsentService : IBankConsentService
     /// </summary>
     private BankConsentPdfInput BuildInput(BankConsentRequest request, BankConsentSignInput supplied, byte[]? signaturePng, DateTime signedOn)
     {
-        var acord = _context.AcordClients.IgnoreQueryFilters().FirstOrDefault(a => a.AcordId == request.AcordId);
-        var kycSession = acord?.KycId == null
+        var acord = _context.AcordClients.IgnoreQueryFilters().FirstOrDefault(a => a.AcordId == request.AcordId)
+            ?? new AcordClient { AcordId = request.AcordId, BrokerProfileId = request.BrokerProfileId };
+
+        return BuildInputForAcord(acord, request.FullName, request.Telefon, request.Email, supplied, signaturePng, signedOn);
+    }
+
+    private BankConsentPdfInput BuildInputForAcord(AcordClient acord, string fullName, string telefon, string? email, BankConsentSignInput supplied, byte[]? signaturePng, DateTime signedOn)
+    {
+        var kycSession = acord.KycId == null
             ? null
             : _context.KycSessions.FirstOrDefault(k => k.KycId == acord.KycId.Value);
-        var identity = _brokerProfiles.GetLegalIdentity(request.BrokerProfileId);
-        var snapshot = DeserialiseOcr(acord?.OcrDataJson);
+        var identity = _brokerProfiles.GetLegalIdentity(acord.BrokerProfileId);
+        var snapshot = DeserialiseOcr(acord.OcrDataJson);
 
         return new BankConsentPdfInput
         {
-            FullName = request.FullName,
-            Telefon = request.Telefon,
-            Email = request.Email,
+            FullName = fullName,
+            Telefon = telefon,
+            Email = email,
             Cnp = supplied.Cnp,
             Address = string.IsNullOrWhiteSpace(supplied.Address) ? kycSession?.Address : supplied.Address,
-            BirthDate = supplied.BirthDate ?? StoredBirthDate(request.AcordId),
+            BirthDate = supplied.BirthDate ?? StoredBirthDate(acord.AcordId),
             BrokerCompany = identity?.FirmaNume,
             BrokerRepresentative = identity?.ReprezentantNume,
             PlaceOfBirth = snapshot?.PlaceOfBirth,
@@ -308,15 +321,76 @@ public class BankConsentService : IBankConsentService
             IdNumber = snapshot?.IdNumber,
             IssuedBy = snapshot?.IssuedBy,
             IssueDate = snapshot?.IssueDate,
-            StareCivila = acord?.StareCivila,
-            StareLocativa = acord?.StareLocativa,
-            Studii = acord?.Studii,
-            FunctieActuala = acord?.FunctieActuala,
-            NumeFirma = acord?.NumeFirma,
-            VechimeTotalaLuni = acord?.VechimeTotalaAni is { } ani ? (int)Math.Round(ani * 12) : null,
+            StareCivila = acord.StareCivila,
+            StareLocativa = acord.StareLocativa,
+            Studii = acord.Studii,
+            FunctieActuala = acord.FunctieActuala,
+            NumeFirma = acord.NumeFirma,
+            VechimeTotalaLuni = acord.VechimeTotalaAni is { } ani ? (int)Math.Round(ani * 12) : null,
             SignedOn = ToRomaniaTime(signedOn),
             SignaturePng = signaturePng
         };
+    }
+
+    private static readonly HashSet<string> CodebitorRelations = new() { "sot", "parinti", "socri", "copii", "partener", "frate" };
+
+    public BankConsentDocumentFile? GenerateCodebitorForm(Guid acordId, string? relation, int? actorUserId, string? actorRole = null, string? ip = null, string? userAgent = null)
+    {
+        var acord = _context.AcordClients.FirstOrDefault(a => a.AcordId == acordId);
+        if (acord == null) return null;
+
+        if (acord.KycId == null || (acord.Status != "signed" && acord.Status != "completed"))
+            throw new InvalidOperationException("Acordul nu este semnat.");
+
+        var signature = _context.KycFiles
+            .Where(f => f.KycId == acord.KycId.Value && f.FileType == "signature" && f.DeletedAt == null)
+            .OrderByDescending(f => f.CreatedAt)
+            .FirstOrDefault();
+        if (string.IsNullOrEmpty(signature?.FileContentBase64))
+            throw new InvalidOperationException("Semnătura acordului nu mai este disponibilă.");
+
+        var supplied = new BankConsentSignInput { Cnp = StoredCnp(acord.AcordId, acord.UserId, "codebitor_form", actorUserId, actorRole ?? "Broker", ip, userAgent) };
+        var input = BuildInputForAcord(
+            acord,
+            $"{acord.Prenume} {acord.Nume}".Trim().ToUpper(RomanianCulture),
+            acord.Telefon,
+            acord.Email,
+            supplied,
+            Convert.FromBase64String(signature.FileContentBase64),
+            DateTime.UtcNow);
+        if (string.IsNullOrWhiteSpace(input.Cnp))
+            throw new InvalidOperationException("CNP-ul codebitorului nu este disponibil în acord.");
+        input.LastName = acord.Nume;
+        input.FirstName = acord.Prenume;
+        var normalizedRelation = relation?.Trim().ToLowerInvariant();
+        input.CodebitorRelation = normalizedRelation != null && CodebitorRelations.Contains(normalizedRelation) ? normalizedRelation : null;
+
+        var pdf = _pdfGenerationService.GenerateBankConsentPdf(CODEBITOR_BANK, CODEBITOR_DOCUMENT, input);
+        var fileType = BankConsentCatalog.FileType(CODEBITOR_BANK, CODEBITOR_DOCUMENT);
+        var fileName = $"{CODEBITOR_BANK}-{CODEBITOR_DOCUMENT}-{acord.AcordId}.pdf";
+        var now = DateTime.UtcNow;
+
+        var stored = _context.KycFiles.FirstOrDefault(f => f.KycId == acord.KycId.Value && f.FileType == fileType && f.DeletedAt == null);
+        if (stored == null)
+        {
+            stored = new KycFile { FileId = Guid.NewGuid(), KycId = acord.KycId.Value, FileType = fileType };
+            _context.KycFiles.Add(stored);
+        }
+
+        stored.FileName = fileName;
+        stored.MimeType = "application/pdf";
+        stored.FileSize = pdf.LongLength;
+        stored.Sha256Hash = SHA256.HashData(pdf);
+        stored.FileContentBase64 = Convert.ToBase64String(pdf);
+        stored.CreatedAt = now;
+        stored.ExpiresAt = now.AddYears(ARCHIVE_YEARS);
+        _context.SaveChanges();
+
+        _audit.Log("AcordClient", acord.AcordId.ToString(), "codebitor_form_generated", null,
+            new { relation = input.CodebitorRelation, signatureReused = true, fileType },
+            "Semnătura din acord refolosită pe cererea de codebitor Patria");
+
+        return new BankConsentDocumentFile { FileName = $"patria-cerere-codebitor-{acord.AcordId}.pdf", Content = pdf };
     }
 
     private int? UserIdFor(Guid acordId) =>
@@ -340,21 +414,26 @@ public class BankConsentService : IBankConsentService
         var userId = UserIdFor(request.AcordId);
         if (!userId.HasValue) return null;
 
+        return StoredCnp(request.AcordId, userId.Value, "bank_consent_form", userId.Value, "Client", ip, userAgent);
+    }
+
+    private string? StoredCnp(Guid acordId, int userId, string reason, int? actorUserId, string actorRole, string? ip, string? userAgent)
+    {
         try
         {
-            return _subjectService.RevealCnpByUserId(userId.Value, new CnpAccessContext
+            return _subjectService.RevealCnpByUserId(userId, new CnpAccessContext
             {
-                ActorUserId = userId.Value,
-                ActorRole = "Client",
-                Reason = "bank_consent_form",
-                AcordId = request.AcordId,
+                ActorUserId = actorUserId,
+                ActorRole = actorRole,
+                Reason = reason,
+                AcordId = acordId,
                 Ip = ip,
                 UserAgent = userAgent
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Could not read the stored CNP for bank consent {RequestId}", request.Id);
+            _logger.LogError(ex, "Could not read the stored CNP for acord {AcordId} ({Reason})", acordId, reason);
             return null;
         }
     }

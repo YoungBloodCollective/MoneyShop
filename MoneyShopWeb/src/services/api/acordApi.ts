@@ -270,6 +270,11 @@ export const acordApi = {
       .get(`/acord/admin/broker-form/${bankCode}/${documentCode}`, { responseType: 'blob' })
       .then(r => r.data as Blob),
 
+  codebitorFormBlob: (acordId: string, relation?: string) =>
+    apiClient
+      .get(`/acord/admin/${acordId}/codebitor-form`, { params: { relation: relation || undefined }, responseType: 'blob' })
+      .then(r => r.data as Blob),
+
   adminUpdateStatus: (acordId: string, status: string, reviewNote?: string) =>
     apiClient.post(`/acord/admin/${acordId}/status`, { status, reviewNote }).then(r => r.data),
 

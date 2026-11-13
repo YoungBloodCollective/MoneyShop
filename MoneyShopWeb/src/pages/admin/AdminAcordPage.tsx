@@ -139,15 +139,19 @@ function BankConsentsSection({ acord, onSigned }: { acord: AcordDetails; onSigne
   };
 
   const [codebitorLoading, setCodebitorLoading] = useState(false);
-  const downloadCodebitorForm = async () => {
+  const [codebitorRelation, setCodebitorRelation] = useState('');
+  const acordSigned = acord.status === 'signed' || acord.status === 'completed';
+  const generateCodebitorForm = async () => {
     setCodebitorLoading(true);
     try {
-      const blob = await acordApi.brokerFormBlob('patria', 'cerere-codebitor');
+      const blob = await acordApi.codebitorFormBlob(acord.acordId, codebitorRelation);
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank', 'noopener');
       setTimeout(() => URL.revokeObjectURL(url), 60000);
-    } catch {
-      toast.error('Nu am putut descarca formularul');
+    } catch (err) {
+      const data = (err as { response?: { data?: unknown } }).response?.data;
+      const text = data instanceof Blob ? await data.text().catch(() => '') : '';
+      toast.error(text.replace(/^"|"$/g, '') || 'Nu am putut genera formularul');
     } finally {
       setCodebitorLoading(false);
     }
@@ -223,15 +227,31 @@ function BankConsentsSection({ acord, onSigned }: { acord: AcordDetails; onSigne
         )}
         <div className="mt-4 border-t border-dark-600 pt-3">
           <p className="text-xs text-light-50 mb-2">
-            Ai nevoie de codebitor? Descarca formularul Patria pentru codebitor si completeaza-l pe hartie, cu el. Nu intra in pachetul semnat de client.
+            Se completează din datele acordului și poartă semnătura capturată la semnarea acordului; generarea se înregistrează în jurnalul de audit.
           </p>
-          <button
-            onClick={downloadCodebitorForm}
-            disabled={codebitorLoading}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-dark-600 border border-dark-500 text-light-90 text-sm font-medium disabled:opacity-60"
-          >
-            {codebitorLoading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Formular codebitor (Patria)
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <select
+              value={codebitorRelation}
+              onChange={e => setCodebitorRelation(e.target.value)}
+              aria-label="Relația codebitorului cu solicitantul"
+              className="px-4 py-2 rounded-full bg-dark-600 border border-dark-500 text-light-90 text-sm"
+            >
+              <option value="">Relația codebitorului cu solicitantul — nespecificat</option>
+              <option value="sot">Soț/soție</option>
+              <option value="parinti">Părinți</option>
+              <option value="socri">Socri</option>
+              <option value="copii">Copii</option>
+              <option value="partener">Partener(ă)</option>
+              <option value="frate">Frate/soră</option>
+            </select>
+            <button
+              onClick={generateCodebitorForm}
+              disabled={codebitorLoading || !acordSigned}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-dark-600 border border-dark-500 text-light-90 text-sm font-medium disabled:opacity-60"
+            >
+              {codebitorLoading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Generează cererea de codebitor (Patria) — completată și semnată
+            </button>
+          </div>
         </div>
       </div>
     </>

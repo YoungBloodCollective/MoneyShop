@@ -18,6 +18,8 @@ public interface IBankConsentService
     /// </summary>
     BankConsentDocumentFile? GetDocumentByToken(string token, string documentCode);
 
+    BankConsentDocumentFile? GenerateCodebitorForm(Guid acordId, string? relation, int? actorUserId, string? actorRole = null, string? ip = null, string? userAgent = null);
+
     BankConsentSignResult Sign(string token, byte[] signaturePng, BankConsentSignInput input, string? ip, string? userAgent);
 }
 

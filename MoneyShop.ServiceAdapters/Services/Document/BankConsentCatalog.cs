@@ -48,7 +48,7 @@ internal static class BankConsentCatalog
             new BankConsentDocument(
                 "cerere-codebitor",
                 "Cerere de credit - formular pentru codebitor",
-                "Formularul pe care îl completează și îl semnează codebitorul tău, pe hârtie. Îl primești necompletat: datele codebitorului nu sunt la noi.",
+                "Formularul pentru codebitor. Se generează din fișa acordului codebitorului: completat din datele acordului și semnat cu semnătura capturată la acord.",
                 "patria-cerere-codebitor.pdf",
                 PatriaCodebitorForm.Build,
                 BrokerOnly: true),
