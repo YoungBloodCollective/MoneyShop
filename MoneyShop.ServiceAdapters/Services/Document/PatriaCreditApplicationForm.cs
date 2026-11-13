@@ -108,7 +108,7 @@ internal static class PatriaCreditApplicationForm
         form.Text(1, x, baseline, 10f, "X", 7f);
 
     /// <summary>Formularul cere seria si numarul in aceeasi casuta.</summary>
-    private static string? IdDocument(BankConsentPdfInput input) =>
+    internal static string? IdDocument(BankConsentPdfInput input) =>
         string.IsNullOrWhiteSpace(input.IdSeries) && string.IsNullOrWhiteSpace(input.IdNumber)
             ? null
             : $"{input.IdSeries} {input.IdNumber}".Trim();
@@ -120,7 +120,7 @@ internal static class PatriaCreditApplicationForm
     /// Acordul tine numele si prenumele impreuna, in ordinea "Prenume Nume"; formularul le
     /// cere separat. Primul cuvant e prenumele, restul numele de familie.
     /// </summary>
-    private static (string? Last, string? First) SplitName(string? fullName)
+    internal static (string? Last, string? First) SplitName(string? fullName)
     {
         var parts = (fullName ?? string.Empty).Split(' ', System.StringSplitOptions.RemoveEmptyEntries);
         return parts.Length < 2

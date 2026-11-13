@@ -49,12 +49,14 @@ public class AcordController : BaseController
     };
 
     private readonly IAcordService _acordService;
+    private readonly IBankConsentService _bankConsentService;
     private readonly ILogger<AcordController> _logger;
     private readonly IAuditService _audit;
 
-    public AcordController(IAcordService acordService, ILogger<AcordController> logger, IAuditService audit)
+    public AcordController(IAcordService acordService, IBankConsentService bankConsentService, ILogger<AcordController> logger, IAuditService audit)
     {
         _acordService = acordService;
+        _bankConsentService = bankConsentService;
         _logger = logger;
         _audit = audit;
     }
@@ -81,11 +83,6 @@ public class AcordController : BaseController
         return File(file.Content, "application/pdf");
     }
 
-    /// <summary>
-    /// A broker-only form (e.g. the Patria codebitor request) the broker downloads to use on
-    /// paper with a third party, separate from what the client signs. It carries no client
-    /// data, so it is not broker-scoped — any broker may pull the blank form.
-    /// </summary>
     [HttpGet("admin/broker-form/{bankCode}/{documentCode}")]
     [Authorize(Roles = "Administrator,Broker")]
     public IActionResult BrokerForm(string bankCode, string documentCode)
@@ -95,6 +92,30 @@ public class AcordController : BaseController
 
         Response.Headers.ContentDisposition = $"inline; filename=\"{file.FileName}\"";
         return File(file.Content, "application/pdf");
+    }
+
+    [HttpGet("admin/{acordId:guid}/codebitor-form")]
+    [Authorize(Roles = "Administrator,Broker")]
+    public IActionResult CodebitorForm(Guid acordId, [FromQuery] string? relation)
+    {
+        try
+        {
+            var file = _bankConsentService.GenerateCodebitorForm(
+                acordId,
+                relation,
+                GetActorUserId(),
+                User.IsInRole("Administrator") ? "Administrator" : "Broker",
+                GetClientIp(),
+                Request.Headers.UserAgent.FirstOrDefault());
+            if (file == null) return NotFound("Acordul nu a fost gasit");
+
+            Response.Headers.CacheControl = "no-store";
+            return File(file.Content, "application/pdf", file.FileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
 
     [HttpPost("submit")]

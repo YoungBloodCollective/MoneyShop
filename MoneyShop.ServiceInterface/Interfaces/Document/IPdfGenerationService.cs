@@ -56,6 +56,9 @@ namespace MoneyShop.ServiceInterface.Interfaces.Document
         public string? FunctieActuala { get; set; }
         public string? NumeFirma { get; set; }
         public int? VechimeTotalaLuni { get; set; }
+        public string? LastName { get; set; }
+        public string? FirstName { get; set; }
+        public string? CodebitorRelation { get; set; }
 
         /// <summary>Null on the blank copy the client reads before signing.</summary>
         public DateTime? SignedOn { get; set; }
