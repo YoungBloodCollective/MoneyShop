@@ -227,7 +227,7 @@ function BankConsentsSection({ acord, onSigned }: { acord: AcordDetails; onSigne
         )}
         <div className="mt-4 border-t border-dark-600 pt-3">
           <p className="text-xs text-light-50 mb-2">
-            Se completează din datele acordului și poartă semnătura capturată la semnarea acordului; generarea se înregistrează în jurnalul de audit.
+            Cererea de codebitor Patria face parte din pachetul Patria semnat prin link. Butonul de mai jos e scurtătura pentru clienții care au semnat deja pachetul: se completează din datele acordului, poartă semnătura capturată la semnarea acordului, iar generarea se înregistrează în jurnalul de audit.
           </p>
           <div className="flex flex-wrap gap-2">
             <select
