@@ -7,7 +7,11 @@ using MoneyShop.DomainModel.Entities;
 using MoneyShop.DomainServices.RepositoryInterfaces.Application;
 using MoneyShop.DomainServices.RepositoryInterfaces.Kyc;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
+using MoneyShop.ServiceInterface.Interfaces.Acord;
+using MoneyShop.ServiceInterface.Dtos.BcReport;
+using MoneyShop.ServiceInterface.Interfaces.BcReport;
 using MoneyShop.ServiceInterface.Interfaces.Crm;
+using MoneyShop.ServiceInterface.Interfaces.Subject;
 
 namespace MoneyShop.ServiceAdapters.Services.Crm
 {
@@ -25,13 +29,25 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         private readonly IKycFileRepository _kycFiles;
         private readonly MoneyShopDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IAcordService _acordService;
+        private readonly IBankConsentService _bankConsents;
+        private readonly IBcReportService _bcReports;
+        private readonly ISubjectService _subjects;
 
         public CrmService(
             IApplicationRepository applications,
             IKycFileRepository kycFiles,
             MoneyShopDbContext context,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IAcordService acordService,
+            IBankConsentService bankConsents,
+            IBcReportService bcReports,
+            ISubjectService subjects)
         {
+            _acordService = acordService;
+            _bankConsents = bankConsents;
+            _bcReports = bcReports;
+            _subjects = subjects;
             _applications = applications;
             _kycFiles = kycFiles;
             _context = context;
@@ -160,9 +176,109 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                     LivenessPassed = acord.LivenessPassed,
                     FaceMatchPassed = acord.FaceMatchPassed,
                 },
+                Acord = acord == null ? null : BuildAcordSnapshot(acord.AcordId),
+                BcReport = BuildBcReportSnapshot(userId),
                 CanAttachAnaf = acord?.KycId != null,
                 AnafFileName = anaf?.FileName,
                 AnafUploadedAt = anaf?.CreatedAt,
+            };
+        }
+
+        private CrmAcordSnapshot? BuildAcordSnapshot(Guid acordId)
+        {
+            var d = _acordService.GetDetailsForAdmin(acordId);
+            if (d == null) return null;
+            return new CrmAcordSnapshot
+            {
+                AcordId = d.AcordId,
+                Status = d.Status,
+                CreatedAt = d.CreatedAt,
+                SignedAt = d.SignedAt,
+                CompletedAt = d.CompletedAt,
+                TipAct = d.TipAct,
+                MarketingAccepted = d.MarketingAccepted,
+                Oug52Waived = d.Oug52Waived,
+                ReviewNote = d.ReviewNote,
+                CnpMasked = d.CnpMasked,
+                CnpAvailable = d.CnpAvailable,
+                Address = d.Address,
+                LivenessPassed = d.LivenessPassed,
+                FaceMatchPassed = d.FaceMatchPassed,
+                AutomaticChecksRan = d.AutomaticChecksRan,
+                Ocr = d.Ocr,
+                Files = d.Files.Where(f => !f.IsDeleted).ToList(),
+                BankConsents = _bankConsents.ListForAcord(acordId),
+            };
+        }
+
+        private CrmBcReportSnapshot? BuildBcReportSnapshot(int userId)
+        {
+            var summary = _bcReports.GetLatest(userId);
+            if (summary == null) return null;
+
+            var hasPdf = _context.BcReports.Any(r => r.Id == summary.Id
+                && r.FileContentBase64 != null && r.FileContentBase64 != "");
+
+            var data = summary.ParsedData;
+            var accounts = data?.Accounts ?? new List<BcAccountSummary>();
+            var banking = data?.BankingIndicators;
+            var nonBanking = data?.NonBankingIndicators;
+
+            return new CrmBcReportSnapshot
+            {
+                Id = summary.Id,
+                FileName = summary.FileName,
+                UploadedAt = summary.CreatedAt,
+                ReportDate = data?.ReportDate,
+                FicoScore = summary.FicoScore,
+                ExistingMonthlyObligations = summary.ExistingMonthlyObligations,
+                TotalAccounts = accounts.Count,
+                ActiveAccounts = accounts.Count(a => a.IsActive),
+                AccountsWithArrears = accounts.Count(a => a.HasArrears),
+                TotalAmountOwed = (banking?.TotalAmountOwed ?? 0) + (nonBanking?.TotalAmountOwed ?? 0),
+                TotalArrears = (banking?.TotalArrears ?? 0) + (nonBanking?.TotalArrears ?? 0),
+                MaxCurrentDelay = banking?.MaxCurrentDelay ?? nonBanking?.MaxCurrentDelay,
+                InquiriesCount = data?.Inquiries.Count ?? 0,
+                Dpd30Count = summary.Dpd30Count,
+                Dpd60Count = summary.Dpd60Count,
+                Dpd90PlusCount = summary.Dpd90PlusCount,
+                NonbankActiveNow = summary.NonbankActiveNow,
+                HasPdf = hasPdf,
+                ParseWarnings = summary.ParseWarnings,
+                Accounts = accounts.Select(a => new CrmBcAccount
+                {
+                    Creditor = a.Creditor,
+                    AccountType = a.AccountType,
+                    Status = a.Status,
+                    Currency = a.Currency,
+                    CurrentBalance = a.CurrentBalance,
+                    ArrearsAmount = a.ArrearsAmount,
+                    DaysOverdue = a.DaysOverdue,
+                    IsActive = a.IsActive,
+                }).ToList(),
+            };
+        }
+
+        public CrmBcReportPdf? GetClientBcReportPdf(int userId, CnpAccessContext access)
+        {
+            var inScope = _applications.Get().Any(a => a.UserId == userId)
+                || _context.AcordClients.Any(a => a.UserId == userId);
+            if (!inScope) return null;
+
+            var report = _context.BcReports
+                .Where(r => r.UserId == userId && r.FileContentBase64 != null && r.FileContentBase64 != "")
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefault();
+            if (report == null) return null;
+
+            access.AcordId ??= FindAcord(userId)?.AcordId;
+            _subjects.LogCnpAccess(userId, access);
+
+            return new CrmBcReportPdf
+            {
+                ReportId = report.Id,
+                Content = Convert.FromBase64String(report.FileContentBase64!),
+                FileName = string.IsNullOrWhiteSpace(report.FileName) ? "raport-bc.pdf" : report.FileName,
             };
         }
 
