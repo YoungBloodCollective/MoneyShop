@@ -9,7 +9,7 @@ export interface DocumentPreviewSource {
   load: () => Promise<Blob>;
 }
 
-type Loaded = { blob: Blob; url: string } | { failed: true };
+type Loaded = { blob: Blob; url: string; isPdf: boolean } | { failed: true };
 
 export function DocumentPreviewModal({ source, onClose }: { source: DocumentPreviewSource; onClose: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -22,15 +22,17 @@ export function DocumentPreviewModal({ source, onClose }: { source: DocumentPrev
     load()
       .then(blob => {
         if (!active) return;
-        objectUrl = URL.createObjectURL(blob);
-        setResult({ blob, url: objectUrl });
+        const isPdf = mimeType === 'application/pdf' || blob.type === 'application/pdf';
+        const typed = new Blob([blob], { type: isPdf ? 'application/pdf' : blob.type });
+        objectUrl = URL.createObjectURL(typed);
+        setResult({ blob: typed, url: objectUrl, isPdf });
       })
       .catch(() => { if (active) setResult({ failed: true }); });
     return () => {
       active = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [load]);
+  }, [load, mimeType]);
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -60,8 +62,8 @@ export function DocumentPreviewModal({ source, onClose }: { source: DocumentPrev
 
   const loaded = result && 'blob' in result ? result : null;
   const failed = !!result && 'failed' in result;
-  const isImage = mimeType.startsWith('image/');
-  const isPdf = mimeType === 'application/pdf';
+  const isPdf = !!loaded?.isPdf;
+  const isImage = !isPdf && (mimeType.startsWith('image/') || !!loaded?.blob.type.startsWith('image/'));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -90,7 +92,7 @@ export function DocumentPreviewModal({ source, onClose }: { source: DocumentPrev
           </div>
         </div>
         <div className="flex min-h-[320px] flex-1 items-center justify-center overflow-auto bg-slate-50">
-          {!result && <Loader2 className="h-6 w-6 animate-spin text-slate-400" aria-label="Se încarcă" />}
+          {!result && <Loader2 role="status" className="h-6 w-6 animate-spin text-slate-400" aria-label="Se încarcă" />}
           {failed && <p className="px-6 text-sm text-rose-600">Nu am putut încărca documentul.</p>}
           {loaded && isImage && <img src={loaded.url} alt={source.title} className="max-h-[75vh] max-w-full object-contain" />}
           {loaded && isPdf && <iframe src={loaded.url} title={source.title} className="h-[75vh] w-full border-0 bg-white" />}

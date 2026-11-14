@@ -34,8 +34,8 @@ export const crmApi = {
     const { data } = await apiClient.get(`/crm/clients/${userId}/anaf`, { responseType: 'blob' });
     return data as Blob;
   },
-  async bcReportPdfBlob(userId: number): Promise<Blob> {
-    const { data } = await apiClient.get(`/crm/clients/${userId}/bc-report/pdf`, { responseType: 'blob' });
+  async bcReportPdfBlob(userId: number, reportId: number): Promise<Blob> {
+    const { data } = await apiClient.get(`/crm/clients/${userId}/bc-report/${reportId}/pdf`, { responseType: 'blob' });
     return data as Blob;
   },
 };
