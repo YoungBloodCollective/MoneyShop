@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Search, Users, FolderKanban, LayoutDashboard, Landmark, Sparkles, Workflow, CornerDownLeft,
+  Search, Users, FolderKanban, LayoutDashboard, Landmark, Sparkles, Workflow, CornerDownLeft, FileSignature, CalendarClock, BarChart3, UserCircle,
 } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
+import { useAuth } from '@/hooks/useAuth';
 import type { CrmClientListItem, CrmFileListItem } from '@/types/crm.types';
 
 interface Item {
@@ -18,14 +19,19 @@ interface Item {
 const PAGES: Item[] = [
   { key: 'p-dash', title: 'Dashboard', to: '/crm', icon: LayoutDashboard, group: 'Pagini' },
   { key: 'p-cli', title: 'Clienți', to: '/crm/clienti', icon: Users, group: 'Pagini' },
+  { key: 'p-acord', title: 'Acorduri', to: '/crm/acorduri', icon: FileSignature, group: 'Pagini' },
   { key: 'p-dos', title: 'Dosare', to: '/crm/dosare', icon: FolderKanban, group: 'Pagini' },
   { key: 'p-of', title: 'Oferte bancare', to: '/crm/oferte', icon: Landmark, group: 'Pagini' },
   { key: 'p-lead', title: 'Lead-uri', to: '/crm/leaduri', icon: Sparkles, group: 'Pagini' },
+  { key: 'p-prog', title: 'Programări', to: '/crm/programari', icon: CalendarClock, group: 'Pagini' },
   { key: 'p-auto', title: 'Automatizări', to: '/crm/automatizari', icon: Workflow, group: 'Pagini' },
+  { key: 'p-rap', title: 'Rapoarte', to: '/crm/rapoarte', icon: BarChart3, group: 'Pagini' },
+  { key: 'p-profil', title: 'Profilul meu', to: '/crm/profil', icon: UserCircle, group: 'Pagini' },
 ];
 
 export function CrmCommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
+  const { isBroker } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
@@ -51,7 +57,7 @@ export function CrmCommandPalette({ open, onClose }: { open: boolean; onClose: (
 
   const items = useMemo<Item[]>(() => {
     const t = q.trim().toLowerCase();
-    const pages = PAGES.filter(p => !t || p.title.toLowerCase().includes(t));
+    const pages = PAGES.filter(p => (p.key !== 'p-profil' || isBroker) && (!t || p.title.toLowerCase().includes(t)));
     if (!t) return pages;
     const cl = (clients ?? [])
       .filter(c => c.fullName.toLowerCase().includes(t) || (c.phone ?? '').toLowerCase().includes(t) || (c.email ?? '').toLowerCase().includes(t))
@@ -62,7 +68,7 @@ export function CrmCommandPalette({ open, onClose }: { open: boolean; onClose: (
       .slice(0, 6)
       .map<Item>(f => ({ key: `f-${f.id}`, title: `#${f.code}`, subtitle: f.clientName, to: `/crm/clienti/${f.userId}`, icon: FolderKanban, group: 'Dosare' }));
     return [...pages, ...cl, ...fl];
-  }, [q, clients, files]);
+  }, [q, clients, files, isBroker]);
 
   if (!open) return null;
 

@@ -9,17 +9,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { adminApi } from '@/services/api/adminApi';
 import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
 import type { Application } from '@/types/application.types';
-import BrokerCrmDashboard from './BrokerCrmDashboard';
 
 export default function AdminDashboardPage() {
-  const { isSuperAdmin, isBroker } = useAuth();
-  if (isBroker && !isSuperAdmin) {
-    return <BrokerCrmDashboard />;
-  }
-  return <AdminOverview />;
-}
-
-function AdminOverview() {
   const { isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
@@ -95,7 +86,7 @@ function AdminOverview() {
     {
       label: 'Rapoarte',
       desc: 'Genereaza rapoarte lunare',
-      path: '/admin/reports',
+      path: '/crm/rapoarte',
       icon: BarChart3,
       color: 'text-brand-purple',
       iconBg: 'bg-brand-purple/15 group-hover:bg-brand-purple/25',
