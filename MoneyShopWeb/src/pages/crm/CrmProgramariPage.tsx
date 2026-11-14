@@ -121,14 +121,13 @@ export default function CrmProgramariPage() {
 
   const header = <PageHeader title="Programări" subtitle="Lead-uri din formularul de contact" />;
 
-  if (loading) return (<div className="space-y-6">{header}<SkeletonCards count={4} /></div>);
-
   return (
     <div className="space-y-5">
       {header}
       <SegmentChips segments={SEGMENTS} active={segment} onChange={setSegment} counts={counts} />
-
-      {error ? (
+      {loading ? (
+        <SkeletonCards count={4} />
+      ) : error ? (
         <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
           <span>Nu s-au putut încărca programările.</span>
           <button onClick={() => setReloadKey(k => k + 1)} className="font-medium underline underline-offset-2">Reîncearcă</button>

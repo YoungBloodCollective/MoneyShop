@@ -87,7 +87,7 @@ export default function CrmRapoartePage() {
         ...rows.map(row => row.map(escapeCsvCell).join(',')),
       ].join('\n');
 
-      const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -124,7 +124,6 @@ export default function CrmRapoartePage() {
           </button>
         ) : undefined}
       />
-
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-500">Filtre raport</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -179,7 +178,6 @@ export default function CrmRapoartePage() {
           <Search size={16} /> {loading ? 'Se generează...' : 'Generează raport'}
         </button>
       </div>
-
       {hasSearched && !loading && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -205,7 +203,6 @@ export default function CrmRapoartePage() {
           </div>
         </div>
       )}
-
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-brand-primary border-t-transparent" />

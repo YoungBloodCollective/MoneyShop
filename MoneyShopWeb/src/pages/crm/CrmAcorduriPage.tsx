@@ -63,14 +63,10 @@ export default function CrmAcorduriPage() {
 
   const header = <PageHeader title="Acorduri" subtitle="Clienți care și-au încărcat actele prin linkul public." />;
 
-  if (loading) return (<div className="space-y-6">{header}<SkeletonTable rows={6} /></div>);
-
   return (
     <div className="space-y-5">
       {header}
-
       <SegmentChips segments={SEGMENTS} active={segment} onChange={setSegment} counts={counts} />
-
       <div className="flex flex-wrap gap-3">
         <div className="relative min-w-[240px] max-w-md flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -92,8 +88,9 @@ export default function CrmAcorduriPage() {
           </select>
         )}
       </div>
-
-      {error ? (
+      {loading ? (
+        <SkeletonTable rows={6} />
+      ) : error ? (
         <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
           <span>Nu s-au putut încărca acordurile.</span>
           <button onClick={() => setReloadKey(k => k + 1)} className="font-medium underline underline-offset-2">Reîncearcă</button>

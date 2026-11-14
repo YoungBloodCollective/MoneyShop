@@ -4,21 +4,25 @@ import toast from 'react-hot-toast';
 import { Link2, Copy, Check, ExternalLink, MessageCircle, AlertTriangle } from 'lucide-react';
 import { brokersApi, type BrokerProfile } from '@/services/api/brokersApi';
 import { useBroker } from '@/context/brokerContextValue';
+import { useAuth } from '@/hooks/useAuth';
+import { brokerSiteUrl } from '@/lib/brokerHost';
 
 function clientLinkFor(slug: string | null) {
-  if (slug) return `https://${slug}.moneyshop.ro/acord`;
+  if (slug) return `${brokerSiteUrl(slug)}/acord`;
   return `${window.location.origin}/acord`;
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
+  let done = false;
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
-      return true;
+      done = true;
     }
   } catch {
-    // fall through to the legacy path below
+    done = false;
   }
+  if (done) return true;
   try {
     const ta = document.createElement('textarea');
     ta.value = text;
@@ -37,14 +41,18 @@ async function copyToClipboard(text: string): Promise<boolean> {
 
 export function IntakeLinkCard() {
   const { slug: hostSlug } = useBroker();
+  const { isBroker } = useAuth();
   const [profile, setProfile] = useState<BrokerProfile | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    if (!isBroker) return;
     let active = true;
     brokersApi.getMe().then(p => { if (active) setProfile(p); }).catch(() => undefined);
     return () => { active = false; };
-  }, []);
+  }, [isBroker]);
+
+  if (!isBroker) return null;
 
   const clientLink = clientLinkFor(profile?.slug ?? hostSlug);
 

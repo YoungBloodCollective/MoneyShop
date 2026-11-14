@@ -224,6 +224,8 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                         TypeCredit = a.TypeCredit,
                         RequestedAmount = a.RequestedAmount,
                         SumaAprobata = a.SumaAprobata,
+                        Comision = a.Comision,
+                        DataDisbursare = a.DataDisbursare,
                         CreatedAt = a.CreatedAt,
                         UpdatedAt = a.UpdatedAt,
                     };
