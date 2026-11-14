@@ -1,6 +1,22 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
+const BROKER_ADMIN_REDIRECTS: Record<string, string> = {
+  '/admin': '/crm',
+  '/admin/acord': '/crm/acorduri',
+  '/admin/appointments': '/crm/programari',
+  '/admin/leads': '/crm/leaduri',
+  '/admin/reports': '/crm/rapoarte',
+  '/admin/profil': '/crm/profil',
+  '/admin/applications': '/crm/dosare',
+};
+
+function brokerAdminTarget(pathname: string): string | null {
+  if (pathname !== '/admin' && !pathname.startsWith('/admin/')) return null;
+  const normalized = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  return BROKER_ADMIN_REDIRECTS[normalized] ?? '/crm';
+}
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
   adminOnly?: boolean;
@@ -15,6 +31,11 @@ export function ProtectedRoute({ children, adminOnly, superAdminOnly, brokerOnly
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
+  }
+
+  if (isBroker && !isSuperAdmin) {
+    const target = brokerAdminTarget(location.pathname);
+    if (target) return <Navigate to={target} replace />;
   }
 
   if ((adminOnly || superAdminOnly || brokerOnly) && !isAdmin) {
