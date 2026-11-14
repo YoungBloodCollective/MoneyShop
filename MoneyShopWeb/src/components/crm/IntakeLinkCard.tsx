@@ -5,39 +5,8 @@ import { Link2, Copy, Check, ExternalLink, MessageCircle, AlertTriangle } from '
 import { brokersApi, type BrokerProfile } from '@/services/api/brokersApi';
 import { useBroker } from '@/context/brokerContextValue';
 import { useAuth } from '@/hooks/useAuth';
-import { brokerSiteUrl } from '@/lib/brokerHost';
-
-function clientLinkFor(slug: string | null) {
-  if (slug) return `${brokerSiteUrl(slug)}/acord`;
-  return `${window.location.origin}/acord`;
-}
-
-async function copyToClipboard(text: string): Promise<boolean> {
-  let done = false;
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      done = true;
-    }
-  } catch {
-    done = false;
-  }
-  if (done) return true;
-  try {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    const ok = document.execCommand('copy');
-    document.body.removeChild(ta);
-    return ok;
-  } catch {
-    return false;
-  }
-}
+import { clientLinkFor } from '@/lib/brokerHost';
+import { copyToClipboard } from '@/lib/clipboard';
 
 export function IntakeLinkCard() {
   const { slug: hostSlug } = useBroker();

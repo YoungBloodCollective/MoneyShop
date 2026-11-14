@@ -31,3 +31,8 @@ export function getBrokerSlug(): string | null {
 export function brokerSiteUrl(slug: string): string {
   return `https://${slug}.${ROOT_DOMAIN}`;
 }
+
+export function clientLinkFor(slug: string | null) {
+  if (slug) return `${brokerSiteUrl(slug)}/acord`;
+  return `${window.location.origin}/acord`;
+}

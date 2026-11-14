@@ -40,6 +40,19 @@ const CREDIT_TYPE_LABEL: Record<string, string> = {
   noua_casa: 'Noua Casă',
 };
 
+export const DOC_TYPE_LABELS: Record<string, string> = {
+  CI_FATA: 'Buletin – față',
+  CI_SPATE: 'Buletin – verso',
+  ADEVERINTA_VENIT: 'Adeverință de venit',
+  EXTRAS_CONT: 'Extras de cont',
+  FLUTURAS: 'Fluturaș de salariu',
+  CONTRACT_MUNCA: 'Contract de muncă',
+};
+
+export function docTypeLabel(type: string): string {
+  return DOC_TYPE_LABELS[type] ?? type;
+}
+
 export function creditTypeLabel(type?: string | null): string {
   if (!type) return '—';
   if (CREDIT_TYPE_LABEL[type]) return CREDIT_TYPE_LABEL[type];
