@@ -5,6 +5,7 @@ import { GuestLayout } from '@/components/layout/GuestLayout';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { CrmLayout } from '@/components/crm/CrmLayout';
 import { ProtectedRoute } from './ProtectedRoute';
+import { BROKER_ADMIN_REDIRECTS } from './brokerAdminRedirects';
 import { useBroker } from '@/context/brokerContextValue';
 
 // Lazy-loaded pages
@@ -58,14 +59,9 @@ const BankConsentPage = lazy(() => import('@/pages/bank-consent/BankConsentPage'
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
 const AdminApplicationsPage = lazy(() => import('@/pages/admin/AdminApplicationsPage'));
 const AdminKycPage = lazy(() => import('@/pages/admin/AdminKycPage'));
-const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'));
 const AdminBrokersPage = lazy(() => import('@/pages/admin/AdminBrokersPage'));
-const AdminAppointmentsPage = lazy(() => import('@/pages/admin/AdminAppointmentsPage'));
-const AdminLeadsPage = lazy(() => import('@/pages/admin/AdminLeadsPage'));
 const AdminPartnersPage = lazy(() => import('@/pages/admin/AdminPartnersPage'));
-const AdminAcordPage = lazy(() => import('@/pages/admin/AdminAcordPage'));
 const AdminBrokerAccountsPage = lazy(() => import('@/pages/admin/AdminBrokerAccountsPage'));
-const BrokerProfilePage = lazy(() => import('@/pages/admin/BrokerProfilePage'));
 
 const CrmDashboardPage = lazy(() => import('@/pages/crm/CrmDashboardPage'));
 const CrmClientsPage = lazy(() => import('@/pages/crm/CrmClientsPage'));
@@ -74,6 +70,11 @@ const CrmDosarePage = lazy(() => import('@/pages/crm/CrmDosarePage'));
 const CrmOffersPage = lazy(() => import('@/pages/crm/CrmOffersPage'));
 const CrmLeadsPage = lazy(() => import('@/pages/crm/CrmLeadsPage'));
 const CrmAutomationsPage = lazy(() => import('@/pages/crm/CrmAutomationsPage'));
+const CrmAcorduriPage = lazy(() => import('@/pages/crm/CrmAcorduriPage'));
+const CrmAcordDetailPage = lazy(() => import('@/pages/crm/CrmAcordDetailPage'));
+const CrmProgramariPage = lazy(() => import('@/pages/crm/CrmProgramariPage'));
+const CrmRapoartePage = lazy(() => import('@/pages/crm/CrmRapoartePage'));
+const CrmProfilPage = lazy(() => import('@/pages/crm/CrmProfilPage'));
 
 function PageLoader() {
   return (
@@ -158,14 +159,14 @@ export function AppRouter() {
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboardPage /></ProtectedRoute>} />
           <Route path="/admin/applications" element={<ProtectedRoute adminOnly><AdminApplicationsPage /></ProtectedRoute>} />
           <Route path="/admin/kyc" element={<ProtectedRoute superAdminOnly><AdminKycPage /></ProtectedRoute>} />
-          <Route path="/admin/reports" element={<ProtectedRoute adminOnly><AdminReportsPage /></ProtectedRoute>} />
+          <Route path="/admin/reports" element={<ProtectedRoute adminOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/reports']} replace /></ProtectedRoute>} />
           <Route path="/admin/brokers" element={<ProtectedRoute superAdminOnly><AdminBrokersPage /></ProtectedRoute>} />
-          <Route path="/admin/appointments" element={<ProtectedRoute adminOnly><AdminAppointmentsPage /></ProtectedRoute>} />
-          <Route path="/admin/leads" element={<ProtectedRoute adminOnly><AdminLeadsPage /></ProtectedRoute>} />
+          <Route path="/admin/appointments" element={<ProtectedRoute adminOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/appointments']} replace /></ProtectedRoute>} />
+          <Route path="/admin/leads" element={<ProtectedRoute adminOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/leads']} replace /></ProtectedRoute>} />
           <Route path="/admin/partners" element={<ProtectedRoute superAdminOnly><AdminPartnersPage /></ProtectedRoute>} />
-          <Route path="/admin/acord" element={<ProtectedRoute adminOnly><AdminAcordPage /></ProtectedRoute>} />
+          <Route path="/admin/acord" element={<ProtectedRoute adminOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/acord']} replace /></ProtectedRoute>} />
           <Route path="/admin/brokeri" element={<ProtectedRoute superAdminOnly><AdminBrokerAccountsPage /></ProtectedRoute>} />
-          <Route path="/admin/profil" element={<ProtectedRoute brokerOnly><BrokerProfilePage /></ProtectedRoute>} />
+          <Route path="/admin/profil" element={<ProtectedRoute brokerOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/profil']} replace /></ProtectedRoute>} />
         </Route>
 
         {/* CRM — per-broker, own light-theme shell (outside AppLayout) */}
@@ -173,6 +174,11 @@ export function AppRouter() {
           <Route path="/crm" element={<CrmDashboardPage />} />
           <Route path="/crm/clienti" element={<CrmClientsPage />} />
           <Route path="/crm/clienti/:userId" element={<CrmClientDetailPage />} />
+          <Route path="/crm/acorduri" element={<CrmAcorduriPage />} />
+          <Route path="/crm/acorduri/:acordId" element={<CrmAcordDetailPage />} />
+          <Route path="/crm/programari" element={<CrmProgramariPage />} />
+          <Route path="/crm/rapoarte" element={<CrmRapoartePage />} />
+          <Route path="/crm/profil" element={<ProtectedRoute brokerOnly><CrmProfilPage /></ProtectedRoute>} />
           <Route path="/crm/dosare" element={<CrmDosarePage />} />
           <Route path="/crm/oferte" element={<CrmOffersPage />} />
           <Route path="/crm/leaduri" element={<CrmLeadsPage />} />

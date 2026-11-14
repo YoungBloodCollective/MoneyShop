@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, List, LayoutGrid, X } from 'lucide-react';
+import { Search, ChevronRight, List, LayoutGrid, X, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { crmApi } from '@/services/api/crmApi';
-import { adminApi } from '@/services/api/adminApi';
+import { adminApi, type DisbursementRequest } from '@/services/api/adminApi';
+import { apiErrorMessage } from '@/services/api/brokersApi';
+import { DisbursementModal, type DisbursementInitial } from '@/components/crm/DisbursementModal';
 import type { CrmFileListItem } from '@/types/crm.types';
 import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
 import { PageHeader, SkeletonTable, EmptyState, StatusPill, SegmentChips, Pagination } from './crmShared';
@@ -28,6 +30,7 @@ export default function CrmDosarePage() {
   const [draggedId, setDraggedId] = useState<number | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [disbursing, setDisbursing] = useState<{ ids: number[]; initial?: DisbursementInitial } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -68,7 +71,8 @@ export default function CrmDosarePage() {
   function moveCard(id: number, toStatus: string) {
     const file = files.find(f => f.id === id);
     if (!file || file.status === toStatus) return;
-    if ((toStatus === 'RESPINS' || toStatus === 'DISBURSAT') && !window.confirm(`Sigur muți dosarul #${file.code} în „${statusLabel(toStatus)}”? Acțiunea poate notifica clientul.`)) return;
+    if (toStatus === 'DISBURSAT') { setDisbursing({ ids: [id] }); return; }
+    if (toStatus === 'RESPINS' && !window.confirm(`Sigur muți dosarul #${file.code} în „${statusLabel(toStatus)}”? Acțiunea poate notifica clientul.`)) return;
     const prev = file.status;
     setFiles(fs => fs.map(f => (f.id === id ? { ...f, status: toStatus } : f)));
     adminApi.updateStatus(id, toStatus)
@@ -82,6 +86,14 @@ export default function CrmDosarePage() {
   async function bulkSetStatus(toStatus: string) {
     const ids = [...selected];
     if (ids.length === 0) return;
+    if (toStatus === 'DISBURSAT') {
+      const eligible = ids.filter(id => files.find(f => f.id === id)?.status !== 'DISBURSAT');
+      const skipped = ids.length - eligible.length;
+      if (skipped > 0) toast(`${skipped} dosare deja debursate au fost sărite`);
+      if (eligible.length === 0) return;
+      setDisbursing({ ids: eligible });
+      return;
+    }
     if (!window.confirm(`Sigur schimbi statusul a ${ids.length} dosare în „${statusLabel(toStatus)}”?`)) return;
     setFiles(fs => fs.map(f => (ids.includes(f.id) ? { ...f, status: toStatus } : f)));
     setSelected(new Set());
@@ -92,6 +104,30 @@ export default function CrmDosarePage() {
       crmApi.getFiles().then(setFiles).catch(() => undefined);
     } else {
       toast.success(`${ids.length} dosare → ${statusLabel(toStatus)}`);
+    }
+  }
+
+  function editDisbursement(f: CrmFileListItem) {
+    setDisbursing({ ids: [f.id], initial: { sumaAprobata: f.sumaAprobata, comision: f.comision, dataDisbursare: f.dataDisbursare } });
+  }
+
+  async function submitDisbursement(values: DisbursementRequest) {
+    const ids = disbursing?.ids ?? [];
+    const failedIds: number[] = [];
+    let firstError: unknown;
+    for (const id of ids) {
+      try { await adminApi.updateDisbursement(id, values); }
+      catch (err) { failedIds.push(id); firstError ??= err; }
+    }
+    if (failedIds.length === ids.length) throw firstError;
+    setSelected(new Set(failedIds));
+    setDisbursing(null);
+    crmApi.getFiles().then(setFiles).catch(() => undefined);
+    if (failedIds.length > 0) {
+      const codes = failedIds.map(id => files.find(f => f.id === id)?.code ?? String(id)).join(', ');
+      toast.error(`${failedIds.length} din ${ids.length} dosare nu s-au actualizat: ${codes}. ${apiErrorMessage(firstError, '')}`.trim());
+    } else {
+      toast.success(ids.length === 1 ? 'Debursare salvată' : `${ids.length} dosare → ${statusLabel('DISBURSAT')}`);
     }
   }
 
@@ -203,7 +239,14 @@ export default function CrmDosarePage() {
                         <td className="whitespace-nowrap px-5 py-3 text-right font-medium text-slate-700">{money(f.requestedAmount)}</td>
                         <td className="px-5 py-3"><StatusPill status={f.status} /></td>
                         <td className="whitespace-nowrap px-5 py-3 text-slate-400">{dateShort(f.updatedAt)}</td>
-                        <td onClick={() => navigate(`/crm/clienti/${f.userId}`)} className="cursor-pointer px-5 py-3 text-right"><ChevronRight className="h-4 w-4 text-slate-300" /></td>
+                        <td className="whitespace-nowrap px-5 py-3 text-right">
+                          {f.status === 'DISBURSAT' && (
+                            <button onClick={() => editDisbursement(f)} className="mr-3 inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline">
+                              <Pencil className="h-3 w-3" /> Editează debursarea
+                            </button>
+                          )}
+                          <ChevronRight onClick={() => navigate(`/crm/clienti/${f.userId}`)} className="inline h-4 w-4 cursor-pointer text-slate-300" />
+                        </td>
                       </tr>
                     );
                   })}
@@ -247,6 +290,14 @@ export default function CrmDosarePage() {
                       </div>
                       <div className="mt-1 truncate text-sm font-medium text-slate-700">{f.clientName}</div>
                       <div className="mt-1 text-xs text-slate-500">{money(f.requestedAmount)}</div>
+                      {f.status === 'DISBURSAT' && (
+                        <button
+                          onClick={e => { e.stopPropagation(); editDisbursement(f); }}
+                          className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
+                        >
+                          <Pencil className="h-3 w-3" /> Editează debursarea
+                        </button>
+                      )}
                     </div>
                   ))}
                   {cards.length === 0 && (
@@ -257,6 +308,17 @@ export default function CrmDosarePage() {
             );
           })}
         </div>
+      )}
+      {disbursing && (
+        <DisbursementModal
+          title={disbursing.initial ? 'Editează debursarea' : 'Debursare dosar'}
+          subtitle={disbursing.ids.length === 1
+            ? `Dosar #${files.find(f => f.id === disbursing.ids[0])?.code ?? ''}`
+            : `${disbursing.ids.length} dosare selectate`}
+          initial={disbursing.initial}
+          onClose={() => setDisbursing(null)}
+          onSubmit={submitDisbursement}
+        />
       )}
     </div>
   );

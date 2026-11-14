@@ -34,6 +34,8 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public string? TypeCredit { get; set; }
         public decimal? RequestedAmount { get; set; }
         public decimal? SumaAprobata { get; set; }
+        public decimal? Comision { get; set; }
+        public DateTime? DataDisbursare { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

@@ -10,6 +10,7 @@ import {
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmDashboardSummary } from '@/types/crm.types';
 import { ErrorState } from './crmShared';
+import { IntakeLinkCard } from '@/components/crm/IntakeLinkCard';
 
 const STATUS_COLORS: Record<string, string> = {
   analiza: '#F59E0B',
@@ -126,6 +127,8 @@ export default function CrmDashboardPage() {
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
         <p className="mt-1 text-sm text-slate-500">Prezentare generală a activității tale</p>
       </div>
+
+      <IntakeLinkCard />
 
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
