@@ -55,5 +55,6 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public string Label { get; set; } = null!;
         public int Count { get; set; }
         public string Severity { get; set; } = "info"; // info | warning | danger
+        public string Kind { get; set; } = "documents"; // documents | approval | acord | birthday
     }
 }

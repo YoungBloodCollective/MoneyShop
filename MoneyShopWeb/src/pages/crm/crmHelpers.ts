@@ -14,6 +14,19 @@ const STATUS_LABEL: Record<string, string> = {
   DISBURSAT: 'Debursat',
 };
 
+export const ACORD_STATUS_LABEL: Record<string, string> = {
+  started: 'Acord început',
+  documents: 'Documente încărcate',
+  signed: 'Acord semnat',
+  completed: 'Acord finalizat',
+  rejected: 'Acord respins',
+};
+
+export function acordStatusLabel(status?: string | null): string {
+  if (!status) return '—';
+  return ACORD_STATUS_LABEL[status] ?? status;
+}
+
 export function statusLabel(status?: string): string {
   if (!status) return '—';
   return STATUS_LABEL[status] ?? status;
@@ -46,7 +59,7 @@ export function moneyShort(v?: number | null): string {
   return `${v.toLocaleString('ro-RO')} lei`;
 }
 
-export function dateShort(iso?: string): string {
+export function dateShort(iso?: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' });
 }
@@ -97,8 +110,9 @@ export const FILE_STATUS_SEGMENTS: { key: string; label: string }[] = [
 ];
 
 export const CLIENT_STATUS_SEGMENTS: { key: string; label: string }[] = [
-  ...FILE_STATUS_SEGMENTS,
-  { key: 'none', label: 'Fără dosar' },
+  { key: 'toate', label: 'Toate' },
+  { key: 'acord', label: 'Acord, fără dosar' },
+  ...FILE_STATUS_SEGMENTS.filter(s => s.key !== 'toate'),
 ];
 
 /// Folds a concrete status into the segment it belongs to.
@@ -119,8 +133,17 @@ export function statusGroup(status?: string | null): string {
   }
 }
 
-export function matchesSegment(status: string | undefined, segment: string): boolean {
+export function matchesSegment(status: string | null | undefined, segment: string): boolean {
   return segment === 'toate' || statusGroup(status) === segment;
+}
+
+export function matchesClientSegment(
+  client: { hasAcord: boolean; filesCount: number; lastStatus?: string | null },
+  segment: string,
+): boolean {
+  if (segment === 'toate') return true;
+  if (segment === 'acord') return client.hasAcord && client.filesCount === 0;
+  return matchesSegment(client.lastStatus, segment);
 }
 
 // ── Pagination ───────────────────────────────────────────────────────────────
