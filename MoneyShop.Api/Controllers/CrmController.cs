@@ -68,10 +68,10 @@ namespace MoneyShop.Api.Controllers
             return File(file.Content, file.MimeType, file.FileName);
         }
 
-        [HttpGet("clients/{userId:int}/bc-report/pdf")]
-        public IActionResult GetClientBcReportPdf(int userId)
+        [HttpGet("clients/{userId:int}/bc-report/{reportId:int}/pdf")]
+        public IActionResult GetClientBcReportPdf(int userId, int reportId)
         {
-            var file = _crm.GetClientBcReportPdf(userId, new CnpAccessContext
+            var file = _crm.GetClientBcReportPdf(userId, reportId, new CnpAccessContext
             {
                 ActorUserId = GetActorUserId(),
                 ActorRole = User.IsInRole("Administrator") ? "Administrator" : "Broker",

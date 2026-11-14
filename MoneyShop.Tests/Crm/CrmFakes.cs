@@ -14,6 +14,7 @@ namespace MoneyShop.Tests.Crm;
 
 internal class FakeAcordService : IAcordService
 {
+    public const string FullCnp = "2900202987654";
     private readonly MoneyShopDbContext _db;
     public FakeAcordService(MoneyShopDbContext db) => _db = db;
 
@@ -46,6 +47,9 @@ internal class FakeAcordService : IAcordService
             SignedAt = a.SignedAt,
             CnpMasked = "180******3456",
             CnpAvailable = true,
+            Ocr = new AcordOcrSnapshot { CnpMasked = "180******3456", IdSeries = "RX" },
+            DeclaredData = { new AcordLabeledValue { Label = "CNP", Value = FullCnp } },
+            ConsentTextSnapshot = "CNP " + FullCnp,
             Files = files,
         };
     }
@@ -119,9 +123,11 @@ internal class FakeBcReportService : IBcReportService
 internal class FakeSubjectService : ISubjectService
 {
     public List<(int UserId, CnpAccessContext Access)> Logged { get; } = new();
+    public bool Result { get; set; } = true;
 
     public bool LogCnpAccess(int userId, CnpAccessContext access)
     {
+        if (!Result) return false;
         Logged.Add((userId, access));
         return true;
     }

@@ -191,6 +191,9 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             return new CrmAcordSnapshot
             {
                 AcordId = d.AcordId,
+                Nume = d.Nume,
+                Prenume = d.Prenume,
+                Telefon = d.Telefon,
                 Status = d.Status,
                 CreatedAt = d.CreatedAt,
                 SignedAt = d.SignedAt,
@@ -259,20 +262,19 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             };
         }
 
-        public CrmBcReportPdf? GetClientBcReportPdf(int userId, CnpAccessContext access)
+        public CrmBcReportPdf? GetClientBcReportPdf(int userId, int reportId, CnpAccessContext access)
         {
             var inScope = _applications.Get().Any(a => a.UserId == userId)
                 || _context.AcordClients.Any(a => a.UserId == userId);
             if (!inScope) return null;
 
             var report = _context.BcReports
-                .Where(r => r.UserId == userId && r.FileContentBase64 != null && r.FileContentBase64 != "")
-                .OrderByDescending(r => r.CreatedAt)
+                .Where(r => r.Id == reportId && r.UserId == userId && r.FileContentBase64 != null && r.FileContentBase64 != "")
                 .FirstOrDefault();
             if (report == null) return null;
 
             access.AcordId ??= FindAcord(userId)?.AcordId;
-            _subjects.LogCnpAccess(userId, access);
+            if (!_subjects.LogCnpAccess(userId, access)) return null;
 
             return new CrmBcReportPdf
             {

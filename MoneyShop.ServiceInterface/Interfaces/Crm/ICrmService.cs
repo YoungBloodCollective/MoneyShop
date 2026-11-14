@@ -25,10 +25,7 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         /// store. Fails (Ok=false) when the client has no acord/KYC session to attach it to.</summary>
         CrmAnafUploadResult UploadClientAnaf(int userId, byte[] content, string fileName, string mimeType);
 
-        /// <summary>The client's latest Biroul de Credit report PDF. Null when the client is out
-        /// of the broker's scope or has no stored PDF. The PDF prints the CNP, so the read is
-        /// written to the CNP access log.</summary>
-        CrmBcReportPdf? GetClientBcReportPdf(int userId, CnpAccessContext access);
+        CrmBcReportPdf? GetClientBcReportPdf(int userId, int reportId, CnpAccessContext access);
     }
 
     public class CrmFileListItem
@@ -164,6 +161,9 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
     public class CrmAcordSnapshot
     {
         public Guid AcordId { get; set; }
+        public string Nume { get; set; } = null!;
+        public string Prenume { get; set; } = null!;
+        public string Telefon { get; set; } = null!;
         public string Status { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
         public DateTime? SignedAt { get; set; }

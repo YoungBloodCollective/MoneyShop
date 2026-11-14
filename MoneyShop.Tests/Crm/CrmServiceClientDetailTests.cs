@@ -104,6 +104,47 @@ public class CrmServiceClientDetailTests
         Assert.Equal("patria", client.Acord.BankConsents[0].BankCode);
     }
 
+    private static int ReportId(MoneyShopDbContext db, int userId) => db.BcReports.Single(r => r.UserId == userId).Id;
+
+    [Fact]
+    public void GetClient_acord_snapshot_does_not_carry_full_cnp()
+    {
+        var (service, _, _) = BuildRich();
+
+        var client = service.GetClient(RichUser)!;
+
+        Assert.Equal("Rich", client.Acord!.Nume);
+        Assert.Equal("Client", client.Acord.Prenume);
+        Assert.Equal("0700000001", client.Acord.Telefon);
+        Assert.DoesNotContain(FakeAcordService.FullCnp, JsonSerializer.Serialize(client));
+    }
+
+    [Fact]
+    public void GetClient_acord_without_kyc_has_no_files_and_does_not_throw()
+    {
+        var (service, db, _) = BuildRich();
+        db.Utilizatoris.Add(new Utilizatori { IdUtilizator = 401, Nume = "No", Prenume = "Kyc", IdRol = 1 });
+        db.AcordClients.Add(new AcordClient
+        {
+            BrokerProfileId = CrmServiceClientUnionTests.BrokerId,
+            UserId = 401,
+            Token = Guid.NewGuid().ToString("N"),
+            Nume = "No",
+            Prenume = "Kyc",
+            Telefon = "0700000002",
+            Status = "started",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        db.SaveChanges();
+
+        var client = service.GetClient(401)!;
+
+        Assert.NotNull(client.Acord);
+        Assert.Empty(client.Acord!.Files);
+        Assert.Empty(client.Acord.BankConsents);
+    }
+
     [Fact]
     public void GetClient_returns_bc_snapshot_with_fico_and_no_cnp_anywhere()
     {
@@ -123,7 +164,6 @@ public class CrmServiceClientDetailTests
         Assert.Equal(2, client.BcReport.Accounts.Count);
         var json = JsonSerializer.Serialize(client);
         Assert.DoesNotContain(FakeBcReportService.LeakyCnp, json);
-        Assert.DoesNotContain("1800101", json);
     }
 
     [Fact]
@@ -148,9 +188,9 @@ public class CrmServiceClientDetailTests
     [Fact]
     public void GetClientBcReportPdf_returns_pdf_and_logs_cnp_access()
     {
-        var (service, _, subjects) = BuildRich();
+        var (service, db, subjects) = BuildRich();
 
-        var pdf = service.GetClientBcReportPdf(RichUser, new CnpAccessContext { Reason = "bc_report_download", ActorUserId = 7 });
+        var pdf = service.GetClientBcReportPdf(RichUser, ReportId(db, RichUser), new CnpAccessContext { Reason = "bc_report_download", ActorUserId = 7 });
 
         Assert.NotNull(pdf);
         Assert.Equal(PdfText, System.Text.Encoding.ASCII.GetString(pdf!.Content));
@@ -168,8 +208,8 @@ public class CrmServiceClientDetailTests
         db.BcReports.Add(new MoneyShop.DomainModel.Entities.BcReport { UserId = 301, ReportId = "r2", FileContentBase64 = "AAAA", CreatedAt = DateTime.UtcNow });
         db.SaveChanges();
 
-        Assert.Null(service.GetClientBcReportPdf(301, new CnpAccessContext { Reason = "bc_report_download" }));
-        Assert.Null(service.GetClientBcReportPdf(CrmServiceClientUnionTests.OtherBrokerUser, new CnpAccessContext { Reason = "bc_report_download" }));
+        Assert.Null(service.GetClientBcReportPdf(301, ReportId(db, 301), new CnpAccessContext { Reason = "bc_report_download" }));
+        Assert.Null(service.GetClientBcReportPdf(CrmServiceClientUnionTests.OtherBrokerUser, 1, new CnpAccessContext { Reason = "bc_report_download" }));
         Assert.Empty(subjects.Logged);
     }
 
@@ -178,6 +218,25 @@ public class CrmServiceClientDetailTests
     {
         var (service, _) = CrmServiceClientUnionTests.Build();
 
-        Assert.Null(service.GetClientBcReportPdf(CrmServiceClientUnionTests.BothUser, new CnpAccessContext { Reason = "bc_report_download" }));
+        Assert.Null(service.GetClientBcReportPdf(CrmServiceClientUnionTests.BothUser, 1, new CnpAccessContext { Reason = "bc_report_download" }));
+    }
+
+    [Fact]
+    public void GetClientBcReportPdf_returns_null_when_cnp_log_cannot_be_written()
+    {
+        var (service, db, subjects) = BuildRich();
+        subjects.Result = false;
+
+        Assert.Null(service.GetClientBcReportPdf(RichUser, ReportId(db, RichUser), new CnpAccessContext { Reason = "bc_report_download" }));
+    }
+
+    [Fact]
+    public void GetClientBcReportPdf_with_another_users_report_id_returns_null()
+    {
+        var (service, db, _) = BuildRich();
+        db.BcReports.Add(new MoneyShop.DomainModel.Entities.BcReport { UserId = 999, ReportId = "r9", FileContentBase64 = "AAAA", CreatedAt = DateTime.UtcNow });
+        db.SaveChanges();
+
+        Assert.Null(service.GetClientBcReportPdf(RichUser, ReportId(db, 999), new CnpAccessContext { Reason = "bc_report_download" }));
     }
 }

@@ -94,6 +94,9 @@ export interface CrmKycSnapshot {
 
 export interface CrmAcordSnapshot {
   acordId: string;
+  nume: string;
+  prenume: string;
+  telefon: string;
   status: string;
   createdAt: string;
   signedAt?: string | null;

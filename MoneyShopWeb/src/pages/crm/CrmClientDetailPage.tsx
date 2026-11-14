@@ -49,7 +49,6 @@ function Check({ ok, label }: { ok: boolean; label: string }) {
   );
 }
 
-
 function CrediusForwardButton({ applicationId }: { applicationId: number }) {
   const [sending, setSending] = useState(false);
   const send = async () => {
@@ -318,8 +317,9 @@ function BcReportCard({ report, userId, onPreview }: { report?: CrmBcReportSnaps
     );
   }
 
-  const pdfName = report.fileName || 'raport-bc.pdf';
-  const loadPdf = () => crmApi.bcReportPdfBlob(userId);
+  const baseName = report.fileName || 'raport-bc';
+  const pdfName = /\.pdf$/i.test(baseName) ? baseName : `${baseName}.pdf`;
+  const loadPdf = () => crmApi.bcReportPdfBlob(userId, report.id);
   const download = async () => {
     try {
       downloadBlob(await loadPdf(), pdfName);
@@ -363,26 +363,26 @@ function BcReportCard({ report, userId, onPreview }: { report?: CrmBcReportSnaps
           </button>
           {showAccounts && (
             <div className="mt-2 overflow-x-auto rounded-xl border border-slate-100">
-              <table className="w-full min-w-[520px] text-left text-xs">
+              <table className="w-full min-w-[400px] text-left text-[11px]">
                 <thead className="bg-slate-50 text-slate-500">
                   <tr>
-                    <th scope="col" className="px-3 py-2 font-medium">Creditor</th>
-                    <th scope="col" className="px-3 py-2 font-medium">Tip</th>
-                    <th scope="col" className="px-3 py-2 text-right font-medium">Sold</th>
-                    <th scope="col" className="px-3 py-2 text-right font-medium">Restanță</th>
-                    <th scope="col" className="px-3 py-2 text-right font-medium">Zile</th>
-                    <th scope="col" className="px-3 py-2 font-medium">Status</th>
+                    <th scope="col" className="px-2 py-1.5 font-medium">Creditor</th>
+                    <th scope="col" className="px-2 py-1.5 font-medium">Tip</th>
+                    <th scope="col" className="px-2 py-1.5 text-right font-medium">Sold</th>
+                    <th scope="col" className="px-2 py-1.5 text-right font-medium">Restanță</th>
+                    <th scope="col" className="px-2 py-1.5 text-right font-medium">Zile</th>
+                    <th scope="col" className="px-2 py-1.5 font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 text-slate-700">
                   {report.accounts.map((a, i) => (
                     <tr key={i}>
-                      <td className="px-3 py-2 font-medium">{a.creditor ?? '—'}</td>
-                      <td className="px-3 py-2">{a.accountType ?? '—'}</td>
-                      <td className="whitespace-nowrap px-3 py-2 text-right">{a.currentBalance.toLocaleString('ro-RO')} {a.currency ?? ''}</td>
-                      <td className={`whitespace-nowrap px-3 py-2 text-right ${a.arrearsAmount > 0 ? 'font-medium text-rose-700' : ''}`}>{a.arrearsAmount.toLocaleString('ro-RO')}</td>
-                      <td className={`px-3 py-2 text-right ${a.daysOverdue > 0 ? 'font-medium text-rose-700' : ''}`}>{a.daysOverdue}</td>
-                      <td className="px-3 py-2">{a.status ?? (a.isActive ? 'Activ' : 'Închis')}</td>
+                      <td className="px-2 py-1.5 font-medium">{a.creditor ?? '—'}</td>
+                      <td className="px-2 py-1.5">{a.accountType ?? '—'}</td>
+                      <td className="whitespace-nowrap px-2 py-1.5 text-right">{a.currentBalance.toLocaleString('ro-RO')}</td>
+                      <td className={`whitespace-nowrap px-2 py-1.5 text-right ${a.arrearsAmount > 0 ? 'font-medium text-rose-700' : ''}`}>{a.arrearsAmount.toLocaleString('ro-RO')}</td>
+                      <td className={`px-2 py-1.5 text-right ${a.daysOverdue > 0 ? 'font-medium text-rose-700' : ''}`}>{a.daysOverdue}</td>
+                      <td className="px-2 py-1.5">{a.status ?? (a.isActive ? 'Activ' : 'Închis')}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -422,6 +422,10 @@ function BcReportCard({ report, userId, onPreview }: { report?: CrmBcReportSnaps
 
 export default function CrmClientDetailPage() {
   const { userId } = useParams();
+  return <ClientDetail key={userId} userId={Number(userId)} />;
+}
+
+function ClientDetail({ userId }: { userId: number }) {
   const navigate = useNavigate();
   const [client, setClient] = useState<CrmClientDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -432,7 +436,7 @@ export default function CrmClientDetailPage() {
 
   useEffect(() => {
     let active = true;
-    crmApi.getClient(Number(userId))
+    crmApi.getClient(userId)
       .then(d => { if (active) { setClient(d); setNotFound(false); setFailed(false); } })
       .catch(err => {
         if (!active) return;
@@ -446,7 +450,7 @@ export default function CrmClientDetailPage() {
 
   const retry = () => { setLoading(true); setAttempt(a => a + 1); };
 
-  const refreshClient = () => crmApi.getClient(Number(userId)).then(setClient).catch(() => undefined);
+  const refreshClient = () => crmApi.getClient(userId).then(setClient).catch(() => undefined);
 
   if (loading) return <Spinner />;
   if (notFound || failed || !client) {
@@ -517,8 +521,8 @@ export default function CrmClientDetailPage() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Left: files + documents */}
-        <div className="space-y-4 lg:col-span-2">
-          {client.acord ? <AcordCard acord={client.acord} /> : <NoAcordCard />}
+        <div className="min-w-0 space-y-4 lg:col-span-2">
+          {client.acord ? <AcordCard key={client.acord.acordId} acord={client.acord} /> : <NoAcordCard />}
           {client.acord && (
             <div className="[&>div]:mb-0">
               <BankConsentsSection
@@ -526,8 +530,8 @@ export default function CrmClientDetailPage() {
                   acordId: client.acord.acordId,
                   status: client.acord.status,
                   signedAt: client.acord.signedAt ?? undefined,
-                  telefon: client.phone ?? '',
-                  prenume: client.fullName.split(' ')[0],
+                  telefon: client.acord.telefon,
+                  prenume: client.acord.prenume,
                 }}
                 onSigned={() => { void refreshClient(); }}
               />
@@ -568,7 +572,7 @@ export default function CrmClientDetailPage() {
         </div>
 
         {/* Right: financial + KYC */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <Card title="Profil financiar" icon={TrendingUp}>
             {f ? (
               <div className="divide-y divide-slate-50">
@@ -600,9 +604,9 @@ export default function CrmClientDetailPage() {
             ) : <p className="py-2 text-sm text-slate-400">Fără acord/KYC</p>}
           </Card>
 
-          <BcReportCard report={client.bcReport} userId={Number(userId)} onPreview={setPreview} />
+          <BcReportCard report={client.bcReport} userId={userId} onPreview={setPreview} />
 
-          <AnafCard client={client} userId={Number(userId)} onChange={refreshClient} />
+          <AnafCard client={client} userId={userId} onChange={refreshClient} />
 
           <Card title="Rezumat" icon={Wallet}>
             <InfoRow label="Total dosare" value={client.files.length} />
