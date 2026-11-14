@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Search, ChevronRight, List, LayoutGrid, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { crmApi } from '@/services/api/crmApi';
-import { adminApi } from '@/services/api/adminApi';
+import { adminApi, type DisbursementRequest } from '@/services/api/adminApi';
+import { DisbursementModal } from '@/components/crm/DisbursementModal';
 import type { CrmFileListItem } from '@/types/crm.types';
 import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
 import { PageHeader, SkeletonTable, EmptyState, StatusPill, SegmentChips, Pagination } from './crmShared';
@@ -28,6 +29,7 @@ export default function CrmDosarePage() {
   const [draggedId, setDraggedId] = useState<number | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [disbursing, setDisbursing] = useState<number[] | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -68,7 +70,8 @@ export default function CrmDosarePage() {
   function moveCard(id: number, toStatus: string) {
     const file = files.find(f => f.id === id);
     if (!file || file.status === toStatus) return;
-    if ((toStatus === 'RESPINS' || toStatus === 'DISBURSAT') && !window.confirm(`Sigur muți dosarul #${file.code} în „${statusLabel(toStatus)}”? Acțiunea poate notifica clientul.`)) return;
+    if (toStatus === 'DISBURSAT') { setDisbursing([id]); return; }
+    if (toStatus === 'RESPINS' && !window.confirm(`Sigur muți dosarul #${file.code} în „${statusLabel(toStatus)}”? Acțiunea poate notifica clientul.`)) return;
     const prev = file.status;
     setFiles(fs => fs.map(f => (f.id === id ? { ...f, status: toStatus } : f)));
     adminApi.updateStatus(id, toStatus)
@@ -82,6 +85,7 @@ export default function CrmDosarePage() {
   async function bulkSetStatus(toStatus: string) {
     const ids = [...selected];
     if (ids.length === 0) return;
+    if (toStatus === 'DISBURSAT') { setDisbursing(ids); return; }
     if (!window.confirm(`Sigur schimbi statusul a ${ids.length} dosare în „${statusLabel(toStatus)}”?`)) return;
     setFiles(fs => fs.map(f => (ids.includes(f.id) ? { ...f, status: toStatus } : f)));
     setSelected(new Set());
@@ -93,6 +97,22 @@ export default function CrmDosarePage() {
     } else {
       toast.success(`${ids.length} dosare → ${statusLabel(toStatus)}`);
     }
+  }
+
+  async function submitDisbursement(values: DisbursementRequest) {
+    const ids = disbursing ?? [];
+    const results: PromiseSettledResult<void>[] = [];
+    for (const id of ids) {
+      try { await adminApi.updateDisbursement(id, values); results.push({ status: 'fulfilled', value: undefined }); }
+      catch (reason) { results.push({ status: 'rejected', reason }); }
+    }
+    const failed = results.filter(r => r.status === 'rejected').length;
+    if (failed === ids.length) throw new Error('disbursement-failed');
+    setSelected(new Set());
+    setDisbursing(null);
+    crmApi.getFiles().then(setFiles).catch(() => undefined);
+    if (failed > 0) toast.error(`${failed} din ${ids.length} dosare nu s-au actualizat`);
+    else toast.success(ids.length === 1 ? 'Dosar debursat' : `${ids.length} dosare → ${statusLabel('DISBURSAT')}`);
   }
 
   const pageIds = slice.map(f => f.id);
@@ -257,6 +277,16 @@ export default function CrmDosarePage() {
             );
           })}
         </div>
+      )}
+      {disbursing && (
+        <DisbursementModal
+          title="Debursare dosar"
+          subtitle={disbursing.length === 1
+            ? `Dosar #${files.find(f => f.id === disbursing[0])?.code ?? ''}`
+            : `${disbursing.length} dosare selectate`}
+          onClose={() => setDisbursing(null)}
+          onSubmit={submitDisbursement}
+        />
       )}
     </div>
   );
