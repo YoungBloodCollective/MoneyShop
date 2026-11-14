@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using MoneyShop.ServiceInterface.Interfaces.Acord;
+using MoneyShop.ServiceInterface.Interfaces.Subject;
 
 namespace MoneyShop.ServiceInterface.Interfaces.Crm
 {
@@ -22,6 +24,8 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         /// <summary>Stores an ANAF income document for the client, reusing the acord KYC file
         /// store. Fails (Ok=false) when the client has no acord/KYC session to attach it to.</summary>
         CrmAnafUploadResult UploadClientAnaf(int userId, byte[] content, string fileName, string mimeType);
+
+        CrmBcReportPdf? GetClientBcReportPdf(int userId, int reportId, CnpAccessContext access);
     }
 
     public class CrmFileListItem
@@ -75,6 +79,8 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public List<CrmClientFile> Files { get; set; } = new();
         public List<CrmClientDocument> Documents { get; set; } = new();
         public CrmKycSnapshot? Kyc { get; set; }
+        public CrmAcordSnapshot? Acord { get; set; }
+        public CrmBcReportSnapshot? BcReport { get; set; }
 
         /// <summary>True when the client has an acord/KYC session an ANAF doc can attach to.</summary>
         public bool CanAttachAnaf { get; set; }
@@ -150,5 +156,73 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public bool Ok { get; set; }
         /// <summary>When Ok is false: "no_acord" (no KYC session to attach to).</summary>
         public string? Reason { get; set; }
+    }
+
+    public class CrmAcordSnapshot
+    {
+        public Guid AcordId { get; set; }
+        public string Nume { get; set; } = null!;
+        public string Prenume { get; set; } = null!;
+        public string Telefon { get; set; } = null!;
+        public string Status { get; set; } = null!;
+        public DateTime CreatedAt { get; set; }
+        public DateTime? SignedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public string? TipAct { get; set; }
+        public bool? MarketingAccepted { get; set; }
+        public bool? Oug52Waived { get; set; }
+        public string? ReviewNote { get; set; }
+        public string? CnpMasked { get; set; }
+        public bool CnpAvailable { get; set; }
+        public string? Address { get; set; }
+        public bool? LivenessPassed { get; set; }
+        public bool? FaceMatchPassed { get; set; }
+        public bool AutomaticChecksRan { get; set; }
+        public AcordOcrSnapshot? Ocr { get; set; }
+        public List<AcordFileInfo> Files { get; set; } = new();
+        public List<BankConsentInfo> BankConsents { get; set; } = new();
+    }
+
+    public class CrmBcReportSnapshot
+    {
+        public int Id { get; set; }
+        public string? FileName { get; set; }
+        public DateTime UploadedAt { get; set; }
+        public string? ReportDate { get; set; }
+        public int? FicoScore { get; set; }
+        public decimal? ExistingMonthlyObligations { get; set; }
+        public int TotalAccounts { get; set; }
+        public int ActiveAccounts { get; set; }
+        public int AccountsWithArrears { get; set; }
+        public decimal TotalAmountOwed { get; set; }
+        public decimal TotalArrears { get; set; }
+        public string? MaxCurrentDelay { get; set; }
+        public int InquiriesCount { get; set; }
+        public int? Dpd30Count { get; set; }
+        public int? Dpd60Count { get; set; }
+        public int? Dpd90PlusCount { get; set; }
+        public int? NonbankActiveNow { get; set; }
+        public bool HasPdf { get; set; }
+        public List<string> ParseWarnings { get; set; } = new();
+        public List<CrmBcAccount> Accounts { get; set; } = new();
+    }
+
+    public class CrmBcAccount
+    {
+        public string? Creditor { get; set; }
+        public string? AccountType { get; set; }
+        public string? Status { get; set; }
+        public string? Currency { get; set; }
+        public decimal CurrentBalance { get; set; }
+        public decimal ArrearsAmount { get; set; }
+        public int DaysOverdue { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public class CrmBcReportPdf
+    {
+        public int ReportId { get; set; }
+        public byte[] Content { get; set; } = null!;
+        public string FileName { get; set; } = null!;
     }
 }

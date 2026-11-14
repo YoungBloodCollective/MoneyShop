@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Audit;
 using MoneyShop.ServiceInterface.Interfaces.Crm;
+using MoneyShop.ServiceInterface.Interfaces.Subject;
 
 namespace MoneyShop.Api.Controllers
 {
@@ -67,6 +68,24 @@ namespace MoneyShop.Api.Controllers
             return File(file.Content, file.MimeType, file.FileName);
         }
 
+        [HttpGet("clients/{userId:int}/bc-report/{reportId:int}/pdf")]
+        public IActionResult GetClientBcReportPdf(int userId, int reportId)
+        {
+            var file = _crm.GetClientBcReportPdf(userId, reportId, new CnpAccessContext
+            {
+                ActorUserId = GetActorUserId(),
+                ActorRole = User.IsInRole("Administrator") ? "Administrator" : "Broker",
+                Reason = "bc_report_download",
+                Ip = GetClientIp(),
+                UserAgent = Request.Headers.UserAgent.FirstOrDefault()
+            });
+            if (file == null) return NotFound("Clientul nu are raport BC.");
+            _audit.Log("BcReport", file.ReportId.ToString(), "file_read", newValue: new { userId, fileName = file.FileName }, reason: "bc_report_download");
+            Response.Headers.CacheControl = "no-store";
+            Response.Headers.ContentDisposition = "inline";
+            return File(file.Content, "application/pdf");
+        }
+
         [HttpPost("clients/{userId:int}/anaf")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UploadClientAnaf(int userId, IFormFile file)
@@ -96,6 +115,21 @@ namespace MoneyShop.Api.Controllers
                 return Conflict("Clientul nu are încă un acord/KYC la care să atașez documentul ANAF.");
 
             return Ok(new { message = "Document ANAF încărcat." });
+        }
+
+        private int? GetActorUserId()
+        {
+            var claim = User.FindFirst("Id")?.Value
+                     ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(claim, out var id) ? id : null;
+        }
+
+        private string? GetClientIp()
+        {
+            var forwarded = Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(forwarded))
+                return forwarded.Split(',')[0].Trim();
+            return HttpContext.Connection.RemoteIpAddress?.ToString();
         }
     }
 }

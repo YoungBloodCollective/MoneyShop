@@ -1,3 +1,5 @@
+import type { AcordFileInfo, AcordOcrSnapshot, BankConsentInfo } from '@/services/api/acordApi';
+
 export interface CrmStatusSlice {
   key: string;
   label: string;
@@ -90,6 +92,64 @@ export interface CrmKycSnapshot {
   faceMatchPassed?: boolean;
 }
 
+export interface CrmAcordSnapshot {
+  acordId: string;
+  nume: string;
+  prenume: string;
+  telefon: string;
+  status: string;
+  createdAt: string;
+  signedAt?: string | null;
+  completedAt?: string | null;
+  tipAct?: string | null;
+  marketingAccepted?: boolean | null;
+  oug52Waived?: boolean | null;
+  reviewNote?: string | null;
+  cnpMasked?: string | null;
+  cnpAvailable: boolean;
+  address?: string | null;
+  livenessPassed?: boolean | null;
+  faceMatchPassed?: boolean | null;
+  automaticChecksRan: boolean;
+  ocr?: AcordOcrSnapshot | null;
+  files: AcordFileInfo[];
+  bankConsents: BankConsentInfo[];
+}
+
+export interface CrmBcAccount {
+  creditor?: string | null;
+  accountType?: string | null;
+  status?: string | null;
+  currency?: string | null;
+  currentBalance: number;
+  arrearsAmount: number;
+  daysOverdue: number;
+  isActive: boolean;
+}
+
+export interface CrmBcReportSnapshot {
+  id: number;
+  fileName?: string | null;
+  uploadedAt: string;
+  reportDate?: string | null;
+  ficoScore?: number | null;
+  existingMonthlyObligations?: number | null;
+  totalAccounts: number;
+  activeAccounts: number;
+  accountsWithArrears: number;
+  totalAmountOwed: number;
+  totalArrears: number;
+  maxCurrentDelay?: string | null;
+  inquiriesCount: number;
+  dpd30Count?: number | null;
+  dpd60Count?: number | null;
+  dpd90PlusCount?: number | null;
+  nonbankActiveNow?: number | null;
+  hasPdf: boolean;
+  parseWarnings: string[];
+  accounts: CrmBcAccount[];
+}
+
 export interface CrmClientDetail {
   userId: number;
   fullName: string;
@@ -106,6 +166,8 @@ export interface CrmClientDetail {
   files: CrmClientFile[];
   documents: CrmClientDocument[];
   kyc?: CrmKycSnapshot;
+  acord?: CrmAcordSnapshot | null;
+  bcReport?: CrmBcReportSnapshot | null;
   canAttachAnaf: boolean;
   anafFileName?: string;
   anafUploadedAt?: string;
