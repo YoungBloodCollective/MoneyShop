@@ -32,23 +32,30 @@ export default function CrmAcordDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reviewNote, setReviewNote] = useState('');
+  const [updating, setUpdating] = useState(false);
 
-  const load = useCallback(async (initial: boolean) => {
+  const load = useCallback(async (initial: boolean, isActive: () => boolean = () => true) => {
     if (!acordId) return;
     if (initial) { setLoading(true); setError(false); }
     try {
       const details = await acordApi.adminDetails(acordId);
+      if (!isActive()) return;
       setSelected(details);
       if (initial) setReviewNote(details.reviewNote ?? '');
     } catch {
+      if (!isActive()) return;
       if (initial) setError(true);
       else toast.error('Nu s-au putut încărca detaliile');
     } finally {
-      if (initial) setLoading(false);
+      if (initial && isActive()) setLoading(false);
     }
   }, [acordId]);
 
-  useEffect(() => { queueMicrotask(() => { void load(true); }); }, [load]);
+  useEffect(() => {
+    let active = true;
+    queueMicrotask(() => { void load(true, () => active); });
+    return () => { active = false; };
+  }, [load]);
 
   const goBack = () => {
     if (window.history.state && window.history.state.idx > 0) navigate(-1);
@@ -61,12 +68,15 @@ export default function CrmAcordDetailPage() {
       ? 'Marchezi acordul ca finalizat?'
       : 'Respingi acordul?';
     if (!window.confirm(question)) return;
+    setUpdating(true);
     try {
       await acordApi.adminUpdateStatus(selected.acordId, status, reviewNote || undefined);
       toast.success('Status actualizat');
-      setSelected({ ...selected, status, reviewNote });
+      setSelected(prev => (prev ? { ...prev, status, reviewNote } : prev));
     } catch {
       toast.error('Nu s-a putut actualiza statusul');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -95,7 +105,6 @@ export default function CrmAcordDetailPage() {
   return (
     <div className="max-w-4xl">
       {back}
-
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{selected.nume} {selected.prenume}</h1>
@@ -107,7 +116,6 @@ export default function CrmAcordDetailPage() {
         </div>
         <AcordStatusBadge status={selected.status} />
       </div>
-
       <div className="mb-6 grid gap-3 sm:grid-cols-4">
         <div className={`${CARD} p-4`}>
           <p className="mb-1 text-xs text-slate-500">Tip act declarat</p>
@@ -142,7 +150,6 @@ export default function CrmAcordDetailPage() {
           </p>
         </div>
       </div>
-
       {(selected.livenessPassed === false || selected.faceMatchPassed === false) && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-600" />
@@ -152,7 +159,6 @@ export default function CrmAcordDetailPage() {
           </p>
         </div>
       )}
-
       <h2 className={H2}>Documente</h2>
       {selected.files.length === 0 ? (
         <p className="mb-6 text-sm text-slate-500">Niciun document încărcat.</p>
@@ -161,9 +167,7 @@ export default function CrmAcordDetailPage() {
           {selected.files.map(f => <AcordFilePreview key={f.fileId} file={f} />)}
         </div>
       )}
-
       <BankConsentsSection acord={selected} onSigned={() => { void load(false); }} />
-
       {!selected.automaticChecksRan && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4">
           <AlertTriangle size={18} className="mt-0.5 shrink-0 text-sky-600" />
@@ -179,7 +183,6 @@ export default function CrmAcordDetailPage() {
           </div>
         </div>
       )}
-
       {selected.declaredData?.length > 0 && (
         <>
           <h2 className={H2}>Date declarate de client</h2>
@@ -195,7 +198,6 @@ export default function CrmAcordDetailPage() {
           </div>
         </>
       )}
-
       <h2 className={H2}>Date extrase din act</h2>
       {ocr ? (
         <div className={`${CARD} mb-6 p-5`}>
@@ -291,7 +293,6 @@ export default function CrmAcordDetailPage() {
           </div>
         </div>
       )}
-
       {selected.consentTextSnapshot && (
         <>
           <h2 className={H2}>Acord semnat {selected.consentVersion && `(versiunea ${selected.consentVersion})`}</h2>
@@ -321,7 +322,6 @@ export default function CrmAcordDetailPage() {
           </div>
         </>
       )}
-
       <h2 className={H2}>Acțiuni</h2>
       <textarea
         value={reviewNote}
@@ -331,10 +331,10 @@ export default function CrmAcordDetailPage() {
         className="mb-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-primary focus:outline-none"
       />
       <div className="flex flex-wrap gap-3 pb-6">
-        <button onClick={() => updateStatus('completed')} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700">
+        <button onClick={() => updateStatus('completed')} disabled={updating} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
           Marchează finalizat
         </button>
-        <button onClick={() => updateStatus('rejected')} className="rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-rose-700">
+        <button onClick={() => updateStatus('rejected')} disabled={updating} className="rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-60">
           Respinge
         </button>
       </div>

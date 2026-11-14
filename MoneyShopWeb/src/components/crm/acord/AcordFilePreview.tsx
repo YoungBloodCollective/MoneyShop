@@ -8,21 +8,27 @@ export function AcordFilePreview({ file }: { file: AcordFileInfo }) {
   const isImage = file.mimeType.startsWith('image/');
   const shouldLoad = !file.isDeleted && isImage;
 
-  const [url, setUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(shouldLoad);
-  const [failed, setFailed] = useState(false);
+  const [result, setResult] = useState<{ fileId: string; url?: string; failed?: boolean } | null>(null);
+  const current = result?.fileId === file.fileId ? result : null;
+  const url = current?.url ?? null;
+  const failed = !!current?.failed;
+  const loading = shouldLoad && !current;
 
   useEffect(() => {
     if (!shouldLoad) return;
+    let active = true;
     let objectUrl: string | null = null;
     acordApi.adminFileBlob(file.fileId)
       .then(blob => {
+        if (!active) return;
         objectUrl = URL.createObjectURL(blob);
-        setUrl(objectUrl);
+        setResult({ fileId: file.fileId, url: objectUrl });
       })
-      .catch(() => setFailed(true))
-      .finally(() => setLoading(false));
-    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
+      .catch(() => { if (active) setResult({ fileId: file.fileId, failed: true }); });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [file.fileId, shouldLoad]);
 
   const handleDownload = async () => {

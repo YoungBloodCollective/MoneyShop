@@ -5,6 +5,7 @@ import { GuestLayout } from '@/components/layout/GuestLayout';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { CrmLayout } from '@/components/crm/CrmLayout';
 import { ProtectedRoute } from './ProtectedRoute';
+import { BROKER_ADMIN_REDIRECTS } from './brokerAdminRedirects';
 import { useBroker } from '@/context/brokerContextValue';
 
 // Lazy-loaded pages
@@ -158,14 +159,14 @@ export function AppRouter() {
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboardPage /></ProtectedRoute>} />
           <Route path="/admin/applications" element={<ProtectedRoute adminOnly><AdminApplicationsPage /></ProtectedRoute>} />
           <Route path="/admin/kyc" element={<ProtectedRoute superAdminOnly><AdminKycPage /></ProtectedRoute>} />
-          <Route path="/admin/reports" element={<ProtectedRoute adminOnly><Navigate to="/crm/rapoarte" replace /></ProtectedRoute>} />
+          <Route path="/admin/reports" element={<ProtectedRoute adminOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/reports']} replace /></ProtectedRoute>} />
           <Route path="/admin/brokers" element={<ProtectedRoute superAdminOnly><AdminBrokersPage /></ProtectedRoute>} />
-          <Route path="/admin/appointments" element={<ProtectedRoute adminOnly><Navigate to="/crm/programari" replace /></ProtectedRoute>} />
-          <Route path="/admin/leads" element={<ProtectedRoute adminOnly><Navigate to="/crm/leaduri" replace /></ProtectedRoute>} />
+          <Route path="/admin/appointments" element={<ProtectedRoute adminOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/appointments']} replace /></ProtectedRoute>} />
+          <Route path="/admin/leads" element={<ProtectedRoute adminOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/leads']} replace /></ProtectedRoute>} />
           <Route path="/admin/partners" element={<ProtectedRoute superAdminOnly><AdminPartnersPage /></ProtectedRoute>} />
-          <Route path="/admin/acord" element={<ProtectedRoute adminOnly><Navigate to="/crm/acorduri" replace /></ProtectedRoute>} />
+          <Route path="/admin/acord" element={<ProtectedRoute adminOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/acord']} replace /></ProtectedRoute>} />
           <Route path="/admin/brokeri" element={<ProtectedRoute superAdminOnly><AdminBrokerAccountsPage /></ProtectedRoute>} />
-          <Route path="/admin/profil" element={<ProtectedRoute brokerOnly><Navigate to="/crm/profil" replace /></ProtectedRoute>} />
+          <Route path="/admin/profil" element={<ProtectedRoute brokerOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/profil']} replace /></ProtectedRoute>} />
         </Route>
 
         {/* CRM — per-broker, own light-theme shell (outside AppLayout) */}
