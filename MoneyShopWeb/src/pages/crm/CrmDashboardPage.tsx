@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmDashboardSummary } from '@/types/crm.types';
+import { ErrorState } from './crmShared';
 
 const STATUS_COLORS: Record<string, string> = {
   analiza: '#F59E0B',
@@ -44,8 +45,8 @@ function KpiCard({
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}1A`, color: accent }}>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}1A`, color: accent }}>
           <Icon className="h-5 w-5" />
         </div>
         {delta && (
@@ -62,29 +63,35 @@ function KpiCard({
   );
 }
 
-const SEVERITY: Record<string, { icon: typeof FileText; cls: string }> = {
-  danger: { icon: AlertTriangle, cls: 'bg-rose-50 text-rose-600' },
-  warning: { icon: Clock, cls: 'bg-amber-50 text-amber-600' },
-  info: { icon: Cake, cls: 'bg-sky-50 text-sky-600' },
+const SEVERITY_CLS: Record<string, string> = {
+  danger: 'bg-rose-50 text-rose-600',
+  warning: 'bg-amber-50 text-amber-600',
+  info: 'bg-sky-50 text-sky-600',
 };
 
-function taskIcon(label: string, fallback: typeof FileText): typeof FileText {
-  return label.startsWith('Acorduri') ? FileSignature : fallback;
-}
+const TASK_ICON: Record<string, typeof FileText> = {
+  documents: AlertTriangle,
+  approval: Clock,
+  acord: FileSignature,
+  birthday: Cake,
+};
 
 export default function CrmDashboardPage() {
   const [data, setData] = useState<CrmDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
     crmApi.getDashboard()
-      .then(d => { if (active) setData(d); })
+      .then(d => { if (active) { setData(d); setError(false); } })
       .catch(() => { if (active) setError(true); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [attempt]);
+
+  const retry = () => { setLoading(true); setAttempt(a => a + 1); };
 
   const chartData = useMemo(
     () => (data?.evolution ?? []).map(p => ({
@@ -109,9 +116,7 @@ export default function CrmDashboardPage() {
 
   if (error || !data) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">
-        Nu am putut încărca datele. Reîncarcă pagina.
-      </div>
+      <ErrorState message="Nu am putut încărca datele" onRetry={retry} />
     );
   }
 
@@ -128,7 +133,7 @@ export default function CrmDashboardPage() {
           icon={Users} label="Clienți activi" accent="#2D2DF0"
           value={data.activeClients.toLocaleString('ro-RO')}
           delta={data.activeClientsDeltaPct === 0 ? undefined : {
-            text: `${data.activeClientsDeltaPct > 0 ? '+' : ''}${data.activeClientsDeltaPct}% față de luna trecută`,
+            text: `${data.activeClientsDeltaPct > 0 ? '+' : ''}${data.activeClientsDeltaPct}% clienți noi față de luna trecută`,
             negative: data.activeClientsDeltaPct < 0,
           }}
         />
@@ -223,11 +228,11 @@ export default function CrmDashboardPage() {
           <h2 className="mb-4 text-sm font-semibold text-slate-800">Sarcini & remindere</h2>
           <ul className="space-y-3">
             {data.tasks.map((t, i) => {
-              const s = SEVERITY[t.severity] ?? SEVERITY.info;
-              const Icon = taskIcon(t.label, s.icon);
+              const cls = SEVERITY_CLS[t.severity] ?? SEVERITY_CLS.info;
+              const Icon = TASK_ICON[t.kind] ?? FileText;
               return (
                 <li key={i} className="flex items-center gap-3">
-                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${s.cls}`}>
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${cls}`}>
                     <Icon className="h-4 w-4" />
                   </div>
                   <span className="flex-1 text-sm text-slate-700">{t.label}</span>

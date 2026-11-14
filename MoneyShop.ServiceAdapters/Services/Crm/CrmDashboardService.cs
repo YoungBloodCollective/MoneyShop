@@ -4,6 +4,7 @@ using System.Linq;
 using MoneyShop.DomainServices.RepositoryInterfaces.Application;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using MoneyShop.ServiceInterface.Interfaces.Crm;
+using MoneyShop.ServiceInterface.SharedDtos;
 
 namespace MoneyShop.ServiceAdapters.Services.Crm
 {
@@ -22,6 +23,9 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         private const string APROBAT_BANCA = "APROBAT_BANCA";
         private const string DISBURSAT = "DISBURSAT";
         private const string RESPINS = "RESPINS";
+        private const string ACORD_SIGNED = "signed";
+        private const string ACORD_COMPLETED = "completed";
+        private const string ACORD_REJECTED = "rejected";
 
         private static readonly string[] Closed = { DISBURSAT, RESPINS };
 
@@ -41,7 +45,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             var prevMonthStart = monthStart.AddMonths(-1);
 
             var apps = _applications.Get().ToList();
-            var acords = _context.AcordClients.ToList();
+            var acords = _context.LoadAcordRows();
             var appIds = apps.Select(a => a.Id).ToList();
 
             var firstSeen = apps.Select(a => (a.UserId, At: a.CreatedAt))
@@ -50,13 +54,18 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 .Select(g => g.Min(x => x.At))
                 .ToList();
             var newThisMonth = firstSeen.Count(d => d >= monthStart);
-            var newLastMonth = firstSeen.Count(d => d >= prevMonthStart && d < monthStart);
+            var lastMonthCutoff = prevMonthStart.AddDays(now.Day);
+            if (lastMonthCutoff > monthStart) lastMonthCutoff = monthStart;
+            var newLastMonth = firstSeen.Count(d => d >= prevMonthStart && d < lastMonthCutoff);
 
             var approvedThisMonth = _context.ApplicationStatusHistories
-                .Count(h => appIds.Contains(h.ApplicationId) && h.ToStatus == APROBAT_BANCA && h.ChangedAt >= monthStart);
+                .Where(h => appIds.Contains(h.ApplicationId) && h.ToStatus == APROBAT_BANCA && h.ChangedAt >= monthStart)
+                .Select(h => h.ApplicationId)
+                .Distinct()
+                .Count();
 
             var activeUsers = apps.Where(a => a.Status != RESPINS).Select(a => a.UserId)
-                .Union(acords.Where(a => a.Status != "rejected").Select(a => a.UserId))
+                .Union(acords.Where(a => a.Status != ACORD_REJECTED).Select(a => a.UserId))
                 .Distinct()
                 .Count();
 
@@ -105,7 +114,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 .ToList();
             summary.RecentActivities = activities;
 
-            var userIds = apps.Select(a => a.UserId).Distinct().ToList();
+            var userIds = apps.Select(a => a.UserId).Union(acords.Select(a => a.UserId)).Distinct().ToList();
             var birthdays = _context.SubjectMaps
                 .Where(s => userIds.Contains(s.UserId) && s.BirthDate != null
                          && s.BirthDate.Value.Month == now.Month && s.BirthDate.Value.Day == now.Day)
@@ -113,17 +122,17 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
 
             var withFile = apps.Select(a => a.UserId).ToHashSet();
             var signedWithoutFile = acords
-                .Where(a => (a.Status == "signed" || a.Status == "completed") && !withFile.Contains(a.UserId))
+                .Where(a => (a.Status == ACORD_SIGNED || a.Status == ACORD_COMPLETED) && !withFile.Contains(a.UserId))
                 .Select(a => a.UserId)
                 .Distinct()
                 .Count();
 
             summary.Tasks = new List<CrmTask>
             {
-                new() { Label = "Documente lipsă", Count = apps.Count(a => a.Status == NEVOIE_DOCUMENTE), Severity = "danger" },
-                new() { Label = "Urmărire aprobare", Count = apps.Count(a => a.Status == TRIMIS_LA_BANCA), Severity = "warning" },
-                new() { Label = "Acorduri semnate fără dosar", Count = signedWithoutFile, Severity = "info" },
-                new() { Label = "Zile de naștere (astăzi)", Count = birthdays, Severity = "info" },
+                new() { Label = "Documente lipsă", Count = apps.Count(a => a.Status == NEVOIE_DOCUMENTE), Severity = "danger", Kind = "documents" },
+                new() { Label = "Urmărire aprobare", Count = apps.Count(a => a.Status == TRIMIS_LA_BANCA), Severity = "warning", Kind = "approval" },
+                new() { Label = "Acorduri semnate fără dosar", Count = signedWithoutFile, Severity = "info", Kind = "acord" },
+                new() { Label = "Zile de naștere (astăzi)", Count = birthdays, Severity = "info", Kind = "birthday" },
             };
 
             return summary;
@@ -144,8 +153,8 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             IN_ANALIZA => "În analiză",
             NEVOIE_DOCUMENTE => "Nevoie de documente",
             PREAPROBAT => "Pre-aprobat",
-            "OFERTA_TRANSMISA" => "Ofertă transmisă",
-            "ACCEPTAT_CLIENT" => "Acceptat de client",
+            ApplicationStatuses.OFERTA_TRANSMISA => "Ofertă transmisă",
+            ApplicationStatuses.ACCEPTAT_CLIENT => "Acceptat de client",
             TRIMIS_LA_BANCA => "Trimis la bancă",
             APROBAT_BANCA => "Aprobat de bancă",
             DISBURSAT => "Debursat",

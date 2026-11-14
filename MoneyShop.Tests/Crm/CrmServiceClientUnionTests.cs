@@ -12,14 +12,14 @@ namespace MoneyShop.Tests.Crm;
 
 public class CrmServiceClientUnionTests
 {
-    private const int BrokerId = 7;
-    private const int OtherBrokerId = 8;
-    private const int AcordOnlyUser = 101;
-    private const int FileOnlyUser = 102;
-    private const int BothUser = 103;
-    private const int OtherBrokerUser = 104;
+    internal const int BrokerId = 7;
+    internal const int OtherBrokerId = 8;
+    internal const int AcordOnlyUser = 101;
+    internal const int FileOnlyUser = 102;
+    internal const int BothUser = 103;
+    internal const int OtherBrokerUser = 104;
 
-    private static (CrmService Service, MoneyShopDbContext Db) Build()
+    internal static (CrmService Service, MoneyShopDbContext Db) Build()
     {
         var options = new DbContextOptionsBuilder<MoneyShopDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -151,5 +151,23 @@ public class CrmServiceClientUnionTests
         var (service, _) = Build();
 
         Assert.Null(service.GetClient(OtherBrokerUser));
+    }
+
+    [Fact]
+    public void GetClients_without_broker_scope_returns_every_client()
+    {
+        var (service, db) = Build();
+        db.BrokerScopeId = null;
+
+        Assert.Equal(4, service.GetClients().Count);
+    }
+
+    [Fact]
+    public void GetClients_with_no_broker_scope_returns_nothing()
+    {
+        var (service, db) = Build();
+        db.BrokerScopeId = -1;
+
+        Assert.Empty(service.GetClients());
     }
 }

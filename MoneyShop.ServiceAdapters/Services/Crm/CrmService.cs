@@ -41,7 +41,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         public List<CrmClientListItem> GetClients()
         {
             var apps = _applications.Get().ToList();
-            var acords = _context.AcordClients.ToList()
+            var acords = _context.LoadAcordRows()
                 .GroupBy(a => a.UserId)
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.CreatedAt).First());
             var appsByUser = apps.GroupBy(a => a.UserId).ToDictionary(g => g.Key, g => g.ToList());
@@ -301,10 +301,16 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             return new CrmAnafUploadResult { Ok = true };
         }
 
-        private static string FullName(Utilizatori? user, AcordClient? acord, int userId)
+        private static string FullName(Utilizatori? user, AcordClient? acord, int userId) =>
+            FullName(user, acord?.Prenume, acord?.Nume, userId);
+
+        private static string FullName(Utilizatori? user, CrmAcordRow? acord, int userId) =>
+            FullName(user, acord?.Prenume, acord?.Nume, userId);
+
+        private static string FullName(Utilizatori? user, string? acordPrenume, string? acordNume, int userId)
         {
             var full = $"{user?.Prenume} {user?.Nume}".Trim();
-            if (string.IsNullOrWhiteSpace(full) && acord != null) full = $"{acord.Prenume} {acord.Nume}".Trim();
+            if (string.IsNullOrWhiteSpace(full)) full = $"{acordPrenume} {acordNume}".Trim();
             return string.IsNullOrWhiteSpace(full) ? $"Client #{userId}" : full;
         }
 

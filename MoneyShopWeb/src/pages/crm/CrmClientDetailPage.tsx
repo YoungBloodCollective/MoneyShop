@@ -282,7 +282,7 @@ export default function CrmClientDetailPage() {
               <div className="space-y-2">
                 <div className="mb-1 flex items-center justify-between">
                   <span className="text-sm text-slate-500">Status</span>
-                  <StatusPill status={client.kyc.status} />
+                  <AcordPill status={client.kyc.status} />
                 </div>
                 <Check ok={client.kyc.hasIdFront} label="CI față" />
                 <Check ok={client.kyc.hasIdBack} label="CI verso" />

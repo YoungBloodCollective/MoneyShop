@@ -19,6 +19,7 @@ export interface CrmTask {
   label: string;
   count: number;
   severity: 'info' | 'warning' | 'danger';
+  kind: 'documents' | 'approval' | 'acord' | 'birthday';
 }
 
 export interface CrmDashboardSummary {

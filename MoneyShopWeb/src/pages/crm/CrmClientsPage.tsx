@@ -16,7 +16,10 @@ export default function CrmClientsPage() {
   const [attempt, setAttempt] = useState(0);
   const [q, setQ] = useState('');
   const [segment, setSegment] = useState<string>(() => {
-    try { return localStorage.getItem(SEG_KEY) || 'toate'; } catch { return 'toate'; }
+    try {
+      const stored = localStorage.getItem(SEG_KEY);
+      return stored && CLIENT_STATUS_SEGMENTS.some(s => s.key === stored) ? stored : 'toate';
+    } catch { return 'toate'; }
   });
 
   useEffect(() => {
