@@ -41,16 +41,16 @@ function relativeTime(iso: string): string {
 function KpiCard({
   icon: Icon, label, value, accent, delta,
 }: {
-  icon: typeof Users; label: string; value: string; accent: string; delta?: { text: string; negative: boolean };
+  icon: typeof Users; label: string; value: string; accent: string; delta?: { text: string; title: string; negative: boolean };
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-2">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}1A`, color: accent }}>
           <Icon className="h-5 w-5" />
         </div>
         {delta && (
-          <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-1 text-xs font-semibold ${
+          <span title={delta.title} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-1 text-xs font-semibold ${
             delta.negative ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
           }`}>
             {delta.negative ? <ArrowDownRight className="h-3 w-3" /> : <ArrowUpRight className="h-3 w-3" />} {delta.text}
@@ -133,7 +133,8 @@ export default function CrmDashboardPage() {
           icon={Users} label="Clienți activi" accent="#2D2DF0"
           value={data.activeClients.toLocaleString('ro-RO')}
           delta={data.activeClientsDeltaPct === 0 ? undefined : {
-            text: `${data.activeClientsDeltaPct > 0 ? '+' : ''}${data.activeClientsDeltaPct}% clienți noi față de luna trecută`,
+            text: `${data.activeClientsDeltaPct > 0 ? '+' : ''}${data.activeClientsDeltaPct}% clienți noi`,
+            title: 'Clienți noi luna aceasta față de aceeași perioadă a lunii trecute',
             negative: data.activeClientsDeltaPct < 0,
           }}
         />
