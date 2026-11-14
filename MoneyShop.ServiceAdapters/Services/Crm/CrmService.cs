@@ -41,26 +41,45 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         public List<CrmClientListItem> GetClients()
         {
             var apps = _applications.Get().ToList();
-            var userIds = apps.Select(a => a.UserId).Distinct().ToList();
+            var acords = _context.AcordClients.ToList()
+                .GroupBy(a => a.UserId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.CreatedAt).First());
+            var appsByUser = apps.GroupBy(a => a.UserId).ToDictionary(g => g.Key, g => g.ToList());
+            var userIds = appsByUser.Keys.Union(acords.Keys).ToList();
             var users = _context.Utilizatoris.Where(u => userIds.Contains(u.IdUtilizator))
                 .ToDictionary(u => u.IdUtilizator);
 
-            return apps
-                .GroupBy(a => a.UserId)
-                .Select(g =>
+            return userIds
+                .Select(id =>
                 {
-                    var latest = g.OrderByDescending(a => a.UpdatedAt).First();
-                    users.TryGetValue(g.Key, out var u);
+                    users.TryGetValue(id, out var u);
+                    acords.TryGetValue(id, out var acord);
+                    appsByUser.TryGetValue(id, out var files);
+                    files ??= new List<MoneyShop.DomainModel.Entities.Application>();
+                    var latest = files.OrderByDescending(a => a.UpdatedAt).FirstOrDefault();
+                    var activity = new List<DateTime>();
+                    if (files.Count > 0) activity.Add(files.Max(a => a.UpdatedAt));
+                    if (acord != null)
+                    {
+                        activity.Add(acord.UpdatedAt);
+                        activity.Add(acord.CreatedAt);
+                        if (acord.SignedAt != null) activity.Add(acord.SignedAt.Value);
+                    }
                     return new CrmClientListItem
                     {
-                        UserId = g.Key,
-                        FullName = FullName(u?.Nume, u?.Prenume, g.Key),
-                        Phone = u?.NumarTelefon,
-                        Email = u?.Mail,
-                        FilesCount = g.Count(),
-                        LastStatus = latest.Status,
-                        LastActivityAt = g.Max(a => a.UpdatedAt),
-                        ApprovedVolume = g.Where(a => a.Status == "DISBURSAT").Sum(a => a.SumaAprobata ?? a.RequestedAmount ?? 0),
+                        UserId = id,
+                        FullName = FullName(u, acord, id),
+                        Phone = u?.NumarTelefon ?? acord?.Telefon,
+                        Email = u?.Mail ?? acord?.Email,
+                        FilesCount = files.Count,
+                        LastStatus = latest?.Status,
+                        LastActivityAt = activity.Max(),
+                        ApprovedVolume = files.Where(a => a.Status == "DISBURSAT").Sum(a => a.SumaAprobata ?? a.RequestedAmount ?? 0),
+                        HasAcord = acord != null,
+                        AcordId = acord?.AcordId,
+                        AcordStatus = acord?.Status,
+                        AcordSignedAt = acord?.SignedAt,
+                        AcordCreatedAt = acord?.CreatedAt,
                     };
                 })
                 .OrderByDescending(c => c.LastActivityAt)
@@ -70,7 +89,9 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         public CrmClientDetail? GetClient(int userId)
         {
             var apps = _applications.Get().Where(a => a.UserId == userId).ToList();
-            if (apps.Count == 0) return null;
+            var acord = _context.AcordClients.Where(a => a.UserId == userId)
+                .OrderByDescending(a => a.CreatedAt).FirstOrDefault();
+            if (apps.Count == 0 && acord == null) return null;
 
             var user = _context.Utilizatoris.FirstOrDefault(u => u.IdUtilizator == userId);
             var appIds = apps.Select(a => a.Id).ToList();
@@ -78,27 +99,28 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             var docs = _context.Documents.Where(d => appIds.Contains(d.ApplicationId))
                 .OrderByDescending(d => d.CreatedAt).ToList();
 
-            var acord = _context.AcordClients.Where(a => a.UserId == userId)
-                .OrderByDescending(a => a.AcordId).FirstOrDefault();
-
             var anaf = acord?.KycId == null ? null
                 : _context.KycFiles
                     .Where(f => f.KycId == acord.KycId.Value && f.FileType == AnafType && f.DeletedAt == null)
                     .OrderByDescending(f => f.CreatedAt)
                     .FirstOrDefault();
 
-            var latest = apps.OrderByDescending(a => a.UpdatedAt).First();
+            var latest = apps.OrderByDescending(a => a.UpdatedAt).FirstOrDefault();
 
             return new CrmClientDetail
             {
                 UserId = userId,
-                FullName = FullName(user?.Nume, user?.Prenume, userId),
-                Phone = user?.NumarTelefon,
-                Email = user?.Mail,
+                FullName = FullName(user, acord, userId),
+                Phone = user?.NumarTelefon ?? acord?.Telefon,
+                Email = user?.Mail ?? acord?.Email,
+                AcordId = acord?.AcordId,
+                AcordStatus = acord?.Status,
+                AcordSignedAt = acord?.SignedAt,
+                AcordCreatedAt = acord?.CreatedAt,
                 BirthDate = user?.DataNastere,
                 PhoneVerified = user?.PhoneVerified ?? false,
                 EmailVerified = user?.EmailVerified ?? false,
-                Financial = new CrmFinancialSnapshot
+                Financial = latest == null ? null : new CrmFinancialSnapshot
                 {
                     SalariuNet = latest.SalariuNet,
                     VechimeLuni = latest.VechimeLuni,
@@ -211,7 +233,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
 
         private AcordClient? FindAcord(int userId) =>
             _context.AcordClients.Where(a => a.UserId == userId)
-                .OrderByDescending(a => a.AcordId).FirstOrDefault();
+                .OrderByDescending(a => a.CreatedAt).FirstOrDefault();
 
         public CrmAnafFile? GetClientAnaf(int userId)
         {
@@ -277,6 +299,13 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
 
             _context.SaveChanges();
             return new CrmAnafUploadResult { Ok = true };
+        }
+
+        private static string FullName(Utilizatori? user, AcordClient? acord, int userId)
+        {
+            var full = $"{user?.Prenume} {user?.Nume}".Trim();
+            if (string.IsNullOrWhiteSpace(full) && acord != null) full = $"{acord.Prenume} {acord.Nume}".Trim();
+            return string.IsNullOrWhiteSpace(full) ? $"Client #{userId}" : full;
         }
 
         private static string FullName(string? nume, string? prenume, int userId)

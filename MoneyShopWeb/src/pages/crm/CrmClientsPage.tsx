@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Phone, Mail, ChevronRight } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmClientListItem } from '@/types/crm.types';
-import { PageHeader, SkeletonTable, EmptyState, StatusPill, SegmentChips, Pagination } from './crmShared';
-import { moneyShort, relTime, initials, CLIENT_STATUS_SEGMENTS, matchesSegment, usePaged } from './crmHelpers';
+import { PageHeader, SkeletonTable, EmptyState, ErrorState, StatusPill, AcordPill, SegmentChips, Pagination } from './crmShared';
+import { moneyShort, relTime, initials, CLIENT_STATUS_SEGMENTS, matchesClientSegment, usePaged } from './crmHelpers';
 
 const SEG_KEY = 'moneyshop:crm-clienti-seg';
 
@@ -12,6 +12,8 @@ export default function CrmClientsPage() {
   const navigate = useNavigate();
   const [clients, setClients] = useState<CrmClientListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [q, setQ] = useState('');
   const [segment, setSegment] = useState<string>(() => {
     try { return localStorage.getItem(SEG_KEY) || 'toate'; } catch { return 'toate'; }
@@ -20,17 +22,20 @@ export default function CrmClientsPage() {
   useEffect(() => {
     let active = true;
     crmApi.getClients()
-      .then(d => { if (active) setClients(d); })
+      .then(d => { if (active) { setClients(d); setFailed(false); } })
+      .catch(() => { if (active) setFailed(true); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [attempt]);
+
+  const retry = () => { setLoading(true); setAttempt(a => a + 1); };
 
   useEffect(() => { try { localStorage.setItem(SEG_KEY, segment); } catch { /* ignore */ } }, [segment]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { toate: clients.length };
     for (const seg of CLIENT_STATUS_SEGMENTS) {
-      if (seg.key !== 'toate') c[seg.key] = clients.filter(x => matchesSegment(x.lastStatus, seg.key)).length;
+      if (seg.key !== 'toate') c[seg.key] = clients.filter(x => matchesClientSegment(x, seg.key)).length;
     }
     return c;
   }, [clients]);
@@ -38,13 +43,20 @@ export default function CrmClientsPage() {
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     return clients.filter(c =>
-      matchesSegment(c.lastStatus, segment) &&
+      matchesClientSegment(c, segment) &&
       (!t || c.fullName.toLowerCase().includes(t) || (c.phone ?? '').toLowerCase().includes(t) || (c.email ?? '').toLowerCase().includes(t)));
   }, [clients, q, segment]);
 
   const { page, setPage, pageCount, slice, total, pageSize } = usePaged(filtered, 25);
 
   if (loading) return (<div className="space-y-6"><PageHeader title="Clienți" /><SkeletonTable rows={6} /></div>);
+
+  if (failed) return (
+    <div className="space-y-6">
+      <PageHeader title="Clienți" />
+      <ErrorState message="Nu am putut încărca clienții" onRetry={retry} />
+    </div>
+  );
 
   return (
     <div className="space-y-5">
@@ -101,7 +113,7 @@ export default function CrmClientsPage() {
                       </div>
                     </td>
                     <td className="px-5 py-3 text-center font-semibold text-slate-700">{c.filesCount}</td>
-                    <td className="px-5 py-3"><StatusPill status={c.lastStatus} /></td>
+                    <td className="px-5 py-3">{c.lastStatus ? <StatusPill status={c.lastStatus} /> : <AcordPill status={c.acordStatus} />}</td>
                     <td className="whitespace-nowrap px-5 py-3 text-right font-medium text-slate-700">{c.approvedVolume > 0 ? moneyShort(c.approvedVolume) : '—'}</td>
                     <td className="whitespace-nowrap px-5 py-3 text-slate-400">{relTime(c.lastActivityAt)}</td>
                     <td className="px-5 py-3 text-right"><ChevronRight className="h-4 w-4 text-slate-300" /></td>

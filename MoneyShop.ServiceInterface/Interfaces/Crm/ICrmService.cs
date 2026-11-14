@@ -48,6 +48,11 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public string? LastStatus { get; set; }
         public DateTime LastActivityAt { get; set; }
         public decimal ApprovedVolume { get; set; }
+        public bool HasAcord { get; set; }
+        public Guid? AcordId { get; set; }
+        public string? AcordStatus { get; set; }
+        public DateTime? AcordSignedAt { get; set; }
+        public DateTime? AcordCreatedAt { get; set; }
     }
 
     public class CrmClientDetail
@@ -59,6 +64,10 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public DateTime? BirthDate { get; set; }
         public bool PhoneVerified { get; set; }
         public bool EmailVerified { get; set; }
+        public Guid? AcordId { get; set; }
+        public string? AcordStatus { get; set; }
+        public DateTime? AcordSignedAt { get; set; }
+        public DateTime? AcordCreatedAt { get; set; }
 
         public CrmFinancialSnapshot? Financial { get; set; }
         public List<CrmClientFile> Files { get; set; } = new();

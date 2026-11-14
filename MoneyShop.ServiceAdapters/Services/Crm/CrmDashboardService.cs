@@ -23,7 +23,6 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         private const string DISBURSAT = "DISBURSAT";
         private const string RESPINS = "RESPINS";
 
-        private static readonly string[] InAnaliza = { INREGISTRAT, IN_ANALIZA, NEVOIE_DOCUMENTE, PREAPROBAT };
         private static readonly string[] Closed = { DISBURSAT, RESPINS };
 
         private readonly IApplicationRepository _applications;
@@ -42,45 +41,69 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             var prevMonthStart = monthStart.AddMonths(-1);
 
             var apps = _applications.Get().ToList();
+            var acords = _context.AcordClients.ToList();
+            var appIds = apps.Select(a => a.Id).ToList();
 
-            var clientsThisMonth = apps.Where(a => a.CreatedAt >= monthStart).Select(a => a.UserId).Distinct().Count();
-            var clientsBefore = apps.Where(a => a.CreatedAt < monthStart).Select(a => a.UserId).Distinct().Count();
+            var firstSeen = apps.Select(a => (a.UserId, At: a.CreatedAt))
+                .Concat(acords.Select(a => (a.UserId, At: a.CreatedAt)))
+                .GroupBy(x => x.UserId)
+                .Select(g => g.Min(x => x.At))
+                .ToList();
+            var newThisMonth = firstSeen.Count(d => d >= monthStart);
+            var newLastMonth = firstSeen.Count(d => d >= prevMonthStart && d < monthStart);
+
+            var approvedThisMonth = _context.ApplicationStatusHistories
+                .Count(h => appIds.Contains(h.ApplicationId) && h.ToStatus == APROBAT_BANCA && h.ChangedAt >= monthStart);
+
+            var activeUsers = apps.Where(a => a.Status != RESPINS).Select(a => a.UserId)
+                .Union(acords.Where(a => a.Status != "rejected").Select(a => a.UserId))
+                .Distinct()
+                .Count();
 
             var summary = new CrmDashboardSummary
             {
-                ActiveClients = apps.Where(a => a.Status != RESPINS).Select(a => a.UserId).Distinct().Count(),
-                ActiveClientsDeltaPct = clientsBefore > 0 ? (int)Math.Round(clientsThisMonth * 100.0 / clientsBefore) : 0,
+                ActiveClients = activeUsers,
+                ActiveClientsDeltaPct = newLastMonth > 0 ? (int)Math.Round((newThisMonth - newLastMonth) * 100.0 / newLastMonth) : 0,
                 FilesInProgress = apps.Count(a => !Closed.Contains(a.Status)),
-                ApprovedThisMonth = apps.Count(a => a.Status == APROBAT_BANCA && a.UpdatedAt >= monthStart),
+                ApprovedThisMonth = approvedThisMonth,
                 CreditVolume = apps.Where(a => a.Status == DISBURSAT).Sum(a => a.SumaAprobata ?? a.RequestedAmount ?? 0),
             };
 
             summary.StatusBreakdown = new List<CrmStatusSlice>
             {
-                new() { Key = "analiza", Label = "În analiză", Count = apps.Count(a => InAnaliza.Contains(a.Status)) },
+                new() { Key = "analiza", Label = "În analiză", Count = apps.Count(a => StatusGroup(a.Status) == "analiza") },
                 new() { Key = "banca", Label = "La bancă", Count = apps.Count(a => a.Status == TRIMIS_LA_BANCA) },
                 new() { Key = "aprobate", Label = "Aprobate", Count = apps.Count(a => a.Status == APROBAT_BANCA) },
                 new() { Key = "debursate", Label = "Debursate", Count = apps.Count(a => a.Status == DISBURSAT) },
+                new() { Key = "respins", Label = "Respinse", Count = apps.Count(a => a.Status == RESPINS) },
             };
 
-            var byDay = apps.Where(a => a.CreatedAt >= now.Date.AddDays(-29))
-                .GroupBy(a => a.CreatedAt.Date)
+            var byDay = firstSeen.Where(d => d >= now.Date.AddDays(-29))
+                .GroupBy(d => d.Date)
                 .ToDictionary(g => g.Key, g => g.Count());
             summary.Evolution = Enumerable.Range(0, 30)
                 .Select(i => now.Date.AddDays(-29 + i))
                 .Select(d => new CrmDayCount { Date = d, Count = byDay.TryGetValue(d, out var c) ? c : 0 })
                 .ToList();
 
-            summary.RecentActivities = apps
-                .OrderByDescending(a => a.UpdatedAt)
-                .Take(6)
+            var activities = apps
                 .Select(a => new CrmActivity
                 {
                     Title = $"Dosar #MS-{a.Id} — {StatusLabel(a.Status)}",
                     At = a.UpdatedAt,
                     Kind = "dosar",
                 })
+                .Concat(acords.Select(a =>
+                {
+                    var name = $"{a.Prenume} {a.Nume}".Trim();
+                    return a.SignedAt != null
+                        ? new CrmActivity { Title = $"Acord semnat de {name}", At = a.SignedAt.Value, Kind = "acord" }
+                        : new CrmActivity { Title = $"Acord început de {name}", At = a.CreatedAt, Kind = "acord" };
+                }))
+                .OrderByDescending(a => a.At)
+                .Take(6)
                 .ToList();
+            summary.RecentActivities = activities;
 
             var userIds = apps.Select(a => a.UserId).Distinct().ToList();
             var birthdays = _context.SubjectMaps
@@ -88,15 +111,32 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                          && s.BirthDate.Value.Month == now.Month && s.BirthDate.Value.Day == now.Day)
                 .Count();
 
+            var withFile = apps.Select(a => a.UserId).ToHashSet();
+            var signedWithoutFile = acords
+                .Where(a => (a.Status == "signed" || a.Status == "completed") && !withFile.Contains(a.UserId))
+                .Select(a => a.UserId)
+                .Distinct()
+                .Count();
+
             summary.Tasks = new List<CrmTask>
             {
-                new() { Label = "Documente lipsa", Count = apps.Count(a => a.Status == NEVOIE_DOCUMENTE), Severity = "danger" },
-                new() { Label = "Urmarire aprobare", Count = apps.Count(a => a.Status == TRIMIS_LA_BANCA), Severity = "warning" },
-                new() { Label = "Zile de nastere (astazi)", Count = birthdays, Severity = "info" },
+                new() { Label = "Documente lipsă", Count = apps.Count(a => a.Status == NEVOIE_DOCUMENTE), Severity = "danger" },
+                new() { Label = "Urmărire aprobare", Count = apps.Count(a => a.Status == TRIMIS_LA_BANCA), Severity = "warning" },
+                new() { Label = "Acorduri semnate fără dosar", Count = signedWithoutFile, Severity = "info" },
+                new() { Label = "Zile de naștere (astăzi)", Count = birthdays, Severity = "info" },
             };
 
             return summary;
         }
+
+        private static string StatusGroup(string status) => status switch
+        {
+            TRIMIS_LA_BANCA => "banca",
+            APROBAT_BANCA => "aprobate",
+            DISBURSAT => "debursate",
+            RESPINS => "respins",
+            _ => "analiza",
+        };
 
         private static string StatusLabel(string status) => status switch
         {
@@ -104,6 +144,8 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             IN_ANALIZA => "În analiză",
             NEVOIE_DOCUMENTE => "Nevoie de documente",
             PREAPROBAT => "Pre-aprobat",
+            "OFERTA_TRANSMISA" => "Ofertă transmisă",
+            "ACCEPTAT_CLIENT" => "Acceptat de client",
             TRIMIS_LA_BANCA => "Trimis la bancă",
             APROBAT_BANCA => "Aprobat de bancă",
             DISBURSAT => "Debursat",

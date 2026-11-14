@@ -39,9 +39,14 @@ export interface CrmClientListItem {
   phone?: string;
   email?: string;
   filesCount: number;
-  lastStatus?: string;
+  lastStatus?: string | null;
   lastActivityAt: string;
   approvedVolume: number;
+  hasAcord: boolean;
+  acordId?: string | null;
+  acordStatus?: string | null;
+  acordSignedAt?: string | null;
+  acordCreatedAt?: string | null;
 }
 
 export interface CrmFinancialSnapshot {
@@ -92,7 +97,11 @@ export interface CrmClientDetail {
   birthDate?: string;
   phoneVerified: boolean;
   emailVerified: boolean;
-  financial?: CrmFinancialSnapshot;
+  acordId?: string | null;
+  acordStatus?: string | null;
+  acordSignedAt?: string | null;
+  acordCreatedAt?: string | null;
+  financial?: CrmFinancialSnapshot | null;
   files: CrmClientFile[];
   documents: CrmClientDocument[];
   kyc?: CrmKycSnapshot;
