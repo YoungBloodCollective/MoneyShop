@@ -5,7 +5,7 @@ import {
   Loader2, CheckCircle, ShieldCheck,
 } from 'lucide-react';
 import axios from 'axios';
-import { acordApi, type AcordConsentText } from '@/services/api/acordApi';
+import { acordApi, type AcordBankDocuments, type AcordConsentText } from '@/services/api/acordApi';
 import { useBroker } from '@/context/brokerContextValue';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { Logo } from '@/components/shared/Logo';
@@ -46,6 +46,8 @@ const FALLBACK_CONSENT_OPTIONS = [
 ];
 
 const MANGO_TITLE = 'Acord prestare servicii prin Mango Broker SRL';
+const BANK_OPTION_KEY = 'banci';
+const BANK_FORMS_PANEL_ID = 'acord-bank-forms';
 
 const DOCUMENT_SLOTS: { key: SlotKey; step: string; title: string }[] = [
   { key: 'front', step: '1', title: 'Poză față' },
@@ -129,6 +131,54 @@ function InfoCard({ title, onOpen }: { title: string; onOpen: () => void }) {
       </span>
       <ChevronRight size={18} className="text-light-50 shrink-0 self-center" />
     </button>
+  );
+}
+
+function BankFormsDisclosure({
+  documents, open, onToggle,
+}: {
+  documents: AcordBankDocuments;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="ml-[30px] mt-1">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={BANK_FORMS_PANEL_ID}
+        className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-primary min-h-[28px]"
+      >
+        {open ? 'Ascunde formularele' : `Vezi formularele (${documents.items.length})`}
+        <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div id={BANK_FORMS_PANEL_ID} className="space-y-1.5 mt-1.5">
+          <p className="text-[11.5px] text-light-60 leading-snug">
+            Fiecare bancă are propriul formular. Le semnezi o singură dată, cu semnătura de mai jos, și rămân la broker pentru când îți cere oferte.
+          </p>
+          {documents.items.map(item => (
+            <a
+              key={`${item.bankName}-${item.title}`}
+              href={`${API_BASE_URL}${item.url}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-start gap-2 rounded-lg bg-dark-800 ring-1 ring-dark-600 px-3 py-2"
+            >
+              <FileText size={14} className="text-brand-primary shrink-0 mt-0.5" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12px] font-medium text-light-90 leading-snug">
+                  {item.bankName} — {item.title}
+                </span>
+                <span className="block text-[11px] text-light-60 leading-snug mt-0.5">{item.summary}</span>
+              </span>
+              <span className="text-[11px] font-medium text-brand-primary shrink-0 mt-0.5">Citește</span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -225,6 +275,7 @@ export default function AcordClientPage() {
     intermediere: false, marketing: false, oug52Waiver: false, banci: false,
   });
   const [signature, setSignature] = useState<string | null>(null);
+  const [showBankForms, setShowBankForms] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -256,6 +307,7 @@ export default function AcordClientPage() {
 
   const rules = TIP_ACT_OPTIONS.find(o => o.value === tipAct);
   const showMango = consentText === null || !!consentText.mangoAgreement;
+  const bankDocuments = consentText?.bankDocuments?.items.length ? consentText.bankDocuments : null;
 
   const isRequired = (key: SlotKey) =>
     key === 'front' ? true : key === 'back' ? !!rules?.back : !!rules?.proof;
@@ -474,52 +526,25 @@ export default function AcordClientPage() {
             {showMango && <InfoCard title={MANGO_TITLE} onOpen={() => setOpenDoc('mango')} />}
           </div>
 
-          {consentText?.bankDocuments && (
-            <div className="mb-5">
-              <p className="text-sm font-semibold text-light-90 mb-1">
-                Formulare pentru băncile partenere
-              </p>
-              <p className="text-[12.5px] text-light-60 leading-snug mb-2.5">
-                Ca brokerul să poată cere oferte în numele tău de la {consentText.bankDocuments.bankNames},
-                fiecare bancă are propriul formular. Le semnezi acum, o singură dată, cu semnătura de mai jos.
-              </p>
-              <div className="space-y-1.5">
-                {consentText.bankDocuments.items.map(item => (
-                  <a
-                    key={`${item.bankName}-${item.title}`}
-                    href={`${API_BASE_URL}${item.url}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-start gap-2.5 rounded-xl bg-dark-800 ring-1 ring-dark-600 px-3.5 py-2.5"
-                  >
-                    <FileText size={15} className="text-brand-primary shrink-0 mt-0.5" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] font-medium text-light-90">
-                        {item.bankName} — {item.title}
-                      </span>
-                      <span className="block text-[11.5px] text-light-60 leading-snug mt-0.5">{item.summary}</span>
-                    </span>
-                    <span className="text-[11.5px] font-medium text-brand-primary shrink-0 mt-0.5">Citește</span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div className="space-y-2.5 mb-5">
             {(consentText?.options?.length ? consentText.options : FALLBACK_CONSENT_OPTIONS).map(option => (
-              <label key={option.key} className="flex items-start gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={choices[option.key] ?? false}
-                  onChange={e => setChoices(p => ({ ...p, [option.key]: e.target.checked }))}
-                  className="mt-0.5 w-5 h-5 rounded accent-brand-primary shrink-0"
-                />
-                <span className="text-[12.5px] text-light-70 leading-snug">
-                  {option.label}
-                  {option.required && <span className="text-error-500"> *</span>}
-                </span>
-              </label>
+              <div key={option.key}>
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={choices[option.key] ?? false}
+                    onChange={e => setChoices(p => ({ ...p, [option.key]: e.target.checked }))}
+                    className="mt-0.5 w-5 h-5 rounded accent-brand-primary shrink-0"
+                  />
+                  <span className="text-[12.5px] text-light-70 leading-snug">
+                    {option.label}
+                    {option.required && <span className="text-error-500"> *</span>}
+                  </span>
+                </label>
+                {option.key === BANK_OPTION_KEY && bankDocuments && (
+                  <BankFormsDisclosure documents={bankDocuments} open={showBankForms} onToggle={() => setShowBankForms(v => !v)} />
+                )}
+              </div>
             ))}
           </div>
 

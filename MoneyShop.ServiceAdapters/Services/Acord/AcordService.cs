@@ -763,7 +763,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             options.Insert(1, new AcordConsentOption
             {
                 Key = "banci",
-                Label = $"Sunt de acord cu formularele de mai sus și ca datele mele să fie transmise către {bankDocuments.BankNames}, ca să îmi fie cerute oferte de credit.",
+                Label = $"Sunt de acord să semnez formularele băncilor partenere ({bankDocuments.BankNames}) și ca datele mele să le fie transmise, ca să îmi fie cerute oferte de credit.",
                 Hint = "Opțional. Le semnezi acum, o singură dată, ca să nu le semnezi pe rând la fiecare bancă.",
                 Required = false
             });
