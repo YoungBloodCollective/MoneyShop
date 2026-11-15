@@ -47,6 +47,7 @@ const FALLBACK_CONSENT_OPTIONS = [
 
 const MANGO_TITLE = 'Acord prestare servicii prin Mango Broker SRL';
 const BANK_OPTION_KEY = 'banci';
+const BANK_FORMS_PANEL_ID = 'acord-bank-forms';
 
 const DOCUMENT_SLOTS: { key: SlotKey; step: string; title: string }[] = [
   { key: 'front', step: '1', title: 'Poză față' },
@@ -146,13 +147,14 @@ function BankFormsDisclosure({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
+        aria-controls={BANK_FORMS_PANEL_ID}
         className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-primary min-h-[28px]"
       >
         {open ? 'Ascunde formularele' : `Vezi formularele (${documents.items.length})`}
         <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="space-y-1.5 mt-1.5">
+        <div id={BANK_FORMS_PANEL_ID} className="space-y-1.5 mt-1.5">
           <p className="text-[11.5px] text-light-60 leading-snug">
             Fiecare bancă are propriul formular. Le semnezi o singură dată, cu semnătura de mai jos, și rămân la broker pentru când îți cere oferte.
           </p>
@@ -305,7 +307,7 @@ export default function AcordClientPage() {
 
   const rules = TIP_ACT_OPTIONS.find(o => o.value === tipAct);
   const showMango = consentText === null || !!consentText.mangoAgreement;
-  const bankDocuments = consentText?.bankDocuments ?? null;
+  const bankDocuments = consentText?.bankDocuments?.items.length ? consentText.bankDocuments : null;
 
   const isRequired = (key: SlotKey) =>
     key === 'front' ? true : key === 'back' ? !!rules?.back : !!rules?.proof;
