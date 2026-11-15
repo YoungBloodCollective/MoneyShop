@@ -8,7 +8,9 @@ import { BANK_CONSENT_STATUS, consentLink, formatDateTime, whatsappLink } from '
 
 const SELECT_CLS = 'rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 focus:border-brand-primary focus:outline-none';
 
-export function BankConsentsSection({ acord, onSigned }: { acord: AcordDetails; onSigned: () => void }) {
+export type BankConsentsAcord = Pick<AcordDetails, 'acordId' | 'status' | 'signedAt' | 'telefon' | 'prenume'>;
+
+export function BankConsentsSection({ acord, onSigned }: { acord: BankConsentsAcord; onSigned: () => void }) {
   const [banks, setBanks] = useState<BankConsentBank[]>([]);
   const [requests, setRequests] = useState<BankConsentInfo[]>([]);
   const [bankCode, setBankCode] = useState('');

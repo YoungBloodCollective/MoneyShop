@@ -19,7 +19,9 @@ public class CrmServiceClientUnionTests
     internal const int BothUser = 103;
     internal const int OtherBrokerUser = 104;
 
-    internal static (CrmService Service, MoneyShopDbContext Db) Build()
+    internal static (CrmService Service, MoneyShopDbContext Db) Build() => Build(out _);
+
+    internal static (CrmService Service, MoneyShopDbContext Db) Build(out FakeSubjectService subjects)
     {
         var options = new DbContextOptionsBuilder<MoneyShopDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -49,7 +51,11 @@ public class CrmServiceClientUnionTests
             new ApplicationRepository(db),
             new KycFileRepository(db),
             db,
-            new ConfigurationBuilder().Build());
+            new ConfigurationBuilder().Build(),
+            new FakeAcordService(db),
+            new FakeBankConsentService(db),
+            new FakeBcReportService(db),
+            subjects = new FakeSubjectService());
         return (service, db);
     }
 
