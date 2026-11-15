@@ -1,7 +1,15 @@
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/images/*.{png,jpg,gif,svg}", "/assets/*"]
+    "exclude": [
+      "/images/*.{png,jpg,gif,svg}",
+      "/assets/*",
+      "/icons/*",
+      "/sw.js",
+      "/workbox-*.js",
+      "/manifest.webmanifest",
+      "/registerSW.js"
+    ]
   },
   "globalHeaders": {
     "X-Frame-Options": "DENY",
@@ -12,6 +20,21 @@
   },
   "mimeTypes": {
     ".json": "application/json",
-    ".svg": "image/svg+xml"
-  }
+    ".svg": "image/svg+xml",
+    ".webmanifest": "application/manifest+json"
+  },
+  "routes": [
+    {
+      "route": "/sw.js",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
+      "route": "/manifest.webmanifest",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    }
+  ]
 }

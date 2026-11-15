@@ -6,6 +6,8 @@ import { AppRouter } from '@/router/AppRouter';
 import { useAuthStore } from '@/store/authStore';
 import { BrokerProvider } from '@/context/BrokerContext';
 import { BrokerGate } from '@/components/shared/BrokerGate';
+import { PwaUpdatePrompt } from '@/components/pwa/PwaUpdatePrompt';
+import { InstallAppPrompt } from '@/components/pwa/InstallAppPrompt';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +66,8 @@ function App() {
             },
           }}
         />
+        <PwaUpdatePrompt />
+        <InstallAppPrompt />
       </BrowserRouter>
     </QueryClientProvider>
   );
