@@ -120,6 +120,8 @@ export interface CrmFileListItem {
   typeCredit?: string;
   requestedAmount?: number;
   sumaAprobata?: number;
+  comision?: number;
+  dataDisbursare?: string;
   createdAt: string;
   updatedAt: string;
 }

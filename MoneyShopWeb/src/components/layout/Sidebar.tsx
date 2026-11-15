@@ -48,15 +48,14 @@ const navItems: NavItem[] = [
   },
 ];
 
-type AdminLink = { label: string; path: string; access: 'all' | 'super' | 'broker' };
+type AdminLink = { label: string; path: string; access: 'all' | 'super' };
 
 const adminLinks: AdminLink[] = [
   { label: 'Aplicatii', path: '/admin/applications', access: 'all' },
-  { label: 'Acord clienti', path: '/admin/acord', access: 'all' },
-  { label: 'Programari', path: '/admin/appointments', access: 'all' },
-  { label: 'Lead-uri', path: '/admin/leads', access: 'all' },
-  { label: 'Rapoarte', path: '/admin/reports', access: 'all' },
-  { label: 'Profilul meu', path: '/admin/profil', access: 'broker' },
+  { label: 'Acord clienți', path: '/crm/acorduri', access: 'all' },
+  { label: 'Programări', path: '/crm/programari', access: 'all' },
+  { label: 'Lead-uri', path: '/crm/leaduri', access: 'all' },
+  { label: 'Rapoarte', path: '/crm/rapoarte', access: 'all' },
   { label: 'Brokeri (conturi)', path: '/admin/brokeri', access: 'super' },
   { label: 'Verificari KYC', path: '/admin/kyc', access: 'super' },
   { label: 'Registru brokeri', path: '/admin/brokers', access: 'super' },

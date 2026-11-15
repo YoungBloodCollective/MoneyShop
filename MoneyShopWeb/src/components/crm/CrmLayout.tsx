@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, FolderKanban, Landmark, Sparkles,
   Megaphone, Workflow, BarChart3, Settings, Search, Bell,
-  Menu, X, LogOut, ChevronDown, ExternalLink,
+  Menu, X, LogOut, ChevronDown, ExternalLink, FileSignature, CalendarClock, UserCircle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getBrokerSlug } from '@/lib/brokerHost';
@@ -19,12 +19,14 @@ interface NavItem {
 const NAV: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, to: '/crm' },
   { label: 'Clienți', icon: Users, to: '/crm/clienti' },
+  { label: 'Acorduri', icon: FileSignature, to: '/crm/acorduri' },
   { label: 'Dosare', icon: FolderKanban, to: '/crm/dosare' },
   { label: 'Oferte bancare', icon: Landmark, to: '/crm/oferte' },
   { label: 'Lead-uri', icon: Sparkles, to: '/crm/leaduri' },
+  { label: 'Programări', icon: CalendarClock, to: '/crm/programari' },
   { label: 'Campanii', icon: Megaphone, soon: true },
   { label: 'Automatizări', icon: Workflow, to: '/crm/automatizari' },
-  { label: 'Rapoarte', icon: BarChart3, soon: true },
+  { label: 'Rapoarte', icon: BarChart3, to: '/crm/rapoarte' },
   { label: 'Setări', icon: Settings, soon: true },
 ];
 
@@ -92,7 +94,7 @@ export function CrmLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLDivElement>(null);
-  const { user, logout, isSuperAdmin } = useAuth();
+  const { user, logout, isSuperAdmin, isBroker } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -208,6 +210,14 @@ export function CrmLayout() {
                         className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
                       >
                         <ExternalLink className="h-4 w-4 text-slate-400" /> Panou admin
+                      </button>
+                    )}
+                    {isBroker && (
+                      <button
+                        onClick={() => { setUserMenuOpen(false); navigate('/crm/profil'); }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                      >
+                        <UserCircle className="h-4 w-4 text-slate-400" /> Profilul meu
                       </button>
                     )}
                     <button
