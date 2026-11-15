@@ -4,10 +4,16 @@ import { RefreshCw } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
 const TOAST_ID = 'pwa-update';
+const UPDATE_CHECK_MS = 60 * 60 * 1000;
 
 export function PwaUpdatePrompt() {
   const { needRefresh: [needRefresh, setNeedRefresh], updateServiceWorker } = useRegisterSW({
-    onRegisterError: () => undefined,
+    immediate: false,
+    onRegisteredSW: (_, registration) => {
+      if (!registration) return;
+      window.setInterval(() => { if (navigator.onLine) void registration.update(); }, UPDATE_CHECK_MS);
+    },
+    onRegisterError: err => console.warn('Service worker registration failed', err),
   });
 
   useEffect(() => {

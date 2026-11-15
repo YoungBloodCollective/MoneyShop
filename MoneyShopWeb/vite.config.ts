@@ -32,10 +32,16 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,svg,woff2}', 'icons/*.png', 'images/logo/logo-trimmed.png'],
+        globIgnores: ['**/assets/Admin*.js', '**/assets/*Chart-*.js', '**/assets/*Kyc*.js'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/\.auth\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/\.auth\//, /\/[^/?]+\.[^/]+$/],
         cleanupOutdatedCaches: true,
         runtimeCaching: [
+          {
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/assets/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'moneyshop-assets', expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 } },
+          },
           {
             urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/images/'),
             handler: 'StaleWhileRevalidate',

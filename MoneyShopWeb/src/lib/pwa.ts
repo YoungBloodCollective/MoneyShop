@@ -3,13 +3,13 @@ const DISMISS_DAYS = 30;
 
 export function isStandalone(): boolean {
   return window.matchMedia('(display-mode: standalone)').matches
-    || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    || navigator.standalone === true;
 }
 
 export function isIosSafari(): boolean {
   const ua = navigator.userAgent;
   const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  return ios && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
+  return ios && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA|DuckDuckGo|FBAN|FBAV|Instagram/.test(ua);
 }
 
 export function wasInstallDismissedRecently(): boolean {

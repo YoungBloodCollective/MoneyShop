@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Smartphone, X } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -11,6 +11,8 @@ interface BeforeInstallPromptEvent extends Event {
 
 const TOAST_ID = 'pwa-install';
 const SHOW_DELAY_MS = 4000;
+const NATIVE_DELAY_MS = 800;
+const TOAST_DURATION_MS = 25000;
 
 function dismiss() {
   rememberInstallDismissed();
@@ -50,13 +52,15 @@ function InstallToast({ onInstall }: { onInstall: (() => void) | null }) {
 export function InstallAppPrompt() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
   const deferred = useRef<BeforeInstallPromptEvent | null>(null);
+  const [installable, setInstallable] = useState(false);
 
   useEffect(() => {
     const onBeforeInstall = (e: Event) => {
       e.preventDefault();
       deferred.current = e as BeforeInstallPromptEvent;
+      setInstallable(true);
     };
-    const onInstalled = () => { deferred.current = null; toast.dismiss(TOAST_ID); };
+    const onInstalled = () => { deferred.current = null; setInstallable(false); toast.dismiss(TOAST_ID); };
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
     window.addEventListener('appinstalled', onInstalled);
     return () => {
@@ -67,22 +71,29 @@ export function InstallAppPrompt() {
 
   useEffect(() => {
     if (!isAuthenticated || isStandalone() || wasInstallDismissedRecently()) return;
+    if (!installable && !isIosSafari()) return;
     const timer = window.setTimeout(() => {
       const native = deferred.current;
-      if (!native && !isIosSafari()) return;
       const onInstall = native
         ? async () => {
           toast.dismiss(TOAST_ID);
-          await native.prompt();
-          const { outcome } = await native.userChoice;
-          if (outcome === 'dismissed') rememberInstallDismissed();
-          deferred.current = null;
+          try {
+            await native.prompt();
+            const { outcome } = await native.userChoice;
+            if (outcome === 'dismissed') rememberInstallDismissed();
+          } catch {
+            rememberInstallDismissed();
+          } finally {
+            deferred.current = null;
+            setInstallable(false);
+          }
         }
         : null;
-      toast(<InstallToast onInstall={onInstall} />, { id: TOAST_ID, duration: Infinity });
-    }, SHOW_DELAY_MS);
+      toast(<InstallToast onInstall={onInstall} />, { id: TOAST_ID, duration: TOAST_DURATION_MS });
+      window.setTimeout(() => { if (!wasInstallDismissedRecently()) rememberInstallDismissed(); }, TOAST_DURATION_MS);
+    }, installable ? NATIVE_DELAY_MS : SHOW_DELAY_MS);
     return () => { window.clearTimeout(timer); toast.dismiss(TOAST_ID); };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, installable]);
 
   return null;
 }
