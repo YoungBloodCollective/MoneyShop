@@ -7,7 +7,7 @@ import {
 import { crmApi } from '@/services/api/crmApi';
 import { crediusApi } from '@/services/api/crediusApi';
 import type { CrmClientDetail } from '@/types/crm.types';
-import { Spinner, StatusPill } from './crmShared';
+import { Spinner, StatusPill, AcordPill, ErrorState } from './crmShared';
 import { money, dateShort, initials, creditTypeLabel } from './crmHelpers';
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -139,26 +139,37 @@ export default function CrmClientDetailPage() {
   const [client, setClient] = useState<CrmClientDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
     crmApi.getClient(Number(userId))
-      .then(d => { if (active) setClient(d); })
-      .catch(() => { if (active) setNotFound(true); })
+      .then(d => { if (active) { setClient(d); setNotFound(false); setFailed(false); } })
+      .catch(err => {
+        if (!active) return;
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 404) setNotFound(true);
+        else setFailed(true);
+      })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [userId]);
+  }, [userId, attempt]);
+
+  const retry = () => { setLoading(true); setAttempt(a => a + 1); };
 
   const refreshClient = () => crmApi.getClient(Number(userId)).then(setClient).catch(() => undefined);
 
   if (loading) return <Spinner />;
-  if (notFound || !client) {
+  if (notFound || failed || !client) {
     return (
       <div className="space-y-4">
         <button onClick={() => navigate('/crm/clienti')} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
           <ArrowLeft className="h-4 w-4" /> Înapoi la clienți
         </button>
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">Clientul nu a fost găsit.</div>
+        {notFound
+          ? <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">Clientul nu a fost găsit</div>
+          : <ErrorState message="Nu am putut încărca clientul" onRetry={retry} />}
       </div>
     );
   }
@@ -182,6 +193,12 @@ export default function CrmClientDetailPage() {
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
               {client.phone && <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />{client.phone}{client.phoneVerified && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}</span>}
               {client.email && <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />{client.email}{client.emailVerified && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}</span>}
+              {client.acordStatus && (
+                <span className="flex items-center gap-2">
+                  <AcordPill status={client.acordStatus} />
+                  {client.acordSignedAt && <span>semnat la {dateShort(client.acordSignedAt)}</span>}
+                </span>
+              )}
               {client.birthDate && <span className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" />{dateShort(client.birthDate)}</span>}
             </div>
           </div>
@@ -265,7 +282,7 @@ export default function CrmClientDetailPage() {
               <div className="space-y-2">
                 <div className="mb-1 flex items-center justify-between">
                   <span className="text-sm text-slate-500">Status</span>
-                  <StatusPill status={client.kyc.status} />
+                  <AcordPill status={client.kyc.status} />
                 </div>
                 <Check ok={client.kyc.hasIdFront} label="CI față" />
                 <Check ok={client.kyc.hasIdBack} label="CI verso" />

@@ -5,16 +5,18 @@ import {
 } from 'recharts';
 import {
   Users, FolderKanban, CheckCircle2, Wallet, TrendingUp,
-  FileText, Clock, AlertTriangle, Cake, ArrowUpRight,
+  FileText, Clock, AlertTriangle, Cake, ArrowUpRight, ArrowDownRight, PenLine, FileSignature,
 } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmDashboardSummary } from '@/types/crm.types';
+import { ErrorState } from './crmShared';
 
 const STATUS_COLORS: Record<string, string> = {
   analiza: '#F59E0B',
   banca: '#2D2DF0',
   aprobate: '#10B981',
   debursate: '#6E4CE5',
+  respins: '#F43F5E',
 };
 
 function formatVolume(v: number): string {
@@ -39,17 +41,19 @@ function relativeTime(iso: string): string {
 function KpiCard({
   icon: Icon, label, value, accent, delta,
 }: {
-  icon: typeof Users; label: string; value: string; accent: string; delta?: string;
+  icon: typeof Users; label: string; value: string; accent: string; delta?: { text: string; title: string; negative: boolean };
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}1A`, color: accent }}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}1A`, color: accent }}>
           <Icon className="h-5 w-5" />
         </div>
         {delta && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-600">
-            <ArrowUpRight className="h-3 w-3" /> {delta}
+          <span title={delta.title} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-1 text-xs font-semibold ${
+            delta.negative ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+          }`}>
+            {delta.negative ? <ArrowDownRight className="h-3 w-3" /> : <ArrowUpRight className="h-3 w-3" />} {delta.text}
           </span>
         )}
       </div>
@@ -59,25 +63,35 @@ function KpiCard({
   );
 }
 
-const SEVERITY: Record<string, { icon: typeof FileText; cls: string }> = {
-  danger: { icon: AlertTriangle, cls: 'bg-rose-50 text-rose-600' },
-  warning: { icon: Clock, cls: 'bg-amber-50 text-amber-600' },
-  info: { icon: Cake, cls: 'bg-sky-50 text-sky-600' },
+const SEVERITY_CLS: Record<string, string> = {
+  danger: 'bg-rose-50 text-rose-600',
+  warning: 'bg-amber-50 text-amber-600',
+  info: 'bg-sky-50 text-sky-600',
+};
+
+const TASK_ICON: Record<string, typeof FileText> = {
+  documents: AlertTriangle,
+  approval: Clock,
+  acord: FileSignature,
+  birthday: Cake,
 };
 
 export default function CrmDashboardPage() {
   const [data, setData] = useState<CrmDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
     crmApi.getDashboard()
-      .then(d => { if (active) setData(d); })
+      .then(d => { if (active) { setData(d); setError(false); } })
       .catch(() => { if (active) setError(true); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [attempt]);
+
+  const retry = () => { setLoading(true); setAttempt(a => a + 1); };
 
   const chartData = useMemo(
     () => (data?.evolution ?? []).map(p => ({
@@ -102,9 +116,7 @@ export default function CrmDashboardPage() {
 
   if (error || !data) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">
-        Nu am putut încărca datele. Reîncarcă pagina.
-      </div>
+      <ErrorState message="Nu am putut încărca datele" onRetry={retry} />
     );
   }
 
@@ -120,7 +132,11 @@ export default function CrmDashboardPage() {
         <KpiCard
           icon={Users} label="Clienți activi" accent="#2D2DF0"
           value={data.activeClients.toLocaleString('ro-RO')}
-          delta={data.activeClientsDeltaPct > 0 ? `+${data.activeClientsDeltaPct}%` : undefined}
+          delta={data.activeClientsDeltaPct === 0 ? undefined : {
+            text: `${data.activeClientsDeltaPct > 0 ? '+' : ''}${data.activeClientsDeltaPct}% clienți noi`,
+            title: 'Clienți noi luna aceasta față de aceeași perioadă a lunii trecute',
+            negative: data.activeClientsDeltaPct < 0,
+          }}
         />
         <KpiCard icon={FolderKanban} label="Dosare în lucru" accent="#F59E0B" value={data.filesInProgress.toLocaleString('ro-RO')} />
         <KpiCard icon={CheckCircle2} label="Aprobate luna aceasta" accent="#10B981" value={data.approvedThisMonth.toLocaleString('ro-RO')} />
@@ -132,7 +148,7 @@ export default function CrmDashboardPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
           <div className="mb-4 flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-brand-primary" />
-            <h2 className="text-sm font-semibold text-slate-800">Evoluție dosare (ultimele 30 zile)</h2>
+            <h2 className="text-sm font-semibold text-slate-800">Clienți noi (ultimele 30 de zile)</h2>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -150,7 +166,7 @@ export default function CrmDashboardPage() {
                   contentStyle={{ borderRadius: 12, border: '1px solid #E2E8F0', fontSize: 12 }}
                   labelStyle={{ color: '#64748B' }}
                 />
-                <Area type="monotone" dataKey="count" stroke="#2D2DF0" strokeWidth={2.5} fill="url(#crmFill)" name="Dosare" />
+                <Area type="monotone" dataKey="count" stroke="#2D2DF0" strokeWidth={2.5} fill="url(#crmFill)" name="Clienți noi" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -197,7 +213,7 @@ export default function CrmDashboardPage() {
               {data.recentActivities.map((a, i) => (
                 <li key={i} className="flex items-center gap-3 py-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
-                    <FileText className="h-4 w-4" />
+                    {a.kind === 'acord' ? <PenLine className="h-4 w-4" /> : <FolderKanban className="h-4 w-4" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium text-slate-800">{a.title}</div>
@@ -213,11 +229,11 @@ export default function CrmDashboardPage() {
           <h2 className="mb-4 text-sm font-semibold text-slate-800">Sarcini & remindere</h2>
           <ul className="space-y-3">
             {data.tasks.map((t, i) => {
-              const s = SEVERITY[t.severity] ?? SEVERITY.info;
-              const Icon = s.icon;
+              const cls = SEVERITY_CLS[t.severity] ?? SEVERITY_CLS.info;
+              const Icon = TASK_ICON[t.kind] ?? FileText;
               return (
                 <li key={i} className="flex items-center gap-3">
-                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${s.cls}`}>
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${cls}`}>
                     <Icon className="h-4 w-4" />
                   </div>
                   <span className="flex-1 text-sm text-slate-700">{t.label}</span>
