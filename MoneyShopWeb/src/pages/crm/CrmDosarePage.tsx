@@ -39,11 +39,12 @@ export default function CrmDosarePage() {
   const [view, setView] = useState<'list' | 'board'>(() => {
     try { return localStorage.getItem(VIEW_KEY) === 'board' ? 'board' : 'list'; } catch { return 'list'; }
   });
-  const effectiveView = isMd ? view : 'list';
   const segParam = searchParams.get('seg');
   const statusParam = searchParams.get('status');
   const urlSegment = segParam === null ? null : FILE_STATUS_SEGMENTS.some(s => s.key === segParam) ? segParam : 'toate';
   const statusFilter = statusParam && Object.hasOwn(APPLICATION_STATUS_LABELS, statusParam) ? statusParam : null;
+  const hasUrlFilter = segParam !== null || statusFilter !== null;
+  const effectiveView = isMd && !hasUrlFilter ? view : 'list';
   const segment = urlSegment ?? storedSegment;
   const activeSegment = statusFilter ? '' : segment;
   const [draggedId, setDraggedId] = useState<number | null>(null);
@@ -97,6 +98,11 @@ export default function CrmDosarePage() {
     [searched, segment, statusFilter],
   );
 
+  const visibleSelected = useMemo(() => {
+    const visible = new Set(listFiltered.map(f => f.id));
+    return new Set([...selected].filter(id => visible.has(id)));
+  }, [listFiltered, selected]);
+
   const counts = useMemo(() => {
     const c: Record<string, number> = { toate: files.length };
     for (const seg of FILE_STATUS_SEGMENTS) {
@@ -117,6 +123,7 @@ export default function CrmDosarePage() {
     if (toStatus === 'DISBURSAT') { setDisbursing({ ids: [id] }); return; }
     if (toStatus === 'RESPINS' && !window.confirm(`Sigur muți dosarul #${file.code} în „${statusLabel(toStatus)}”?`)) return;
     const prev = file.status;
+    setSelected(s => { if (!s.has(id)) return s; const n = new Set(s); n.delete(id); return n; });
     setFiles(fs => fs.map(f => (f.id === id ? { ...f, status: toStatus } : f)));
     adminApi.updateStatus(id, toStatus)
       .then(() => toast.success(`#${file.code} → ${statusLabel(toStatus)}`))
@@ -127,7 +134,7 @@ export default function CrmDosarePage() {
   }
 
   async function bulkSetStatus(toStatus: string) {
-    const ids = [...selected];
+    const ids = [...visibleSelected];
     if (ids.length === 0) return;
     if (toStatus === 'DISBURSAT') {
       const eligible = ids.filter(id => files.find(f => f.id === id)?.status !== 'DISBURSAT');
@@ -141,9 +148,9 @@ export default function CrmDosarePage() {
     setFiles(fs => fs.map(f => (ids.includes(f.id) ? { ...f, status: toStatus } : f)));
     setSelected(new Set());
     const results = await Promise.allSettled(ids.map(id => adminApi.updateStatus(id, toStatus)));
-    const failed = results.filter(r => r.status === 'rejected').length;
-    if (failed > 0) {
-      toast.error(`${failed} din ${ids.length} dosare nu s-au actualizat`);
+    const failCount = results.filter(r => r.status === 'rejected').length;
+    if (failCount > 0) {
+      toast.error(`${failCount} din ${ids.length} dosare nu s-au actualizat`);
       crmApi.getFiles().then(setFiles).catch(() => undefined);
     } else {
       toast.success(`${ids.length} dosare → ${statusLabel(toStatus)}`);
@@ -174,14 +181,14 @@ export default function CrmDosarePage() {
     }
   }
 
-  const selectedFiles = useMemo(() => files.filter(f => selected.has(f.id)), [files, selected]);
+  const selectedFiles = useMemo(() => files.filter(f => visibleSelected.has(f.id)), [files, visibleSelected]);
   const bulkTargets = useMemo(
     () => STATUS_OPTIONS.filter(([k]) => selectedFiles.every(f => canMove(transitions, f.status, k))),
     [selectedFiles, transitions],
   );
 
   const pageIds = slice.map(f => f.id);
-  const allOnPageSelected = pageIds.length > 0 && pageIds.every(id => selected.has(id));
+  const allOnPageSelected = pageIds.length > 0 && pageIds.every(id => visibleSelected.has(id));
   const toggleAllOnPage = () => {
     setSelected(prev => {
       const next = new Set(prev);
@@ -259,9 +266,9 @@ export default function CrmDosarePage() {
           <EmptyState message="Niciun dosar găsit." />
         ) : (
           <div className="space-y-3">
-            {selected.size > 0 && (
+            {visibleSelected.size > 0 && (
               <div className="flex flex-wrap items-center gap-3 rounded-xl border border-brand-primary/30 bg-brand-primary/5 px-4 py-2.5">
-                <span className="text-sm font-medium text-slate-700">{selected.size} selectate</span>
+                <span className="text-sm font-medium text-slate-700">{visibleSelected.size} selectate</span>
                 <div className="ml-auto flex flex-wrap items-center gap-2">
                   {bulkTargets.length === 0 ? (
                     <select disabled defaultValue="" aria-label="Schimbă statusul dosarelor selectate" className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-400">
@@ -292,7 +299,6 @@ export default function CrmDosarePage() {
                 type="checkbox"
                 checked={allOnPageSelected}
                 onChange={toggleAllOnPage}
-                aria-label="Selectează toate dosarele din pagină"
                 className="h-5 w-5 rounded border-slate-300 accent-brand-primary"
               />
               <label htmlFor="dosare-select-all-mobile" className="text-sm text-slate-600">Selectează toate din pagină</label>
@@ -300,7 +306,7 @@ export default function CrmDosarePage() {
 
             <ul className="space-y-2 md:hidden">
               {slice.map(f => {
-                const checked = selected.has(f.id);
+                const checked = visibleSelected.has(f.id);
                 return (
                   <li key={f.id} className={`rounded-2xl border p-4 shadow-sm ${checked ? 'border-brand-primary/40 bg-brand-primary/5' : 'border-slate-200 bg-white'}`}>
                     <div className="flex items-start gap-3">
@@ -353,7 +359,7 @@ export default function CrmDosarePage() {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {slice.map(f => {
-                    const checked = selected.has(f.id);
+                    const checked = visibleSelected.has(f.id);
                     return (
                       <tr key={f.id} className={`transition-colors hover:bg-slate-50 focus-within:bg-slate-50 ${checked ? 'bg-brand-primary/5' : ''}`}>
                         <td className="px-4 py-3">
@@ -362,9 +368,7 @@ export default function CrmDosarePage() {
                         <td className="whitespace-nowrap px-5 py-3 font-semibold text-slate-800">
                           <Link to={`/crm/clienti/${f.userId}`} className={LINK_CLS}>#{f.code}</Link>
                         </td>
-                        <td className="px-5 py-3 text-slate-700">
-                          <Link to={`/crm/clienti/${f.userId}`} className={LINK_CLS}>{f.clientName}</Link>
-                        </td>
+                        <td className="px-5 py-3 text-slate-700">{f.clientName}</td>
                         <td className="px-5 py-3 text-slate-500">{creditTypeLabel(f.typeCredit)}</td>
                         <td className="whitespace-nowrap px-5 py-3 text-right font-medium text-slate-700">{money(f.requestedAmount)}</td>
                         <td className="px-5 py-3"><StatusPill status={f.status} /></td>

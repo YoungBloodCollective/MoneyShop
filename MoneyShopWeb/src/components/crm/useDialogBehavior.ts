@@ -1,6 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react';
 
-const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex^="-"])';
 const stack: symbol[] = [];
 
 export function useDialogBehavior(open: boolean, panelRef: RefObject<HTMLElement | null>, onClose: () => void) {
@@ -13,7 +13,7 @@ export function useDialogBehavior(open: boolean, panelRef: RefObject<HTMLElement
     stack.push(token);
     const trigger = document.activeElement;
     const panel = panelRef.current;
-    const focusables = () => (panel ? Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)) : []);
+    const focusables = () => (panel ? Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(el => el.getClientRects().length > 0) : []);
     (focusables()[0] ?? panel)?.focus({ preventScroll: true });
     const onKey = (e: KeyboardEvent) => {
       if (stack[stack.length - 1] !== token) return;

@@ -10,16 +10,21 @@ export function isMac(): boolean {
   return /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 }
 
+const MD_QUERY = '(min-width: 768px)';
+
+function subscribeMd(cb: () => void) {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => undefined;
+  const mq = window.matchMedia(MD_QUERY);
+  mq.addEventListener('change', cb);
+  return () => mq.removeEventListener('change', cb);
+}
+
+function getMdSnapshot() {
+  return typeof window.matchMedia === 'function' ? window.matchMedia(MD_QUERY).matches : false;
+}
+
 export function useIsMd(): boolean {
-  return useSyncExternalStore(
-    cb => {
-      const mq = window.matchMedia('(min-width: 768px)');
-      mq.addEventListener('change', cb);
-      return () => mq.removeEventListener('change', cb);
-    },
-    () => window.matchMedia('(min-width: 768px)').matches,
-    () => true,
-  );
+  return useSyncExternalStore(subscribeMd, getMdSnapshot, () => true);
 }
 
 export function useGoBack(fallback: string) {

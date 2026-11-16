@@ -151,7 +151,7 @@ export default function CrmDashboardPage() {
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
-          icon={Users} label="Clienți activi" accent="#2D2DF0" to="/crm/clienti"
+          icon={Users} label="Clienți activi" accent="#2D2DF0" to="/crm/clienti?seg=toate"
           value={data.activeClients.toLocaleString('ro-RO')}
           delta={data.activeClientsDeltaPct === 0 ? undefined : {
             text: `${data.activeClientsDeltaPct > 0 ? '+' : ''}${data.activeClientsDeltaPct}% clienți noi`,
@@ -159,7 +159,7 @@ export default function CrmDashboardPage() {
             negative: data.activeClientsDeltaPct < 0,
           }}
         />
-        <KpiCard icon={FolderKanban} label="Dosare în lucru" accent="#F59E0B" to="/crm/dosare" value={data.filesInProgress.toLocaleString('ro-RO')} />
+        <KpiCard icon={FolderKanban} label="Dosare în lucru" accent="#F59E0B" to="/crm/dosare?seg=toate" value={data.filesInProgress.toLocaleString('ro-RO')} />
         <KpiCard icon={CheckCircle2} label="Aprobate luna aceasta" accent="#10B981" value={data.approvedThisMonth.toLocaleString('ro-RO')} />
         <KpiCard icon={Wallet} label="Volum credite" accent="#6E4CE5" to="/crm/dosare?seg=debursate" value={`${formatVolume(data.creditVolume)} lei`} />
       </div>

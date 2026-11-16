@@ -90,6 +90,14 @@ export function CrmLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setMobileOpen(false);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
       const t = e.target as Node;
       if (userMenuRef.current && !userMenuRef.current.contains(t)) setUserMenuOpen(false);

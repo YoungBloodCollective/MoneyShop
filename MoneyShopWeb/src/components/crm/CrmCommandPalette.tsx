@@ -69,7 +69,8 @@ export function CrmCommandPalette({ open, onClose }: { open: boolean; onClose: (
   const closePalette = useCallback(() => onClose(), [onClose]);
   useDialogBehavior(open, panelRef, closePalette);
 
-  const activeKey = items[sel]?.key;
+  const selIdx = Math.min(sel, Math.max(0, items.length - 1));
+  const activeKey = items[selIdx]?.key;
   useEffect(() => {
     if (open && activeKey) document.getElementById(`crm-palette-opt-${activeKey}`)?.scrollIntoView({ block: 'nearest' });
   }, [open, activeKey]);
@@ -81,7 +82,7 @@ export function CrmCommandPalette({ open, onClose }: { open: boolean; onClose: (
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setSel(s => Math.min(s + 1, items.length - 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setSel(s => Math.max(s - 1, 0)); }
-    else if (e.key === 'Enter') { e.preventDefault(); go(items[sel]); }
+    else if (e.key === 'Enter') { e.preventDefault(); go(items[selIdx]); }
   };
 
   return (
@@ -125,20 +126,20 @@ export function CrmCommandPalette({ open, onClose }: { open: boolean; onClose: (
                 <div
                   id={`crm-palette-opt-${item.key}`}
                   role="option"
-                  aria-selected={i === sel}
-                  onMouseEnter={() => setSel(i)}
+                  aria-selected={i === selIdx}
+                  onMouseMove={() => setSel(i)}
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => go(item)}
-                  className={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left ${i === sel ? 'bg-brand-primary/10' : 'hover:bg-slate-50'}`}
+                  className={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left ${i === selIdx ? 'bg-brand-primary/10' : 'hover:bg-slate-50'}`}
                 >
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${i === sel ? 'bg-brand-primary/15 text-brand-primary' : 'bg-slate-100 text-slate-500'}`}>
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${i === selIdx ? 'bg-brand-primary/15 text-brand-primary' : 'bg-slate-100 text-slate-500'}`}>
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium text-slate-800">{item.title}</div>
                     {item.subtitle && <div className="truncate text-xs text-slate-400">{item.subtitle}</div>}
                   </div>
-                  {i === sel && <CornerDownLeft className="h-4 w-4 shrink-0 text-slate-300" />}
+                  {i === selIdx && <CornerDownLeft className="h-4 w-4 shrink-0 text-slate-300" />}
                 </div>
               </Fragment>
             );

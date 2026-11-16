@@ -12,8 +12,7 @@ import {
   ACORD_STATUS_LABELS, ACORD_STATUS_STYLES, TIP_ACT_LABELS, formatDateTime,
 } from '@/components/crm/acord/acordLabels';
 import { Spinner } from './crmShared';
-import { useGoBack } from './crmHelpers';
-import { FIELD_FOCUS } from './crmHelpers';
+import { useGoBack, FIELD_FOCUS, FOCUS_RING } from './crmHelpers';
 
 const CARD = 'rounded-2xl border border-slate-200 bg-white shadow-sm';
 const H2 = 'mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500';
@@ -59,7 +58,6 @@ export default function CrmAcordDetailPage() {
     return () => { active = false; };
   }, [load]);
 
-
   const updateStatus = async (status: 'completed' | 'rejected') => {
     if (!selected) return;
     const question = status === 'completed'
@@ -79,7 +77,7 @@ export default function CrmAcordDetailPage() {
   };
 
   const back = (
-    <button onClick={goBack} className="mb-5 flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800">
+    <button onClick={goBack} className={`mb-5 flex items-center gap-2 rounded text-sm text-slate-500 hover:text-slate-800 ${FOCUS_RING}`}>
       <ArrowLeft size={18} /> Înapoi
     </button>
   );

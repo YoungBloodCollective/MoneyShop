@@ -27,7 +27,7 @@ export default function CrmClientsPage() {
   const changeSegment = (key: string) => {
     setStoredSegment(key);
     try { localStorage.setItem(SEG_KEY, key); } catch { /* ignore */ }
-    if (segParam) setSearchParams({}, { replace: true });
+    if (segParam !== null) setSearchParams({}, { replace: true });
   };
 
   useEffect(() => {
