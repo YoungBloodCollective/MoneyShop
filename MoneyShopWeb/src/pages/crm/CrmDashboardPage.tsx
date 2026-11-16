@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import {
   Users, FolderKanban, CheckCircle2, Wallet, TrendingUp,
-  FileText, Clock, AlertTriangle, Cake, ArrowUpRight, ArrowDownRight, PenLine, FileSignature,
+  FileText, Clock, AlertTriangle, Cake, ArrowUpRight, ArrowDownRight, ChevronRight, PenLine, FileSignature,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { crmApi } from '@/services/api/crmApi';
@@ -62,12 +62,15 @@ function KpiCard({
         )}
       </div>
       <div className="mt-4 text-3xl font-bold text-slate-900">{value}</div>
-      <div className="mt-1 text-sm text-slate-500">{label}</div>
+      <div className="mt-1 flex items-center justify-between gap-2 text-sm text-slate-500">
+        <span>{label}</span>
+        {to && <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition-colors group-hover:text-brand-primary" />}
+      </div>
     </>
   );
   if (!to) return <div className={cls}>{body}</div>;
   return (
-    <Link to={to} className={`${cls} transition-shadow hover:border-slate-300 hover:shadow-md ${FOCUS_RING}`}>
+    <Link to={to} className={`group ${cls} transition-shadow hover:border-slate-300 hover:shadow-md ${FOCUS_RING}`}>
       {body}
     </Link>
   );

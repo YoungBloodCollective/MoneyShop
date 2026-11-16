@@ -173,7 +173,7 @@ export function CrmLayout() {
             <div ref={userMenuRef} className="relative">
               <button
                 onClick={() => setUserMenuOpen(v => !v)}
-                aria-haspopup="menu"
+                aria-haspopup="true"
                 aria-expanded={userMenuOpen}
                 className={`flex items-center gap-2.5 rounded-xl py-1.5 pl-1.5 pr-2.5 hover:bg-slate-100 ${FOCUS_RING} ${userMenuOpen ? 'bg-slate-100' : ''}`}
               >
@@ -188,7 +188,7 @@ export function CrmLayout() {
               </button>
 
               {userMenuOpen && (
-                <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+                <div className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
                   <div className="border-b border-slate-100 px-4 py-3">
                     <div className="truncate text-sm font-semibold text-slate-800">{user?.name ?? 'Broker'}</div>
                     <div className="truncate text-xs text-slate-400">{user?.email}</div>
@@ -197,7 +197,6 @@ export function CrmLayout() {
                     {isSuperAdmin && (
                       <button
                         onClick={() => { setUserMenuOpen(false); navigate('/admin'); }}
-                        role="menuitem"
                         className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 ${FOCUS_RING}`}
                       >
                         <ExternalLink className="h-4 w-4 text-slate-400" /> Panou admin
@@ -206,7 +205,6 @@ export function CrmLayout() {
                     {isBroker && (
                       <button
                         onClick={() => { setUserMenuOpen(false); navigate('/crm/profil'); }}
-                        role="menuitem"
                         className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 ${FOCUS_RING}`}
                       >
                         <UserCircle className="h-4 w-4 text-slate-400" /> Profilul meu
@@ -214,7 +212,6 @@ export function CrmLayout() {
                     )}
                     <button
                       onClick={() => { setUserMenuOpen(false); handleLogout(); }}
-                      role="menuitem"
                       className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 ${FOCUS_RING}`}
                     >
                       <LogOut className="h-4 w-4" /> Ieși din cont

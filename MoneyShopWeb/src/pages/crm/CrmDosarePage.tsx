@@ -43,7 +43,7 @@ export default function CrmDosarePage() {
   const segParam = searchParams.get('seg');
   const statusParam = searchParams.get('status');
   const urlSegment = segParam === null ? null : FILE_STATUS_SEGMENTS.some(s => s.key === segParam) ? segParam : 'toate';
-  const statusFilter = statusParam && statusParam in APPLICATION_STATUS_LABELS ? statusParam : null;
+  const statusFilter = statusParam && Object.hasOwn(APPLICATION_STATUS_LABELS, statusParam) ? statusParam : null;
   const segment = urlSegment ?? storedSegment;
   const activeSegment = statusFilter ? '' : segment;
   const [draggedId, setDraggedId] = useState<number | null>(null);
