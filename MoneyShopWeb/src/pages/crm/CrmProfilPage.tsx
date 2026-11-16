@@ -4,9 +4,10 @@ import toast from 'react-hot-toast';
 import { brokersApi, apiErrorMessage, type BrokerProfile, type BrokerSelfUpdate } from '@/services/api/brokersApi';
 import { brokerSiteUrl } from '@/lib/brokerHost';
 import { PageHeader, Spinner } from './crmShared';
+import { FIELD_FOCUS } from './crmHelpers';
 
 const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-primary focus:outline-none';
+  `w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 ${FIELD_FOCUS}`;
 const H2 = 'mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500';
 
 function LinkRow({ label, url }: { label: string; url: string }) {

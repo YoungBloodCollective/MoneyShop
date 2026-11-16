@@ -1,4 +1,4 @@
-import { statusLabel, acordStatusLabel } from './crmHelpers';
+import { statusLabel, acordStatusLabel, FOCUS_RING } from './crmHelpers';
 
 const STATUS_PILL: Record<string, string> = {
   INREGISTRAT: 'bg-slate-100 text-slate-600',
@@ -53,11 +53,11 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
+    <div role="alert" className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
       <p className="text-sm text-slate-500">{message}</p>
       <button
         onClick={onRetry}
-        className="mt-4 rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        className={`mt-4 rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 ${FOCUS_RING}`}
       >
         Reîncearcă
       </button>
@@ -132,7 +132,7 @@ export function SegmentChips({
           <button
             key={seg.key}
             onClick={() => onChange(seg.key)}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${FOCUS_RING} ${
               on ? 'bg-brand-primary text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -155,7 +155,7 @@ export function Pagination({
   if (pageCount <= 1) return null;
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
-  const btn = 'rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40';
+  const btn = `rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 ${FOCUS_RING}`;
   return (
     <div className="flex items-center justify-between px-1 pt-1 text-sm text-slate-500">
       <span>{from}–{to} din {total}</span>

@@ -5,8 +5,9 @@ import {
   acordApi, type AcordDetails, type BankConsentBank, type BankConsentInfo,
 } from '@/services/api/acordApi';
 import { BANK_CONSENT_STATUS, consentLink, formatDateTime, whatsappLink } from './acordLabels';
+import { FIELD_FOCUS } from '@/pages/crm/crmHelpers';
 
-const SELECT_CLS = 'rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 focus:border-brand-primary focus:outline-none';
+const SELECT_CLS = `rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 ${FIELD_FOCUS}`;
 
 export type BankConsentsAcord = Pick<AcordDetails, 'acordId' | 'status' | 'signedAt' | 'telefon' | 'prenume'>;
 
@@ -89,7 +90,7 @@ export function BankConsentsSection({ acord, onSigned }: { acord: BankConsentsAc
               Generează un link către formularele băncii, completate cu datele clientului. Linkul e valabil 7 zile.
             </p>
             <div className="flex flex-wrap gap-2">
-              <select value={bankCode} onChange={e => setBankCode(e.target.value)} className={SELECT_CLS}>
+              <select aria-label="Banca" value={bankCode} onChange={e => setBankCode(e.target.value)} className={SELECT_CLS}>
                 {banks.map(b => (
                   <option key={b.code} value={b.code}>
                     {b.name}{b.documentCount > 1 ? ` (${b.documentCount} documente)` : ''}

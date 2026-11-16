@@ -8,7 +8,7 @@ import { apiClient } from '@/services/api/apiClient';
 import { adminApi } from '@/services/api/adminApi';
 import { useAuth } from '@/hooks/useAuth';
 import { PageHeader, SkeletonCards, EmptyState, SegmentChips, Pagination } from './crmShared';
-import { usePaged } from './crmHelpers';
+import { usePaged, FIELD_FOCUS } from './crmHelpers';
 
 interface Appointment {
   id: number;
@@ -188,8 +188,9 @@ export default function CrmProgramariPage() {
                   </button>
                   <select
                     value={a.status}
+                    aria-label={`Status programare ${a.nume} ${a.prenume}`}
                     onChange={e => updateStatus(a.id, e.target.value)}
-                    className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 focus:border-brand-primary focus:outline-none"
+                    className={`rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 ${FIELD_FOCUS}`}
                   >
                     {STATUS_OPTIONS.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
                   </select>

@@ -1,5 +1,40 @@
-import { useState } from 'react';
+import { useCallback, useState, useSyncExternalStore } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
+
+export const FOCUS_RING = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40';
+export const FIELD_FOCUS = `focus:border-brand-primary ${FOCUS_RING}`;
+
+export function isMac(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+}
+
+const MD_QUERY = '(min-width: 768px)';
+
+function subscribeMd(cb: () => void) {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => undefined;
+  const mq = window.matchMedia(MD_QUERY);
+  mq.addEventListener('change', cb);
+  return () => mq.removeEventListener('change', cb);
+}
+
+function getMdSnapshot() {
+  return typeof window.matchMedia === 'function' ? window.matchMedia(MD_QUERY).matches : false;
+}
+
+export function useIsMd(): boolean {
+  return useSyncExternalStore(subscribeMd, getMdSnapshot, () => true);
+}
+
+export function useGoBack(fallback: string) {
+  const navigate = useNavigate();
+  return useCallback(() => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx;
+    if (typeof idx === 'number' && idx > 0) navigate(-1);
+    else navigate(fallback);
+  }, [navigate, fallback]);
+}
 
 export const ACORD_STATUS_LABEL: Record<string, string> = {
   started: 'Acord început',

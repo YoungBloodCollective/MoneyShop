@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Download, Loader2, X } from 'lucide-react';
 import { downloadBlob } from '@/lib/downloadBlob';
+import { FOCUS_RING } from '@/pages/crm/crmHelpers';
 
 export interface DocumentPreviewSource {
   title: string;
@@ -74,7 +75,7 @@ export function DocumentPreviewModal({ source, onClose }: { source: DocumentPrev
         aria-label={source.title}
         tabIndex={-1}
         onKeyDown={onKeyDown}
-        className="flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl focus:outline-none"
+        className={`flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl ${FOCUS_RING}`}
       >
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3">
           <h2 className="min-w-0 truncate text-sm font-semibold text-slate-800">{source.title}</h2>

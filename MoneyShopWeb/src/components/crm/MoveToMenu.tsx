@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { MoreHorizontal } from 'lucide-react';
-import { statusColor, statusLabel } from '@/pages/crm/crmHelpers';
+import { FOCUS_RING, statusColor, statusLabel } from '@/pages/crm/crmHelpers';
 
 interface Props {
   code: string;
@@ -82,7 +82,7 @@ export function MoveToMenu({ code, targets, onSelect }: Props) {
         aria-label={`Mută dosarul #${code} în…`}
         title="Mută în…"
         onClick={e => { e.stopPropagation(); setOpen(v => !v); }}
-        className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
+        className={`rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 ${FOCUS_RING}`}
       >
         <MoreHorizontal className="h-4 w-4" />
       </button>

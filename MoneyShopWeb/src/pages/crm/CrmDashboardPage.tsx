@@ -5,11 +5,13 @@ import {
 } from 'recharts';
 import {
   Users, FolderKanban, CheckCircle2, Wallet, TrendingUp,
-  FileText, Clock, AlertTriangle, Cake, ArrowUpRight, ArrowDownRight, PenLine, FileSignature,
+  FileText, Clock, AlertTriangle, Cake, ArrowUpRight, ArrowDownRight, ChevronRight, PenLine, FileSignature,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmDashboardSummary } from '@/types/crm.types';
 import { ErrorState } from './crmShared';
+import { FOCUS_RING } from './crmHelpers';
 import { IntakeLinkCard } from '@/components/crm/IntakeLinkCard';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -40,12 +42,13 @@ function relativeTime(iso: string): string {
 }
 
 function KpiCard({
-  icon: Icon, label, value, accent, delta,
+  icon: Icon, label, value, accent, delta, to,
 }: {
-  icon: typeof Users; label: string; value: string; accent: string; delta?: { text: string; title: string; negative: boolean };
+  icon: typeof Users; label: string; value: string; accent: string; to?: string; delta?: { text: string; title: string; negative: boolean };
 }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+  const cls = 'block rounded-2xl border border-slate-200 bg-white p-5 shadow-sm';
+  const body = (
+    <>
       <div className="flex items-start justify-between gap-2">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}1A`, color: accent }}>
           <Icon className="h-5 w-5" />
@@ -59,8 +62,17 @@ function KpiCard({
         )}
       </div>
       <div className="mt-4 text-3xl font-bold text-slate-900">{value}</div>
-      <div className="mt-1 text-sm text-slate-500">{label}</div>
-    </div>
+      <div className="mt-1 flex items-center justify-between gap-2 text-sm text-slate-500">
+        <span>{label}</span>
+        {to && <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition-colors group-hover:text-brand-primary" />}
+      </div>
+    </>
+  );
+  if (!to) return <div className={cls}>{body}</div>;
+  return (
+    <Link to={to} className={`group ${cls} transition-shadow hover:border-slate-300 hover:shadow-md ${FOCUS_RING}`}>
+      {body}
+    </Link>
   );
 }
 
@@ -75,6 +87,12 @@ const TASK_ICON: Record<string, typeof FileText> = {
   approval: Clock,
   acord: FileSignature,
   birthday: Cake,
+};
+
+const TASK_LINK: Record<string, string> = {
+  documents: '/crm/dosare?status=NEVOIE_DOCUMENTE',
+  approval: '/crm/dosare?seg=banca',
+  acord: '/crm/clienti?seg=acord',
 };
 
 export default function CrmDashboardPage() {
@@ -133,7 +151,7 @@ export default function CrmDashboardPage() {
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
-          icon={Users} label="Clienți activi" accent="#2D2DF0"
+          icon={Users} label="Clienți activi" accent="#2D2DF0" to="/crm/clienti?seg=toate"
           value={data.activeClients.toLocaleString('ro-RO')}
           delta={data.activeClientsDeltaPct === 0 ? undefined : {
             text: `${data.activeClientsDeltaPct > 0 ? '+' : ''}${data.activeClientsDeltaPct}% clienți noi`,
@@ -141,9 +159,9 @@ export default function CrmDashboardPage() {
             negative: data.activeClientsDeltaPct < 0,
           }}
         />
-        <KpiCard icon={FolderKanban} label="Dosare în lucru" accent="#F59E0B" value={data.filesInProgress.toLocaleString('ro-RO')} />
+        <KpiCard icon={FolderKanban} label="Dosare în lucru" accent="#F59E0B" to="/crm/dosare?seg=toate" value={data.filesInProgress.toLocaleString('ro-RO')} />
         <KpiCard icon={CheckCircle2} label="Aprobate luna aceasta" accent="#10B981" value={data.approvedThisMonth.toLocaleString('ro-RO')} />
-        <KpiCard icon={Wallet} label="Volum credite" accent="#6E4CE5" value={`${formatVolume(data.creditVolume)} lei`} />
+        <KpiCard icon={Wallet} label="Volum credite" accent="#6E4CE5" to="/crm/dosare?seg=debursate" value={`${formatVolume(data.creditVolume)} lei`} />
       </div>
 
       {/* Charts row */}
@@ -191,15 +209,19 @@ export default function CrmDashboardPage() {
               <div className="text-xs text-slate-400">total</div>
             </div>
           </div>
-          <div className="mt-4 space-y-2">
+          <div className="mt-4 space-y-1">
             {data.statusBreakdown.map(s => (
-              <div key={s.key} className="flex items-center justify-between text-sm">
+              <Link
+                key={s.key}
+                to={`/crm/dosare?seg=${encodeURIComponent(s.key)}`}
+                className={`-mx-2 flex items-center justify-between rounded-lg px-2 py-1 text-sm transition-colors hover:bg-slate-50 ${FOCUS_RING}`}
+              >
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[s.key] ?? '#CBD5E1' }} />
                   <span className="text-slate-600">{s.label}</span>
                 </div>
                 <span className="font-semibold text-slate-900">{s.count}</span>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -234,13 +256,23 @@ export default function CrmDashboardPage() {
             {data.tasks.map((t, i) => {
               const cls = SEVERITY_CLS[t.severity] ?? SEVERITY_CLS.info;
               const Icon = TASK_ICON[t.kind] ?? FileText;
-              return (
-                <li key={i} className="flex items-center gap-3">
+              const to = TASK_LINK[t.kind];
+              const content = (
+                <>
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${cls}`}>
                     <Icon className="h-4 w-4" />
                   </div>
                   <span className="flex-1 text-sm text-slate-700">{t.label}</span>
                   <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{t.count}</span>
+                </>
+              );
+              return (
+                <li key={i}>
+                  {to ? (
+                    <Link to={to} className={`-mx-2 flex items-center gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-slate-50 ${FOCUS_RING}`}>{content}</Link>
+                  ) : (
+                    <div className="flex items-center gap-3">{content}</div>
+                  )}
                 </li>
               );
             })}
