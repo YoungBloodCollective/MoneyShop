@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, List, LayoutGrid, X, Pencil } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Search, List, LayoutGrid, X, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { crmApi } from '@/services/api/crmApi';
 import { adminApi, type DisbursementRequest } from '@/services/api/adminApi';
@@ -10,7 +10,7 @@ import { MoveToMenu } from '@/components/crm/MoveToMenu';
 import type { CrmFileListItem, StatusTransitions } from '@/types/crm.types';
 import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
 import { PageHeader, SkeletonTable, EmptyState, ErrorState, StatusPill, SegmentChips, Pagination } from './crmShared';
-import { money, dateShort, creditTypeLabel, statusColor, statusLabel, canMove, allowedTargets, FILE_STATUS_SEGMENTS, matchesSegment, usePaged } from './crmHelpers';
+import { money, dateShort, creditTypeLabel, statusColor, statusLabel, canMove, allowedTargets, FILE_STATUS_SEGMENTS, matchesSegment, usePaged, useIsMd, FOCUS_RING, FIELD_FOCUS } from './crmHelpers';
 
 const STATUS_OPTIONS = Object.entries(APPLICATION_STATUS_LABELS);
 const COLUMNS = [
@@ -18,19 +18,34 @@ const COLUMNS = [
   'OFERTA_TRANSMISA', 'ACCEPTAT_CLIENT', 'TRIMIS_LA_BANCA', 'APROBAT_BANCA', 'DISBURSAT', 'RESPINS',
 ];
 const SEG_KEY = 'moneyshop:crm-dosare-seg';
+const VIEW_KEY = 'moneyshop:crm-dosare-view';
+const LINK_CLS = `rounded hover:text-brand-primary hover:underline ${FOCUS_RING}`;
 
 export default function CrmDosarePage() {
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isMd = useIsMd();
   const [files, setFiles] = useState<CrmFileListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [transitions, setTransitions] = useState<StatusTransitions | null>(null);
   const [q, setQ] = useState('');
-  const [segment, setSegment] = useState<string>(() => {
-    try { const v = localStorage.getItem(SEG_KEY); return v && v !== 'none' ? v : 'toate'; } catch { return 'toate'; }
+  const [storedSegment, setStoredSegment] = useState<string>(() => {
+    try {
+      const v = localStorage.getItem(SEG_KEY);
+      return v && FILE_STATUS_SEGMENTS.some(s => s.key === v) ? v : 'toate';
+    } catch { return 'toate'; }
   });
-  const [view, setView] = useState<'list' | 'board'>('list');
+  const [view, setView] = useState<'list' | 'board'>(() => {
+    try { return localStorage.getItem(VIEW_KEY) === 'board' ? 'board' : 'list'; } catch { return 'list'; }
+  });
+  const effectiveView = isMd ? view : 'list';
+  const segParam = searchParams.get('seg');
+  const statusParam = searchParams.get('status');
+  const urlSegment = segParam === null ? null : FILE_STATUS_SEGMENTS.some(s => s.key === segParam) ? segParam : 'toate';
+  const statusFilter = statusParam && statusParam in APPLICATION_STATUS_LABELS ? statusParam : null;
+  const segment = urlSegment ?? storedSegment;
+  const activeSegment = statusFilter ? '' : segment;
   const [draggedId, setDraggedId] = useState<number | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -55,8 +70,17 @@ export default function CrmDosarePage() {
 
   const retry = () => { setLoading(true); setAttempt(a => a + 1); };
 
-  useEffect(() => { try { localStorage.setItem(SEG_KEY, segment); } catch { /* ignore */ } }, [segment]);
-  const resetKey = `${segment}\u0000${q}`;
+  const changeSegment = (key: string) => {
+    setStoredSegment(key);
+    try { localStorage.setItem(SEG_KEY, key); } catch { /* ignore */ }
+    setSearchParams({}, { replace: true });
+  };
+  const changeView = (k: 'list' | 'board') => {
+    setView(k);
+    try { localStorage.setItem(VIEW_KEY, k); } catch { /* ignore */ }
+  };
+  const clearStatusFilter = () => setSearchParams({}, { replace: true });
+  const resetKey = `${activeSegment}\u0000${statusFilter ?? ''}\u0000${q}`;
   const [prevResetKey, setPrevResetKey] = useState(resetKey);
   if (prevResetKey !== resetKey) {
     setPrevResetKey(resetKey);
@@ -69,8 +93,8 @@ export default function CrmDosarePage() {
   }, [files, q]);
 
   const listFiltered = useMemo(
-    () => searched.filter(f => matchesSegment(f.status, segment)),
-    [searched, segment],
+    () => searched.filter(f => (statusFilter ? f.status === statusFilter : matchesSegment(f.status, segment))),
+    [searched, segment, statusFilter],
   );
 
   const counts = useMemo(() => {
@@ -175,12 +199,13 @@ export default function CrmDosarePage() {
   };
 
   const toggle = (
-    <div className="inline-flex rounded-xl border border-slate-200 bg-white p-0.5">
+    <div className="hidden rounded-xl border border-slate-200 bg-white p-0.5 md:inline-flex">
       {([['list', 'Listă', List], ['board', 'Pipeline', LayoutGrid]] as const).map(([k, label, Icon]) => (
         <button
           key={k}
-          onClick={() => setView(k)}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+          onClick={() => changeView(k)}
+          aria-pressed={view === k}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${FOCUS_RING} ${
             view === k ? 'bg-brand-primary text-white' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -194,8 +219,24 @@ export default function CrmDosarePage() {
     <div className="space-y-5">
       <PageHeader title="Dosare" subtitle={failed ? undefined : `${files.length} dosare în total`} action={toggle} />
 
-      {view === 'list' && !failed && (
-        <SegmentChips segments={FILE_STATUS_SEGMENTS} active={segment} onChange={setSegment} counts={counts} />
+      {effectiveView === 'list' && !failed && (
+        <div className="space-y-3">
+          <SegmentChips segments={FILE_STATUS_SEGMENTS} active={activeSegment} onChange={changeSegment} counts={counts} />
+          {statusFilter && (
+            <div className="flex">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-primary/30 bg-brand-primary/5 py-1 pl-3 pr-1.5 text-sm font-medium text-slate-700">
+                Status: {statusLabel(statusFilter)}
+                <button
+                  onClick={clearStatusFilter}
+                  aria-label="Elimină filtrul de status"
+                  className={`rounded-full p-0.5 text-slate-500 hover:bg-white hover:text-slate-700 ${FOCUS_RING}`}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            </div>
+          )}
+        </div>
       )}
 
       <div className="relative min-w-[220px] max-w-md">
@@ -204,7 +245,8 @@ export default function CrmDosarePage() {
           value={q}
           onChange={e => setQ(e.target.value)}
           placeholder="Caută dosar sau client..."
-          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-primary focus:outline-none"
+          aria-label="Caută dosar sau client"
+          className={`w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 ${FIELD_FOCUS}`}
         />
       </div>
 
@@ -212,7 +254,7 @@ export default function CrmDosarePage() {
         <SkeletonTable rows={7} />
       ) : failed ? (
         <ErrorState message="Nu am putut încărca dosarele" onRetry={retry} />
-      ) : view === 'list' ? (
+      ) : effectiveView === 'list' ? (
         listFiltered.length === 0 ? (
           <EmptyState message="Niciun dosar găsit." />
         ) : (
@@ -222,33 +264,83 @@ export default function CrmDosarePage() {
                 <span className="text-sm font-medium text-slate-700">{selected.size} selectate</span>
                 <div className="ml-auto flex flex-wrap items-center gap-2">
                   {bulkTargets.length === 0 ? (
-                    <select disabled defaultValue="" className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-400">
+                    <select disabled defaultValue="" aria-label="Schimbă statusul dosarelor selectate" className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-400">
                       <option value="">Nicio mutare comună</option>
                     </select>
                   ) : (
                     <select
                       defaultValue=""
+                      aria-label="Schimbă statusul dosarelor selectate"
                       onChange={e => { if (e.target.value) { bulkSetStatus(e.target.value); e.target.value = ''; } }}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 focus:border-brand-primary focus:outline-none"
+                      className={`rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 ${FIELD_FOCUS}`}
                     >
                       <option value="" disabled>Schimbă status în…</option>
                       {bulkTargets.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                     </select>
                   )}
                   <span className="text-xs text-slate-500">Se afișează doar statusurile valide pentru toate dosarele selectate</span>
-                  <button onClick={() => setSelected(new Set())} className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-slate-500 hover:bg-white">
+                  <button onClick={() => setSelected(new Set())} className={`flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-slate-500 hover:bg-white ${FOCUS_RING}`}>
                     <X className="h-4 w-4" /> Anulează
                   </button>
                 </div>
               </div>
             )}
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center gap-3 px-1 md:hidden">
+              <input
+                id="dosare-select-all-mobile"
+                type="checkbox"
+                checked={allOnPageSelected}
+                onChange={toggleAllOnPage}
+                aria-label="Selectează toate dosarele din pagină"
+                className="h-5 w-5 rounded border-slate-300 accent-brand-primary"
+              />
+              <label htmlFor="dosare-select-all-mobile" className="text-sm text-slate-600">Selectează toate din pagină</label>
+            </div>
+
+            <ul className="space-y-2 md:hidden">
+              {slice.map(f => {
+                const checked = selected.has(f.id);
+                return (
+                  <li key={f.id} className={`rounded-2xl border p-4 shadow-sm ${checked ? 'border-brand-primary/40 bg-brand-primary/5' : 'border-slate-200 bg-white'}`}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleOne(f.id)}
+                        aria-label={`Selectează dosarul #${f.code}`}
+                        className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 accent-brand-primary"
+                      />
+                      <Link to={`/crm/clienti/${f.userId}`} className={`min-w-0 flex-1 ${LINK_CLS}`}>
+                        <span className="block font-semibold text-slate-800">#{f.code}</span>
+                        <span className="block truncate text-sm text-slate-700">{f.clientName}</span>
+                      </Link>
+                      <MoveToMenu code={f.code} targets={allowedTargets(transitions, f.status, COLUMNS)} onSelect={t => moveCard(f.id, t)} />
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                      <StatusPill status={f.status} />
+                      <span className="text-sm font-medium text-slate-700">{money(f.requestedAmount)}</span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-slate-500">
+                      <span>{creditTypeLabel(f.typeCredit)}</span>
+                      <span className="text-slate-400">{dateShort(f.updatedAt)}</span>
+                    </div>
+                    {f.status === 'DISBURSAT' && (
+                      <button onClick={() => editDisbursement(f)} className={`mt-3 inline-flex items-center gap-1 rounded text-xs font-medium text-brand-primary hover:underline ${FOCUS_RING}`}>
+                        <Pencil className="h-3 w-3" /> Editează debursarea
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
               <table className="w-full min-w-[800px] text-sm">
                 <thead>
                   <tr className="whitespace-nowrap border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
                     <th className="px-4 py-3">
-                      <input type="checkbox" checked={allOnPageSelected} onChange={toggleAllOnPage} className="h-4 w-4 rounded border-slate-300 accent-brand-primary" />
+                      <input type="checkbox" checked={allOnPageSelected} onChange={toggleAllOnPage} aria-label="Selectează toate dosarele din pagină" className="h-4 w-4 rounded border-slate-300 accent-brand-primary" />
                     </th>
                     <th className="px-5 py-3 font-medium">Dosar</th>
                     <th className="px-5 py-3 font-medium">Client</th>
@@ -263,23 +355,26 @@ export default function CrmDosarePage() {
                   {slice.map(f => {
                     const checked = selected.has(f.id);
                     return (
-                      <tr key={f.id} className={`transition-colors hover:bg-slate-50 ${checked ? 'bg-brand-primary/5' : ''}`}>
-                        <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                          <input type="checkbox" checked={checked} onChange={() => toggleOne(f.id)} className="h-4 w-4 rounded border-slate-300 accent-brand-primary" />
+                      <tr key={f.id} className={`transition-colors hover:bg-slate-50 focus-within:bg-slate-50 ${checked ? 'bg-brand-primary/5' : ''}`}>
+                        <td className="px-4 py-3">
+                          <input type="checkbox" checked={checked} onChange={() => toggleOne(f.id)} aria-label={`Selectează dosarul #${f.code}`} className="h-4 w-4 rounded border-slate-300 accent-brand-primary" />
                         </td>
-                        <td onClick={() => navigate(`/crm/clienti/${f.userId}`)} className="cursor-pointer whitespace-nowrap px-5 py-3 font-semibold text-slate-800">#{f.code}</td>
-                        <td onClick={() => navigate(`/crm/clienti/${f.userId}`)} className="cursor-pointer px-5 py-3 text-slate-700">{f.clientName}</td>
+                        <td className="whitespace-nowrap px-5 py-3 font-semibold text-slate-800">
+                          <Link to={`/crm/clienti/${f.userId}`} className={LINK_CLS}>#{f.code}</Link>
+                        </td>
+                        <td className="px-5 py-3 text-slate-700">
+                          <Link to={`/crm/clienti/${f.userId}`} className={LINK_CLS}>{f.clientName}</Link>
+                        </td>
                         <td className="px-5 py-3 text-slate-500">{creditTypeLabel(f.typeCredit)}</td>
                         <td className="whitespace-nowrap px-5 py-3 text-right font-medium text-slate-700">{money(f.requestedAmount)}</td>
                         <td className="px-5 py-3"><StatusPill status={f.status} /></td>
                         <td className="whitespace-nowrap px-5 py-3 text-slate-400">{dateShort(f.updatedAt)}</td>
                         <td className="whitespace-nowrap px-5 py-3 text-right">
                           {f.status === 'DISBURSAT' && (
-                            <button onClick={() => editDisbursement(f)} className="mr-3 inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline">
+                            <button onClick={() => editDisbursement(f)} className={`inline-flex items-center gap-1 rounded text-xs font-medium text-brand-primary hover:underline ${FOCUS_RING}`}>
                               <Pencil className="h-3 w-3" /> Editează debursarea
                             </button>
                           )}
-                          <ChevronRight onClick={() => navigate(`/crm/clienti/${f.userId}`)} className="inline h-4 w-4 cursor-pointer text-slate-300" />
                         </td>
                       </tr>
                     );
@@ -326,11 +421,10 @@ export default function CrmDosarePage() {
                       draggable
                       onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(f.id)); setDraggedId(f.id); }}
                       onDragEnd={() => { setDraggedId(null); setDragOverCol(null); }}
-                      onClick={() => navigate(`/crm/clienti/${f.userId}`)}
                       className={`cursor-grab rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing ${draggedId === f.id ? 'opacity-50' : ''}`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-800">#{f.code}</span>
+                        <Link to={`/crm/clienti/${f.userId}`} draggable={false} className={`text-xs font-semibold text-slate-800 ${LINK_CLS}`}>#{f.code}</Link>
                         <span className="ml-auto text-xs text-slate-400">{creditTypeLabel(f.typeCredit)}</span>
                         <MoveToMenu code={f.code} targets={allowedTargets(transitions, f.status, COLUMNS)} onSelect={t => moveCard(f.id, t)} />
                       </div>
@@ -339,7 +433,7 @@ export default function CrmDosarePage() {
                       {f.status === 'DISBURSAT' && (
                         <button
                           onClick={e => { e.stopPropagation(); editDisbursement(f); }}
-                          className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
+                          className={`mt-2 inline-flex items-center gap-1 rounded text-xs font-medium text-brand-primary hover:underline ${FOCUS_RING}`}
                         >
                           <Pencil className="h-3 w-3" /> Editează debursarea
                         </button>

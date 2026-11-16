@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { adminApi, type LeadItem } from '@/services/api/adminApi';
 import { whatsappLink } from '@/components/crm/acord/acordLabels';
 import { PageHeader, SkeletonCards, EmptyState } from './crmShared';
-import { money, dateShort, initials } from './crmHelpers';
+import { money, dateShort, initials, FIELD_FOCUS, FOCUS_RING } from './crmHelpers';
 
 const SOURCE_LABELS: Record<string, string> = {
   api: 'Formular',
@@ -78,7 +78,7 @@ function LeadDrawer({
         aria-modal="true"
         aria-label={lead.numePrenume}
         onMouseDown={e => e.stopPropagation()}
-        className="flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-xl focus:outline-none"
+        className={`flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-xl ${FOCUS_RING}`}
       >
         <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
           <div className="min-w-0">
@@ -123,7 +123,8 @@ function LeadDrawer({
               maxLength={1000}
               rows={6}
               placeholder="Scrie notițe despre client după apelul telefonic..."
-              className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-primary focus:outline-none"
+              aria-label="Notițe despre client"
+              className={`w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 ${FIELD_FOCUS}`}
             />
             <div className="mt-2 flex items-center justify-between">
               <span className="text-xs text-slate-400">{notes.length}/1000 caractere</span>
@@ -187,7 +188,8 @@ export default function CrmLeadsPage() {
           value={q}
           onChange={e => setQ(e.target.value)}
           placeholder="Caută după nume, telefon, oraș..."
-          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-primary focus:outline-none"
+          aria-label="Caută după nume, telefon, oraș"
+          className={`w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 ${FIELD_FOCUS}`}
         />
       </div>
       {error && (
@@ -202,7 +204,7 @@ export default function CrmLeadsPage() {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map(l => (
             <div key={l.id} className="rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow focus-within:border-brand-primary hover:shadow-md">
-              <button onClick={() => setSelectedId(l.id)} className="block w-full rounded-t-2xl p-4 text-left focus:outline-none">
+              <button onClick={() => setSelectedId(l.id)} className={`block w-full rounded-t-2xl p-4 text-left ${FOCUS_RING}`}>
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary/10 text-sm font-semibold text-brand-primary">
                     {initials(l.numePrenume)}

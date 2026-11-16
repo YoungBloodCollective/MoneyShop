@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { adminApi, type MonthlyReportItem, type ExportReportRequest } from '@/services/api/adminApi';
 import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
 import { PageHeader, EmptyState } from './crmShared';
-import { creditTypeLabel } from './crmHelpers';
+import { creditTypeLabel, FIELD_FOCUS } from './crmHelpers';
 
 const MONTHS = [
   'Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie',
@@ -20,7 +20,7 @@ const escapeCsvCell = (value: unknown) => {
   return `"${text.replace(/"/g, '""')}"`;
 };
 
-const FIELD = 'h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-3 pr-8 text-sm text-slate-700 focus:border-brand-primary focus:outline-none';
+const FIELD = `h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-3 pr-8 text-sm text-slate-700 ${FIELD_FOCUS}`;
 const LABEL = 'mb-1.5 block text-xs text-slate-500';
 
 const fmt = (v?: number) => (v ?? 0).toLocaleString('ro-RO', { maximumFractionDigits: 0 });
@@ -129,14 +129,14 @@ export default function CrmRapoartePage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <div className="relative">
             <label className={LABEL}>Luna</label>
-            <select value={month} onChange={e => setMonth(Number(e.target.value))} className={FIELD}>
+            <select aria-label="Luna" value={month} onChange={e => setMonth(Number(e.target.value))} className={FIELD}>
               {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
             </select>
             <ChevronDown size={14} className="pointer-events-none absolute bottom-3.5 right-3 text-slate-400" />
           </div>
           <div className="relative">
             <label className={LABEL}>An</label>
-            <select value={year} onChange={e => setYear(Number(e.target.value))} className={FIELD}>
+            <select aria-label="An" value={year} onChange={e => setYear(Number(e.target.value))} className={FIELD}>
               {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
             <ChevronDown size={14} className="pointer-events-none absolute bottom-3.5 right-3 text-slate-400" />
@@ -148,12 +148,13 @@ export default function CrmRapoartePage() {
               value={bankFilter}
               onChange={e => setBankFilter(e.target.value)}
               placeholder="Nume bancă..."
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-primary focus:outline-none"
+              aria-label="Banca"
+              className={`h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 ${FIELD_FOCUS}`}
             />
           </div>
           <div className="relative">
             <label className={LABEL}>Tip credit</label>
-            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className={FIELD}>
+            <select aria-label="Tip credit" value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className={FIELD}>
               <option value="">Toate</option>
               <option value="ipotecar">Ipotecar</option>
               <option value="nevoi_personale">Nevoi personale</option>
@@ -163,7 +164,7 @@ export default function CrmRapoartePage() {
           </div>
           <div className="relative">
             <label className={LABEL}>Status</label>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={FIELD}>
+            <select aria-label="Status" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={FIELD}>
               <option value="">Toate</option>
               {STATUS_OPTIONS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
             </select>

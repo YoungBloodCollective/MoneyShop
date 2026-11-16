@@ -6,7 +6,7 @@ import { brokersApi, type BrokerAdminItem } from '@/services/api/brokersApi';
 import { useAuth } from '@/hooks/useAuth';
 import { ACORD_STATUS_LABELS, ACORD_STATUS_STYLES, formatDateTime } from '@/components/crm/acord/acordLabels';
 import { PageHeader, SkeletonTable, EmptyState, SegmentChips, Pagination } from './crmShared';
-import { usePaged } from './crmHelpers';
+import { usePaged, FIELD_FOCUS } from './crmHelpers';
 
 const SEGMENTS = [
   { key: 'toate', label: 'Toate' },
@@ -74,14 +74,16 @@ export default function CrmAcorduriPage() {
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="Caută după nume, telefon, email..."
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-primary focus:outline-none"
+            aria-label="Caută după nume, telefon, email"
+            className={`w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 ${FIELD_FOCUS}`}
           />
         </div>
         {isSuperAdmin && brokers.length > 0 && (
           <select
             value={brokerFilter}
+            aria-label="Filtrează după broker"
             onChange={e => setBrokerFilter(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 focus:border-brand-primary focus:outline-none"
+            className={`rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 ${FIELD_FOCUS}`}
           >
             <option value="">Toți brokerii</option>
             {brokers.map(b => <option key={b.id} value={b.id}>{b.displayName}</option>)}
@@ -117,7 +119,7 @@ export default function CrmAcorduriPage() {
                     <span>{formatDateTime(item.createdAt)}</span>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-3">
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-3 gap-y-1">
                   <span className="hidden text-xs text-slate-500 sm:inline">{item.fileCount} fișiere</span>
                   {item.isSigned && <PenLine size={14} className="text-emerald-600" />}
                   {item.marketingAccepted && <Megaphone size={14} className="text-brand-primary" />}

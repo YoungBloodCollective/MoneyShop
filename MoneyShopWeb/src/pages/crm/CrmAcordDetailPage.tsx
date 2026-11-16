@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   ArrowLeft, Phone, Mail, Calendar, ShieldCheck, ShieldAlert, PenLine, AlertTriangle, Check, XCircle,
 } from 'lucide-react';
@@ -12,6 +12,8 @@ import {
   ACORD_STATUS_LABELS, ACORD_STATUS_STYLES, TIP_ACT_LABELS, formatDateTime,
 } from '@/components/crm/acord/acordLabels';
 import { Spinner } from './crmShared';
+import { useGoBack } from './crmHelpers';
+import { FIELD_FOCUS } from './crmHelpers';
 
 const CARD = 'rounded-2xl border border-slate-200 bg-white shadow-sm';
 const H2 = 'mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500';
@@ -27,7 +29,7 @@ function AcordStatusBadge({ status }: { status: string }) {
 
 export default function CrmAcordDetailPage() {
   const { acordId } = useParams<{ acordId: string }>();
-  const navigate = useNavigate();
+  const goBack = useGoBack('/crm/acorduri');
   const [selected, setSelected] = useState<AcordDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -57,10 +59,6 @@ export default function CrmAcordDetailPage() {
     return () => { active = false; };
   }, [load]);
 
-  const goBack = () => {
-    if (window.history.state && window.history.state.idx > 0) navigate(-1);
-    else navigate('/crm/acorduri');
-  };
 
   const updateStatus = async (status: 'completed' | 'rejected') => {
     if (!selected) return;
@@ -327,8 +325,9 @@ export default function CrmAcordDetailPage() {
         value={reviewNote}
         onChange={e => setReviewNote(e.target.value)}
         placeholder="Notiță internă..."
+        aria-label="Notiță internă"
         rows={3}
-        className="mb-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-primary focus:outline-none"
+        className={`mb-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 ${FIELD_FOCUS}`}
       />
       <div className="flex flex-wrap gap-3 pb-6">
         <button onClick={() => updateStatus('completed')} disabled={updating} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">

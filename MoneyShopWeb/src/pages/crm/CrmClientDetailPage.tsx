@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Phone, Mail, CalendarDays, CheckCircle2, XCircle,
   FileText, FolderKanban, Wallet, ShieldCheck, TrendingUp, Send,
@@ -17,7 +17,7 @@ import { TIP_ACT_LABELS, fileLabel, formatDateTime, whatsappLink } from '@/compo
 import { CopyIntakeLinkButton } from '@/components/crm/CopyIntakeLinkButton';
 import { DocumentPreviewModal, type DocumentPreviewSource } from '@/components/crm/DocumentPreviewModal';
 import { Spinner, StatusPill, AcordPill, ErrorState } from './crmShared';
-import { money, dateShort, initials, creditTypeLabel, docTypeLabel } from './crmHelpers';
+import { money, dateShort, initials, creditTypeLabel, docTypeLabel, useGoBack, FOCUS_RING } from './crmHelpers';
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -426,7 +426,7 @@ export default function CrmClientDetailPage() {
 }
 
 function ClientDetail({ userId }: { userId: number }) {
-  const navigate = useNavigate();
+  const goBack = useGoBack('/crm/clienti');
   const [client, setClient] = useState<CrmClientDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -456,8 +456,8 @@ function ClientDetail({ userId }: { userId: number }) {
   if (notFound || failed || !client) {
     return (
       <div className="space-y-4">
-        <button onClick={() => navigate('/crm/clienti')} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
-          <ArrowLeft className="h-4 w-4" /> Înapoi la clienți
+        <button onClick={goBack} className={`flex items-center gap-1.5 rounded text-sm text-slate-500 hover:text-slate-700 ${FOCUS_RING}`}>
+          <ArrowLeft className="h-4 w-4" /> Înapoi
         </button>
         {notFound
           ? <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">Clientul nu a fost găsit</div>
@@ -470,8 +470,8 @@ function ClientDetail({ userId }: { userId: number }) {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => navigate('/crm/clienti')} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
-        <ArrowLeft className="h-4 w-4" /> Înapoi la clienți
+      <button onClick={goBack} className={`flex items-center gap-1.5 rounded text-sm text-slate-500 hover:text-slate-700 ${FOCUS_RING}`}>
+        <ArrowLeft className="h-4 w-4" /> Înapoi
       </button>
 
       {/* Header */}

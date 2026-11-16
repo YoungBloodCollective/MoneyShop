@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader2, X } from 'lucide-react';
 import type { DisbursementRequest } from '@/services/api/adminApi';
 import { apiErrorMessage } from '@/services/api/brokersApi';
+import { FIELD_FOCUS } from '@/pages/crm/crmHelpers';
 
 export interface DisbursementInitial {
   sumaAprobata?: number;
@@ -15,7 +16,7 @@ function todayIso() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-const FIELD = 'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-primary focus:outline-none';
+const FIELD = `w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 ${FIELD_FOCUS}`;
 
 export function DisbursementModal({
   title, subtitle, initial, onClose, onSubmit,
