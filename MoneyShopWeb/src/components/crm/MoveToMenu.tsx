@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { statusColor, statusLabel } from '@/pages/crm/crmHelpers';
 
@@ -15,13 +15,15 @@ export function MoveToMenu({ code, targets, onSelect }: Props) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const focusedRef = useRef(false);
 
   const close = useCallback((restoreFocus: boolean) => {
     setOpen(false);
+    setPos(null);
     if (restoreFocus) triggerRef.current?.focus();
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
     function place() {
       const rect = triggerRef.current?.getBoundingClientRect();
@@ -32,7 +34,6 @@ export function MoveToMenu({ code, targets, onSelect }: Props) {
       setPos({ top, left });
     }
     place();
-    menuRef.current?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true });
     function onMouseDown(e: MouseEvent) {
       const t = e.target as Node;
       if (menuRef.current?.contains(t) || triggerRef.current?.contains(t)) return;
@@ -47,6 +48,14 @@ export function MoveToMenu({ code, targets, onSelect }: Props) {
       window.removeEventListener('scroll', place, true);
     };
   }, [open, targets.length, close]);
+
+  useEffect(() => {
+    if (!open) { focusedRef.current = false; return; }
+    if (pos && !focusedRef.current) {
+      focusedRef.current = true;
+      menuRef.current?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true });
+    }
+  }, [open, pos]);
 
   if (targets.length === 0) return null;
 
@@ -67,6 +76,7 @@ export function MoveToMenu({ code, targets, onSelect }: Props) {
         ref={triggerRef}
         type="button"
         draggable={false}
+        onDragStart={e => { e.preventDefault(); e.stopPropagation(); }}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`Mută dosarul #${code} în…`}

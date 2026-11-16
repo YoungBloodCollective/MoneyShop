@@ -192,9 +192,9 @@ export default function CrmDosarePage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Dosare" subtitle={`${files.length} dosare în total`} action={toggle} />
+      <PageHeader title="Dosare" subtitle={failed ? undefined : `${files.length} dosare în total`} action={toggle} />
 
-      {view === 'list' && (
+      {view === 'list' && !failed && (
         <SegmentChips segments={FILE_STATUS_SEGMENTS} active={segment} onChange={setSegment} counts={counts} />
       )}
 
@@ -324,7 +324,7 @@ export default function CrmDosarePage() {
                     <div
                       key={f.id}
                       draggable
-                      onDragStart={() => setDraggedId(f.id)}
+                      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(f.id)); setDraggedId(f.id); }}
                       onDragEnd={() => { setDraggedId(null); setDragOverCol(null); }}
                       onClick={() => navigate(`/crm/clienti/${f.userId}`)}
                       className={`cursor-grab rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing ${draggedId === f.id ? 'opacity-50' : ''}`}

@@ -98,7 +98,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             var activities = apps
                 .Select(a => new CrmActivity
                 {
-                    Title = $"Dosar #MS-{a.Id} — {StatusLabel(a.Status)}",
+                    Title = $"Dosar #MS-{a.Id} — {ApplicationStatuses.Label(a.Status)}",
                     At = a.UpdatedAt,
                     Kind = "dosar",
                 })
@@ -145,21 +145,6 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             DISBURSAT => "debursate",
             RESPINS => "respins",
             _ => "analiza",
-        };
-
-        private static string StatusLabel(string status) => status switch
-        {
-            INREGISTRAT => "Înregistrat",
-            IN_ANALIZA => "În analiză",
-            NEVOIE_DOCUMENTE => "Nevoie de documente",
-            PREAPROBAT => "Pre-aprobat",
-            ApplicationStatuses.OFERTA_TRANSMISA => "Ofertă transmisă",
-            ApplicationStatuses.ACCEPTAT_CLIENT => "Acceptat de client",
-            TRIMIS_LA_BANCA => "Trimis la bancă",
-            APROBAT_BANCA => "Aprobat de bancă",
-            DISBURSAT => "Debursat",
-            RESPINS => "Respins",
-            _ => status,
         };
     }
 }

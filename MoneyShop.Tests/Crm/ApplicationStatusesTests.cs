@@ -6,6 +6,17 @@ namespace MoneyShop.Tests.Crm;
 public class ApplicationStatusesTests
 {
     [Fact]
+    public void EveryStatus_HasALabelDifferentFromItsCode()
+    {
+        foreach (var status in ApplicationStatuses.All)
+        {
+            var label = ApplicationStatuses.Label(status);
+            Assert.False(string.IsNullOrWhiteSpace(label));
+            Assert.NotEqual(status, label);
+        }
+    }
+
+    [Fact]
     public void Disbursat_HasNoTargets()
     {
         Assert.Empty(ApplicationStatuses.TransitionMap[ApplicationStatuses.DISBURSAT]);

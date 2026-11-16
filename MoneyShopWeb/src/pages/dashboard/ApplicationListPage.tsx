@@ -7,18 +7,18 @@ import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
 
 // Define the timeline flow — each application goes through these steps
 const TIMELINE_STEPS = [
-  { key: 'INREGISTRAT', label: 'Inregistrat', desc: 'Cererea ta a fost primita si inregistrata in sistem.' },
-  { key: 'IN_ANALIZA', label: 'In analiza', desc: 'Un broker analizeaza dosarul tau si pregateste ofertele.' },
-  { key: 'NEVOIE_DOCUMENTE', label: 'Nevoie documente', desc: 'Mai avem nevoie de cateva documente de la tine.' },
-  { key: 'PREAPROBAT', label: 'Pre-aprobat', desc: 'Ai fost pre-aprobat! Pregatim oferta finala.' },
-  { key: 'OFERTA_TRANSMISA', label: 'Oferta transmisa', desc: 'Ti-am trimis ofertele de la banci. Revizuieste-le.' },
-  { key: 'ACCEPTAT_CLIENT', label: 'Acceptat', desc: 'Ai acceptat oferta. O transmitem la banca.' },
-  { key: 'TRIMIS_LA_BANCA', label: 'Trimis la banca', desc: 'Dosarul tau este la banca pentru aprobare finala.' },
-  { key: 'APROBAT_BANCA', label: 'Aprobat de banca', desc: 'Banca a aprobat cererea! Urmeaza disbursarea.' },
-  { key: 'DISBURSAT', label: 'Debursat', desc: 'Felicitari! Creditul a fost acordat cu succes.' },
-];
+  { key: 'INREGISTRAT', desc: 'Cererea ta a fost primita si inregistrata in sistem.' },
+  { key: 'IN_ANALIZA', desc: 'Un broker analizeaza dosarul tau si pregateste ofertele.' },
+  { key: 'NEVOIE_DOCUMENTE', desc: 'Mai avem nevoie de cateva documente de la tine.' },
+  { key: 'PREAPROBAT', desc: 'Ai fost pre-aprobat! Pregatim oferta finala.' },
+  { key: 'OFERTA_TRANSMISA', desc: 'Ti-am trimis ofertele de la banci. Revizuieste-le.' },
+  { key: 'ACCEPTAT_CLIENT', desc: 'Ai acceptat oferta. O transmitem la banca.' },
+  { key: 'TRIMIS_LA_BANCA', desc: 'Dosarul tau este la banca pentru aprobare finala.' },
+  { key: 'APROBAT_BANCA', desc: 'Banca a aprobat cererea! Urmeaza disbursarea.' },
+  { key: 'DISBURSAT', desc: 'Felicitari! Creditul a fost acordat cu succes.' },
+].map(s => ({ ...s, label: APPLICATION_STATUS_LABELS[s.key] }));
 
-const REJECTED_STEP = { key: 'RESPINS', label: 'Respins', desc: 'Din pacate, cererea nu a fost aprobata.' };
+const REJECTED_STEP = { key: 'RESPINS', label: APPLICATION_STATUS_LABELS.RESPINS, desc: 'Din pacate, cererea nu a fost aprobata.' };
 
 function getStatusColor(status: string) {
   if (status === 'APROBAT_BANCA' || status === 'DISBURSAT') return 'bg-success-500/15 text-success-400';

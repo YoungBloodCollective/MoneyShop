@@ -69,7 +69,7 @@ public class ApplicationService : IApplicationService
 
         var current = application.Status;
         if (!ApplicationStatuses.CanTransition(current, newStatus))
-            throw new InvalidOperationException($"Mutarea din {current} în {newStatus} nu este permisă");
+            throw new InvalidOperationException($"Mutarea din „{ApplicationStatuses.Label(current)}” în „{ApplicationStatuses.Label(newStatus)}” nu este permisă");
 
         var now = DateTime.UtcNow;
         _context.ApplicationStatusHistories.Add(new ApplicationStatusHistory

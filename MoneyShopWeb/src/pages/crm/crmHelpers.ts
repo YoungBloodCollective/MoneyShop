@@ -16,7 +16,7 @@ export function acordStatusLabel(status?: string | null): string {
 
 export function canMove(map: Record<string, string[]> | null, from: string, to: string): boolean {
   if (from === to) return false;
-  return map ? (map[from]?.includes(to) ?? false) : from !== 'DISBURSAT';
+  return map ? (map[from]?.includes(to) ?? false) : from !== 'DISBURSAT' && to !== 'INREGISTRAT';
 }
 
 export function allowedTargets(map: Record<string, string[]> | null, from: string, all: readonly string[]): string[] {

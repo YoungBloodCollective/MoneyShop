@@ -27,6 +27,21 @@ namespace MoneyShop.ServiceInterface.SharedDtos
             kv => kv.Key,
             kv => kv.Value.OrderBy(t => t == RESPINS ? Order.Length : Array.IndexOf(Order, t)).ToArray());
 
+        public static string Label(string status) => status switch
+        {
+            INREGISTRAT => "Înregistrat",
+            IN_ANALIZA => "În analiză",
+            NEVOIE_DOCUMENTE => "Nevoie de documente",
+            PREAPROBAT => "Pre-aprobat",
+            OFERTA_TRANSMISA => "Ofertă transmisă",
+            ACCEPTAT_CLIENT => "Acceptat de client",
+            TRIMIS_LA_BANCA => "Trimis la bancă",
+            APROBAT_BANCA => "Aprobat de bancă",
+            DISBURSAT => "Debursat",
+            RESPINS => "Respins",
+            _ => status,
+        };
+
         public static bool IsValid(string? status) => status != null && Allowed.ContainsKey(status);
 
         public static bool CanTransition(string from, string to)
