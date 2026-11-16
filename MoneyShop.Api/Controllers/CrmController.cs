@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Audit;
 using MoneyShop.ServiceInterface.Interfaces.Crm;
 using MoneyShop.ServiceInterface.Interfaces.Subject;
+using MoneyShop.ServiceInterface.SharedDtos;
 
 namespace MoneyShop.Api.Controllers
 {
@@ -48,6 +49,12 @@ namespace MoneyShop.Api.Controllers
         public IActionResult GetFiles()
         {
             return Ok(_crm.GetFiles());
+        }
+
+        [HttpGet("status-transitions")]
+        public IActionResult GetStatusTransitions()
+        {
+            return Ok(ApplicationStatuses.TransitionMap);
         }
 
         [HttpGet("offers")]

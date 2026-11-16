@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Search, Users, FolderKanban, LayoutDashboard, Landmark, Sparkles, Workflow, CornerDownLeft, FileSignature, CalendarClock, BarChart3, UserCircle,
+  Search, Users, FolderKanban, LayoutDashboard, Sparkles, CornerDownLeft, FileSignature, CalendarClock, BarChart3, UserCircle,
 } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,10 +21,8 @@ const PAGES: Item[] = [
   { key: 'p-cli', title: 'Clienți', to: '/crm/clienti', icon: Users, group: 'Pagini' },
   { key: 'p-acord', title: 'Acorduri', to: '/crm/acorduri', icon: FileSignature, group: 'Pagini' },
   { key: 'p-dos', title: 'Dosare', to: '/crm/dosare', icon: FolderKanban, group: 'Pagini' },
-  { key: 'p-of', title: 'Oferte bancare', to: '/crm/oferte', icon: Landmark, group: 'Pagini' },
   { key: 'p-lead', title: 'Lead-uri', to: '/crm/leaduri', icon: Sparkles, group: 'Pagini' },
   { key: 'p-prog', title: 'Programări', to: '/crm/programari', icon: CalendarClock, group: 'Pagini' },
-  { key: 'p-auto', title: 'Automatizări', to: '/crm/automatizari', icon: Workflow, group: 'Pagini' },
   { key: 'p-rap', title: 'Rapoarte', to: '/crm/rapoarte', icon: BarChart3, group: 'Pagini' },
   { key: 'p-profil', title: 'Profilul meu', to: '/crm/profil', icon: UserCircle, group: 'Pagini' },
 ];

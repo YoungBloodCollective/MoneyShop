@@ -1,18 +1,5 @@
 import { useState } from 'react';
-// CRM-local status labels (with diacritics) and light-theme pills. The admin panel uses its
-// own dark pills + APPLICATION_STATUS_LABELS; the CRM keeps a polished copy of its own.
-const STATUS_LABEL: Record<string, string> = {
-  INREGISTRAT: 'Înregistrat',
-  IN_ANALIZA: 'În analiză',
-  NEVOIE_DOCUMENTE: 'Nevoie de documente',
-  PREAPROBAT: 'Pre-aprobat',
-  OFERTA_TRANSMISA: 'Ofertă transmisă',
-  ACCEPTAT_CLIENT: 'Acceptat de client',
-  RESPINS: 'Respins',
-  TRIMIS_LA_BANCA: 'Trimis la bancă',
-  APROBAT_BANCA: 'Aprobat de bancă',
-  DISBURSAT: 'Debursat',
-};
+import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
 
 export const ACORD_STATUS_LABEL: Record<string, string> = {
   started: 'Acord început',
@@ -27,9 +14,18 @@ export function acordStatusLabel(status?: string | null): string {
   return ACORD_STATUS_LABEL[status] ?? status;
 }
 
+export function canMove(map: Record<string, string[]> | null, from: string, to: string): boolean {
+  if (from === to) return false;
+  return map ? (map[from]?.includes(to) ?? false) : from !== 'DISBURSAT' && to !== 'INREGISTRAT';
+}
+
+export function allowedTargets(map: Record<string, string[]> | null, from: string, all: readonly string[]): string[] {
+  return all.filter(s => canMove(map, from, s));
+}
+
 export function statusLabel(status?: string): string {
   if (!status) return '—';
-  return STATUS_LABEL[status] ?? status;
+  return APPLICATION_STATUS_LABELS[status] ?? status;
 }
 
 const CREDIT_TYPE_LABEL: Record<string, string> = {

@@ -6,10 +6,11 @@ import { crmApi } from '@/services/api/crmApi';
 import { adminApi, type DisbursementRequest } from '@/services/api/adminApi';
 import { apiErrorMessage } from '@/services/api/brokersApi';
 import { DisbursementModal, type DisbursementInitial } from '@/components/crm/DisbursementModal';
-import type { CrmFileListItem } from '@/types/crm.types';
+import { MoveToMenu } from '@/components/crm/MoveToMenu';
+import type { CrmFileListItem, StatusTransitions } from '@/types/crm.types';
 import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
-import { PageHeader, SkeletonTable, EmptyState, StatusPill, SegmentChips, Pagination } from './crmShared';
-import { money, dateShort, creditTypeLabel, statusColor, statusLabel, FILE_STATUS_SEGMENTS, matchesSegment, usePaged } from './crmHelpers';
+import { PageHeader, SkeletonTable, EmptyState, ErrorState, StatusPill, SegmentChips, Pagination } from './crmShared';
+import { money, dateShort, creditTypeLabel, statusColor, statusLabel, canMove, allowedTargets, FILE_STATUS_SEGMENTS, matchesSegment, usePaged } from './crmHelpers';
 
 const STATUS_OPTIONS = Object.entries(APPLICATION_STATUS_LABELS);
 const COLUMNS = [
@@ -22,6 +23,9 @@ export default function CrmDosarePage() {
   const navigate = useNavigate();
   const [files, setFiles] = useState<CrmFileListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [transitions, setTransitions] = useState<StatusTransitions | null>(null);
   const [q, setQ] = useState('');
   const [segment, setSegment] = useState<string>(() => {
     try { const v = localStorage.getItem(SEG_KEY); return v && v !== 'none' ? v : 'toate'; } catch { return 'toate'; }
@@ -35,10 +39,21 @@ export default function CrmDosarePage() {
   useEffect(() => {
     let active = true;
     crmApi.getFiles()
-      .then(d => { if (active) setFiles(d); })
+      .then(d => { if (active) { setFiles(d); setFailed(false); } })
+      .catch(() => { if (active) setFailed(true); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
+  }, [attempt]);
+
+  useEffect(() => {
+    let active = true;
+    crmApi.getStatusTransitions()
+      .then(m => { if (active) setTransitions(m); })
+      .catch(() => { if (active) setTransitions(null); });
+    return () => { active = false; };
   }, []);
+
+  const retry = () => { setLoading(true); setAttempt(a => a + 1); };
 
   useEffect(() => { try { localStorage.setItem(SEG_KEY, segment); } catch { /* ignore */ } }, [segment]);
   const resetKey = `${segment}\u0000${q}`;
@@ -71,15 +86,19 @@ export default function CrmDosarePage() {
   function moveCard(id: number, toStatus: string) {
     const file = files.find(f => f.id === id);
     if (!file || file.status === toStatus) return;
+    if (!canMove(transitions, file.status, toStatus)) {
+      toast.error(`Mutarea din „${statusLabel(file.status)}” în „${statusLabel(toStatus)}” nu este permisă.`);
+      return;
+    }
     if (toStatus === 'DISBURSAT') { setDisbursing({ ids: [id] }); return; }
-    if (toStatus === 'RESPINS' && !window.confirm(`Sigur muți dosarul #${file.code} în „${statusLabel(toStatus)}”? Acțiunea poate notifica clientul.`)) return;
+    if (toStatus === 'RESPINS' && !window.confirm(`Sigur muți dosarul #${file.code} în „${statusLabel(toStatus)}”?`)) return;
     const prev = file.status;
     setFiles(fs => fs.map(f => (f.id === id ? { ...f, status: toStatus } : f)));
     adminApi.updateStatus(id, toStatus)
       .then(() => toast.success(`#${file.code} → ${statusLabel(toStatus)}`))
-      .catch(() => {
+      .catch(err => {
         setFiles(fs => fs.map(f => (f.id === id ? { ...f, status: prev } : f)));
-        toast.error('Nu am putut schimba statusul');
+        toast.error(apiErrorMessage(err, 'Nu am putut schimba statusul'));
       });
   }
 
@@ -131,6 +150,12 @@ export default function CrmDosarePage() {
     }
   }
 
+  const selectedFiles = useMemo(() => files.filter(f => selected.has(f.id)), [files, selected]);
+  const bulkTargets = useMemo(
+    () => STATUS_OPTIONS.filter(([k]) => selectedFiles.every(f => canMove(transitions, f.status, k))),
+    [selectedFiles, transitions],
+  );
+
   const pageIds = slice.map(f => f.id);
   const allOnPageSelected = pageIds.length > 0 && pageIds.every(id => selected.has(id));
   const toggleAllOnPage = () => {
@@ -167,9 +192,9 @@ export default function CrmDosarePage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Dosare" subtitle={`${files.length} dosare în total`} action={toggle} />
+      <PageHeader title="Dosare" subtitle={failed ? undefined : `${files.length} dosare în total`} action={toggle} />
 
-      {view === 'list' && (
+      {view === 'list' && !failed && (
         <SegmentChips segments={FILE_STATUS_SEGMENTS} active={segment} onChange={setSegment} counts={counts} />
       )}
 
@@ -185,6 +210,8 @@ export default function CrmDosarePage() {
 
       {loading ? (
         <SkeletonTable rows={7} />
+      ) : failed ? (
+        <ErrorState message="Nu am putut încărca dosarele" onRetry={retry} />
       ) : view === 'list' ? (
         listFiltered.length === 0 ? (
           <EmptyState message="Niciun dosar găsit." />
@@ -193,15 +220,22 @@ export default function CrmDosarePage() {
             {selected.size > 0 && (
               <div className="flex flex-wrap items-center gap-3 rounded-xl border border-brand-primary/30 bg-brand-primary/5 px-4 py-2.5">
                 <span className="text-sm font-medium text-slate-700">{selected.size} selectate</span>
-                <div className="ml-auto flex items-center gap-2">
-                  <select
-                    defaultValue=""
-                    onChange={e => { if (e.target.value) { bulkSetStatus(e.target.value); e.target.value = ''; } }}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 focus:border-brand-primary focus:outline-none"
-                  >
-                    <option value="" disabled>Schimbă status în…</option>
-                    {STATUS_OPTIONS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
+                <div className="ml-auto flex flex-wrap items-center gap-2">
+                  {bulkTargets.length === 0 ? (
+                    <select disabled defaultValue="" className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-400">
+                      <option value="">Nicio mutare comună</option>
+                    </select>
+                  ) : (
+                    <select
+                      defaultValue=""
+                      onChange={e => { if (e.target.value) { bulkSetStatus(e.target.value); e.target.value = ''; } }}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 focus:border-brand-primary focus:outline-none"
+                    >
+                      <option value="" disabled>Schimbă status în…</option>
+                      {bulkTargets.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                  )}
+                  <span className="text-xs text-slate-500">Se afișează doar statusurile valide pentru toate dosarele selectate</span>
                   <button onClick={() => setSelected(new Set())} className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-slate-500 hover:bg-white">
                     <X className="h-4 w-4" /> Anulează
                   </button>
@@ -260,14 +294,25 @@ export default function CrmDosarePage() {
         <div className="flex gap-4 overflow-x-auto pb-4">
           {COLUMNS.map(col => {
             const cards = searched.filter(f => f.status === col);
-            const over = dragOverCol === col;
+            const dragged = draggedId != null ? files.find(f => f.id === draggedId) : undefined;
+            const droppable = !!dragged && canMove(transitions, dragged.status, col);
+            const dimmed = !!dragged && dragged.status !== col && !droppable;
+            const over = droppable && dragOverCol === col;
+            const borderClass = over
+              ? 'border-brand-primary bg-brand-primary/5'
+              : droppable ? 'border-dashed border-brand-primary/60' : 'border-slate-200';
             return (
               <div
                 key={col}
-                onDragOver={e => { e.preventDefault(); setDragOverCol(col); }}
+                onDragOver={e => {
+                  if (!droppable) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  setDragOverCol(col);
+                }}
                 onDragLeave={() => setDragOverCol(c => (c === col ? null : c))}
                 onDrop={() => { if (draggedId != null) moveCard(draggedId, col); setDragOverCol(null); setDraggedId(null); }}
-                className={`flex w-72 shrink-0 flex-col rounded-2xl border bg-slate-100/60 p-2 transition-colors ${over ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-200'}`}
+                className={`flex w-72 shrink-0 flex-col rounded-2xl border bg-slate-100/60 p-2 transition-colors ${borderClass} ${dimmed ? 'opacity-40' : ''}`}
               >
                 <div className="flex items-center gap-2 px-2 py-2">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: statusColor(col) }} />
@@ -279,14 +324,15 @@ export default function CrmDosarePage() {
                     <div
                       key={f.id}
                       draggable
-                      onDragStart={() => setDraggedId(f.id)}
+                      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(f.id)); setDraggedId(f.id); }}
                       onDragEnd={() => { setDraggedId(null); setDragOverCol(null); }}
                       onClick={() => navigate(`/crm/clienti/${f.userId}`)}
                       className={`cursor-grab rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing ${draggedId === f.id ? 'opacity-50' : ''}`}
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-semibold text-slate-800">#{f.code}</span>
-                        <span className="text-xs text-slate-400">{creditTypeLabel(f.typeCredit)}</span>
+                        <span className="ml-auto text-xs text-slate-400">{creditTypeLabel(f.typeCredit)}</span>
+                        <MoveToMenu code={f.code} targets={allowedTargets(transitions, f.status, COLUMNS)} onSelect={t => moveCard(f.id, t)} />
                       </div>
                       <div className="mt-1 truncate text-sm font-medium text-slate-700">{f.clientName}</div>
                       <div className="mt-1 text-xs text-slate-500">{money(f.requestedAmount)}</div>

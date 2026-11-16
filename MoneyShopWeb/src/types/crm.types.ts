@@ -188,13 +188,4 @@ export interface CrmFileListItem {
   updatedAt: string;
 }
 
-export interface CrmOfferItem {
-  applicationId: number;
-  fileCode: string;
-  clientName: string;
-  bankName: string;
-  commissionPercent: number;
-  requestedAmount?: number;
-  status: string;
-  createdAt: string;
-}
+export type StatusTransitions = Record<string, string[]>;

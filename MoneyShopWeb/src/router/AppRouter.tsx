@@ -67,9 +67,7 @@ const CrmDashboardPage = lazy(() => import('@/pages/crm/CrmDashboardPage'));
 const CrmClientsPage = lazy(() => import('@/pages/crm/CrmClientsPage'));
 const CrmClientDetailPage = lazy(() => import('@/pages/crm/CrmClientDetailPage'));
 const CrmDosarePage = lazy(() => import('@/pages/crm/CrmDosarePage'));
-const CrmOffersPage = lazy(() => import('@/pages/crm/CrmOffersPage'));
 const CrmLeadsPage = lazy(() => import('@/pages/crm/CrmLeadsPage'));
-const CrmAutomationsPage = lazy(() => import('@/pages/crm/CrmAutomationsPage'));
 const CrmAcorduriPage = lazy(() => import('@/pages/crm/CrmAcorduriPage'));
 const CrmAcordDetailPage = lazy(() => import('@/pages/crm/CrmAcordDetailPage'));
 const CrmProgramariPage = lazy(() => import('@/pages/crm/CrmProgramariPage'));
@@ -180,9 +178,9 @@ export function AppRouter() {
           <Route path="/crm/rapoarte" element={<CrmRapoartePage />} />
           <Route path="/crm/profil" element={<ProtectedRoute brokerOnly><CrmProfilPage /></ProtectedRoute>} />
           <Route path="/crm/dosare" element={<CrmDosarePage />} />
-          <Route path="/crm/oferte" element={<CrmOffersPage />} />
+          <Route path="/crm/oferte" element={<Navigate to="/crm" replace />} />
           <Route path="/crm/leaduri" element={<CrmLeadsPage />} />
-          <Route path="/crm/automatizari" element={<CrmAutomationsPage />} />
+          <Route path="/crm/automatizari" element={<Navigate to="/crm" replace />} />
         </Route>
 
         {/* Catch-all */}
