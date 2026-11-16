@@ -23,6 +23,10 @@ namespace MoneyShop.ServiceInterface.SharedDtos
 
         public static IReadOnlyCollection<string> All { get; } = Order.Append(RESPINS).ToArray();
 
+        public static IReadOnlyDictionary<string, string[]> TransitionMap { get; } = Allowed.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value.OrderBy(t => t == RESPINS ? Order.Length : Array.IndexOf(Order, t)).ToArray());
+
         public static bool IsValid(string? status) => status != null && Allowed.ContainsKey(status);
 
         public static bool CanTransition(string from, string to)

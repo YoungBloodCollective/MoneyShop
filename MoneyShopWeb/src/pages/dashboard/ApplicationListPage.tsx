@@ -15,7 +15,7 @@ const TIMELINE_STEPS = [
   { key: 'ACCEPTAT_CLIENT', label: 'Acceptat', desc: 'Ai acceptat oferta. O transmitem la banca.' },
   { key: 'TRIMIS_LA_BANCA', label: 'Trimis la banca', desc: 'Dosarul tau este la banca pentru aprobare finala.' },
   { key: 'APROBAT_BANCA', label: 'Aprobat de banca', desc: 'Banca a aprobat cererea! Urmeaza disbursarea.' },
-  { key: 'DISBURSAT', label: 'Disbursat', desc: 'Felicitari! Creditul a fost acordat cu succes.' },
+  { key: 'DISBURSAT', label: 'Debursat', desc: 'Felicitari! Creditul a fost acordat cu succes.' },
 ];
 
 const REJECTED_STEP = { key: 'RESPINS', label: 'Respins', desc: 'Din pacate, cererea nu a fost aprobata.' };

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, FolderKanban, Landmark, Sparkles,
-  Megaphone, Workflow, BarChart3, Settings, Search, Bell,
+  LayoutDashboard, Users, FolderKanban, Sparkles,
+  BarChart3, Search,
   Menu, X, LogOut, ChevronDown, ExternalLink, FileSignature, CalendarClock, UserCircle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,8 +12,7 @@ import { CrmCommandPalette } from './CrmCommandPalette';
 interface NavItem {
   label: string;
   icon: typeof LayoutDashboard;
-  to?: string;
-  soon?: boolean;
+  to: string;
 }
 
 const NAV: NavItem[] = [
@@ -21,13 +20,9 @@ const NAV: NavItem[] = [
   { label: 'Clienți', icon: Users, to: '/crm/clienti' },
   { label: 'Acorduri', icon: FileSignature, to: '/crm/acorduri' },
   { label: 'Dosare', icon: FolderKanban, to: '/crm/dosare' },
-  { label: 'Oferte bancare', icon: Landmark, to: '/crm/oferte' },
   { label: 'Lead-uri', icon: Sparkles, to: '/crm/leaduri' },
   { label: 'Programări', icon: CalendarClock, to: '/crm/programari' },
-  { label: 'Campanii', icon: Megaphone, soon: true },
-  { label: 'Automatizări', icon: Workflow, to: '/crm/automatizari' },
   { label: 'Rapoarte', icon: BarChart3, to: '/crm/rapoarte' },
-  { label: 'Setări', icon: Settings, soon: true },
 ];
 
 function initials(name?: string) {
@@ -50,19 +45,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
         {NAV.map(item => {
           const Icon = item.icon;
-          if (item.soon || !item.to) {
-            return (
-              <div
-                key={item.label}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-500 cursor-default select-none"
-                title="În curând"
-              >
-                <Icon className="h-[18px] w-[18px]" />
-                <span className="flex-1">{item.label}</span>
-                <span className="text-[10px] uppercase tracking-wide text-slate-600">curând</span>
-              </div>
-            );
-          }
           return (
             <NavLink
               key={item.label}
@@ -90,10 +72,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 export function CrmLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [bellOpen, setBellOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const bellRef = useRef<HTMLDivElement>(null);
   const { user, logout, isSuperAdmin, isBroker } = useAuth();
   const navigate = useNavigate();
 
@@ -101,10 +81,9 @@ export function CrmLayout() {
     function onDocMouseDown(e: MouseEvent) {
       const t = e.target as Node;
       if (userMenuRef.current && !userMenuRef.current.contains(t)) setUserMenuOpen(false);
-      if (bellRef.current && !bellRef.current.contains(t)) setBellOpen(false);
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') { setUserMenuOpen(false); setBellOpen(false); }
+      if (e.key === 'Escape') setUserMenuOpen(false);
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setPaletteOpen(v => !v);
@@ -161,30 +140,10 @@ export function CrmLayout() {
           </button>
 
           <div className="flex flex-1 sm:flex-none items-center justify-end gap-1.5">
-            {/* Notifications */}
-            <div ref={bellRef} className="relative">
-              <button
-                onClick={() => { setBellOpen(v => !v); setUserMenuOpen(false); }}
-                className={`rounded-xl p-2 text-slate-500 hover:bg-slate-100 ${bellOpen ? 'bg-slate-100 text-slate-700' : ''}`}
-                aria-label="Notificări"
-              >
-                <Bell className="h-5 w-5" />
-              </button>
-              {bellOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
-                  <div className="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-800">Notificări</div>
-                  <div className="flex flex-col items-center gap-2 px-4 py-9 text-center">
-                    <Bell className="h-6 w-6 text-slate-300" />
-                    <p className="text-sm text-slate-400">Nicio notificare nouă</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* User menu */}
             <div ref={userMenuRef} className="relative">
               <button
-                onClick={() => { setUserMenuOpen(v => !v); setBellOpen(false); }}
+                onClick={() => setUserMenuOpen(v => !v)}
                 className={`flex items-center gap-2.5 rounded-xl py-1.5 pl-1.5 pr-2.5 hover:bg-slate-100 ${userMenuOpen ? 'bg-slate-100' : ''}`}
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-primary/10 text-sm font-semibold text-brand-primary">

@@ -26,16 +26,16 @@ export const APPLICATION_STATUS = {
 };
 
 export const APPLICATION_STATUS_LABELS: Record<string, string> = {
-  INREGISTRAT: 'Inregistrat',
-  IN_ANALIZA: 'In analiza',
-  NEVOIE_DOCUMENTE: 'Nevoie documente',
+  INREGISTRAT: 'Înregistrat',
+  IN_ANALIZA: 'În analiză',
+  NEVOIE_DOCUMENTE: 'Nevoie de documente',
   PREAPROBAT: 'Pre-aprobat',
   RESPINS: 'Respins',
-  OFERTA_TRANSMISA: 'Oferta transmisa',
+  OFERTA_TRANSMISA: 'Ofertă transmisă',
   ACCEPTAT_CLIENT: 'Acceptat de client',
-  TRIMIS_LA_BANCA: 'Trimis la banca',
-  APROBAT_BANCA: 'Aprobat de banca',
-  DISBURSAT: 'Disbursat',
+  TRIMIS_LA_BANCA: 'Trimis la bancă',
+  APROBAT_BANCA: 'Aprobat de bancă',
+  DISBURSAT: 'Debursat',
 };
 
 export const CREDIT_TYPES = {

@@ -1,7 +1,7 @@
 import { apiClient } from './apiClient';
 import type {
   CrmDashboardSummary, CrmClientListItem, CrmClientDetail,
-  CrmFileListItem, CrmOfferItem,
+  CrmFileListItem, StatusTransitions,
 } from '@/types/crm.types';
 
 export const crmApi = {
@@ -21,8 +21,8 @@ export const crmApi = {
     const { data } = await apiClient.get<CrmFileListItem[]>('/crm/files');
     return data;
   },
-  async getOffers(): Promise<CrmOfferItem[]> {
-    const { data } = await apiClient.get<CrmOfferItem[]>('/crm/offers');
+  async getStatusTransitions(): Promise<StatusTransitions> {
+    const { data } = await apiClient.get<StatusTransitions>('/crm/status-transitions');
     return data;
   },
   async uploadAnaf(userId: number, file: File): Promise<void> {

@@ -96,7 +96,7 @@ namespace MoneyShop.Api.Controllers
 
             var alreadyDisbursed = application.Status == ApplicationStatuses.DISBURSAT;
             if (!alreadyDisbursed && !ApplicationStatuses.CanTransition(application.Status, ApplicationStatuses.DISBURSAT))
-                return Conflict(new { message = $"Transition {application.Status} -> {ApplicationStatuses.DISBURSAT} is not allowed" });
+                return Conflict(new { message = $"Mutarea din {application.Status} în {ApplicationStatuses.DISBURSAT} nu este permisă" });
 
             application.SumaAprobata = request.SumaAprobata;
             application.Comision = request.Comision;
