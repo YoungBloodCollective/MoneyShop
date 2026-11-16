@@ -78,6 +78,7 @@ export default function CrmDosarePage() {
   };
   const changeView = (k: 'list' | 'board') => {
     setView(k);
+    if (k === 'board' && hasUrlFilter) setSearchParams({}, { replace: true });
     try { localStorage.setItem(VIEW_KEY, k); } catch { /* ignore */ }
   };
   const clearStatusFilter = () => setSearchParams({}, { replace: true });
@@ -211,9 +212,9 @@ export default function CrmDosarePage() {
         <button
           key={k}
           onClick={() => changeView(k)}
-          aria-pressed={view === k}
+          aria-pressed={effectiveView === k}
           className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${FOCUS_RING} ${
-            view === k ? 'bg-brand-primary text-white' : 'text-slate-500 hover:text-slate-700'
+            effectiveView === k ? 'bg-brand-primary text-white' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
           <Icon className="h-4 w-4" /> {label}

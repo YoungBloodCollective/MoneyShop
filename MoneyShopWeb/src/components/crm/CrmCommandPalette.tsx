@@ -80,8 +80,8 @@ export function CrmCommandPalette({ open, onClose }: { open: boolean; onClose: (
   const go = (item?: Item) => { if (!item) return; onClose(); navigate(item.to); };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setSel(s => Math.min(s + 1, items.length - 1)); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setSel(s => Math.max(s - 1, 0)); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (items.length) setSel(Math.min(selIdx + 1, items.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); if (items.length) setSel(Math.max(selIdx - 1, 0)); }
     else if (e.key === 'Enter') { e.preventDefault(); go(items[selIdx]); }
   };
 
