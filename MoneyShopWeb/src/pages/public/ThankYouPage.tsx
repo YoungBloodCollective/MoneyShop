@@ -1,23 +1,11 @@
-import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 
-declare global {
-  interface Window { gtag?: (...args: unknown[]) => void; }
-}
-
+// The Google Ads lead conversion is sent by the form that created the appointment
+// (trackLeadConversion in LandingPage), not here: firing on page view counted every
+// lead twice and counted again on every reload or direct visit to /multumim.
 export default function ThankYouPage() {
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (window.gtag) {
-      window.gtag('event', 'conversion', {
-        send_to: 'AW-18083608146/HriFCOibyZocENLs965D',
-        value: 1.0,
-        currency: 'RON',
-      });
-    }
-  }, []);
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4">
