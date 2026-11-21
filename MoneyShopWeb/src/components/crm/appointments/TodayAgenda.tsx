@@ -10,6 +10,8 @@ import { CANCELLED_STATUS, addDays, timeRange, type Appointment } from './appoin
 export function TodayAgenda() {
   const crm = useCrmPath();
   const [items, setItems] = useState<Appointment[] | null>(null);
+  // Moment of the last refresh; used to dim calls that are already over.
+  const [now, setNow] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -23,6 +25,7 @@ export function TodayAgenda() {
             .filter(a => a.scheduledAt && a.status !== CANCELLED_STATUS)
             .sort((x, y) => new Date(x.scheduledAt!).getTime() - new Date(y.scheduledAt!).getTime());
           setItems(list);
+          setNow(Date.now());
         })
         .catch(() => { if (active) setItems(prev => prev ?? []); });
     };
@@ -30,8 +33,6 @@ export function TodayAgenda() {
     const timer = window.setInterval(load, 30_000);
     return () => { active = false; window.clearInterval(timer); };
   }, []);
-
-  const now = Date.now();
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
