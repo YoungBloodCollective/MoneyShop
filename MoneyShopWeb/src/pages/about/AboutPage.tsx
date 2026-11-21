@@ -1,28 +1,21 @@
-import { Star, Shield, Calculator, Clock, Users, CheckCircle } from 'lucide-react';
+import { Shield, Calculator, Clock, Users, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useInView } from '@/hooks/useInView';
 
-const reviews = [
-  { name: 'Andrei M.', text: 'Am obtinut un credit ipotecar cu cea mai buna dobanda de pe piata. Recomand!', stars: 5 },
-  { name: 'Elena P.', text: 'Procesul a fost simplu si transparent. In 3 zile am avut banii in cont.', stars: 5 },
-  { name: 'Mihai D.', text: 'MoneyShop mi-a gasit o oferta cu 2% mai putin decat banca mea. Excelent!', stars: 5 },
-  { name: 'Ioana R.', text: 'Serviciu profesionist, broker dedicat care m-a ghidat pas cu pas.', stars: 4 },
-  { name: 'Cristian V.', text: 'Am refinantat si economisesc 400 lei pe luna. Mersi MoneyShop!', stars: 5 },
-  { name: 'Maria L.', text: 'Platforma e foarte usor de utilizat, chiar si de pe telefon.', stars: 5 },
-];
-
+// Only claims we can back up: no unsourced client counts, ratings, volumes or approval rates
+// (Sprint 0, point 0.5). Real reviews can come back with a link to where they are published.
 const features = [
-  { icon: Calculator, title: 'Simulator instant', desc: 'Afla in 2 minute cat poti imprumuta si la ce rata lunara.' },
-  { icon: Shield, title: '100% sigur', desc: 'Date criptate, brokeri autorizati ANPC, conformitate GDPR.' },
-  { icon: Clock, title: 'Raspuns rapid', desc: 'Primesti oferte personalizate in maxim 24 de ore.' },
-  { icon: Users, title: 'Broker autorizat de credite', desc: 'Un specialist financiar te ghideaza de la simulare pana la semnare.' },
+  { icon: Calculator, title: 'Simulator instant', desc: 'Afli în 2 minute cât poți împrumuta și la ce rată lunară.' },
+  { icon: Shield, title: 'Date protejate', desc: 'Date criptate, broker autorizat, conformitate GDPR.' },
+  { icon: Clock, title: 'Programare online', desc: 'Îți alegi singur ora apelului, direct de pe site.' },
+  { icon: Users, title: 'Broker autorizat de credite', desc: 'Un specialist financiar te ghidează de la simulare până la semnare.' },
 ];
 
 const stats = [
-  { value: '5.000+', label: 'Clienti multumiti' },
-  { value: '120M+', label: 'RON credite intermediate' },
-  { value: '10+', label: 'Banci partenere' },
-  { value: '98%', label: 'Rata de aprobare' },
+  { value: '0 lei', label: 'Costul pentru tine' },
+  { value: '10+', label: 'Bănci partenere' },
+  { value: '15 min', label: 'Primul apel de consultanță' },
+  { value: '100%', label: 'Programare și documente online' },
 ];
 
 function RevealSection({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -130,26 +123,6 @@ export default function AboutPage() {
                   <p className="text-xs text-gray-500 mt-0.5">{b.sub}</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </RevealSection>
-      <RevealSection>
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 text-center mb-8">Ce spun clientii nostri</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {reviews.map((r, i) => (
-              <RevealSection key={i} delay={i * 80}>
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-                  <div className="flex gap-0.5 mb-3">
-                    {Array.from({ length: r.stars }).map((_, si) => (
-                      <Star key={si} size={14} className="fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">"{r.text}"</p>
-                  <p className="text-xs font-medium text-gray-900">{r.name}</p>
-                </div>
-              </RevealSection>
             ))}
           </div>
         </div>

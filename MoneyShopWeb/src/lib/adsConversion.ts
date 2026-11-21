@@ -2,6 +2,8 @@
 // - transaction_id = appointment id, so Google drops duplicates (double submit, retries).
 // - user_data feeds enhanced conversions; gtag hashes it (SHA-256) in the browser before sending.
 
+import { readConsent } from './consent';
+
 const LEAD_CONVERSION = 'AW-18083608146/HriFCOibyZocENLs965D';
 
 type Gtag = (...args: unknown[]) => void;
@@ -24,6 +26,8 @@ export function toE164Ro(raw: string | undefined): string | undefined {
 }
 
 export function trackLeadConversion({ appointmentId, email, phone }: LeadConversion): void {
+  // Nothing is measured, and no email or phone leaves the browser, without marketing consent.
+  if (!readConsent()?.marketing) return;
   const gtag = (window as Window & { gtag?: Gtag }).gtag;
   if (!gtag) return;
 
