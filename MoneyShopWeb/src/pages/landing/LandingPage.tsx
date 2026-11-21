@@ -5,6 +5,7 @@ import { Phone, Lock, ChevronLeft, ChevronRight, CheckCircle2, Shield, Award, Cl
 import { useAuth } from '@/hooks/useAuth';
 import { useInView } from '@/hooks/useInView';
 import { apiClient } from '@/services/api/apiClient';
+import LoanDisclosure from '@/components/shared/LoanDisclosure';
 import { trackLeadConversion } from '@/lib/adsConversion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -855,6 +856,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <LoanDisclosure />
 
       {/* ══════════ FOOTER ══════════ */}
       <footer className="bg-gray-900 py-10">
