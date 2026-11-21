@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useInView } from '@/hooks/useInView';
 import { apiClient } from '@/services/api/apiClient';
 import LoanDisclosure from '@/components/shared/LoanDisclosure';
+import { trackLeadConversion } from '@/lib/adsConversion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -130,7 +131,7 @@ export default function LandingPage() {
     e.preventDefault();
     setProgLoading(true);
     try {
-      await apiClient.post('/appointments', {
+      const { data } = await apiClient.post<{ id?: number }>('/appointments', {
         brokerSlug: brokerSlug ?? undefined,
         nume: progForm.nume,
         prenume: progForm.prenume,
@@ -142,14 +143,7 @@ export default function LandingPage() {
         intarzieriBirou: progForm.intarzieriBirou,
         popriRecuperare: progForm.popriRecuperare,
       });
-      const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
-      if (gtag) {
-        gtag('event', 'conversion', {
-          send_to: 'AW-18083608146/HriFCOibyZocENLs965D',
-          value: 1.0,
-          currency: 'RON',
-        });
-      }
+      trackLeadConversion({ appointmentId: data?.id, email: progForm.email, phone: progForm.telefon });
       setShowProgrameaza(false);
       setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
       setProgAgreed(false);
@@ -176,7 +170,7 @@ export default function LandingPage() {
     e.preventDefault();
     setInlineLoading(true);
     try {
-      await apiClient.post('/appointments', {
+      const { data } = await apiClient.post<{ id?: number }>('/appointments', {
         brokerSlug: brokerSlug ?? undefined,
         nume: inlineForm.nume,
         prenume: inlineForm.prenume,
@@ -188,14 +182,7 @@ export default function LandingPage() {
         intarzieriBirou: inlineForm.intarzieriBirou,
         popriRecuperare: inlineForm.popriRecuperare,
       });
-      const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
-      if (gtag) {
-        gtag('event', 'conversion', {
-          send_to: 'AW-18083608146/HriFCOibyZocENLs965D',
-          value: 1.0,
-          currency: 'RON',
-        });
-      }
+      trackLeadConversion({ appointmentId: data?.id, email: inlineForm.email, phone: inlineForm.telefon });
       setInlineSuccess(true);
       setInlineAlreadyRegistered(false);
       setInlineForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
