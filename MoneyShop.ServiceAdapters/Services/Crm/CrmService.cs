@@ -181,8 +181,60 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 CanAttachAnaf = acord?.KycId != null,
                 AnafFileName = anaf?.FileName,
                 AnafUploadedAt = anaf?.CreatedAt,
+                Income = BuildIncomeSnapshot(_context.UserFinancialData.FirstOrDefault(f => f.UserId == userId)),
             };
         }
+
+        public bool IsClientVisible(int userId) =>
+            _applications.Get().Any(a => a.UserId == userId)
+            || _context.AcordClients.Any(a => a.UserId == userId);
+
+        public CrmIncomeSnapshot SaveClientIncome(int userId, CrmIncomeInput input)
+        {
+            var salaries = new[] { input.Salariu1, input.Salariu2, input.Salariu3 }
+                .Where(s => s is > 0)
+                .Select(s => s!.Value)
+                .ToList();
+            decimal? average = salaries.Count == 0 ? null : Math.Round(salaries.Average(), 2);
+            var mealTickets = input.BonuriMasa is > 0 ? input.BonuriMasa : null;
+            decimal? total = average == null && mealTickets == null ? null : (average ?? 0) + (mealTickets ?? 0);
+
+            var obligations = _bcReports.GetLatest(userId)?.ExistingMonthlyObligations;
+            decimal? dti = total is > 0 && obligations.HasValue ? Math.Round(obligations.Value / total.Value, 4) : null;
+
+            var row = _context.UserFinancialData.FirstOrDefault(f => f.UserId == userId);
+            if (row == null)
+            {
+                row = new UserFinancialData { UserId = userId, CreatedAt = DateTime.UtcNow };
+                _context.UserFinancialData.Add(row);
+            }
+            row.Salariu1 = input.Salariu1;
+            row.Salariu2 = input.Salariu2;
+            row.Salariu3 = input.Salariu3;
+            row.SalariuNet = average;
+            row.BonuriMasa = mealTickets != null;
+            row.SumaBonuriMasa = mealTickets;
+            row.VenitTotal = total;
+            if (obligations.HasValue) row.RataTotalaLunara = obligations;
+            row.Dti = dti;
+            row.LastUpdated = DateTime.UtcNow;
+            _context.SaveChanges();
+
+            return BuildIncomeSnapshot(row)!;
+        }
+
+        private static CrmIncomeSnapshot? BuildIncomeSnapshot(UserFinancialData? row) => row == null ? null : new CrmIncomeSnapshot
+        {
+            Salariu1 = row.Salariu1,
+            Salariu2 = row.Salariu2,
+            Salariu3 = row.Salariu3,
+            SalariuNet = row.SalariuNet,
+            BonuriMasa = row.SumaBonuriMasa,
+            VenitTotal = row.VenitTotal,
+            RataTotalaLunara = row.RataTotalaLunara,
+            Dti = row.Dti,
+            UpdatedAt = row.LastUpdated,
+        };
 
         private CrmAcordSnapshot? BuildAcordSnapshot(Guid acordId)
         {
@@ -235,6 +287,10 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 ReportDate = data?.ReportDate,
                 FicoScore = summary.FicoScore,
                 ExistingMonthlyObligations = summary.ExistingMonthlyObligations,
+                BankMonthlyPayment = banking?.TotalMonthlyPayment ?? 0,
+                NonBankMonthlyPayment = nonBanking?.TotalMonthlyPayment ?? 0,
+                BankAmountOwed = banking?.TotalAmountOwed ?? 0,
+                NonBankAmountOwed = nonBanking?.TotalAmountOwed ?? 0,
                 TotalAccounts = accounts.Count,
                 ActiveAccounts = accounts.Count(a => a.IsActive),
                 AccountsWithArrears = accounts.Count(a => a.HasArrears),

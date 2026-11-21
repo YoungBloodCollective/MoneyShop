@@ -17,6 +17,9 @@ import { CnpField } from '@/components/crm/acord/CnpField';
 import { TIP_ACT_LABELS, fileLabel, formatDateTime, whatsappLink } from '@/components/crm/acord/acordLabels';
 import { CopyIntakeLinkButton } from '@/components/crm/CopyIntakeLinkButton';
 import { DocumentPreviewModal, type DocumentPreviewSource } from '@/components/crm/DocumentPreviewModal';
+import { IncomeForm } from '@/components/crm/client/IncomeForm';
+import { BcUploadButton } from '@/components/crm/client/BcUploadButton';
+import { FinancialAnalysisCard } from '@/components/crm/client/FinancialAnalysisCard';
 import { Spinner, StatusPill, AcordPill, ErrorState } from './crmShared';
 import { money, dateShort, initials, creditTypeLabel, docTypeLabel, useGoBack, FOCUS_RING } from './crmHelpers';
 
@@ -113,8 +116,10 @@ function AnafCard({ client, userId, onChange }: { client: CrmClientDetail; userI
 
   return (
     <Card title="Venituri ANAF" icon={FileText}>
+      <IncomeForm key={client.income?.updatedAt ?? 'new'} userId={userId} income={client.income} onSaved={() => onChange()} />
+      <div className="my-3 border-t border-slate-100" />
       {!client.canAttachAnaf ? (
-        <p className="py-2 text-sm text-slate-400">Clientul nu are încă un acord — documentul ANAF se poate atașa după semnarea acordului.</p>
+        <p className="py-2 text-sm text-slate-400">Documentul ANAF se poate atașa după semnarea acordului.</p>
       ) : (
         <div className="space-y-3">
           {client.anafFileName ? (
@@ -308,13 +313,19 @@ function DocumentsCard({ client, onPreview }: { client: CrmClientDetail; onPrevi
   );
 }
 
-function BcReportCard({ report, userId, onPreview }: { report?: CrmBcReportSnapshot | null; userId: number; onPreview: (source: DocumentPreviewSource) => void }) {
+function BcReportCard({ report, userId, onPreview, onUploaded }: {
+  report?: CrmBcReportSnapshot | null;
+  userId: number;
+  onPreview: (source: DocumentPreviewSource) => void;
+  onUploaded: () => void;
+}) {
   const [showAccounts, setShowAccounts] = useState(false);
 
   if (!report) {
     return (
       <Card title="Raport Biroul de Credit" icon={Landmark}>
-        <p className="py-2 text-sm text-slate-400">Clientul nu a încărcat raportul BC. Îl poate încărca din contul lui (Profil → Raport BC).</p>
+        <p className="pb-3 pt-1 text-sm text-slate-400">Niciun raport BC. Îl încarci tu aici sau clientul din contul lui (Profil → Raport BC).</p>
+        <BcUploadButton userId={userId} hasReport={false} onUploaded={onUploaded} />
       </Card>
     );
   }
@@ -418,6 +429,9 @@ function BcReportCard({ report, userId, onPreview }: { report?: CrmBcReportSnaps
           </button>
         </div>
       )}
+      <div className="mt-4">
+        <BcUploadButton userId={userId} hasReport onUploaded={onUploaded} />
+      </div>
     </Card>
   );
 }
@@ -525,6 +539,7 @@ function ClientDetail({ userId }: { userId: number }) {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Left: files + documents */}
         <div className="min-w-0 space-y-4 lg:col-span-2">
+          <FinancialAnalysisCard income={client.income} bc={client.bcReport} />
           {client.acord ? <AcordCard key={client.acord.acordId} acord={client.acord} /> : <NoAcordCard />}
           {client.acord && (
             <div className="[&>div]:mb-0">
@@ -607,7 +622,7 @@ function ClientDetail({ userId }: { userId: number }) {
             ) : <p className="py-2 text-sm text-slate-400">Fără acord/KYC</p>}
           </Card>
 
-          <BcReportCard report={client.bcReport} userId={userId} onPreview={setPreview} />
+          <BcReportCard report={client.bcReport} userId={userId} onPreview={setPreview} onUploaded={() => { void refreshClient(); }} />
 
           <AnafCard client={client} userId={userId} onChange={refreshClient} />
 
