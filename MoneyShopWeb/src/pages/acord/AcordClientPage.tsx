@@ -326,6 +326,7 @@ export default function AcordClientPage() {
     !tenureConflict;
 
   const acordUnavailable = consentText?.available === false;
+  const consentOptions: { key: string; label: string; required: boolean }[] = consentText?.options?.length ? consentText.options : FALLBACK_CONSENT_OPTIONS;
   const canSubmit =
     !acordUnavailable &&
     nume.trim().length >= 2 &&
@@ -336,7 +337,6 @@ export default function AcordClientPage() {
     !!files.front &&
     (!rules.back || !!files.back) &&
     (!rules.proof || !!files.proof) &&
-    choices.intermediere &&
     !!signature;
 
   const handleSubmit = async () => {
@@ -365,7 +365,8 @@ export default function AcordClientPage() {
         documentBack: files.back,
         addressProof: files.proof,
         signatureDataUri: signature!,
-        acceptIntermediere: choices.intermediere,
+        // The required consents are listed above the signature; signing accepts them.
+        acceptIntermediere: true,
         acceptMarketing: choices.marketing,
         waiveOug52: choices.oug52Waiver,
         acceptBanci: choices.banci,
@@ -526,8 +527,10 @@ export default function AcordClientPage() {
             {showMango && <InfoCard title={MANGO_TITLE} onOpen={() => setOpenDoc('mango')} />}
           </div>
 
+          {/* Optional choices stay unticked checkboxes the client opts into. The required ones are
+              not checkboxes: they are listed above the signature, and signing is the act of acceptance. */}
           <div className="space-y-2.5 mb-5">
-            {(consentText?.options?.length ? consentText.options : FALLBACK_CONSENT_OPTIONS).map(option => (
+            {consentOptions.filter(o => !o.required).map(option => (
               <div key={option.key}>
                 <label className="flex items-start gap-2.5 cursor-pointer">
                   <input
@@ -537,8 +540,7 @@ export default function AcordClientPage() {
                     className="mt-0.5 w-5 h-5 rounded accent-brand-primary shrink-0"
                   />
                   <span className="text-[12.5px] text-light-70 leading-snug">
-                    {option.label}
-                    {option.required && <span className="text-error-500"> *</span>}
+                    {option.label} <span className="text-light-50">(opțional)</span>
                   </span>
                 </label>
                 {option.key === BANK_OPTION_KEY && bankDocuments && (
@@ -548,15 +550,21 @@ export default function AcordClientPage() {
             ))}
           </div>
 
+          <div className="rounded-xl bg-dark-800 ring-1 ring-dark-600 px-4 py-3 mb-3">
+            <p className="text-[12.5px] font-semibold text-light-90 mb-1.5">
+              Prin semnătura de mai jos confirm că am citit documentele de mai sus și accept:
+            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              {consentOptions.filter(o => o.required).map(option => (
+                <li key={option.key} className="text-[12.5px] text-light-70 leading-snug">{option.label}</li>
+              ))}
+            </ul>
+          </div>
+
           <p className="text-sm font-semibold text-light-90 mb-2">
             Semnătură <span className="font-normal text-light-60">(desenează în chenar)</span>
           </p>
-          <SignaturePad onChange={setSignature} disabled={!choices.intermediere} height={150} />
-          {!choices.intermediere && (
-            <p className="text-[12px] text-light-60 mt-1.5">
-              Bifează întâi acordul obligatoriu ca să poți semna.
-            </p>
-          )}
+          <SignaturePad onChange={setSignature} height={150} />
 
           {error && (
             <p className="text-error-600 text-sm mt-4 bg-error-500/8 rounded-xl px-4 py-3">{error}</p>

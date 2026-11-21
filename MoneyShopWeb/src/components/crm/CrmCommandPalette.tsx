@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCrmPath } from '@/lib/crmPath';
 import {
   Search, Users, FolderKanban, LayoutDashboard, Sparkles, CornerDownLeft, FileSignature, CalendarClock, BarChart3, UserCircle,
 } from 'lucide-react';
@@ -31,6 +32,7 @@ const PAGES: Item[] = [
 
 export function CrmCommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
+  const crm = useCrmPath();
   const { isBroker } = useAuth();
   const panelRef = useRef<HTMLDivElement>(null);
   const [q, setQ] = useState('');
@@ -77,7 +79,7 @@ export function CrmCommandPalette({ open, onClose }: { open: boolean; onClose: (
 
   if (!open) return null;
 
-  const go = (item?: Item) => { if (!item) return; onClose(); navigate(item.to); };
+  const go = (item?: Item) => { if (!item) return; onClose(); navigate(crm(item.to)); };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); if (items.length) setSel(Math.min(selIdx + 1, items.length - 1)); }

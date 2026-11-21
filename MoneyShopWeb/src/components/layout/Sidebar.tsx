@@ -48,30 +48,14 @@ const navItems: NavItem[] = [
   },
 ];
 
-type AdminLink = { label: string; path: string; access: 'all' | 'super' };
-
-const adminLinks: AdminLink[] = [
-  { label: 'Aplicatii', path: '/admin/applications', access: 'all' },
-  { label: 'Acord clienți', path: '/crm/acorduri', access: 'all' },
-  { label: 'Programări', path: '/crm/programari', access: 'all' },
-  { label: 'Lead-uri', path: '/crm/leaduri', access: 'all' },
-  { label: 'Rapoarte', path: '/crm/rapoarte', access: 'all' },
-  { label: 'Brokeri (conturi)', path: '/admin/brokeri', access: 'super' },
-  { label: 'Verificari KYC', path: '/admin/kyc', access: 'super' },
-  { label: 'Registru brokeri', path: '/admin/brokers', access: 'super' },
-  { label: 'Parteneri', path: '/admin/partners', access: 'super' },
-];
-
 export function Sidebar() {
   const { user, logout, isAdmin, isSuperAdmin } = useAuth();
+  // Super Admin and brokers each have their own workspace; link straight to it.
   const adminNavItems: NavItem[] = [
     {
-      label: isSuperAdmin ? 'Admin' : 'CRM',
-      path: '/admin',
+      label: isSuperAdmin ? 'Super Admin' : 'CRM',
+      path: isSuperAdmin ? '/admin' : '/crm',
       icon: <ShieldCheck size={20} />,
-      children: adminLinks
-        .filter(l => l.access === 'all' || (l.access === 'super') === isSuperAdmin)
-        .map(({ label, path }) => ({ label, path })),
     },
   ];
   const [expandedItems, setExpandedItems] = useState<string[]>(
