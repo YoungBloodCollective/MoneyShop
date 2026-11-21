@@ -710,6 +710,10 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.BonuriMasaAprox).HasColumnType("decimal(18,2)");
             entity.Property(e => e.Source).HasMaxLength(50).HasDefaultValue("api");
             entity.Property(e => e.AdminNotes).HasMaxLength(1000);
+            entity.Property(e => e.Status).HasMaxLength(30).HasDefaultValue("Nou");
+            entity.Property(e => e.ContactedAt).HasColumnType("datetime2")
+                .HasConversion(v => v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+            entity.HasIndex(e => new { e.Status, e.CreatedAt });
             entity.Property(e => e.CreatedAt).HasColumnType("datetime2").HasDefaultValueSql("GETUTCDATE()");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime2").HasDefaultValueSql("GETUTCDATE()");
             entity.HasIndex(e => e.UserId);

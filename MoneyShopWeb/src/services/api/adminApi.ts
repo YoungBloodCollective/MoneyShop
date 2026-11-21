@@ -33,6 +33,8 @@ export interface MonthlyReportParams {
   status?: string;
 }
 
+export type LeadStatus = 'Nou' | 'Contactat' | 'Necalificat' | 'Convertit';
+
 export interface LeadItem {
   id: number;
   numePrenume: string;
@@ -51,6 +53,9 @@ export interface LeadItem {
   source: string;
   adminNotes?: string;
   brokerProfileId?: number | null;
+  /** Nou, Contactat, Necalificat, Convertit. */
+  status: LeadStatus;
+  contactedAt?: string | null;
   createdAt: string;
 }
 
@@ -106,6 +111,11 @@ export const adminApi = {
   async getLeads(): Promise<LeadItem[]> {
     const response = await apiClient.get<LeadItem[]>('/admin/leads');
     return Array.isArray(response.data) ? response.data : [];
+  },
+
+  async updateLeadStatus(id: number, status: LeadStatus): Promise<{ status: LeadStatus; contactedAt?: string | null }> {
+    const response = await apiClient.patch(`/admin/leads/${id}/status`, { status });
+    return response.data;
   },
 
   async updateLeadNotes(id: number, notes: string): Promise<void> {

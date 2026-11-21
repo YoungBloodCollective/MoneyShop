@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Phone, Mail, MapPin, AlertTriangle, MessageCircle, MessageSquare, Save, X, CalendarPlus } from 'lucide-react';
+import { Search, Phone, Mail, MapPin, AlertTriangle, MessageCircle, MessageSquare, Save, X, CalendarPlus, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { adminApi, type LeadItem } from '@/services/api/adminApi';
+import { adminApi, type LeadItem, type LeadStatus } from '@/services/api/adminApi';
 import { AssignBrokerControl } from '@/components/crm/AssignBrokerControl';
 import { whatsappLink } from '@/components/crm/acord/acordLabels';
-import { PageHeader, SkeletonCards, EmptyState } from './crmShared';
+import { PageHeader, SkeletonCards, EmptyState, SegmentChips } from './crmShared';
 import { money, dateShort, initials, normalizePhone, FIELD_FOCUS, FOCUS_RING } from './crmHelpers';
 import { AppointmentFormModal, type AppointmentPrefill } from '@/components/crm/appointments/AppointmentFormModal';
 
@@ -30,12 +30,41 @@ function leadPrefill(lead: LeadItem): AppointmentPrefill {
   };
 }
 
+const LEAD_STATUSES: { key: LeadStatus; label: string; pill: string }[] = [
+  { key: 'Nou', label: 'Nou', pill: 'bg-sky-50 text-sky-700' },
+  { key: 'Contactat', label: 'Contactat', pill: 'bg-amber-50 text-amber-700' },
+  { key: 'Necalificat', label: 'Necalificat', pill: 'bg-slate-100 text-slate-600' },
+  { key: 'Convertit', label: 'Convertit', pill: 'bg-emerald-50 text-emerald-700' },
+];
+const STATUS_PILL = Object.fromEntries(LEAD_STATUSES.map(s => [s.key, s.pill])) as Record<string, string>;
+const LEAD_SEGMENTS = [{ key: 'toate', label: 'Toate' }, ...LEAD_STATUSES.map(s => ({ key: s.key, label: s.label }))];
+
+/**
+ * How long a new lead has been waiting for a call: green under 5 minutes, amber up to 30, red after.
+ * Leads older than two days only show their age, without the alarm colour.
+ */
+function LeadAge({ createdAt, now }: { createdAt: string; now: number }) {
+  if (!now) return null;
+  const minutes = Math.max(0, Math.floor((now - new Date(createdAt).getTime()) / 60_000));
+  const text = minutes < 60 ? `${minutes} min` : minutes < 48 * 60 ? `${Math.floor(minutes / 60)} h` : `${Math.floor(minutes / 1440)} zile`;
+  const tone = minutes < 5 ? 'bg-emerald-50 text-emerald-700'
+    : minutes < 30 ? 'bg-amber-50 text-amber-700'
+    : minutes < 48 * 60 ? 'bg-rose-50 text-rose-700'
+    : 'bg-slate-100 text-slate-500';
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`} title="De când așteaptă un apel">
+      <Clock className="h-3 w-3" aria-hidden="true" /> necontactat de {text}
+    </span>
+  );
+}
+
 function LeadDrawer({
-  lead, onClose, onSaved, onAssigned, onBook,
+  lead, onClose, onSaved, onAssigned, onBook, onStatus,
 }: {
   lead: LeadItem; onClose: () => void; onSaved: (id: number, notes: string) => void;
   onAssigned: (id: number, brokerProfileId: number | null) => void;
   onBook: (lead: LeadItem) => void;
+  onStatus: (lead: LeadItem, status: LeadStatus) => void;
 }) {
   const [notes, setNotes] = useState(lead.adminNotes ?? '');
   const [saving, setSaving] = useState(false);
@@ -104,6 +133,24 @@ function LeadDrawer({
           <button onClick={requestClose} className="text-slate-400 hover:text-slate-700" aria-label="Închide"><X size={20} /></button>
         </div>
         <div className="space-y-5 px-5 py-5">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Status lead">
+              {LEAD_STATUSES.map(s => (
+                <button
+                  key={s.key}
+                  type="button"
+                  aria-pressed={lead.status === s.key}
+                  onClick={() => { if (lead.status !== s.key) onStatus(lead, s.key); }}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium ${FOCUS_RING} ${
+                    lead.status === s.key ? `${s.pill} border-transparent` : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <AssignBrokerControl
             entityType="lead"
             id={String(lead.id)}
@@ -180,6 +227,29 @@ export default function CrmLeadsPage() {
   const [q, setQ] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [booking, setBooking] = useState<LeadItem | null>(null);
+  const [segment, setSegment] = useState('toate');
+  // Clock for the "waiting for a call" timers; ticks every 30 seconds.
+  const [now, setNow] = useState(0);
+
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    queueMicrotask(tick);
+    const timer = window.setInterval(tick, 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const setStatus = async (lead: LeadItem, status: LeadStatus) => {
+    const previous = lead.status;
+    setLeads(prev => prev.map(l => (l.id === lead.id ? { ...l, status } : l)));
+    try {
+      const res = await adminApi.updateLeadStatus(lead.id, status);
+      setLeads(prev => prev.map(l => (l.id === lead.id ? { ...l, status: res.status, contactedAt: res.contactedAt } : l)));
+      toast.success(`Lead marcat „${status}”`);
+    } catch {
+      setLeads(prev => prev.map(l => (l.id === lead.id ? { ...l, status: previous } : l)));
+      toast.error('Nu am putut schimba statusul.');
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -195,16 +265,29 @@ export default function CrmLeadsPage() {
     return () => { active = false; };
   }, [reloadKey]);
 
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { toate: leads.length };
+    for (const s of LEAD_STATUSES) c[s.key] = leads.filter(l => (l.status ?? 'Nou') === s.key).length;
+    return c;
+  }, [leads]);
+
+  // New leads first (newest on top: they are the ones to call now), then the rest by date.
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
-    if (!t) return leads;
     const phone = normalizePhone(t);
-    return leads.filter(l =>
-      l.numePrenume.toLowerCase().includes(t) ||
-      (phone.length >= 3 && normalizePhone(l.telefon).includes(phone)) ||
-      (l.email ?? '').toLowerCase().includes(t) ||
-      (l.oras ?? '').toLowerCase().includes(t));
-  }, [leads, q]);
+    return leads
+      .filter(l => segment === 'toate' || (l.status ?? 'Nou') === segment)
+      .filter(l => !t ||
+        l.numePrenume.toLowerCase().includes(t) ||
+        (phone.length >= 3 && normalizePhone(l.telefon).includes(phone)) ||
+        (l.email ?? '').toLowerCase().includes(t) ||
+        (l.oras ?? '').toLowerCase().includes(t))
+      .sort((a, b) => {
+        const an = (a.status ?? 'Nou') === 'Nou' ? 0 : 1;
+        const bn = (b.status ?? 'Nou') === 'Nou' ? 0 : 1;
+        return an - bn || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+  }, [leads, q, segment]);
 
   const selected = leads.find(l => l.id === selectedId) ?? null;
 
@@ -223,6 +306,7 @@ export default function CrmLeadsPage() {
           className={`w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 ${FIELD_FOCUS}`}
         />
       </div>
+      <SegmentChips segments={LEAD_SEGMENTS} active={segment} onChange={setSegment} counts={counts} />
       {error && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           <span>Nu s-au putut încărca datele. Încearcă din nou.</span>
@@ -230,7 +314,7 @@ export default function CrmLeadsPage() {
         </div>
       )}
       {filtered.length === 0 && !error ? (
-        <EmptyState message={leads.length === 0 ? 'Niciun lead încă.' : 'Niciun lead nu corespunde căutării.'} />
+        <EmptyState message={leads.length === 0 ? 'Niciun lead încă.' : 'Niciun lead nu corespunde filtrelor.'} />
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map(l => (
@@ -243,7 +327,7 @@ export default function CrmLeadsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate font-semibold text-slate-800">{l.numePrenume}</span>
-                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-500">{sourceLabel(l.source)}</span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_PILL[l.status ?? 'Nou'] ?? 'bg-slate-100 text-slate-600'}`}>{l.status ?? 'Nou'}</span>
                     </div>
                     <div className="mt-1 space-y-0.5 text-xs text-slate-500">
                       {l.email && <div className="flex items-center gap-1.5 truncate"><Mail className="h-3 w-3" />{l.email}</div>}
@@ -262,7 +346,7 @@ export default function CrmLeadsPage() {
                   </div>
                 )}
                 <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400">
-                  <span>{dateShort(l.createdAt)}</span>
+                  {(l.status ?? 'Nou') === 'Nou' ? <LeadAge createdAt={l.createdAt} now={now} /> : <span>{dateShort(l.createdAt)} · {sourceLabel(l.source)}</span>}
                   {l.adminNotes && <MessageSquare className="h-3 w-3 text-brand-primary" />}
                 </div>
               </button>
@@ -283,6 +367,7 @@ export default function CrmLeadsPage() {
           onSaved={(id, notes) => setLeads(prev => prev.map(l => l.id === id ? { ...l, adminNotes: notes } : l))}
           onAssigned={(id, brokerProfileId) => setLeads(prev => prev.map(l => l.id === id ? { ...l, brokerProfileId } : l))}
           onBook={lead => { setSelectedId(null); setBooking(lead); }}
+          onStatus={setStatus}
         />
       )}
       {booking && (
