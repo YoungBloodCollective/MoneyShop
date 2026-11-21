@@ -17,6 +17,14 @@ namespace MoneyShop.DomainModel.Entities
         public string? Notes { get; set; }
         public string? IntarzieriBirou { get; set; }
         public string? PopriRecuperare { get; set; }
+
+        /// <summary>Start of the call/meeting (UTC). Null = callback request not scheduled yet.</summary>
+        public DateTime? ScheduledAt { get; set; }
+        public int DurationMinutes { get; set; } = 15;
+        /// <summary>site, manual (created in the CRM) …</summary>
+        public string? Source { get; set; }
+        public int? CreatedByUserId { get; set; }
+
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
