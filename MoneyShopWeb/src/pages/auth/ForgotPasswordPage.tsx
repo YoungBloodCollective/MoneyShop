@@ -16,9 +16,9 @@ export default function ForgotPasswordPage() {
     try {
       await authApi.forgotPassword(email);
       setSent(true);
-      toast.success('Instructiunile au fost trimise pe email');
+
     } catch {
-      toast.error('Eroare. Verifica adresa de email.');
+      toast.error('Nu am putut trimite cererea. Încearcă din nou în câteva minute.');
     } finally {
       setLoading(false);
     }
@@ -27,28 +27,30 @@ export default function ForgotPasswordPage() {
   return (
     <div className="bg-white rounded-3xl p-8 shadow-lg shadow-black/5">
       <Link to="/auth/login" className="flex items-center gap-1 text-sm text-light-60 hover:text-light-80 mb-6">
-        <ArrowLeft size={16} /> Inapoi la autentificare
+        <ArrowLeft size={16} /> Înapoi la autentificare
       </Link>
 
-      <h1 className="text-2xl font-medium text-light-100 mb-2">Resetare parola</h1>
-      <p className="text-sm text-light-60 mb-8">Introdu email-ul pentru a primi link-ul de resetare</p>
+      <h1 className="text-2xl font-medium text-light-100 mb-2">Resetare parolă</h1>
+      <p className="text-sm text-light-60 mb-8">Introdu emailul contului și îți trimitem un link pentru o parolă nouă.</p>
 
       {sent ? (
         <div className="text-center py-6">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-success-500/15 flex items-center justify-center">
             <Mail size={28} className="text-success-500" />
           </div>
-          <p className="text-light-80 mb-2">Email trimis!</p>
-          <p className="text-sm text-light-60">Verifica inbox-ul (si spam) pentru instructiuni de resetare.</p>
+          <p className="text-light-80 mb-2">Verifică emailul</p>
+          <p className="text-sm text-light-60">Dacă adresa are un cont MoneyShop, ți-am trimis un link valabil o oră. Verifică și folderul Spam.</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-light-70 mb-1.5">Email</label>
+            <label htmlFor="reset-email" className="block text-sm font-medium text-light-70 mb-1.5">Email</label>
             <div className="relative">
               <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-light-50" />
               <input
+                id="reset-email"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="email@exemplu.ro"
