@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { FOCUS_RING } from '@/pages/crm/crmHelpers';
-import { CANCELLED_STATUS, addDays, sameDay, timeRange, type Appointment } from './appointmentModel';
+import { CANCELLED_STATUS, addDays, awaitingConfirmation, sameDay, timeRange, type Appointment } from './appointmentModel';
 
 const DAY_NAMES = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
 
@@ -57,6 +57,7 @@ export function WeekCalendar({
                 <ul className="space-y-1.5">
                   {items.map(a => {
                     const cancelled = a.status === CANCELLED_STATUS;
+                    const pending = !cancelled && awaitingConfirmation(a);
                     return (
                       <li key={a.id}>
                         <button
@@ -64,11 +65,14 @@ export function WeekCalendar({
                           className={`w-full rounded-lg border px-2 py-1.5 text-left transition-colors ${FOCUS_RING} ${
                             cancelled
                               ? 'border-slate-200 bg-slate-50 text-slate-400 line-through'
-                              : 'border-brand-primary/20 bg-brand-primary/[0.06] text-slate-800 hover:bg-brand-primary/10'
+                              : pending
+                                ? 'border-dashed border-amber-300 bg-amber-50/60 text-slate-800 hover:bg-amber-50'
+                                : 'border-brand-primary/20 bg-brand-primary/[0.06] text-slate-800 hover:bg-brand-primary/10'
                           }`}
                         >
                           <span className="block text-[11px] font-semibold text-brand-primary">{timeRange(a)}</span>
                           <span className="block truncate text-xs font-medium">{a.nume} {a.prenume}</span>
+                          {pending && <span className="block text-[10px] font-medium text-amber-700">neconfirmat de client</span>}
                           {brokerNames && a.brokerProfileId != null && brokerNames[a.brokerProfileId] && (
                             <span className="block truncate text-[10px] text-slate-500">{brokerNames[a.brokerProfileId]}</span>
                           )}

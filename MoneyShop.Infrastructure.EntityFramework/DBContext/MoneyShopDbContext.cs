@@ -869,6 +869,13 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.ScheduledAt).HasConversion(
                 v => v,
                 v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+            foreach (var name in new[] { nameof(Appointment.ConfirmedAt), nameof(Appointment.CancelledAt), nameof(Appointment.Reminder24hSentAt), nameof(Appointment.Reminder30mSentAt) })
+            {
+                entity.Property<DateTime?>(name).HasConversion(
+                    v => v,
+                    v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+            }
+            entity.Property(e => e.ConfirmationTokenHash).HasMaxLength(64);
             entity.Property(e => e.Source).HasMaxLength(30);
             entity.HasIndex(e => new { e.BrokerProfileId, e.ScheduledAt }).HasDatabaseName("IX_Appointments_Broker_ScheduledAt");
         });

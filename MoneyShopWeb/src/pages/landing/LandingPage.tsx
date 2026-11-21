@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useInView } from '@/hooks/useInView';
 import { apiClient } from '@/services/api/apiClient';
 import LoanDisclosure from '@/components/shared/LoanDisclosure';
+import { SlotPicker } from '@/components/booking/SlotPicker';
 import { trackLeadConversion } from '@/lib/adsConversion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -120,6 +121,11 @@ export default function LandingPage() {
   const [progLoading, setProgLoading] = useState(false);
   const [progAgreed, setProgAgreed] = useState(false);
   const [progMarketing, setProgMarketing] = useState(false);
+  // Time picked in the booking modal (UTC ISO). When no free time can be shown, the request goes
+  // without a time and a consultant calls back as before.
+  const [progSlot, setProgSlot] = useState<string | null>(null);
+  const [progSlotUnavailable, setProgSlotUnavailable] = useState(false);
+  const [progSlotsKey, setProgSlotsKey] = useState(0);
   const [inlineForm, setInlineForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
   const [inlineLoading, setInlineLoading] = useState(false);
   const [inlineSuccess, setInlineSuccess] = useState(false);
@@ -129,10 +135,15 @@ export default function LandingPage() {
 
   const handleProgSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!progSlot && !progSlotUnavailable) {
+      toast.error('Alege ziua și ora la care vrei să te sunăm.');
+      return;
+    }
     setProgLoading(true);
     try {
-      const { data } = await apiClient.post<{ id?: number }>('/appointments', {
+      const { data } = await apiClient.post<{ id?: number; scheduledAt?: string | null; confirmationSent?: boolean }>('/appointments', {
         brokerSlug: brokerSlug ?? undefined,
+        scheduledAt: progSlot ?? undefined,
         nume: progForm.nume,
         prenume: progForm.prenume,
         judet: progForm.judet,
@@ -148,9 +159,14 @@ export default function LandingPage() {
       setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
       setProgAgreed(false);
       setProgMarketing(false);
-      navigate('/multumim');
+      setProgSlot(null);
+      navigate('/multumim', { state: { scheduledAt: data?.scheduledAt ?? null, confirmationSent: !!data?.confirmationSent } });
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 409) {
+      if (axios.isAxiosError(err) && err.response?.status === 409 && err.response?.data?.code === 'slot_taken') {
+        setProgSlot(null);
+        setProgSlotsKey(k => k + 1);
+        toast.error('Ora aleasă tocmai a fost ocupată. Alege altă oră.', { duration: 6000 });
+      } else if (axios.isAxiosError(err) && err.response?.status === 409) {
         setShowProgrameaza(false);
         setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
         setProgAgreed(false);
@@ -1026,6 +1042,17 @@ export default function LandingPage() {
               </button>
             </div>
             <form onSubmit={handleProgSubmit} className="p-5 space-y-4">
+              <div>
+                <p className="block text-xs font-medium text-gray-700 mb-2">Când vrei să te sunăm?</p>
+                <SlotPicker
+                  key={progSlotsKey}
+                  brokerSlug={brokerSlug}
+                  value={progSlot}
+                  onChange={setProgSlot}
+                  onUnavailable={() => setProgSlotUnavailable(true)}
+                />
+                {progSlot && <p className="mt-1.5 text-[11px] text-gray-500">Apel telefonic de 15 minute. Îți trimitem pe email un link de confirmare.</p>}
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Nume</label>

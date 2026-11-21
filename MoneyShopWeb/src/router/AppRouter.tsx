@@ -51,6 +51,7 @@ const InvoicingPage = lazy(() => import('@/pages/invoicing/InvoicingPage'));
 const AboutPage = lazy(() => import('@/pages/about/AboutPage'));
 const LegalAllPage = lazy(() => import('@/pages/legal/LegalAllPage'));
 const ThankYouPage = lazy(() => import('@/pages/public/ThankYouPage'));
+const BookingManagePage = lazy(() => import('@/pages/public/BookingManagePage'));
 const LegalMenuPage = lazy(() => import('@/pages/legal/LegalMenuPage'));
 const PublicBrokerSearchPage = lazy(() => import('@/pages/broker/PublicBrokerSearchPage'));
 const AcordClientPage = lazy(() => import('@/pages/acord/AcordClientPage'));
@@ -104,6 +105,9 @@ export function AppRouter() {
 
         {/* Thank you page for Google Ads conversion tracking */}
         <Route path="/multumim" element={<ThankYouPage />} />
+
+        {/* Private link from the booking email: confirm / move / cancel a call */}
+        <Route path="/programare/:token" element={<BookingManagePage />} />
 
         {/* Public pages (accessible to everyone, with PublicLayout) */}
         <Route element={<PublicLayout />}>

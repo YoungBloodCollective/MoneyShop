@@ -227,6 +227,100 @@ public class EmailService
         }
     }
 
+    // ---- Call booking (Etapa 3) ----
+
+    private static readonly System.Globalization.CultureInfo RoCulture = System.Globalization.CultureInfo.GetCultureInfo("ro-RO");
+    private static readonly Lazy<TimeZoneInfo> RoZone = new(() =>
+    {
+        foreach (var id in new[] { "Europe/Bucharest", "GTB Standard Time" })
+        {
+            try { return TimeZoneInfo.FindSystemTimeZoneById(id); } catch (TimeZoneNotFoundException) { } catch (InvalidTimeZoneException) { }
+        }
+        return TimeZoneInfo.Utc;
+    });
+
+    /// <summary>"marți, 25 noiembrie 2026, 11:00–11:15" in Romanian time.</summary>
+    private static string RoSlot(DateTime startUtc, int durationMinutes)
+    {
+        var start = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(startUtc, DateTimeKind.Utc), RoZone.Value);
+        var end = start.AddMinutes(durationMinutes);
+        return $"{start.ToString("dddd, d MMMM yyyy", RoCulture)}, {start:HH:mm}–{end:HH:mm}";
+    }
+
+    private async Task<bool> SendHtmlAsync(string toEmail, string subject, string body, string description)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_fromEmail))
+            {
+                _logger.LogWarning("[EmailService] Brevo ApiKey or FromEmail not configured — skipping {Description}", description);
+                return false;
+            }
+            var emailRequest = new
+            {
+                sender = new { name = _fromName, email = _fromEmail },
+                to = new[] { new { email = toEmail } },
+                subject,
+                htmlContent = body
+            };
+            var response = await _httpClient.PostAsJsonAsync("smtp/email", emailRequest);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("[EmailService] Brevo rejected {Description}. Status: {Status}, Body: {Error}", description, response.StatusCode, error);
+            }
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[EmailService] Exception sending {Description}", description);
+            return false;
+        }
+    }
+
+    private static string BookingLayout(string title, string inner) => $@"
+<div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #0f172a;"">
+    <h2 style=""color: #16a34a; margin-bottom: 4px;"">{title}</h2>
+    {inner}
+    <p style=""margin-top: 28px; color: #64748b; font-size: 12px;"">Echipa MoneyShop &middot; Broker de credite autorizat ANPC</p>
+</div>";
+
+    /// <summary>Asks the client to confirm a call booked on the site; the link also lets them move or cancel it.</summary>
+    public Task<bool> SendBookingConfirmationRequestAsync(string toEmail, string firstName, DateTime startUtc, int durationMinutes, string manageUrl)
+    {
+        var url = Html(manageUrl);
+        var body = BookingLayout("Confirmă programarea apelului", $@"
+    <p>Bună, {Html(firstName)}!</p>
+    <p>Ai solicitat o discuție telefonică gratuită cu un broker MoneyShop:</p>
+    <p style=""background:#f0fdf4;border-radius:10px;padding:14px 16px;font-size:16px;""><strong>{Html(RoSlot(startUtc, durationMinutes))}</strong></p>
+    <p><a href=""{url}"" style=""display:inline-block;padding:12px 22px;background:#16a34a;color:#fff;border-radius:10px;text-decoration:none;font-weight:bold;"">Confirmă programarea</a></p>
+    <p style=""font-size:14px;"">Nu mai poți atunci? <a href=""{url}"">Reprogramează sau anulează</a> din același link.</p>
+    <p style=""font-size:13px;color:#64748b;"">Dacă nu confirmi în {MoneyShop.ServiceInterface.Interfaces.Scheduling.SchedulingRules.UnconfirmedHoldHours} de ore, intervalul se eliberează. Nu ai făcut tu această solicitare? Ignoră mesajul.</p>");
+        return SendHtmlAsync(toEmail, "Confirmă programarea apelului - MoneyShop", body, "booking confirmation request");
+    }
+
+    /// <summary>Reminder before a confirmed call (24 hours or 30 minutes before).</summary>
+    public Task<bool> SendBookingReminderAsync(string toEmail, string firstName, DateTime startUtc, int durationMinutes, bool halfHourBefore)
+    {
+        var lead = halfHourBefore ? "Te sunăm în aproximativ 30 de minute" : "Mâine te sună un broker MoneyShop";
+        var body = BookingLayout(halfHourBefore ? "Te sunăm în curând" : "Reminder: apelul de mâine", $@"
+    <p>Bună, {Html(firstName)}!</p>
+    <p>{lead}:</p>
+    <p style=""background:#f0fdf4;border-radius:10px;padding:14px 16px;font-size:16px;""><strong>{Html(RoSlot(startUtc, durationMinutes))}</strong></p>
+    <p style=""font-size:14px;"">Dacă nu mai poți, folosește linkul din emailul de confirmare ca să reprogramezi sau să anulezi.</p>");
+        return SendHtmlAsync(toEmail, halfHourBefore ? "Te sunăm în curând - MoneyShop" : "Reminder: apelul de mâine - MoneyShop", body, "booking reminder");
+    }
+
+    /// <summary>Tells the broker that a client confirmed, moved or cancelled a booked call.</summary>
+    public Task<bool> SendBookingChangeToBrokerAsync(string toEmail, string clientName, string change, DateTime startUtc, int durationMinutes, string crmUrl)
+    {
+        var body = BookingLayout($"Programare {Html(change)}", $@"
+    <p><strong>{Html(clientName)}</strong> a {Html(change)} programarea:</p>
+    <p style=""background:#f8fafc;border-radius:10px;padding:14px 16px;font-size:16px;""><strong>{Html(RoSlot(startUtc, durationMinutes))}</strong></p>
+    <p><a href=""{Html(crmUrl)}"" style=""display:inline-block;padding:10px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;"">Deschide calendarul</a></p>");
+        return SendHtmlAsync(toEmail, $"Programare {Plain(change)}: {Plain(clientName)}", body, "booking change to broker");
+    }
+
     private static string Plain(string? value) =>
         (value ?? string.Empty).Replace("\r", " ").Replace("\n", " ").Trim();
 

@@ -20,16 +20,21 @@ namespace MoneyShop.Api.Controllers
         private readonly EmailService _emailService;
         private readonly IBrokerProfileService _brokerProfiles;
         private readonly IAppointmentSchedulingService _scheduling;
+        private readonly IPublicBookingService _booking;
+        private readonly IConfiguration _configuration;
         private const string NotificationEmail = "alex.moore@moneyshop.ro";
 
         public AppointmentsController(MoneyShopDbContext db, ILogger<AppointmentsController> logger, EmailService emailService,
-            IBrokerProfileService brokerProfiles, IAppointmentSchedulingService scheduling)
+            IBrokerProfileService brokerProfiles, IAppointmentSchedulingService scheduling, IPublicBookingService booking,
+            IConfiguration configuration)
         {
             _brokerProfiles = brokerProfiles;
             _db = db;
             _logger = logger;
             _emailService = emailService;
             _scheduling = scheduling;
+            _booking = booking;
+            _configuration = configuration;
         }
 
         private static string NormalizePhone(string? phone)
@@ -78,8 +83,27 @@ namespace MoneyShop.Api.Controllers
                 }
             }
 
+            // A time picked on the site must be one of the offered free slots of the broker's calendar
+            // (the broker behind the link, or the default broker while the request waits in the inbox).
+            DateTime? scheduledAt = null;
+            string? manageToken = null;
+            string? manageTokenHash = null;
+            if (request.ScheduledAt.HasValue)
+            {
+                var capacityBroker = brokerId ?? _brokerProfiles.ResolveIntakeBrokerId(request.BrokerSlug);
+                var start = request.ScheduledAt.Value.ToUniversalTime();
+                if (!await _booking.IsBookableAsync(capacityBroker, start, DateTime.UtcNow))
+                    return StatusCode(409, new { code = "slot_taken", message = "Intervalul ales nu mai este disponibil. Alege altă oră." });
+                scheduledAt = start;
+                manageToken = _booking.NewToken(out var hash);
+                manageTokenHash = hash;
+            }
+
             var appointment = new Appointment
             {
+                ScheduledAt = scheduledAt,
+                DurationMinutes = scheduledAt.HasValue ? _booking.SlotDurationMinutes : SchedulingRules.DefaultDuration,
+                ConfirmationTokenHash = manageTokenHash,
                 BrokerProfileId = brokerId,
                 Nume = request.Nume.Trim(),
                 Prenume = request.Prenume?.Trim() ?? "",
@@ -115,7 +139,23 @@ namespace MoneyShop.Api.Controllers
                 appointment.PopriRecuperare
             );
 
-            return Ok(new { message = "Programare inregistrata cu succes.", id = appointment.Id });
+            var confirmationSent = false;
+            if (manageToken != null && !string.IsNullOrWhiteSpace(appointment.Email))
+            {
+                var root = _configuration["Brokers:RootDomain"] ?? "moneyshop.ro";
+                var firstName = string.IsNullOrWhiteSpace(appointment.Prenume) ? appointment.Nume : appointment.Prenume;
+                _ = _emailService.SendBookingConfirmationRequestAsync(appointment.Email, firstName, appointment.ScheduledAt!.Value,
+                    appointment.DurationMinutes, $"https://{root}/programare/{manageToken}");
+                confirmationSent = true;
+            }
+
+            return Ok(new
+            {
+                message = "Programare inregistrata cu succes.",
+                id = appointment.Id,
+                scheduledAt = appointment.ScheduledAt,
+                confirmationSent,
+            });
         }
 
         [HttpGet]
@@ -236,6 +276,8 @@ namespace MoneyShop.Api.Controllers
         public string? IntarzieriBirou { get; set; }
         public string? PopriRecuperare { get; set; }
         public string? BrokerSlug { get; set; }
+        /// <summary>Optional time picked from GET /api/public/booking/slots (UTC).</summary>
+        public DateTime? ScheduledAt { get; set; }
     }
 
     public class RescheduleRequest
