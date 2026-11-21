@@ -16,11 +16,18 @@ export interface Appointment {
   scheduledAt?: string | null;
   durationMinutes?: number;
   source?: string | null;
+  /** Site bookings: when the client confirmed from the email link (null = not yet). */
+  confirmedAt?: string | null;
+  cancelledAt?: string | null;
   createdAt: string;
 }
 
 export const CANCELLED_STATUS = 'Anulat';
 export const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120];
+
+/** A time booked on the site that the client has not confirmed from the email yet. */
+export const awaitingConfirmation = (a: Pick<Appointment, 'source' | 'confirmedAt' | 'scheduledAt'>) =>
+  a.source === 'site' && !!a.scheduledAt && !a.confirmedAt;
 
 /** Monday 00:00 (local time) of the week containing `d`. */
 export function startOfWeek(d: Date): Date {

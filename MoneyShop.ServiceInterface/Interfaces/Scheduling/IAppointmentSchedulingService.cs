@@ -18,6 +18,9 @@ public static class SchedulingRules
     public const int MaxDuration = 240;
     public const int DefaultDuration = 15;
     public const string CancelledStatus = "Anulat";
+    public const string SiteSource = "site";
+    /// <summary>A time booked on the site holds the slot this long while waiting for the email confirmation.</summary>
+    public const int UnconfirmedHoldHours = 24;
 }
 
 public class ManualAppointmentInput

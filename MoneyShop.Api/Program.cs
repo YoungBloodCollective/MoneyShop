@@ -67,6 +67,8 @@ builder.Services.AddRateLimiter(o =>
             : RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "anon", _ => new FixedWindowRateLimiterOptions { PermitLimit = 600, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
     o.AddPolicy("public-form", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "anon", _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
+    o.AddPolicy("public-booking", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "anon", _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
     o.AddPolicy("auth", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "anon", _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(5), QueueLimit = 0 }));
 });
@@ -305,6 +307,7 @@ else
 
 // ── Data Retention (erases expired KYC / Acord documents) ──
 builder.Services.AddHostedService<MoneyShop.Api.Services.DataRetentionHostedService>();
+builder.Services.AddHostedService<MoneyShop.Api.Services.BookingReminderHostedService>();
 
 // ── Firebase Token Verifier ──
 builder.Services.AddSingleton(sp =>

@@ -27,12 +27,16 @@ public class AppointmentSchedulingService : IAppointmentSchedulingService
         // Overlap: existing.start < new.end AND existing.end > new.start. The end check is done in
         // memory on the few candidates that start within the longest possible duration before us.
         var windowStart = start.AddMinutes(-SchedulingRules.MaxDuration);
+        var holdCutoff = DateTime.UtcNow.AddHours(-SchedulingRules.UnconfirmedHoldHours);
         var candidates = await _db.Appointments.AsNoTracking()
             .Where(a => a.BrokerProfileId == brokerProfileId
                 && a.ScheduledAt != null
                 && a.ScheduledAt < end
                 && a.ScheduledAt > windowStart
                 && a.Status != SchedulingRules.CancelledStatus
+                && a.CancelledAt == null
+                // A time booked on the site and never confirmed stops blocking the slot after the hold.
+                && !(a.Source == SchedulingRules.SiteSource && a.ConfirmedAt == null && a.CreatedAt < holdCutoff)
                 && (excludeAppointmentId == null || a.Id != excludeAppointmentId))
             .Select(a => new { a.Id, a.Nume, a.Prenume, a.ScheduledAt, a.DurationMinutes })
             .ToListAsync();

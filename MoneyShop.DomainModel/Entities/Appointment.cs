@@ -25,6 +25,15 @@ namespace MoneyShop.DomainModel.Entities
         public string? Source { get; set; }
         public int? CreatedByUserId { get; set; }
 
+        /// <summary>SHA-256 (hex) of the private link sent to the client to confirm / move / cancel.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? ConfirmationTokenHash { get; set; }
+        /// <summary>When the client confirmed a time booked on the site (UTC). Null = not confirmed yet.</summary>
+        public DateTime? ConfirmedAt { get; set; }
+        public DateTime? CancelledAt { get; set; }
+        public DateTime? Reminder24hSentAt { get; set; }
+        public DateTime? Reminder30mSentAt { get; set; }
+
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
