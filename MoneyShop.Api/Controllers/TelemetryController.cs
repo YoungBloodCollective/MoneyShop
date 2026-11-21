@@ -1,3 +1,4 @@
+using MoneyShop.Api.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.ApplicationInsights;
@@ -42,7 +43,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error tracking event from frontend");
-                return StatusCode(500, new { success = false, message = ex.Message });
+                return StatusCode(500, new { success = false, message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -71,7 +72,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error tracking exception from frontend");
-                return StatusCode(500, new { success = false, message = ex.Message });
+                return StatusCode(500, new { success = false, message = ClientError.For(ex, HttpContext) });
             }
         }
     }

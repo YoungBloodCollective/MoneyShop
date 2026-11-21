@@ -67,7 +67,7 @@ public class OblioApiService : IOblioApiService
 
             if (tokenResponse?.AccessToken == null)
             {
-                throw new Exception("Nu s-a putut obtine token-ul de acces de la Oblio");
+                throw new InvalidOperationException("Nu s-a putut obtine token-ul de acces de la Oblio");
             }
 
             _accessToken = tokenResponse.AccessToken;
@@ -127,14 +127,14 @@ public class OblioApiService : IOblioApiService
     {
         var token = await GetAccessTokenAsync();
         var response = await PostAsync<OblioDocumentResponse>($"/docs/invoice?cif={cif}", invoiceRequest, token);
-        return response ?? throw new Exception("Nu s-a putut emite factura");
+        return response ?? throw new InvalidOperationException("Nu s-a putut emite factura");
     }
 
     public async Task<OblioDocumentResponse> CreateProformaAsync(string cif, OblioProformaRequest proformaRequest)
     {
         var token = await GetAccessTokenAsync();
         var response = await PostAsync<OblioDocumentResponse>($"/docs/proforma?cif={cif}", proformaRequest, token);
-        return response ?? throw new Exception("Nu s-a putut emite proforma");
+        return response ?? throw new InvalidOperationException("Nu s-a putut emite proforma");
     }
 
     public async Task<byte[]> GetDocumentAsync(string cif, string seriesName, int number, string type = "pdf")
