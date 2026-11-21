@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { isAdminWorkspace, useCrmPath } from '@/lib/crmPath';
-import { Phone, Mail, MapPin, CreditCard, UserPlus, AlertTriangle, Gavel, CalendarPlus, CalendarClock, List, CalendarDays } from 'lucide-react';
+import { Phone, Mail, MapPin, CreditCard, UserPlus, AlertTriangle, Gavel, CalendarPlus, CalendarClock, List, CalendarDays, CalendarSync } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { brokersApi, type BrokerAdminItem } from '@/services/api/brokersApi';
@@ -11,6 +11,7 @@ import { adminApi } from '@/services/api/adminApi';
 import { useAuth } from '@/hooks/useAuth';
 import { WeekCalendar } from '@/components/crm/appointments/WeekCalendar';
 import { AppointmentFormModal } from '@/components/crm/appointments/AppointmentFormModal';
+import { CalendarSubscribeModal } from '@/components/crm/appointments/CalendarSubscribeModal';
 import { startOfWeek, addDays, timeRange, type Appointment } from '@/components/crm/appointments/appointmentModel';
 import { PageHeader, SkeletonCards, EmptyState, SegmentChips, Pagination } from './crmShared';
 import { usePaged, FIELD_FOCUS, FOCUS_RING } from './crmHelpers';
@@ -55,6 +56,7 @@ export default function CrmProgramariPage() {
   const [view, setView] = useState<'calendar' | 'lista'>('calendar');
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [form, setForm] = useState<{ appointment: Appointment | null } | null>(null);
+  const [subscribing, setSubscribing] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -136,12 +138,22 @@ export default function CrmProgramariPage() {
       title="Programări"
       subtitle="Apeluri și întâlniri programate, plus cererile de apel venite de pe site."
       action={
-        <button
-          onClick={() => setForm({ appointment: null })}
-          className={`inline-flex items-center gap-1.5 rounded-xl bg-brand-primary px-3.5 py-2 text-sm font-semibold text-white hover:opacity-90 ${FOCUS_RING}`}
-        >
-          <CalendarPlus className="h-4 w-4" /> Programare nouă
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {!inAdmin && (
+            <button
+              onClick={() => setSubscribing(true)}
+              className={`inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 ${FOCUS_RING}`}
+            >
+              <CalendarSync className="h-4 w-4" /> Adaugă în Outlook / iPhone
+            </button>
+          )}
+          <button
+            onClick={() => setForm({ appointment: null })}
+            className={`inline-flex items-center gap-1.5 rounded-xl bg-brand-primary px-3.5 py-2 text-sm font-semibold text-white hover:opacity-90 ${FOCUS_RING}`}
+          >
+            <CalendarPlus className="h-4 w-4" /> Programare nouă
+          </button>
+        </div>
       }
     />
   );
@@ -165,6 +177,7 @@ export default function CrmProgramariPage() {
         )}
       </div>
 
+      {subscribing && <CalendarSubscribeModal onClose={() => setSubscribing(false)} />}
       {form && (
         <AppointmentFormModal
           appointment={form.appointment}

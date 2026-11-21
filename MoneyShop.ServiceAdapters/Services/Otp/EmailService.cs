@@ -327,7 +327,46 @@ public class EmailService
     private static string Html(string? value) =>
         System.Net.WebUtility.HtmlEncode((value ?? string.Empty).Replace("\r", " ").Replace("\n", " "));
 
-    private async Task<bool> SendPdfAsync(string toEmail, string subject, string body, byte[] pdf, string fileName, string description)
+    /// <summary>
+    /// Sends the client the call as a calendar event (.ics): Outlook, Gmail and iPhone Mail offer to add it,
+    /// and a later email with the same event updates (moved) or removes (cancelled) it.
+    /// </summary>
+    public Task<bool> SendBookingCalendarAsync(string toEmail, string firstName, int appointmentId, DateTime startUtc, int durationMinutes,
+        bool cancelled, DateTime updatedAtUtc, string? brokerName, string manageUrl)
+    {
+        var ics = MoneyShop.ServiceAdapters.Services.Scheduling.IcsCalendar.Invitation(new MoneyShop.ServiceAdapters.Services.Scheduling.IcsEvent(
+            Uid: MoneyShop.ServiceAdapters.Services.Scheduling.IcsCalendar.AppointmentUid(appointmentId),
+            StartUtc: startUtc,
+            DurationMinutes: durationMinutes,
+            Summary: string.IsNullOrWhiteSpace(brokerName) ? "Apel MoneyShop" : $"Apel MoneyShop cu {Plain(brokerName)}",
+            Description: $"Discuție telefonică gratuită cu un broker MoneyShop. Te sunăm noi.\nReprogramează sau anulează: {manageUrl}",
+            Location: "Apel telefonic",
+            Sequence: MoneyShop.ServiceAdapters.Services.Scheduling.IcsCalendar.SequenceFor(updatedAtUtc),
+            Cancelled: cancelled,
+            OrganizerEmail: _fromEmail,
+            AttendeeEmail: toEmail));
+
+        var when = Html(RoSlot(startUtc, durationMinutes));
+        var body = cancelled
+            ? BookingLayout("Programare anulată", $@"
+    <p>Bună, {Html(firstName)}!</p>
+    <p>Am anulat apelul din <strong>{when}</strong>. Fișierul atașat îl scoate și din calendarul tău.</p>
+    <p style=""font-size:14px;"">Te-ai răzgândit? Poți face oricând o programare nouă pe <a href=""https://moneyshop.ro"">moneyshop.ro</a>.</p>")
+            : BookingLayout("Programare confirmată", $@"
+    <p>Bună, {Html(firstName)}!</p>
+    <p>Te sunăm la ora stabilită:</p>
+    <p style=""background:#f0fdf4;border-radius:10px;padding:14px 16px;font-size:16px;""><strong>{when}</strong></p>
+    <p style=""font-size:14px;"">Deschide fișierul atașat ca să adaugi apelul în calendar (Outlook, Gmail, iPhone).</p>
+    <p style=""font-size:14px;"">Nu mai poți? <a href=""{Html(manageUrl)}"">Reprogramează sau anulează</a>.</p>");
+
+        var subject = cancelled ? "Programare anulată - MoneyShop" : "Programare confirmată - MoneyShop";
+        return SendWithAttachmentAsync(toEmail, subject, body, System.Text.Encoding.UTF8.GetBytes(ics), "programare-moneyshop.ics", "booking calendar invitation");
+    }
+
+    private Task<bool> SendPdfAsync(string toEmail, string subject, string body, byte[] pdf, string fileName, string description) =>
+        SendWithAttachmentAsync(toEmail, subject, body, pdf, fileName, description);
+
+    private async Task<bool> SendWithAttachmentAsync(string toEmail, string subject, string body, byte[] pdf, string fileName, string description)
     {
         try
         {

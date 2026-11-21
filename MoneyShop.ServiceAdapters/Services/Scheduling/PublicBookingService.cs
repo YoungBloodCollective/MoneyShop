@@ -170,7 +170,13 @@ public class PublicBookingService : IPublicBookingService
     }
 
     private BookingActionResult Done(Appointment a, DateTime nowUtc) =>
-        new() { Booking = View(a, nowUtc), BrokerProfileId = a.BrokerProfileId };
+        new()
+        {
+            Booking = View(a, nowUtc),
+            BrokerProfileId = a.BrokerProfileId,
+            ClientEmail = string.IsNullOrWhiteSpace(a.Email) ? null : a.Email.Trim(),
+            UpdatedAtUtc = DateTime.SpecifyKind(a.UpdatedAt, DateTimeKind.Utc),
+        };
 
     private BookingView View(Appointment a, DateTime nowUtc)
     {

@@ -51,6 +51,10 @@ public class BookingActionResult
     public BookingView? Booking { get; init; }
     /// <summary>The broker to tell about the change (null when the booking is still unassigned).</summary>
     public int? BrokerProfileId { get; init; }
+    /// <summary>Where to send the calendar invitation (null when the client gave no email).</summary>
+    public string? ClientEmail { get; init; }
+    /// <summary>Last change, so calendar apps replace the earlier version of the event.</summary>
+    public DateTime UpdatedAtUtc { get; init; }
     public bool Ok => Error == BookingActionError.None;
 
     public static BookingActionResult Fail(BookingActionError error) => new() { Error = error };
