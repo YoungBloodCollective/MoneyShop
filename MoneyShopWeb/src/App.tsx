@@ -10,8 +10,10 @@ import { PwaUpdatePrompt } from '@/components/pwa/PwaUpdatePrompt';
 import { InstallAppPrompt } from '@/components/pwa/InstallAppPrompt';
 import { CookieBanner } from '@/components/shared/CookieBanner';
 import { initConsent } from '@/lib/consent';
+import { captureAdClick } from '@/lib/adsConversion';
 
 initConsent();
+captureAdClick();
 
 const queryClient = new QueryClient({
   defaultOptions: {

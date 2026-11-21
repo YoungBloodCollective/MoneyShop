@@ -2,6 +2,8 @@
 // visitor accepts marketing cookies; until then nothing from Google is requested. The choice is kept
 // in this browser and can be changed at any time from "Setări cookie-uri" (openCookieSettings).
 
+import { forgetAdClick, persistAdClick } from './adsConversion';
+
 const STORAGE_KEY = 'ms_cookie_consent';
 const CONSENT_VERSION = 1;
 const ADS_ID = 'AW-18083608146';
@@ -35,6 +37,7 @@ export function saveConsent(marketing: boolean): ConsentChoice {
     // Private mode or blocked storage: the choice still applies to this visit.
   }
   applyConsent(marketing);
+  if (marketing) persistAdClick(); else forgetAdClick();
   return choice;
 }
 

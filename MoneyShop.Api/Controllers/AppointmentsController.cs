@@ -37,6 +37,14 @@ namespace MoneyShop.Api.Controllers
             _configuration = configuration;
         }
 
+        /// <summary>A Google click id as sent by the site, or null if missing or not in the expected shape.</summary>
+        private static string? CleanGclid(string? gclid)
+        {
+            if (string.IsNullOrWhiteSpace(gclid)) return null;
+            var value = gclid.Trim();
+            return value.Length is >= 10 and <= 200 && value.All(c => char.IsAsciiLetterOrDigit(c) || c == '_' || c == '-') ? value : null;
+        }
+
         private static string NormalizePhone(string? phone)
         {
             if (string.IsNullOrWhiteSpace(phone)) return "";
@@ -118,6 +126,7 @@ namespace MoneyShop.Api.Controllers
                 Email = request.Email?.Trim() ?? "",
                 Status = "Nou",
                 Source = "site",
+                Gclid = CleanGclid(request.Gclid),
                 IntarzieriBirou = string.IsNullOrWhiteSpace(request.IntarzieriBirou) ? null : request.IntarzieriBirou.Trim(),
                 PopriRecuperare = string.IsNullOrWhiteSpace(request.PopriRecuperare) ? null : request.PopriRecuperare.Trim(),
                 CreatedAt = DateTime.UtcNow,
@@ -220,6 +229,7 @@ namespace MoneyShop.Api.Controllers
             existing.Reminder24hSentAt = null;
             existing.Reminder30mSentAt = null;
             existing.Source ??= "site";
+            existing.Gclid ??= CleanGclid(request.Gclid);
             if (existing.Status == SchedulingRules.CancelledStatus) existing.Status = "Nou";
             if (string.IsNullOrWhiteSpace(existing.Email) && !string.IsNullOrWhiteSpace(request.Email))
                 existing.Email = request.Email.Trim();
@@ -493,6 +503,8 @@ namespace MoneyShop.Api.Controllers
         public string? BrokerSlug { get; set; }
         /// <summary>Optional time picked from GET /api/public/booking/slots (UTC).</summary>
         public DateTime? ScheduledAt { get; set; }
+        /// <summary>Google Ads click id (sent by the site only with marketing consent).</summary>
+        public string? Gclid { get; set; }
     }
 
     public class RescheduleRequest
