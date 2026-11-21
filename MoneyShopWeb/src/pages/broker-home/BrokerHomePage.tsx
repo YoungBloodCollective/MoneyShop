@@ -7,6 +7,7 @@ import { DEFAULT_CONFIG } from '@/lib/eligibility/config';
 import './brokerHome.css';
 import { openCookieSettings } from '@/lib/consent';
 import { BrokerBookingModal } from './BrokerBookingModal';
+import HowWeEarn from '@/components/shared/HowWeEarn';
 
 const FONTS_URL = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap';
 const AMOUNT_MIN = 5000;
@@ -253,6 +254,9 @@ export default function BrokerHomePage() {
             <div className="step"><span className="stepnum">3</span><div><b>Discuți cu brokerul tău</b><small>Primești îndrumare personalizată</small></div></div>
           </div>
         </section>
+        <div className="section">
+          <HowWeEarn variant="plain" />
+        </div>
         <footer className="footer">
           <span>© {new Date().getFullYear()} MoneyShop FINTECH SRL</span>
           <span>
