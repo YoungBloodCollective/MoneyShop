@@ -126,6 +126,7 @@ export default function LandingPage() {
   const [showProgrameaza, setShowProgrameaza] = useState(false);
   const [progForm, setProgForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
   const [progLoading, setProgLoading] = useState(false);
+  const [progStep, setProgStep] = useState<1 | 2>(1);
   const [progAgreed, setProgAgreed] = useState(false);
   const [progMarketing, setProgMarketing] = useState(false);
   // Time picked in the booking modal (UTC ISO). When no free time can be shown, the request goes
@@ -140,9 +141,24 @@ export default function LandingPage() {
   const [inlineAgreed, setInlineAgreed] = useState(false);
   const [inlineMarketing, setInlineMarketing] = useState(false);
 
-  const handleProgSubmit = async (e: React.FormEvent) => {
+  // Step 1 (time, name, phone, email, income, consent) is all that is needed; step 2 only helps
+  // the broker prepare and can be skipped.
+  const onProgFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (progStep === 1) {
+      if (!progSlot && !progSlotUnavailable) {
+        toast.error('Alege ziua și ora la care vrei să te sunăm.');
+        return;
+      }
+      setProgStep(2);
+      return;
+    }
+    void handleProgSubmit();
+  };
+
+  const handleProgSubmit = async () => {
     if (!progSlot && !progSlotUnavailable) {
+      setProgStep(1);
       toast.error('Alege ziua și ora la care vrei să te sunăm.');
       return;
     }
@@ -167,10 +183,12 @@ export default function LandingPage() {
       setProgAgreed(false);
       setProgMarketing(false);
       setProgSlot(null);
+      setProgStep(1);
       navigate('/multumim', { state: { scheduledAt: data?.scheduledAt ?? null, confirmationSent: !!data?.confirmationSent } });
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409 && err.response?.data?.code === 'slot_taken') {
         setProgSlot(null);
+        setProgStep(1);
         setProgSlotsKey(k => k + 1);
         toast.error('Ora aleasă tocmai a fost ocupată. Alege altă oră.', { duration: 6000 });
       } else if (axios.isAxiosError(err) && err.response?.status === 409) {
@@ -182,6 +200,7 @@ export default function LandingPage() {
         const serverMessage = typeof err.response?.data?.message === 'string' ? err.response.data.message : null;
         toast.success(serverMessage ?? 'Te avem deja pe listă! Un consultant te va contacta în curând.', { duration: 8000 });
       } else if (axios.isAxiosError(err) && err.response?.status === 400 && err.response?.data?.code === 'salary_too_low') {
+        setProgStep(1);
         toast.error('Salariul net minim acceptat este 2.500 RON (salariul minim pe economie).', { duration: 6000 });
       } else {
         toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
@@ -222,6 +241,7 @@ export default function LandingPage() {
         setInlineAgreed(false);
         setInlineMarketing(false);
       } else if (axios.isAxiosError(err) && err.response?.status === 400 && err.response?.data?.code === 'salary_too_low') {
+        setProgStep(1);
         toast.error('Salariul net minim acceptat este 2.500 RON (salariul minim pe economie).', { duration: 6000 });
       } else {
         toast.error('A aparut o eroare. Te rugam sa incerci din nou.');
@@ -424,7 +444,7 @@ export default function LandingPage() {
                     <button
                       key={opt.key}
                       onClick={() => { setLoanType(opt.key); if (opt.key !== 'IPOTECAR') { setHasPartner(false); setPartnerSalary(0); setPartnerBonuri(0); } }}
-                      className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] sm:text-xs font-semibold transition-all ${
+                      className={`flex-1 py-2.5 sm:py-1.5 px-2 rounded-lg text-sm sm:text-xs font-semibold transition-all ${
                         loanType === opt.key
                           ? 'bg-blue-600 text-white shadow-sm'
                           : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -436,32 +456,32 @@ export default function LandingPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                   <div>
-                    <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">Data nasterii</label>
+                    <label className="text-xs sm:text-[10px] font-medium text-gray-500 mb-0.5 block">Data nasterii</label>
                     <div className="flex gap-1">
                       <select
                         value={birthMonth}
                         onChange={e => setBirthMonth(Number(e.target.value))}
-                        className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-1.5 py-1.5 text-[11px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-1.5 py-2.5 sm:py-1.5 text-base sm:text-[11px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         {monthNames.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
                       </select>
                       <select
                         value={birthYear}
                         onChange={e => setBirthYear(Number(e.target.value))}
-                        className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-1.5 py-1.5 text-[11px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-1.5 py-2.5 sm:py-1.5 text-base sm:text-[11px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         {birthYearOptions.map(y => <option key={y} value={y}>{y}</option>)}
                       </select>
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">Gen</label>
+                    <label className="text-xs sm:text-[10px] font-medium text-gray-500 mb-0.5 block">Gen</label>
                     <div className="flex gap-1">
                       {([['M', 'Masculin'], ['F', 'Feminin']] as const).map(([val, label]) => (
                         <button
                           key={val}
                           onClick={() => setGender(val)}
-                          className={`flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
+                          className={`flex-1 py-2.5 sm:py-1.5 rounded-lg text-sm sm:text-[11px] font-semibold transition-all ${
                             gender === val
                               ? 'bg-blue-600 text-white'
                               : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
@@ -473,13 +493,13 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">Tip venit</label>
+                    <label className="text-xs sm:text-[10px] font-medium text-gray-500 mb-0.5 block">Tip venit</label>
                     <div className="flex gap-1">
                       {([['salariat', 'Salariat'], ['pensionar', 'Pensionar'], ['altele', 'Altele']] as const).map(([val, label]) => (
                         <button
                           key={val}
                           onClick={() => setIncomeType(val)}
-                          className={`flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
+                          className={`flex-1 py-2.5 sm:py-1.5 rounded-lg text-sm sm:text-[11px] font-semibold transition-all ${
                             incomeType === val
                               ? 'bg-blue-600 text-white'
                               : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
@@ -491,7 +511,7 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">
+                    <label className="text-xs sm:text-[10px] font-medium text-gray-500 mb-0.5 block">
                       {incomeType === 'pensionar' ? 'Pensie Net (RON)' : 'Salariu Net (RON)'}
                     </label>
                     <input
@@ -502,11 +522,11 @@ export default function LandingPage() {
                       value={salaryNet || ''}
                       onChange={e => setSalaryNet(Math.min(50000, Math.max(0, parseInt(e.target.value) || 0)))}
                       placeholder="5000"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-[11px] text-gray-900 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2.5 sm:py-1.5 text-base sm:text-[11px] text-gray-900 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className={`text-[10px] font-medium mb-0.5 block ${incomeType === 'salariat' ? 'text-gray-500' : 'text-gray-300'}`}>
+                    <label className={`text-xs sm:text-[10px] font-medium mb-0.5 block ${incomeType === 'salariat' ? 'text-gray-500' : 'text-gray-300'}`}>
                       Bonuri de masa (RON/luna)
                     </label>
                     <input
@@ -518,7 +538,7 @@ export default function LandingPage() {
                       onChange={e => setBonuriMasa(Math.min(2000, Math.max(0, parseInt(e.target.value) || 0)))}
                       placeholder={incomeType === 'salariat' ? '0' : '-'}
                       disabled={incomeType !== 'salariat'}
-                      className={`w-full sm:w-1/2 border rounded-lg px-2.5 py-1.5 text-[11px] font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                      className={`w-full sm:w-1/2 border rounded-lg px-2.5 py-2.5 sm:py-1.5 text-base sm:text-[11px] font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                         incomeType === 'salariat'
                           ? 'bg-gray-50 border-gray-200 text-gray-900'
                           : 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed'
@@ -530,7 +550,7 @@ export default function LandingPage() {
                       <button
                         type="button"
                         onClick={() => { setHasPartner(!hasPartner); if (hasPartner) { setPartnerSalary(0); setPartnerBonuri(0); } }}
-                        className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
+                        className={`w-full flex items-center justify-center gap-1.5 py-2.5 sm:py-1.5 rounded-lg text-sm sm:text-[11px] font-semibold border transition-colors ${
                           hasPartner
                             ? 'bg-blue-50 border-blue-300 text-blue-700'
                             : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
@@ -544,7 +564,7 @@ export default function LandingPage() {
                   {hasPartner && loanType === 'IPOTECAR' && (
                     <>
                       <div>
-                        <label className="text-[10px] font-medium text-blue-500 mb-0.5 block">Salariu Net Partener (RON)</label>
+                        <label className="text-xs sm:text-[10px] font-medium text-blue-500 mb-0.5 block">Salariu Net Partener (RON)</label>
                         <input
                           type="number"
                           inputMode="numeric"
@@ -553,11 +573,11 @@ export default function LandingPage() {
                           value={partnerSalary || ''}
                           onChange={e => setPartnerSalary(Math.min(50000, Math.max(0, parseInt(e.target.value) || 0)))}
                           placeholder="0"
-                          className="w-full bg-blue-50/50 border border-blue-200 rounded-lg px-2.5 py-1.5 text-[11px] text-gray-900 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full bg-blue-50/50 border border-blue-200 rounded-lg px-2.5 py-2.5 sm:py-1.5 text-base sm:text-[11px] text-gray-900 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-medium text-blue-500 mb-0.5 block">Bonuri Partener (RON/luna)</label>
+                        <label className="text-xs sm:text-[10px] font-medium text-blue-500 mb-0.5 block">Bonuri Partener (RON/luna)</label>
                         <input
                           type="number"
                           inputMode="numeric"
@@ -566,7 +586,7 @@ export default function LandingPage() {
                           value={partnerBonuri || ''}
                           onChange={e => setPartnerBonuri(Math.min(2000, Math.max(0, parseInt(e.target.value) || 0)))}
                           placeholder="0"
-                          className="w-full bg-blue-50/50 border border-blue-200 rounded-lg px-2.5 py-1.5 text-[11px] text-gray-900 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full bg-blue-50/50 border border-blue-200 rounded-lg px-2.5 py-2.5 sm:py-1.5 text-base sm:text-[11px] text-gray-900 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </>
@@ -594,7 +614,7 @@ export default function LandingPage() {
                     </div>
                   )}
                   <button
-                    onClick={() => setShowProgrameaza(true)}
+                    onClick={() => { setProgStep(1); setShowProgrameaza(true); }}
                     className="mt-2 w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-xl text-xs sm:text-sm transition-colors shadow-lg shadow-green-500/25"
                   >
                     <Phone size={14} /> Vreau sa fiu sunat
@@ -814,7 +834,7 @@ export default function LandingPage() {
                 </div>
                 <div className="mt-2 space-y-1">
                   <button
-                    onClick={() => setShowProgrameaza(true)}
+                    onClick={() => { setProgStep(1); setShowProgrameaza(true); }}
                     className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-1.5 rounded-xl text-xs transition-colors shadow-md shadow-green-500/20"
                   >
                     Programeaza
@@ -1040,12 +1060,16 @@ export default function LandingPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowProgrameaza(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900">Programeaza un apel</h2>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">{progStep === 1 ? 'Programează un apel' : 'Ca brokerul să se pregătească'}</h2>
+                <p className="text-xs text-gray-500">Pasul {progStep} din 2{progStep === 2 ? ' · opțional' : ''}</p>
+              </div>
               <button onClick={() => setShowProgrameaza(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleProgSubmit} className="p-5 space-y-4">
+            <form onSubmit={onProgFormSubmit} className="p-5 space-y-4">
+              {progStep === 1 && (<>
               <div>
                 <p className="block text-xs font-medium text-gray-700 mb-2">Când vrei să te sunăm?</p>
                 <SlotPicker
@@ -1065,7 +1089,7 @@ export default function LandingPage() {
                     required
                     value={progForm.nume}
                     onChange={e => setProgForm(f => ({ ...f, nume: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                    className="w-full px-3 py-2.5 text-base sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                   />
                 </div>
                 <div>
@@ -1075,17 +1099,19 @@ export default function LandingPage() {
                     required
                     value={progForm.prenume}
                     onChange={e => setProgForm(f => ({ ...f, prenume: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                    className="w-full px-3 py-2.5 text-base sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                   />
                 </div>
               </div>
+              </>)}
+              {progStep === 2 && (<>
+              <p className="text-sm text-gray-600">Răspunsurile ne ajută să venim la apel cu variante potrivite. Poți sări peste.</p>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Judet</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Județ</label>
                 <select
-                  required
                   value={progForm.judet}
                   onChange={e => setProgForm(f => ({ ...f, judet: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
+                  className="w-full px-3 py-2.5 text-base sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
                 >
                   <option value="">Selecteaza judetul</option>
                   {judete.map(j => <option key={j} value={j}>{j}</option>)}
@@ -1094,15 +1120,16 @@ export default function LandingPage() {
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Tip de credit</label>
                 <select
-                  required
                   value={progForm.tipCredit}
                   onChange={e => setProgForm(f => ({ ...f, tipCredit: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
+                  className="w-full px-3 py-2.5 text-base sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
                 >
                   <option value="">Selecteaza tipul</option>
                   {tipuriCredit.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
+              </>)}
+              {progStep === 1 && (<>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Salariu net (RON)</label>
                 <input
@@ -1113,7 +1140,7 @@ export default function LandingPage() {
                   placeholder="Minim 2500"
                   value={progForm.salariuNet}
                   onChange={e => setProgForm(f => ({ ...f, salariuNet: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                  className="w-full px-3 py-2.5 text-base sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                 />
                 <p className="text-[10px] text-gray-400 mt-0.5">Minim 2.500 RON (salariul minim pe economie)</p>
               </div>
@@ -1125,7 +1152,7 @@ export default function LandingPage() {
                   pattern="[0-9+\s\-]{8,15}"
                   value={progForm.telefon}
                   onChange={e => { const v = e.target.value.replace(/[^0-9+\s-]/g, ''); setProgForm(f => ({ ...f, telefon: v })); }}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                  className="w-full px-3 py-2.5 text-base sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                 />
               </div>
               <div>
@@ -1135,19 +1162,20 @@ export default function LandingPage() {
                   required
                   value={progForm.email}
                   onChange={e => setProgForm(f => ({ ...f, email: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                  className="w-full px-3 py-2.5 text-base sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                 />
               </div>
+              </>)}
+              {progStep === 2 && (<>
               <div className="space-y-2">
-                <label className="block text-xs font-medium text-gray-700 mb-1">Aveti intarzieri in Birou? *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Ai întârzieri la plata ratelor, raportate la Biroul de Credit?</label>
                 <select
-                  required
                   value={progForm.intarzieriHas}
                   onChange={e => {
                     const v = e.target.value;
                     setProgForm(f => ({ ...f, intarzieriHas: v, intarzieriBirou: v === 'NU' ? 'NU' : '' }));
                   }}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
+                  className="w-full px-3 py-2.5 text-base sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
                 >
                   <option value="">Selecteaza raspunsul</option>
                   <option value="NU">NU</option>
@@ -1155,10 +1183,9 @@ export default function LandingPage() {
                 </select>
                 {progForm.intarzieriHas === 'DA' && (
                   <select
-                    required
                     value={progForm.intarzieriBirou}
                     onChange={e => setProgForm(f => ({ ...f, intarzieriBirou: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-orange-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 bg-orange-50/30"
+                    className="w-full px-3 py-2.5 text-base sm:text-sm border border-orange-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 bg-orange-50/30"
                   >
                     <option value="">Cate zile?</option>
                     <option value="Da-30 zile">30 zile</option>
@@ -1168,18 +1195,19 @@ export default function LandingPage() {
                 )}
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">In ultimii 4 ani ati avut poprire / credit la firme de recuperare? *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">În ultimii 4 ani ai avut poprire sau un credit la firme de recuperare?</label>
                 <select
-                  required
                   value={progForm.popriRecuperare}
                   onChange={e => setProgForm(f => ({ ...f, popriRecuperare: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
+                  className="w-full px-3 py-2.5 text-base sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 bg-white"
                 >
                   <option value="">Selecteaza raspunsul</option>
                   <option value="NU">NU</option>
                   <option value="DA">DA</option>
                 </select>
               </div>
+              </>)}
+              {progStep === 1 && (
               <div className="space-y-2">
                 <label className="flex items-start gap-2 cursor-pointer">
                   <input type="checkbox" required checked={progAgreed} onChange={e => setProgAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-green-500" />
@@ -1190,13 +1218,25 @@ export default function LandingPage() {
                   <span className="text-xs text-gray-600">Vreau să primesc informări prin email referitoare la noutăți despre dobânzi la credite și oferte bancare.</span>
                 </label>
               </div>
+              )}
               <button
                 type="submit"
-                disabled={progLoading || !progAgreed}
-                className="w-full bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-bold py-2.5 rounded-xl text-sm transition-colors shadow-md shadow-green-500/20"
+                disabled={progLoading || (progStep === 1 && !progAgreed)}
+                className="w-full bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-bold py-3 rounded-xl text-base transition-colors shadow-md shadow-green-500/20"
               >
-                {progLoading ? 'Se trimite...' : 'Trimite cererea'}
+                {progLoading ? 'Se trimite...' : progStep === 1 ? 'Continuă' : 'Trimite cererea'}
               </button>
+              {progStep === 1 && !progAgreed && (
+                <p className="text-center text-xs text-gray-500">Bifează acordul de mai sus ca să continui.</p>
+              )}
+              {progStep === 2 && (
+                <div className="flex items-center justify-between gap-3">
+                  <button type="button" onClick={() => setProgStep(1)} className="text-sm font-medium text-gray-500 hover:text-gray-800">← Înapoi</button>
+                  <button type="button" disabled={progLoading} onClick={() => void handleProgSubmit()} className="text-sm font-medium text-green-700 underline hover:text-green-800 disabled:opacity-50">
+                    Sari peste și trimite
+                  </button>
+                </div>
+              )}
             </form>
           </div>
         </div>
