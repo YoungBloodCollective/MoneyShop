@@ -1,3 +1,4 @@
+using MoneyShop.Api.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Kyc;
@@ -90,7 +91,7 @@ public class KycVerifyController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error starting KYC session");
-            return StatusCode(500, new { message = ex.Message });
+            return StatusCode(500, new { message = ClientError.For(ex, HttpContext) });
         }
     }
 
@@ -135,7 +136,7 @@ public class KycVerifyController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error submitting document");
-            return StatusCode(500, new { message = ex.Message });
+            return StatusCode(500, new { message = ClientError.For(ex, HttpContext) });
         }
     }
 
@@ -167,7 +168,7 @@ public class KycVerifyController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error submitting liveness");
-            return StatusCode(500, new { message = ex.Message });
+            return StatusCode(500, new { message = ClientError.For(ex, HttpContext) });
         }
     }
 
@@ -199,7 +200,7 @@ public class KycVerifyController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error submitting active liveness");
-            return StatusCode(500, new { message = ex.Message });
+            return StatusCode(500, new { message = ClientError.For(ex, HttpContext) });
         }
     }
 
@@ -272,7 +273,7 @@ public class KycVerifyController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in face compare / decision");
-            return StatusCode(500, new { message = ex.Message });
+            return StatusCode(500, new { message = ClientError.For(ex, HttpContext) });
         }
     }
 

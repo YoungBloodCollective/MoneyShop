@@ -1,3 +1,4 @@
+using MoneyShop.Api.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Audit;
@@ -71,7 +72,7 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -171,7 +172,7 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -192,7 +193,7 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -211,7 +212,7 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -246,7 +247,7 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -273,7 +274,7 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -332,7 +333,7 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
     }

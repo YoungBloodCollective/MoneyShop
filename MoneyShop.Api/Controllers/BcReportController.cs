@@ -1,3 +1,4 @@
+using MoneyShop.Api.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Audit;
@@ -47,7 +48,7 @@ public class BcReportController : BaseController
         }
         catch (Exception ex)
         {
-            return InternalServerError(ex.Message);
+            return InternalServerError(ClientError.For(ex, HttpContext));
         }
     }
 
@@ -68,7 +69,7 @@ public class BcReportController : BaseController
         }
         catch (Exception ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ClientError.For(ex, HttpContext));
         }
     }
 
@@ -87,7 +88,7 @@ public class BcReportController : BaseController
         }
         catch (Exception ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ClientError.For(ex, HttpContext));
         }
     }
 }

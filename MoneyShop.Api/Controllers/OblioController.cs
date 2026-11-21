@@ -1,3 +1,4 @@
+using MoneyShop.Api.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Oblio;
@@ -32,7 +33,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting Oblio companies");
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -50,7 +51,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting VAT rates");
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -70,7 +71,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting clients");
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -90,7 +91,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting products");
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -108,7 +109,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating invoice");
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -126,7 +127,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating proforma");
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -146,7 +147,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error downloading document");
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -165,7 +166,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error cancelling document");
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -184,7 +185,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error restoring document");
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
 
@@ -203,7 +204,7 @@ namespace MoneyShop.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting document");
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ClientError.For(ex, HttpContext) });
             }
         }
     }

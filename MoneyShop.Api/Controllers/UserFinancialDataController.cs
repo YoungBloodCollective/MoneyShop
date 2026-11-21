@@ -1,3 +1,4 @@
+using MoneyShop.Api.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.User;
@@ -77,7 +78,7 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ClientError.For(ex, HttpContext));
             }
         }
 
@@ -103,7 +104,7 @@ namespace MoneyShop.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ClientError.For(ex, HttpContext));
             }
         }
     }
