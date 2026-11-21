@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useCrmPath } from '@/lib/crmPath';
 import {
   ArrowLeft, Phone, Mail, CalendarDays, CheckCircle2, XCircle,
   FileText, FolderKanban, Wallet, ShieldCheck, TrendingUp, Send,
-  MessageCircle, ExternalLink, PenLine, Download, Eye, Landmark, ChevronDown, AlertTriangle, CalendarPlus,
+  MessageCircle, PenLine, Download, Eye, Landmark, ChevronDown, AlertTriangle, CalendarPlus,
 } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import { crediusApi } from '@/services/api/crediusApi';
@@ -14,6 +14,7 @@ import { downloadBlob } from '@/lib/downloadBlob';
 import type { CrmAcordSnapshot, CrmBcReportSnapshot, CrmClientDetail } from '@/types/crm.types';
 import { BankConsentsSection } from '@/components/crm/acord/BankConsentsSection';
 import { CnpField } from '@/components/crm/acord/CnpField';
+import { AcordReviewPanel } from '@/components/crm/acord/AcordReviewPanel';
 import { TIP_ACT_LABELS, fileLabel, formatDateTime, whatsappLink } from '@/components/crm/acord/acordLabels';
 import { CopyIntakeLinkButton } from '@/components/crm/CopyIntakeLinkButton';
 import { DocumentPreviewModal, type DocumentPreviewSource } from '@/components/crm/DocumentPreviewModal';
@@ -170,8 +171,7 @@ function OcrCheckPill({ label, ok }: { label: string; ok?: boolean | null }) {
   );
 }
 
-function AcordCard({ acord }: { acord: CrmAcordSnapshot }) {
-  const crm = useCrmPath();
+function AcordCard({ acord, onStatusChange }: { acord: CrmAcordSnapshot; onStatusChange: () => void }) {
   const ocr = acord.ocr;
   const signed = !!acord.signedAt;
   return (
@@ -219,13 +219,7 @@ function AcordCard({ acord }: { acord: CrmAcordSnapshot }) {
           ))}
         </ul>
       )}
-      <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-3">
-        <div className="mb-1 flex items-center justify-between gap-3 text-xs text-slate-500">
-          <span>Notiță internă</span>
-          <Link to={crm(`/crm/acorduri/${acord.acordId}`)} className="font-medium text-brand-primary hover:underline">Editează în acord</Link>
-        </div>
-        <p className="whitespace-pre-wrap text-sm text-slate-700">{acord.reviewNote || <span className="text-slate-400">Nicio notiță</span>}</p>
-      </div>
+      <AcordReviewPanel acordId={acord.acordId} onStatusChange={onStatusChange} />
     </Card>
   );
 }
@@ -540,11 +534,6 @@ function ClientDetail({ userId }: { userId: number }) {
                 <CalendarPlus className="h-4 w-4" /> Programează apel
               </button>
             )}
-            {client.acord && (
-              <Link to={crm(`/crm/acorduri/${client.acord.acordId}`)} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-primary px-3.5 py-2 text-sm font-semibold text-white hover:opacity-90">
-                <ExternalLink className="h-4 w-4" /> Deschide acordul
-              </Link>
-            )}
           </div>
         </div>
       </div>
@@ -554,7 +543,7 @@ function ClientDetail({ userId }: { userId: number }) {
         <div className="min-w-0 space-y-4 lg:col-span-2">
           <ClientWorkSection userId={userId} />
           <FinancialAnalysisCard income={client.income} bc={client.bcReport} />
-          {client.acord ? <AcordCard key={client.acord.acordId} acord={client.acord} /> : <NoAcordCard />}
+          {client.acord ? <AcordCard key={client.acord.acordId} acord={client.acord} onStatusChange={() => { void refreshClient(); }} /> : <NoAcordCard />}
           {client.acord && (
             <div className="[&>div]:mb-0">
               <BankConsentsSection
