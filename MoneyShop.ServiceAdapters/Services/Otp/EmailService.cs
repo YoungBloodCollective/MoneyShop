@@ -330,6 +330,26 @@ public class EmailService
         return SendHtmlAsync(toEmail, $"Programare {Plain(change)}: {Plain(clientName)}", body, "booking change to broker");
     }
 
+    /// <summary>
+    /// "Am primit cererea": every request without a booked time gets a reply right away, saying who
+    /// will call, when, and what to prepare (a booked time gets the confirmation email instead).
+    /// </summary>
+    public Task<bool> SendLeadReceivedAsync(string toEmail, string firstName, string? brokerName)
+    {
+        var who = string.IsNullOrWhiteSpace(brokerName) ? "Un broker MoneyShop" : Html(brokerName);
+        var body = BookingLayout("Am primit cererea ta", $@"
+    <p>Bună, {Html(firstName)}!</p>
+    <p>{who} te va suna în cel mai scurt timp, în timpul programului (luni–vineri, 09:00–18:00). Discuția durează aproximativ 15 minute, este gratuită și nu te obligă la nimic.</p>
+    <p style=""font-weight:bold;margin-bottom:4px;"">Ca să câștigăm timp, poți pregăti:</p>
+    <ul style=""margin-top:0;padding-left:20px;"">
+        <li>buletinul;</li>
+        <li>ultimii fluturași de salariu sau extrasul de cont unde îți intră salariul;</li>
+        <li>raportul de la Biroul de Credit, dacă îl ai (dacă nu, te ajutăm noi după apel).</li>
+    </ul>
+    <p style=""font-size:13px;color:#64748b;"">MoneyShop nu acordă credite: intermediem gratuit cererea ta către băncile partenere. Nu ai făcut tu această cerere? Ignoră mesajul.</p>");
+        return SendHtmlAsync(toEmail, "Am primit cererea ta - MoneyShop", body, "lead received");
+    }
+
     /// <summary>"Am uitat parola": the one-hour link to choose a new password.</summary>
     public Task<bool> SendPasswordResetAsync(string toEmail, string firstName, string resetUrl)
     {
