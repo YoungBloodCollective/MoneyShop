@@ -12,6 +12,24 @@ const EXAMPLE_AMOUNT = 30000;
 const lei = (n: number) => n.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pct = (n: number) => n.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
 
+/**
+ * The same required information in one short line, for the top of the page next to the simulator,
+ * so it is visible at a glance without scrolling (Google Ads "Personal loans" policy).
+ */
+export function LoanDisclosureSummary({ className = '' }: { className?: string }) {
+  const { aprMin, aprMax, maxTermMonths } = DEFAULT_CONFIG.np;
+  const monthly = calculateMonthlyPayment(EXAMPLE_AMOUNT, aprMax, maxTermMonths);
+  const total = Math.round(monthly * maxTermMonths * 100) / 100;
+  return (
+    <p className={`text-[11px] leading-snug text-gray-500 ${className}`}>
+      Credite de nevoi personale prin băncile partenere: rambursare între {NP_MIN_TERM_MONTHS} și {maxTermMonths} de luni,
+      DAE între {pct(aprMin)} și {pct(aprMax)} (DAE maximă {pct(aprMax)}). Exemplu reprezentativ: {lei(EXAMPLE_AMOUNT)} lei
+      pe {maxTermMonths} de luni, DAE {pct(aprMax)}: rata {lei(monthly)} lei, total de plată {lei(total)} lei.{' '}
+      <a href="#informatii-credit" className="underline hover:text-gray-700">Detalii</a>
+    </p>
+  );
+}
+
 export default function LoanDisclosure() {
   const { aprMin, aprMax, maxTermMonths } = DEFAULT_CONFIG.np;
   const monthly = calculateMonthlyPayment(EXAMPLE_AMOUNT, aprMax, maxTermMonths);
