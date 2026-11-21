@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useCrmPath } from '@/lib/crmPath';
 import { Search, Phone, Mail, ChevronRight } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmClientListItem } from '@/types/crm.types';
@@ -9,6 +10,7 @@ import { moneyShort, relTime, initials, CLIENT_STATUS_SEGMENTS, matchesClientSeg
 const SEG_KEY = 'moneyshop:crm-clienti-seg';
 
 export default function CrmClientsPage() {
+  const crm = useCrmPath();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [clients, setClients] = useState<CrmClientListItem[]>([]);
@@ -92,7 +94,7 @@ export default function CrmClientsPage() {
             {slice.map(c => (
               <li key={c.userId}>
                 <Link
-                  to={`/crm/clienti/${c.userId}`}
+                  to={crm(`/crm/clienti/${c.userId}`)}
                   className={`block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:bg-slate-50 ${FOCUS_RING}`}
                 >
                   <div className="flex items-center gap-3">
@@ -137,7 +139,7 @@ export default function CrmClientsPage() {
                 {slice.map(c => (
                   <tr
                     key={c.userId}
-                    onClick={() => navigate(`/crm/clienti/${c.userId}`)}
+                    onClick={() => navigate(crm(`/crm/clienti/${c.userId}`))}
                     className="cursor-pointer transition-colors hover:bg-slate-50 focus-within:bg-slate-50"
                   >
                     <td className="px-5 py-3">
@@ -146,7 +148,7 @@ export default function CrmClientsPage() {
                           {initials(c.fullName)}
                         </div>
                         <Link
-                          to={`/crm/clienti/${c.userId}`}
+                          to={crm(`/crm/clienti/${c.userId}`)}
                           onClick={e => e.stopPropagation()}
                           className={`rounded font-medium text-slate-800 hover:text-brand-primary hover:underline ${FOCUS_RING}`}
                         >

@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Users, FolderKanban, Sparkles,
   BarChart3, Search,
   Menu, X, LogOut, ChevronDown, ExternalLink, FileSignature, CalendarClock, UserCircle,
+  ShieldCheck, UserCheck, BookUser, Handshake, FileText,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getBrokerSlug } from '@/lib/brokerHost';
@@ -17,14 +18,48 @@ interface NavItem {
   to: string;
 }
 
-const NAV: NavItem[] = [
-  { label: 'Dashboard', icon: LayoutDashboard, to: '/crm' },
-  { label: 'Clienți', icon: Users, to: '/crm/clienti' },
-  { label: 'Acorduri', icon: FileSignature, to: '/crm/acorduri' },
-  { label: 'Dosare', icon: FolderKanban, to: '/crm/dosare' },
-  { label: 'Lead-uri', icon: Sparkles, to: '/crm/leaduri' },
-  { label: 'Programări', icon: CalendarClock, to: '/crm/programari' },
-  { label: 'Rapoarte', icon: BarChart3, to: '/crm/rapoarte' },
+interface NavGroup {
+  title?: string;
+  items: NavItem[];
+}
+
+export type WorkspaceVariant = 'crm' | 'admin';
+
+const CRM_NAV: NavGroup[] = [{
+  items: [
+    { label: 'Dashboard', icon: LayoutDashboard, to: '/crm' },
+    { label: 'Clienți', icon: Users, to: '/crm/clienti' },
+    { label: 'Acorduri', icon: FileSignature, to: '/crm/acorduri' },
+    { label: 'Dosare', icon: FolderKanban, to: '/crm/dosare' },
+    { label: 'Lead-uri', icon: Sparkles, to: '/crm/leaduri' },
+    { label: 'Programări', icon: CalendarClock, to: '/crm/programari' },
+    { label: 'Rapoarte', icon: BarChart3, to: '/crm/rapoarte' },
+  ],
+}];
+
+// Super Admin: the whole network, in its own workspace. Nothing here links into /crm.
+const ADMIN_NAV: NavGroup[] = [
+  {
+    items: [
+      { label: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
+      { label: 'Lead-uri', icon: Sparkles, to: '/admin/leaduri' },
+      { label: 'Programări', icon: CalendarClock, to: '/admin/programari' },
+      { label: 'Acorduri', icon: FileSignature, to: '/admin/acorduri' },
+      { label: 'Clienți', icon: Users, to: '/admin/clienti' },
+      { label: 'Dosare', icon: FolderKanban, to: '/admin/dosare' },
+      { label: 'Rapoarte', icon: BarChart3, to: '/admin/rapoarte' },
+    ],
+  },
+  {
+    title: 'Administrare',
+    items: [
+      { label: 'Conturi brokeri', icon: ShieldCheck, to: '/admin/brokeri' },
+      { label: 'Registru brokeri', icon: BookUser, to: '/admin/brokers' },
+      { label: 'Verificări KYC', icon: UserCheck, to: '/admin/kyc' },
+      { label: 'Parteneri', icon: Handshake, to: '/admin/partners' },
+      { label: 'Aplicații', icon: FileText, to: '/admin/applications' },
+    ],
+  },
 ];
 
 function initials(name?: string) {
@@ -32,46 +67,57 @@ function initials(name?: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase()).join('');
 }
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarContent({ variant, onNavigate }: { variant: WorkspaceVariant; onNavigate?: () => void }) {
   const slug = getBrokerSlug();
+  const groups = variant === 'admin' ? ADMIN_NAV : CRM_NAV;
+  const home = variant === 'admin' ? '/admin' : '/crm';
   return (
     <div className="flex h-full flex-col bg-slate-900 text-slate-300">
       <div className="flex items-center gap-2.5 px-5 h-16 border-b border-white/5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-primary text-white font-bold">M</div>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl text-white font-bold ${variant === 'admin' ? 'bg-indigo-600' : 'bg-brand-primary'}`}>M</div>
         <div className="leading-tight">
-          <div className="text-white font-semibold text-sm">MoneyShop CRM</div>
-          {slug && <div className="text-[11px] text-slate-400">{slug}.moneyshop.ro</div>}
+          <div className="text-white font-semibold text-sm">{variant === 'admin' ? 'MoneyShop Super Admin' : 'MoneyShop CRM'}</div>
+          {variant === 'admin'
+            ? <div className="text-[11px] text-slate-400">Toată rețeaua</div>
+            : slug && <div className="text-[11px] text-slate-400">{slug}.moneyshop.ro</div>}
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-        {NAV.map(item => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.label}
-              to={item.to}
-              end={item.to === '/crm'}
-              onClick={onNavigate}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${FOCUS_RING} ${
-                  isActive
-                    ? 'bg-brand-primary text-white shadow-sm'
-                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                }`
-              }
-            >
-              <Icon className="h-[18px] w-[18px]" />
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
+        {groups.map((group, gi) => (
+          <div key={group.title ?? gi} className="space-y-1">
+            {group.title && (
+              <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{group.title}</div>
+            )}
+            {group.items.map(item => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === home}
+                  onClick={onNavigate}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${FOCUS_RING} ${
+                      isActive
+                        ? 'bg-brand-primary text-white shadow-sm'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`
+                  }
+                >
+                  <Icon className="h-[18px] w-[18px]" />
+                  <span>{item.label}</span>
+                </NavLink>
+              );
+            })}
+          </div>
+        ))}
       </nav>
     </div>
   );
 }
 
-export function CrmLayout() {
+export function CrmLayout({ variant = 'crm' }: { variant?: WorkspaceVariant }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -126,7 +172,7 @@ export function CrmLayout() {
     <div className="flex h-screen overflow-hidden bg-slate-50">
       {/* Desktop sidebar */}
       <aside className="hidden lg:block w-64 shrink-0">
-        <SidebarContent />
+        <SidebarContent variant={variant} />
       </aside>
 
       {/* Mobile drawer */}
@@ -141,7 +187,7 @@ export function CrmLayout() {
             tabIndex={-1}
             className={`fixed inset-y-0 left-0 z-50 w-64 lg:hidden ${FOCUS_RING}`}
           >
-            <SidebarContent onNavigate={() => setMobileOpen(false)} />
+            <SidebarContent variant={variant} onNavigate={() => setMobileOpen(false)} />
           </aside>
         </>
       )}
@@ -204,10 +250,10 @@ export function CrmLayout() {
                   <div className="py-1">
                     {isSuperAdmin && (
                       <button
-                        onClick={() => { setUserMenuOpen(false); navigate('/admin'); }}
+                        onClick={() => { setUserMenuOpen(false); navigate(variant === 'admin' ? '/crm' : '/admin'); }}
                         className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 ${FOCUS_RING}`}
                       >
-                        <ExternalLink className="h-4 w-4 text-slate-400" /> Panou admin
+                        <ExternalLink className="h-4 w-4 text-slate-400" /> {variant === 'admin' ? 'Deschide CRM-ul de broker' : 'Super Admin'}
                       </button>
                     )}
                     {isBroker && (

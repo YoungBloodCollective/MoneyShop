@@ -8,6 +8,7 @@ import {
   FileText, Clock, AlertTriangle, Cake, ArrowUpRight, ArrowDownRight, ChevronRight, PenLine, FileSignature,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useCrmPath } from '@/lib/crmPath';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmDashboardSummary } from '@/types/crm.types';
 import { ErrorState } from './crmShared';
@@ -96,6 +97,7 @@ const TASK_LINK: Record<string, string> = {
 };
 
 export default function CrmDashboardPage() {
+  const crm = useCrmPath();
   const [data, setData] = useState<CrmDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -151,7 +153,7 @@ export default function CrmDashboardPage() {
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
-          icon={Users} label="Clienți activi" accent="#2D2DF0" to="/crm/clienti?seg=toate"
+          icon={Users} label="Clienți activi" accent="#2D2DF0" to={crm("/crm/clienti?seg=toate")}
           value={data.activeClients.toLocaleString('ro-RO')}
           delta={data.activeClientsDeltaPct === 0 ? undefined : {
             text: `${data.activeClientsDeltaPct > 0 ? '+' : ''}${data.activeClientsDeltaPct}% clienți noi`,
@@ -159,9 +161,9 @@ export default function CrmDashboardPage() {
             negative: data.activeClientsDeltaPct < 0,
           }}
         />
-        <KpiCard icon={FolderKanban} label="Dosare în lucru" accent="#F59E0B" to="/crm/dosare?seg=toate" value={data.filesInProgress.toLocaleString('ro-RO')} />
+        <KpiCard icon={FolderKanban} label="Dosare în lucru" accent="#F59E0B" to={crm("/crm/dosare?seg=toate")} value={data.filesInProgress.toLocaleString('ro-RO')} />
         <KpiCard icon={CheckCircle2} label="Aprobate luna aceasta" accent="#10B981" value={data.approvedThisMonth.toLocaleString('ro-RO')} />
-        <KpiCard icon={Wallet} label="Volum credite" accent="#6E4CE5" to="/crm/dosare?seg=debursate" value={`${formatVolume(data.creditVolume)} lei`} />
+        <KpiCard icon={Wallet} label="Volum credite" accent="#6E4CE5" to={crm("/crm/dosare?seg=debursate")} value={`${formatVolume(data.creditVolume)} lei`} />
       </div>
 
       {/* Charts row */}
@@ -213,7 +215,7 @@ export default function CrmDashboardPage() {
             {data.statusBreakdown.map(s => (
               <Link
                 key={s.key}
-                to={`/crm/dosare?seg=${encodeURIComponent(s.key)}`}
+                to={crm(`/crm/dosare?seg=${encodeURIComponent(s.key)}`)}
                 className={`-mx-2 flex items-center justify-between rounded-lg px-2 py-1 text-sm transition-colors hover:bg-slate-50 ${FOCUS_RING}`}
               >
                 <div className="flex items-center gap-2">
@@ -256,7 +258,8 @@ export default function CrmDashboardPage() {
             {data.tasks.map((t, i) => {
               const cls = SEVERITY_CLS[t.severity] ?? SEVERITY_CLS.info;
               const Icon = TASK_ICON[t.kind] ?? FileText;
-              const to = TASK_LINK[t.kind];
+              const link = TASK_LINK[t.kind];
+              const to = link ? crm(link) : link;
               const content = (
                 <>
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${cls}`}>

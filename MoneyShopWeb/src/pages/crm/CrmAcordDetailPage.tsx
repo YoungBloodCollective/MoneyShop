@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useCrmPath } from '@/lib/crmPath';
 import {
   ArrowLeft, Phone, Mail, Calendar, ShieldCheck, ShieldAlert, PenLine, AlertTriangle, Check, XCircle,
 } from 'lucide-react';
@@ -27,8 +28,9 @@ function AcordStatusBadge({ status }: { status: string }) {
 }
 
 export default function CrmAcordDetailPage() {
+  const crm = useCrmPath();
   const { acordId } = useParams<{ acordId: string }>();
-  const goBack = useGoBack('/crm/acorduri');
+  const goBack = useGoBack(crm('/crm/acorduri'));
   const [selected, setSelected] = useState<AcordDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);

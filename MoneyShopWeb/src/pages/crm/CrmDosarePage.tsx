@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useCrmPath } from '@/lib/crmPath';
 import { Search, List, LayoutGrid, X, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { crmApi } from '@/services/api/crmApi';
@@ -22,6 +23,7 @@ const VIEW_KEY = 'moneyshop:crm-dosare-view';
 const LINK_CLS = `rounded hover:text-brand-primary hover:underline ${FOCUS_RING}`;
 
 export default function CrmDosarePage() {
+  const crm = useCrmPath();
   const [searchParams, setSearchParams] = useSearchParams();
   const isMd = useIsMd();
   const [files, setFiles] = useState<CrmFileListItem[]>([]);
@@ -318,7 +320,7 @@ export default function CrmDosarePage() {
                         aria-label={`Selectează dosarul #${f.code}`}
                         className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 accent-brand-primary"
                       />
-                      <Link to={`/crm/clienti/${f.userId}`} className={`min-w-0 flex-1 ${LINK_CLS}`}>
+                      <Link to={crm(`/crm/clienti/${f.userId}`)} className={`min-w-0 flex-1 ${LINK_CLS}`}>
                         <span className="block font-semibold text-slate-800">#{f.code}</span>
                         <span className="block truncate text-sm text-slate-700">{f.clientName}</span>
                       </Link>
@@ -367,7 +369,7 @@ export default function CrmDosarePage() {
                           <input type="checkbox" checked={checked} onChange={() => toggleOne(f.id)} aria-label={`Selectează dosarul #${f.code}`} className="h-4 w-4 rounded border-slate-300 accent-brand-primary" />
                         </td>
                         <td className="whitespace-nowrap px-5 py-3 font-semibold text-slate-800">
-                          <Link to={`/crm/clienti/${f.userId}`} className={LINK_CLS}>#{f.code}</Link>
+                          <Link to={crm(`/crm/clienti/${f.userId}`)} className={LINK_CLS}>#{f.code}</Link>
                         </td>
                         <td className="px-5 py-3 text-slate-700">{f.clientName}</td>
                         <td className="px-5 py-3 text-slate-500">{creditTypeLabel(f.typeCredit)}</td>
@@ -429,7 +431,7 @@ export default function CrmDosarePage() {
                       className={`cursor-grab rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing ${draggedId === f.id ? 'opacity-50' : ''}`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <Link to={`/crm/clienti/${f.userId}`} draggable={false} className={`text-xs font-semibold text-slate-800 ${LINK_CLS}`}>#{f.code}</Link>
+                        <Link to={crm(`/crm/clienti/${f.userId}`)} draggable={false} className={`text-xs font-semibold text-slate-800 ${LINK_CLS}`}>#{f.code}</Link>
                         <span className="ml-auto text-xs text-slate-400">{creditTypeLabel(f.typeCredit)}</span>
                         <MoveToMenu code={f.code} targets={allowedTargets(transitions, f.status, COLUMNS)} onSelect={t => moveCard(f.id, t)} />
                       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCrmPath } from '@/lib/crmPath';
 import { Search, PenLine, Megaphone, ChevronRight } from 'lucide-react';
 import { acordApi, type AcordListItem } from '@/services/api/acordApi';
 import { brokersApi, type BrokerAdminItem } from '@/services/api/brokersApi';
@@ -14,6 +15,7 @@ const SEGMENTS = [
 ];
 
 export default function CrmAcorduriPage() {
+  const crm = useCrmPath();
   const navigate = useNavigate();
   const { isSuperAdmin } = useAuth();
   const [items, setItems] = useState<AcordListItem[]>([]);
@@ -105,7 +107,7 @@ export default function CrmAcorduriPage() {
             {slice.map(item => (
               <button
                 key={item.acordId}
-                onClick={() => navigate(`/crm/acorduri/${item.acordId}`)}
+                onClick={() => navigate(crm(`/crm/acorduri/${item.acordId}`))}
                 className="flex w-full items-center justify-between gap-4 border-b border-slate-50 px-5 py-4 text-left transition-colors last:border-0 hover:bg-slate-50"
               >
                 <div className="min-w-0">

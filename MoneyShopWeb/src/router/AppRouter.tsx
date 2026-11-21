@@ -4,8 +4,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { GuestLayout } from '@/components/layout/GuestLayout';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { CrmLayout } from '@/components/crm/CrmLayout';
+import { LegacyAdminPanel } from '@/components/crm/LegacyAdminPanel';
 import { ProtectedRoute } from './ProtectedRoute';
-import { BROKER_ADMIN_REDIRECTS } from './brokerAdminRedirects';
 import { useBroker } from '@/context/brokerContextValue';
 
 // Lazy-loaded pages
@@ -56,7 +56,6 @@ const PublicBrokerSearchPage = lazy(() => import('@/pages/broker/PublicBrokerSea
 const AcordClientPage = lazy(() => import('@/pages/acord/AcordClientPage'));
 const BankConsentPage = lazy(() => import('@/pages/bank-consent/BankConsentPage'));
 
-const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
 const AdminApplicationsPage = lazy(() => import('@/pages/admin/AdminApplicationsPage'));
 const AdminKycPage = lazy(() => import('@/pages/admin/AdminKycPage'));
 const AdminBrokersPage = lazy(() => import('@/pages/admin/AdminBrokersPage'));
@@ -153,18 +152,31 @@ export function AppRouter() {
           <Route path="/profile/schedule-call" element={<ScheduleCallPage />} />
           <Route path="/profile/invoicing" element={<ProtectedRoute adminOnly><InvoicingPage /></ProtectedRoute>} />
 
-          {/* Admin routes */}
-          <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboardPage /></ProtectedRoute>} />
-          <Route path="/admin/applications" element={<ProtectedRoute adminOnly><AdminApplicationsPage /></ProtectedRoute>} />
-          <Route path="/admin/kyc" element={<ProtectedRoute superAdminOnly><AdminKycPage /></ProtectedRoute>} />
-          <Route path="/admin/reports" element={<ProtectedRoute adminOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/reports']} replace /></ProtectedRoute>} />
-          <Route path="/admin/brokers" element={<ProtectedRoute superAdminOnly><AdminBrokersPage /></ProtectedRoute>} />
-          <Route path="/admin/appointments" element={<ProtectedRoute adminOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/appointments']} replace /></ProtectedRoute>} />
-          <Route path="/admin/leads" element={<ProtectedRoute adminOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/leads']} replace /></ProtectedRoute>} />
-          <Route path="/admin/partners" element={<ProtectedRoute superAdminOnly><AdminPartnersPage /></ProtectedRoute>} />
-          <Route path="/admin/acord" element={<ProtectedRoute adminOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/acord']} replace /></ProtectedRoute>} />
-          <Route path="/admin/brokeri" element={<ProtectedRoute superAdminOnly><AdminBrokerAccountsPage /></ProtectedRoute>} />
-          <Route path="/admin/profil" element={<ProtectedRoute brokerOnly><Navigate to={BROKER_ADMIN_REDIRECTS['/admin/profil']} replace /></ProtectedRoute>} />
+        </Route>
+
+        {/* Super Admin — the whole network, in its own workspace (same pages as the CRM, its own
+            menu). Brokers who open any /admin URL are sent to their CRM by ProtectedRoute. */}
+        <Route element={<ProtectedRoute superAdminOnly><CrmLayout variant="admin" /></ProtectedRoute>}>
+          <Route path="/admin" element={<CrmDashboardPage />} />
+          <Route path="/admin/clienti" element={<CrmClientsPage />} />
+          <Route path="/admin/clienti/:userId" element={<CrmClientDetailPage />} />
+          <Route path="/admin/acorduri" element={<CrmAcorduriPage />} />
+          <Route path="/admin/acorduri/:acordId" element={<CrmAcordDetailPage />} />
+          <Route path="/admin/dosare" element={<CrmDosarePage />} />
+          <Route path="/admin/leaduri" element={<CrmLeadsPage />} />
+          <Route path="/admin/programari" element={<CrmProgramariPage />} />
+          <Route path="/admin/rapoarte" element={<CrmRapoartePage />} />
+          <Route path="/admin/brokeri" element={<LegacyAdminPanel><AdminBrokerAccountsPage /></LegacyAdminPanel>} />
+          <Route path="/admin/brokers" element={<LegacyAdminPanel><AdminBrokersPage /></LegacyAdminPanel>} />
+          <Route path="/admin/kyc" element={<LegacyAdminPanel><AdminKycPage /></LegacyAdminPanel>} />
+          <Route path="/admin/partners" element={<LegacyAdminPanel><AdminPartnersPage /></LegacyAdminPanel>} />
+          <Route path="/admin/applications" element={<LegacyAdminPanel><AdminApplicationsPage /></LegacyAdminPanel>} />
+          {/* Old addresses (bookmarks, emails) */}
+          <Route path="/admin/leads" element={<Navigate to="/admin/leaduri" replace />} />
+          <Route path="/admin/appointments" element={<Navigate to="/admin/programari" replace />} />
+          <Route path="/admin/acord" element={<Navigate to="/admin/acorduri" replace />} />
+          <Route path="/admin/reports" element={<Navigate to="/admin/rapoarte" replace />} />
+          <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
         </Route>
 
         {/* CRM — per-broker, own light-theme shell (outside AppLayout) */}

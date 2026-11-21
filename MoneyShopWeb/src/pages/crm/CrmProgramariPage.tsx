@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCrmPath } from '@/lib/crmPath';
 import { Phone, Mail, MapPin, CreditCard, UserPlus, AlertTriangle, Gavel } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -51,6 +52,7 @@ const STATUS_PILL: Record<string, string> = {
 const SEGMENTS = [{ key: 'toate', label: 'Toate' }, ...STATUS_OPTIONS.map(s => ({ key: s, label: statusLabel(s) }))];
 
 export default function CrmProgramariPage() {
+  const crm = useCrmPath();
   const navigate = useNavigate();
   const { isSuperAdmin } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -97,7 +99,7 @@ export default function CrmProgramariPage() {
     try {
       await adminApi.convertAppointmentToLead(id);
       toast.success('Lead creat! Redirecționare...');
-      navigate('/crm/leaduri');
+      navigate(crm('/crm/leaduri'));
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) toast.error('Lead-ul există deja');
       else toast.error('Eroare la conversie');

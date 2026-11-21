@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useParams } from 'react-router-dom';
+import { useCrmPath } from '@/lib/crmPath';
 import {
   ArrowLeft, Phone, Mail, CalendarDays, CheckCircle2, XCircle,
   FileText, FolderKanban, Wallet, ShieldCheck, TrendingUp, Send,
@@ -162,6 +163,7 @@ function OcrCheckPill({ label, ok }: { label: string; ok?: boolean | null }) {
 }
 
 function AcordCard({ acord }: { acord: CrmAcordSnapshot }) {
+  const crm = useCrmPath();
   const ocr = acord.ocr;
   const signed = !!acord.signedAt;
   return (
@@ -212,7 +214,7 @@ function AcordCard({ acord }: { acord: CrmAcordSnapshot }) {
       <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-3">
         <div className="mb-1 flex items-center justify-between gap-3 text-xs text-slate-500">
           <span>Notiță internă</span>
-          <Link to={`/crm/acorduri/${acord.acordId}`} className="font-medium text-brand-primary hover:underline">Editează în acord</Link>
+          <Link to={crm(`/crm/acorduri/${acord.acordId}`)} className="font-medium text-brand-primary hover:underline">Editează în acord</Link>
         </div>
         <p className="whitespace-pre-wrap text-sm text-slate-700">{acord.reviewNote || <span className="text-slate-400">Nicio notiță</span>}</p>
       </div>
@@ -426,7 +428,8 @@ export default function CrmClientDetailPage() {
 }
 
 function ClientDetail({ userId }: { userId: number }) {
-  const goBack = useGoBack('/crm/clienti');
+  const crm = useCrmPath();
+  const goBack = useGoBack(crm('/crm/clienti'));
   const [client, setClient] = useState<CrmClientDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -511,7 +514,7 @@ function ClientDetail({ userId }: { userId: number }) {
               </a>
             )}
             {client.acord && (
-              <Link to={`/crm/acorduri/${client.acord.acordId}`} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-primary px-3.5 py-2 text-sm font-semibold text-white hover:opacity-90">
+              <Link to={crm(`/crm/acorduri/${client.acord.acordId}`)} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-primary px-3.5 py-2 text-sm font-semibold text-white hover:opacity-90">
                 <ExternalLink className="h-4 w-4" /> Deschide acordul
               </Link>
             )}
