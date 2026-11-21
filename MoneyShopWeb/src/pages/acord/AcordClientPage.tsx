@@ -49,6 +49,9 @@ const MANGO_TITLE = 'Acord prestare servicii prin Mango Broker SRL';
 const BANK_OPTION_KEY = 'banci';
 const BANK_FORMS_PANEL_ID = 'acord-bank-forms';
 
+type AcordStep = 1 | 2 | 3;
+const STEP_TITLES = ['Date', 'Documente', 'Semnătură'];
+
 const DOCUMENT_SLOTS: { key: SlotKey; step: string; title: string }[] = [
   { key: 'front', step: '1', title: 'Poză față' },
   { key: 'back', step: '2', title: 'Poză spate/verso' },
@@ -277,6 +280,7 @@ export default function AcordClientPage() {
   const [signature, setSignature] = useState<string | null>(null);
   const [showBankForms, setShowBankForms] = useState(false);
 
+  const [step, setStep] = useState<AcordStep>(1);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
@@ -338,6 +342,46 @@ export default function AcordClientPage() {
     (!rules.back || !!files.back) &&
     (!rules.proof || !!files.proof) &&
     !!signature;
+
+  // What is still missing on the current step, in plain words, next to the button (the button
+  // used to stay grey without saying why).
+  const missing: string[] = [];
+  if (step === 1) {
+    if (nume.trim().length < 2) missing.push('numele');
+    if (prenume.trim().length < 2) missing.push('prenumele');
+    if (!(phoneDigits.length === 10 || phoneDigits.length === 11)) missing.push('telefonul (10 cifre)');
+    if (!stareCivila) missing.push('starea civilă');
+    if (!stareLocativa) missing.push('starea locativă');
+    if (functieActuala.trim().length < 2) missing.push('funcția actuală');
+    if (!studii) missing.push('studiile');
+    if (yearsTotal === null) missing.push('vechimea totală');
+    if (yearsCurrent === null) missing.push('vechimea la locul actual');
+    if (tenureConflict) missing.push('vechimea corectată');
+  } else if (step === 2) {
+    if (!rules) missing.push('tipul actului de identitate');
+    else {
+      if (!files.front) missing.push(DOCUMENT_SLOTS.find(s => s.key === 'front')?.title.toLowerCase() ?? 'fața actului');
+      if (rules.back && !files.back) missing.push(DOCUMENT_SLOTS.find(s => s.key === 'back')?.title.toLowerCase() ?? 'verso');
+      if (rules.proof && !files.proof) missing.push(DOCUMENT_SLOTS.find(s => s.key === 'proof')?.title.toLowerCase() ?? 'dovada adresei');
+    }
+  } else if (!signature) {
+    missing.push('semnătura');
+  }
+
+  const goNext = () => {
+    if (missing.length > 0) return;
+    setError('');
+    setStep(s => (s < 3 ? ((s + 1) as AcordStep) : s));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const goBack = () => {
+    setError('');
+    // The signature pad starts empty when step 3 is shown again.
+    setSignature(null);
+    setStep(s => (s > 1 ? ((s - 1) as AcordStep) : s));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleSubmit = async () => {
     if (!canSubmit || submitting) return;
@@ -428,6 +472,22 @@ export default function AcordClientPage() {
             </p>
           )}
 
+          <ol className="mb-6 grid grid-cols-3 gap-2" aria-label="Pașii acordului">
+            {STEP_TITLES.map((title, i) => {
+              const n = (i + 1) as AcordStep;
+              const state = n < step ? 'done' : n === step ? 'current' : 'next';
+              return (
+                <li key={title} aria-current={state === 'current' ? 'step' : undefined} className="text-center">
+                  <span className={`block h-1.5 rounded-full ${state === 'next' ? 'bg-dark-600' : 'bg-success-600'}`} />
+                  <span className={`mt-1.5 block text-[12px] ${state === 'current' ? 'font-semibold text-light-100' : 'text-light-60'}`}>
+                    {n}. {title}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+
+          {step === 1 && (<>
           <div className="grid grid-cols-2 gap-3 mb-4 items-end">
             <Field label="Nume" value={nume} onChange={setNume} placeholder="Introdu numele" required />
             <Field label="Prenume" value={prenume} onChange={setPrenume} placeholder="Introdu prenumele" required />
@@ -458,7 +518,9 @@ export default function AcordClientPage() {
             </p>
           )}
           <div className="mb-6" />
+          </>)}
 
+          {step === 2 && (<>
           <div className="mb-6">
             <SelectField
               label="Alege ce tip de act de identitate ai"
@@ -521,6 +583,9 @@ export default function AcordClientPage() {
           <p className="text-[12px] text-light-60 mt-2.5 mb-5">
             Formate acceptate: PNG, JPG, PDF. Dimensiune max: 10MB / fișier.
           </p>
+          </>)}
+
+          {step === 3 && (<>
 
           <div className="space-y-2.5 mb-5">
             <InfoCard title="Informații GDPR și Intermediere credit" onOpen={() => setOpenDoc('gdpr')} />
@@ -565,21 +630,44 @@ export default function AcordClientPage() {
             Semnătură <span className="font-normal text-light-60">(desenează în chenar)</span>
           </p>
           <SignaturePad onChange={setSignature} height={150} />
+          </>)}
 
           {error && (
             <p className="text-error-600 text-sm mt-4 bg-error-500/8 rounded-xl px-4 py-3">{error}</p>
           )}
 
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canSubmit || submitting}
-            className="w-full py-4 mt-5 rounded-xl bg-success-600 hover:bg-success-500 text-white text-base font-semibold shadow-sm active:scale-[0.99] transition disabled:opacity-40 disabled:shadow-none"
-          >
-            {submitting
-              ? <span className="flex items-center justify-center gap-2"><Loader2 size={20} className="animate-spin" /> Se trimite...</span>
-              : 'Trimite acordul'}
-          </button>
+          {missing.length > 0 && (
+            <p className="mt-4 text-[13px] text-light-60" aria-live="polite">
+              Mai ai de completat: {missing.join(', ')}.
+            </p>
+          )}
+
+          {step < 3 ? (
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={missing.length > 0}
+              className="w-full py-4 mt-5 rounded-xl bg-success-600 hover:bg-success-500 text-white text-base font-semibold shadow-sm active:scale-[0.99] transition disabled:opacity-40 disabled:shadow-none"
+            >
+              Continuă
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!canSubmit || submitting}
+              className="w-full py-4 mt-5 rounded-xl bg-success-600 hover:bg-success-500 text-white text-base font-semibold shadow-sm active:scale-[0.99] transition disabled:opacity-40 disabled:shadow-none"
+            >
+              {submitting
+                ? <span className="flex items-center justify-center gap-2"><Loader2 size={20} className="animate-spin" /> Se trimite...</span>
+                : 'Semnează și trimite acordul'}
+            </button>
+          )}
+          {step > 1 && (
+            <button type="button" onClick={goBack} className="mt-3 w-full py-2 text-sm font-medium text-light-60 hover:text-light-90">
+              ← Înapoi
+            </button>
+          )}
 
           <p className="flex items-center justify-center gap-1.5 text-[12px] text-light-60 mt-3">
             <ShieldCheck size={13} /> Datele tale sunt în siguranță.
