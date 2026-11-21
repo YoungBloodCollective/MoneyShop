@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Phone, Mail, MapPin, AlertTriangle, MessageCircle, MessageSquare, Save, X } from 'lucide-react';
+import { Search, Phone, Mail, MapPin, AlertTriangle, MessageCircle, MessageSquare, Save, X, CalendarPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adminApi, type LeadItem } from '@/services/api/adminApi';
 import { AssignBrokerControl } from '@/components/crm/AssignBrokerControl';
 import { whatsappLink } from '@/components/crm/acord/acordLabels';
 import { PageHeader, SkeletonCards, EmptyState } from './crmShared';
-import { money, dateShort, initials, FIELD_FOCUS, FOCUS_RING } from './crmHelpers';
+import { money, dateShort, initials, normalizePhone, FIELD_FOCUS, FOCUS_RING } from './crmHelpers';
+import { AppointmentFormModal, type AppointmentPrefill } from '@/components/crm/appointments/AppointmentFormModal';
 
 const SOURCE_LABELS: Record<string, string> = {
   api: 'Formular',
@@ -17,11 +18,24 @@ const sourceLabel = (source: string) => SOURCE_LABELS[source] ?? source;
 
 const fmt = (v?: number) => (v ?? 0).toLocaleString('ro-RO', { maximumFractionDigits: 0 });
 
+/** A lead's details for a new booking ("Nume Prenume": family name first). */
+function leadPrefill(lead: LeadItem): AppointmentPrefill {
+  const [nume = '', ...rest] = lead.numePrenume.trim().split(/\s+/);
+  return {
+    nume,
+    prenume: rest.join(' '),
+    telefon: lead.telefon ?? '',
+    email: lead.email ?? '',
+    notes: `Programat din lead #${lead.id}`,
+  };
+}
+
 function LeadDrawer({
-  lead, onClose, onSaved, onAssigned,
+  lead, onClose, onSaved, onAssigned, onBook,
 }: {
   lead: LeadItem; onClose: () => void; onSaved: (id: number, notes: string) => void;
   onAssigned: (id: number, brokerProfileId: number | null) => void;
+  onBook: (lead: LeadItem) => void;
 }) {
   const [notes, setNotes] = useState(lead.adminNotes ?? '');
   const [saving, setSaving] = useState(false);
@@ -111,6 +125,13 @@ function LeadDrawer({
               </div>
             )}
             {lead.email && <a href={`mailto:${lead.email}`} className="flex items-center gap-1.5 text-slate-700 hover:text-brand-primary"><Mail size={14} /> {lead.email}</a>}
+            <button
+              type="button"
+              onClick={() => onBook(lead)}
+              className={`mt-1 inline-flex items-center gap-1.5 rounded-xl bg-brand-primary px-3 py-2 text-xs font-semibold text-white hover:opacity-90 ${FOCUS_RING}`}
+            >
+              <CalendarPlus size={14} /> Programează apel
+            </button>
           </div>
           <div>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Date lead</h3>
@@ -158,6 +179,7 @@ export default function CrmLeadsPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [q, setQ] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [booking, setBooking] = useState<LeadItem | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -176,9 +198,10 @@ export default function CrmLeadsPage() {
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return leads;
+    const phone = normalizePhone(t);
     return leads.filter(l =>
       l.numePrenume.toLowerCase().includes(t) ||
-      (l.telefon ?? '').includes(t) ||
+      (phone.length >= 3 && normalizePhone(l.telefon).includes(phone)) ||
       (l.email ?? '').toLowerCase().includes(t) ||
       (l.oras ?? '').toLowerCase().includes(t));
   }, [leads, q]);
@@ -259,6 +282,16 @@ export default function CrmLeadsPage() {
           onClose={() => setSelectedId(null)}
           onSaved={(id, notes) => setLeads(prev => prev.map(l => l.id === id ? { ...l, adminNotes: notes } : l))}
           onAssigned={(id, brokerProfileId) => setLeads(prev => prev.map(l => l.id === id ? { ...l, brokerProfileId } : l))}
+          onBook={lead => { setSelectedId(null); setBooking(lead); }}
+        />
+      )}
+      {booking && (
+        <AppointmentFormModal
+          prefill={leadPrefill(booking)}
+          brokers={[]}
+          chooseBroker={false}
+          onClose={() => setBooking(null)}
+          onSaved={() => { setBooking(null); toast.success('Apel programat. Îl găsești în Programări.'); }}
         />
       )}
     </div>

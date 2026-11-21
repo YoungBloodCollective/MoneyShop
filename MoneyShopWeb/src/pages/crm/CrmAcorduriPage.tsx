@@ -7,7 +7,7 @@ import { brokersApi, type BrokerAdminItem } from '@/services/api/brokersApi';
 import { useAuth } from '@/hooks/useAuth';
 import { ACORD_STATUS_LABELS, ACORD_STATUS_STYLES, formatDateTime } from '@/components/crm/acord/acordLabels';
 import { PageHeader, SkeletonTable, EmptyState, SegmentChips, Pagination } from './crmShared';
-import { usePaged, FIELD_FOCUS } from './crmHelpers';
+import { usePaged, matchesPhone, FIELD_FOCUS } from './crmHelpers';
 
 const SEGMENTS = [
   { key: 'toate', label: 'Toate' },
@@ -57,7 +57,7 @@ export default function CrmAcorduriPage() {
       (segment === 'toate' || i.status === segment) &&
       (!t ||
         `${i.nume} ${i.prenume}`.toLowerCase().includes(t) ||
-        i.telefon.includes(t) ||
+        matchesPhone(i.telefon, t) ||
         (i.email ?? '').toLowerCase().includes(t)));
   }, [items, q, segment]);
 
