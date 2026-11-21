@@ -10,6 +10,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useCrmPath } from '@/lib/crmPath';
 import { TodayAgenda } from '@/components/crm/appointments/TodayAgenda';
+import { WorkBoard } from '@/components/crm/client/WorkBoard';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmDashboardSummary } from '@/types/crm.types';
 import { ErrorState } from './crmShared';
@@ -150,6 +151,8 @@ export default function CrmDashboardPage() {
       </div>
 
       <TodayAgenda />
+
+      <WorkBoard />
 
       <IntakeLinkCard />
 

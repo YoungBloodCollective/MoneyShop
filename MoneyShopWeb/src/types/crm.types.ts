@@ -50,6 +50,10 @@ export interface CrmClientListItem {
   acordStatus?: string | null;
   acordSignedAt?: string | null;
   acordCreatedAt?: string | null;
+  /** Broker labels: PROBLEME_BC, DE_REVENIT, DTI. */
+  tags?: string[];
+  /** Stage of the most recently changed bank file. */
+  bankFileStatus?: string | null;
 }
 
 export interface CrmFinancialSnapshot {
@@ -215,3 +219,46 @@ export interface CrmFileListItem {
 }
 
 export type StatusTransitions = Record<string, string[]>;
+
+/** A to-do the broker set on a client, with a reminder email at dueAt. */
+export interface CrmTaskItem {
+  id: number;
+  userId: number;
+  clientName?: string | null;
+  title: string;
+  dueAt: string;
+  doneAt?: string | null;
+  createdAt: string;
+}
+
+/** A loan file submitted to a bank, tracked through the bank's stages. */
+export interface CrmBankFileItem {
+  id: number;
+  userId: number;
+  clientName?: string | null;
+  bankName: string;
+  amount: number;
+  status: string;
+  statusChangedAt: string;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CrmBankFileInput {
+  bankName: string;
+  amount: number;
+  status: string;
+  notes?: string | null;
+}
+
+export interface CrmClientWork {
+  tasks: CrmTaskItem[];
+  bankFiles: CrmBankFileItem[];
+  tags: string[];
+}
+
+export interface CrmWorkBoard {
+  bankFiles: CrmBankFileItem[];
+  openTasks: CrmTaskItem[];
+}

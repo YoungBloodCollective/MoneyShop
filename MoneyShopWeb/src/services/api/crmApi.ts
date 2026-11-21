@@ -2,6 +2,7 @@ import { apiClient } from './apiClient';
 import type {
   CrmDashboardSummary, CrmClientListItem, CrmClientDetail,
   CrmFileListItem, StatusTransitions, CrmIncomeInput, CrmIncomeSnapshot,
+  CrmClientWork, CrmTaskItem, CrmBankFileItem, CrmBankFileInput, CrmWorkBoard,
 } from '@/types/crm.types';
 
 /** The broker's secret calendar subscription link (https and webcal forms). */
@@ -56,5 +57,40 @@ export const crmApi = {
   async bcReportPdfBlob(userId: number, reportId: number): Promise<Blob> {
     const { data } = await apiClient.get(`/crm/clients/${userId}/bc-report/${reportId}/pdf`, { responseType: 'blob' });
     return data as Blob;
+  },
+  // ── Broker follow-up on a client: tasks, bank files, labels ──
+  async getClientWork(userId: number): Promise<CrmClientWork> {
+    const { data } = await apiClient.get<CrmClientWork>(`/crm/clients/${userId}/work`);
+    return data;
+  },
+  async getWorkBoard(): Promise<CrmWorkBoard> {
+    const { data } = await apiClient.get<CrmWorkBoard>('/crm/work-board');
+    return data;
+  },
+  async addTask(userId: number, title: string, dueAt: string): Promise<CrmTaskItem> {
+    const { data } = await apiClient.post<CrmTaskItem>(`/crm/clients/${userId}/tasks`, { title, dueAt });
+    return data;
+  },
+  async setTaskDone(taskId: number, done: boolean): Promise<CrmTaskItem> {
+    const { data } = await apiClient.put<CrmTaskItem>(`/crm/tasks/${taskId}/done`, { done });
+    return data;
+  },
+  async deleteTask(taskId: number): Promise<void> {
+    await apiClient.delete(`/crm/tasks/${taskId}`);
+  },
+  async addBankFile(userId: number, input: CrmBankFileInput): Promise<CrmBankFileItem> {
+    const { data } = await apiClient.post<CrmBankFileItem>(`/crm/clients/${userId}/bank-files`, input);
+    return data;
+  },
+  async updateBankFile(id: number, input: CrmBankFileInput): Promise<CrmBankFileItem> {
+    const { data } = await apiClient.put<CrmBankFileItem>(`/crm/bank-files/${id}`, input);
+    return data;
+  },
+  async deleteBankFile(id: number): Promise<void> {
+    await apiClient.delete(`/crm/bank-files/${id}`);
+  },
+  async setTags(userId: number, tags: string[]): Promise<string[]> {
+    const { data } = await apiClient.put<string[]>(`/crm/clients/${userId}/tags`, { tags });
+    return data;
   },
 };

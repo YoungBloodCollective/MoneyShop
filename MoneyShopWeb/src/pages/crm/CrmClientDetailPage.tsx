@@ -22,6 +22,7 @@ import { ClientTimeline } from '@/components/crm/client/ClientTimeline';
 import { AppointmentFormModal } from '@/components/crm/appointments/AppointmentFormModal';
 import { BcUploadButton } from '@/components/crm/client/BcUploadButton';
 import { FinancialAnalysisCard } from '@/components/crm/client/FinancialAnalysisCard';
+import { ClientWorkSection } from '@/components/crm/client/ClientWorkSection';
 import { Spinner, StatusPill, AcordPill, ErrorState } from './crmShared';
 import { money, dateShort, initials, creditTypeLabel, docTypeLabel, useGoBack, FOCUS_RING } from './crmHelpers';
 
@@ -551,6 +552,7 @@ function ClientDetail({ userId }: { userId: number }) {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Left: files + documents */}
         <div className="min-w-0 space-y-4 lg:col-span-2">
+          <ClientWorkSection userId={userId} />
           <FinancialAnalysisCard income={client.income} bc={client.bcReport} />
           {client.acord ? <AcordCard key={client.acord.acordId} acord={client.acord} /> : <NoAcordCard />}
           {client.acord && (

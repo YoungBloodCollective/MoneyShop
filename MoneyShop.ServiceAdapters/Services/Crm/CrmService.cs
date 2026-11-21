@@ -61,6 +61,12 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 .GroupBy(a => a.UserId)
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.CreatedAt).First());
             var appsByUser = apps.GroupBy(a => a.UserId).ToDictionary(g => g.Key, g => g.ToList());
+            var tags = _context.ClientTags.Select(t => new { t.UserId, t.Tag }).ToList()
+                .GroupBy(t => t.UserId)
+                .ToDictionary(g => g.Key, g => g.Select(t => t.Tag).Distinct().OrderBy(t => Array.IndexOf(ClientTagKeys.All, t)).ToList());
+            var bankStatus = _context.BankFiles.Select(f => new { f.UserId, f.Status, f.StatusChangedAt }).ToList()
+                .GroupBy(f => f.UserId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(f => f.StatusChangedAt).First().Status);
             var userIds = appsByUser.Keys.Union(acords.Keys).ToList();
             var users = _context.Utilizatoris.Where(u => userIds.Contains(u.IdUtilizator))
                 .ToDictionary(u => u.IdUtilizator);
@@ -96,6 +102,8 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                         AcordStatus = acord?.Status,
                         AcordSignedAt = acord?.SignedAt,
                         AcordCreatedAt = acord?.CreatedAt,
+                        Tags = tags.TryGetValue(id, out var t) ? t : new List<string>(),
+                        BankFileStatus = bankStatus.TryGetValue(id, out var bs) ? bs : null,
                     };
                 })
                 .OrderByDescending(c => c.LastActivityAt)

@@ -75,6 +75,11 @@ public class MoneyShopDbContext : DbContext
     public virtual DbSet<BankConsentRequest> BankConsentRequests { get; set; }
     public virtual DbSet<BrokerProfile> BrokerProfiles { get; set; }
 
+    // Broker's own follow-up on a client: tasks with reminders, bank files, labels
+    public virtual DbSet<ClientTask> ClientTasks { get; set; }
+    public virtual DbSet<BankFile> BankFiles { get; set; }
+    public virtual DbSet<ClientTag> ClientTags { get; set; }
+
     public virtual DbSet<RetentionRun> RetentionRuns { get; set; }
 
     public int? BrokerScopeId { get; set; }
@@ -865,6 +870,41 @@ public class MoneyShopDbContext : DbContext
         ConfigureBrokerOwned<Appointment>(modelBuilder);
         ConfigureBrokerOwned<LeadCapture>(modelBuilder);
         ConfigureBrokerOwned<BankConsentRequest>(modelBuilder);
+        ConfigureBrokerOwned<ClientTask>(modelBuilder);
+        ConfigureBrokerOwned<BankFile>(modelBuilder);
+        ConfigureBrokerOwned<ClientTag>(modelBuilder);
+
+        modelBuilder.Entity<ClientTask>(entity =>
+        {
+            entity.Property(e => e.Title).HasMaxLength(200);
+            foreach (var name in new[] { nameof(ClientTask.DueAt), nameof(ClientTask.CreatedAt) })
+                entity.Property<DateTime>(name).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+            foreach (var name in new[] { nameof(ClientTask.DoneAt), nameof(ClientTask.ReminderSentAt) })
+            {
+                entity.Property<DateTime?>(name).HasConversion(
+                    v => v,
+                    v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+            }
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.DueAt);
+        });
+
+        modelBuilder.Entity<BankFile>(entity =>
+        {
+            entity.Property(e => e.BankName).HasMaxLength(100);
+            entity.Property(e => e.Status).HasMaxLength(30);
+            entity.Property(e => e.Notes).HasMaxLength(1000);
+            entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+            foreach (var name in new[] { nameof(BankFile.StatusChangedAt), nameof(BankFile.CreatedAt), nameof(BankFile.UpdatedAt) })
+                entity.Property<DateTime>(name).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+            entity.HasIndex(e => e.UserId);
+        });
+
+        modelBuilder.Entity<ClientTag>(entity =>
+        {
+            entity.Property(e => e.Tag).HasMaxLength(30);
+            entity.HasIndex(e => e.UserId);
+        });
 
         // Appointment times are stored in UTC; read them back marked as UTC so the API sends them
         // with a "Z" and the browser shows them in the user's local time instead of shifting them.
