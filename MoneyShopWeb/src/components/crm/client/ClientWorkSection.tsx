@@ -68,7 +68,7 @@ function TasksPanel({ userId, tasks, onChange }: { userId: number; tasks: CrmTas
   const [saving, setSaving] = useState(false);
   const open = tasks.filter(t => !t.doneAt);
   const done = tasks.filter(t => t.doneAt);
-  const now = Date.now();
+  const [now] = useState(() => Date.now());
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();

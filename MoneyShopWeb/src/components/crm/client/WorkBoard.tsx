@@ -21,6 +21,7 @@ export function WorkBoard() {
   const crm = useCrmPath();
   const [board, setBoard] = useState<CrmWorkBoard | null>(null);
   const [stage, setStage] = useState<string | null>(null);
+  const [now] = useState(() => Date.now());
 
   useEffect(() => {
     let active = true;
@@ -39,8 +40,8 @@ export function WorkBoard() {
 
   const inProgress = board.bankFiles.filter(f => !CLOSED_BANK_STAGES.includes(f.status));
   const listed = stage ? board.bankFiles.filter(f => f.status === stage) : inProgress;
-  const now = Date.now();
-  const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999);
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
   const overdue = board.openTasks.filter(t => new Date(t.dueAt).getTime() < now).length;
   const today = board.openTasks.filter(t => { const d = new Date(t.dueAt).getTime(); return d >= now && d <= endOfToday.getTime(); }).length;
 
