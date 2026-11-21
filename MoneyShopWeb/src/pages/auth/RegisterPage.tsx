@@ -17,7 +17,7 @@ const CONSENT_EXPLANATIONS: Record<string, string> = {
   acceptTerms: 'Accepti regulile de utilizare ale platformei MoneyShop',
   acceptGdpr: 'Datele tale sunt protejate conform legislatiei europene',
   acceptCosts: 'Serviciile MoneyShop sunt 100% gratuite pentru tine',
-  mandateAnaf: 'Ne permiti sa verificam automat veniturile tale la ANAF pentru a-ti oferi cele mai bune oferte',
+  mandateAnaf: 'Opțional. Ne permiți să verificăm automat veniturile tale la ANAF, ca să nu mai aduci adeverințe. Poți da acordul și mai târziu, după discuția cu brokerul, doar pentru dosarul tău.',
 };
 
 function getPasswordStrength(password: string): { level: 'weak' | 'medium' | 'strong'; score: number } {
@@ -81,7 +81,8 @@ export default function RegisterPage() {
   const hasMinLength = form.password.length >= 8;
   const passwordsMatch = form.password === form.confirmPassword && form.confirmPassword.length > 0;
 
-  const allConsentsChecked = form.acceptTerms && form.acceptGdpr && form.acceptCosts && form.mandateAnaf;
+  // "Selectează toate" covers only the required agreements; the ANAF mandate is a separate, optional choice.
+  const allConsentsChecked = form.acceptTerms && form.acceptGdpr && form.acceptCosts;
 
   const toggleAllConsents = (checked: boolean) => {
     setForm(prev => ({
@@ -89,7 +90,6 @@ export default function RegisterPage() {
       acceptTerms: checked,
       acceptGdpr: checked,
       acceptCosts: checked,
-      mandateAnaf: checked,
     }));
   };
 
@@ -143,7 +143,7 @@ export default function RegisterPage() {
       toast.error('Parola trebuie sa aiba minim 8 caractere');
       return;
     }
-    if (!form.acceptTerms || !form.acceptGdpr || !form.acceptCosts || !form.mandateAnaf) {
+    if (!form.acceptTerms || !form.acceptGdpr || !form.acceptCosts) {
       toast.error('Trebuie sa accepti toate acordurile obligatorii');
       return;
     }
@@ -369,13 +369,13 @@ export default function RegisterPage() {
               onChange={e => toggleAllConsents(e.target.checked)}
               className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-brand-primary focus:ring-brand-primary"
             />
-            <span className="text-sm font-semibold text-light-90">Selecteaza toate</span>
+            <span className="text-sm font-semibold text-light-90">Selectează toate acordurile obligatorii</span>
           </label>
           {([
             { field: 'acceptTerms', label: <>Accept <Link to="/legal" target="_blank" className="text-brand-primary hover:underline">Termenii si Conditiile</Link> *</> },
             { field: 'acceptGdpr', label: <>Accept <Link to="/legal" target="_blank" className="text-brand-primary hover:underline">Politica GDPR</Link> *</> },
             { field: 'acceptCosts', label: <>Accept informatiile despre costuri *</> },
-            { field: 'mandateAnaf', label: <>Acord mandat ANAF *</> },
+            { field: 'mandateAnaf', label: <>Acord mandat ANAF (opțional)</> },
           ] as const).map(({ field, label }) => (
             <div key={field} className="space-y-1">
               <div className="flex items-start gap-3">

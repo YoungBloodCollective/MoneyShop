@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { eligibilityApi } from '@/services/api/eligibilityApi';
 import { DEFAULT_CONFIG } from '@/lib/eligibility/config';
 import './brokerHome.css';
+import { openCookieSettings } from '@/lib/consent';
 
 const FONTS_URL = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap';
 const AMOUNT_MIN = 5000;
@@ -253,7 +254,10 @@ export default function BrokerHomePage() {
         <footer className="footer">
           <span>© {new Date().getFullYear()} MoneyShop FINTECH SRL</span>
           <span>
-            <Link to="/legal">Confidențialitate</Link> · <Link to="/legal">Termeni</Link> · <a href={`mailto:${contact.email}`}>Contact</a>
+            <Link to="/legal">Confidențialitate</Link> · <Link to="/legal">Termeni</Link> · <a href={`mailto:${contact.email}`}>Contact</a> ·{' '}
+            <button type="button" onClick={openCookieSettings} style={{ background: 'none', border: 0, padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}>
+              Setări cookie-uri
+            </button>
           </span>
         </footer>
       </main>

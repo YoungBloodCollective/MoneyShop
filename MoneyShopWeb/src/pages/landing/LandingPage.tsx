@@ -1,15 +1,17 @@
 import { useBroker, useBrokerContact } from '@/context/brokerContextValue';
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Lock, ChevronLeft, ChevronRight, CheckCircle2, Shield, Award, Clock, Star, Users, FileCheck, Building2, ArrowRight, Menu, X } from 'lucide-react';
+import { Phone, Lock, ChevronLeft, ChevronRight, CheckCircle2, Shield, Award, Clock, Users, FileCheck, Building2, ArrowRight, Menu, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInView } from '@/hooks/useInView';
 import { apiClient } from '@/services/api/apiClient';
 import LoanDisclosure from '@/components/shared/LoanDisclosure';
+import { DEFAULT_CONFIG } from '@/lib/eligibility/config';
 import { SlotPicker } from '@/components/booking/SlotPicker';
 import { trackLeadConversion } from '@/lib/adsConversion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { openCookieSettings } from '@/lib/consent';
 
 const creditOptions = [
   { key: 'NP', label: 'Credit Nevoi Personale' },
@@ -255,7 +257,6 @@ export default function LandingPage() {
   const { ref: stepsRef, isVisible: stepsVisible } = useInView(0.1);
   const { ref: statsRef, isVisible: statsVisible } = useInView(0.3);
 
-  const clientCount = useCountUp(5000, 800, statsVisible);
   const bankCount = useCountUp(10, 1200, statsVisible);
 
   const results = useMemo(() => {
@@ -266,8 +267,10 @@ export default function LandingPage() {
       totalIncome += partnerSalary + partnerBonuri;
     }
     const dtiCap = totalIncome > 5700 ? 0.50 : 0.40;
-    const apr = 0.08;
-    const displayRate = loanType === 'IPOTECAR' ? 4.59 : 5.9;
+    // One source for every rate on the page (the same config as the credit information box and the
+    // broker sites): the amount is estimated at the rate that is shown, never at a different one.
+    const displayRate = loanType === 'IPOTECAR' ? DEFAULT_CONFIG.mortgage.promoFixedMin : DEFAULT_CONFIG.np.aprMin;
+    const apr = displayRate / 100;
     const maxPayment = totalIncome * dtiCap;
     const monthlyRate = apr / 12;
     const factor = monthlyRate > 0 ? (1 - Math.pow(1 + monthlyRate, -termMonths)) / monthlyRate : termMonths;
@@ -397,12 +400,12 @@ export default function LandingPage() {
               <span className="text-lg sm:text-2xl lg:text-[2.2rem] font-extrabold bg-yellow-300 px-2 py-0.5 rounded-lg text-gray-900">100% Gratuit</span>
             </div>
             <p className="text-gray-500 mt-2 text-xs sm:text-sm lg:text-base hidden sm:block animate-slide-up anim-delay-2">
-              Compara ofertele tuturor <strong className="text-gray-700">bancilor</strong> si obtine aprobare in <strong className="text-gray-700">24h</strong>
+              Compară ofertele <strong className="text-gray-700">băncilor partenere</strong> și discută gratuit cu un <strong className="text-gray-700">broker autorizat</strong>
             </p>
             <div className="hidden sm:flex flex-wrap gap-1.5 mt-3 animate-slide-up anim-delay-2">
               {[
                 { icon: <CheckCircle2 size={13} className="text-green-500" />, text: 'Fara Comisioane' },
-                { icon: <CheckCircle2 size={13} className="text-green-500" />, text: 'Aprobare Rapida' },
+                { icon: <CheckCircle2 size={13} className="text-green-500" />, text: 'Programare online' },
                 { icon: <CheckCircle2 size={13} className="text-green-500" />, text: '100% Online' },
               ].map(badge => (
                 <div key={badge.text} className="flex items-center gap-1 bg-white border border-gray-200 rounded-full px-3 py-1 text-xs text-gray-600 shadow-sm">
@@ -583,8 +586,10 @@ export default function LandingPage() {
                       <div className="text-right shrink-0">
                         <p className="text-[10px] text-gray-400">{results.termMonths} luni</p>
                         <p className="text-xs text-gray-500">
-                          de la <strong className="text-gray-900">{results.rate.toFixed(1)}%</strong>/an
+                          {loanType === 'IPOTECAR' ? 'dobândă fixă' : 'DAE'} de la{' '}
+                          <strong className="text-gray-900">{results.rate.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</strong>
                         </p>
+                        <a href="#informatii-credit" className="text-[10px] text-blue-600 underline hover:text-blue-700">Exemplu reprezentativ</a>
                       </div>
                     </div>
                   )}
@@ -831,8 +836,8 @@ export default function LandingPage() {
             <div className="flex items-center gap-2.5">
               <Users size={22} className="text-blue-400 shrink-0" />
               <div>
-                <p className="text-lg font-extrabold text-white leading-tight">{fmt(clientCount)}+</p>
-                <p className="text-[10px] text-gray-400">Clienti multumiti</p>
+                <p className="text-lg font-extrabold text-white leading-tight">Gratuit</p>
+                <p className="text-[10px] text-gray-400">pentru tine</p>
               </div>
             </div>
             <div className="flex items-center gap-2.5">
@@ -845,19 +850,8 @@ export default function LandingPage() {
             <div className="flex items-center gap-2.5">
               <Clock size={22} className="text-blue-400 shrink-0" />
               <div>
-                <p className="text-[10px] text-gray-400">Aprobare</p>
-                <p className="text-lg font-extrabold text-white leading-tight">in 24h</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <Star size={22} className="text-yellow-400 fill-yellow-400 shrink-0" />
-              <div>
-                <p className="text-lg font-extrabold text-white leading-tight">4.9/5</p>
-                <div className="flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={9} className="text-yellow-400 fill-yellow-400" />
-                  ))}
-                </div>
+                <p className="text-[10px] text-gray-400">Programare</p>
+                <p className="text-lg font-extrabold text-white leading-tight">online</p>
               </div>
             </div>
             <div className="flex items-center gap-2.5">
@@ -913,6 +907,7 @@ export default function LandingPage() {
                 {/* <p className="hover:text-white cursor-pointer transition-colors" onClick={() => navigate('/verifica-broker')}>Verifica un broker</p> */}
                 <p className="hover:text-white cursor-pointer transition-colors" onClick={() => navigate('/legal')}>Termeni si conditii</p>
                 <p className="hover:text-white cursor-pointer transition-colors" onClick={() => navigate('/legal')}>Politica de confidentialitate</p>
+                <button type="button" className="block text-left hover:text-white transition-colors" onClick={openCookieSettings}>Setări cookie-uri</button>
                 <p className="hover:text-white cursor-pointer transition-colors">Blog</p>
               </div>
             </div>

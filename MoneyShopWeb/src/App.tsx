@@ -8,6 +8,10 @@ import { BrokerProvider } from '@/context/BrokerContext';
 import { BrokerGate } from '@/components/shared/BrokerGate';
 import { PwaUpdatePrompt } from '@/components/pwa/PwaUpdatePrompt';
 import { InstallAppPrompt } from '@/components/pwa/InstallAppPrompt';
+import { CookieBanner } from '@/components/shared/CookieBanner';
+import { initConsent } from '@/lib/consent';
+
+initConsent();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -68,6 +72,7 @@ function App() {
         />
         <PwaUpdatePrompt />
         <InstallAppPrompt />
+        <CookieBanner />
       </BrowserRouter>
     </QueryClientProvider>
   );

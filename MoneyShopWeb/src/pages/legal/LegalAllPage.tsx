@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, Shield } from 'lucide-react';
+import { openCookieSettings } from '@/lib/consent';
 
 interface LegalSection {
   id: string;
@@ -129,6 +130,9 @@ const sections: LegalSection[] = [
         <p>Esentiale pentru functionarea Platformei. Permit navigarea pe site, accesarea zonelor securizate, functionarea formularelor si autentificarii. Nu pot fi dezactivate.</p>
         <h4 className="text-base font-semibold text-gray-900">2. Cookie-uri de analiza</h4>
         <p>Colecteaza informatii anonime privind modul de utilizare a Platformei. Scop: imbunatatirea functionalitatilor si analiza statistica. Necesita consimtamantul utilizatorului.</p>
+        <h4 className="text-base font-semibold text-gray-900">2.1. Cookie-uri de marketing (Google Ads)</h4>
+        <p>Doar daca le accepti, incarcam eticheta Google Ads (gtag.js), care masoara ce reclame aduc cereri de programare. La trimiterea unei cereri, emailul si telefonul sunt transmise catre Google numai criptat (hash SHA-256), pentru masurarea conversiilor. Fara acord, eticheta Google nu se incarca deloc. Iti poti retrage oricand acordul din „Setari cookie-uri”.</p>
+        <p><button type="button" onClick={openCookieSettings} className="font-medium text-blue-600 underline hover:text-blue-700">Deschide setările cookie-uri</button></p>
         <h4 className="text-base font-semibold text-gray-900">3. Cookie-uri si date personale</h4>
         <p>Cookie-urile utilizate nu sunt utilizate pentru identificare directa, nu sunt utilizate pentru profilare financiara si nu sunt corelate cu datele ANAF sau Biroul de Credit.</p>
         <h4 className="text-base font-semibold text-gray-900">4. Consimtamantul utilizatorului</h4>
