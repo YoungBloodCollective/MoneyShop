@@ -69,11 +69,16 @@ const judete = [
 const tipuriCredit = ['Credit Nevoi Personale', 'Credit Ipotecar', 'Refinantare'];
 
 const howItWorks = [
-  { num: 1, title: 'Calculeaza', desc: 'Alege suma si tipul de credit', img: '/images/landing/step1.png' },
-  { num: 2, title: 'Verificare 100% Online', desc: 'ANAF \u2022 Birou de Credite', img: '/images/landing/step2.png' },
-  { num: 3, title: 'Compara Oferte', desc: 'Cele mai bune banci', img: '/images/landing/step3.png' },
-  { num: 4, title: 'Semneaza', desc: 'Aplica rapid', img: '/images/landing/step4.png' },
+  { num: 1, title: 'Calculeaza', desc: 'Alege suma si tipul de credit', img: '/images/landing/step1.jpg' },
+  { num: 2, title: 'Verificare 100% Online', desc: 'ANAF \u2022 Birou de Credite', img: '/images/landing/step2.jpg' },
+  { num: 3, title: 'Compara Oferte', desc: 'Cele mai bune banci', img: '/images/landing/step3.jpg' },
+  { num: 4, title: 'Semneaza', desc: 'Aplica rapid', img: '/images/landing/step4.jpg' },
 ];
+
+// Hero photo: both hero images (desktop and mobile crop) use the same candidates and sizes, so the
+// browser downloads one file, sized for the screen (65 KB on phones instead of the old 2.2 MB PNG).
+const HERO_SRCSET = '/images/landing/family-768.jpg 768w, /images/landing/family.jpg 1536w';
+const HERO_SIZES = '(min-width: 1024px) 60vw, 100vw';
 
 function useCountUp(end: number, duration: number, trigger: boolean) {
   const [value, setValue] = useState(0);
@@ -171,7 +176,9 @@ export default function LandingPage() {
         setProgForm({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
         setProgAgreed(false);
         setProgMarketing(false);
-        toast.success('Te avem deja pe lista! Un consultant te va contacta in curand.', { duration: 6000 });
+        setProgSlot(null);
+        const serverMessage = typeof err.response?.data?.message === 'string' ? err.response.data.message : null;
+        toast.success(serverMessage ?? 'Te avem deja pe listă! Un consultant te va contacta în curând.', { duration: 8000 });
       } else if (axios.isAxiosError(err) && err.response?.status === 400 && err.response?.data?.code === 'salary_too_low') {
         toast.error('Salariul net minim acceptat este 2.500 RON (salariul minim pe economie).', { duration: 6000 });
       } else {
@@ -369,12 +376,12 @@ export default function LandingPage() {
       {/* ══════════ HERO ══════════ */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-50/80 via-white to-white lg:min-h-[calc(100dvh-4rem)]">
         <div className="hidden lg:block absolute inset-y-0 right-0 w-[55%] xl:w-[58%] 2xl:w-[62%]">
-          <img src="/images/landing/family.png" alt="Familie fericita" className="w-full h-full object-cover object-[55%_center] animate-fade-in" />
+          <img src="/images/landing/family.jpg" srcSet={HERO_SRCSET} sizes={HERO_SIZES} width={1536} height={1024} fetchPriority="high" decoding="async" alt="Familie fericită" className="w-full h-full object-cover object-[55%_center] animate-fade-in" />
           <div className="absolute inset-y-0 left-0 w-[40%] bg-gradient-to-r from-white via-white/80 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-white/80" />
         </div>
         <div className="lg:hidden w-full h-52 sm:h-64 relative overflow-hidden">
-          <img src="/images/landing/family.png" alt="Familie fericita" className="w-full h-full object-cover object-[center_30%]" />
+          <img src="/images/landing/family.jpg" srcSet={HERO_SRCSET} sizes={HERO_SIZES} width={1536} height={1024} fetchPriority="high" decoding="async" alt="Familie fericită" className="w-full h-full object-cover object-[center_30%]" />
           <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent" />
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 py-3 pb-6 lg:py-0 lg:pb-0 lg:flex lg:items-center lg:min-h-[calc(100dvh-4rem)]">
@@ -759,6 +766,8 @@ export default function LandingPage() {
                     <img
                       src={step.img}
                       alt={step.title}
+                      loading="lazy"
+                      decoding="async"
                       className="max-h-full max-w-full object-contain"
                       onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
@@ -791,7 +800,7 @@ export default function LandingPage() {
               style={{ transitionDelay: '600ms' }}
             >
               <div className="aspect-square overflow-hidden bg-gray-100">
-                <img src="/images/landing/new_broker.png" alt="Broker autorizat" className="w-full h-full object-cover object-top" />
+                <img src="/images/landing/new_broker.jpg" width={720} height={1080} loading="lazy" decoding="async" alt="Broker autorizat" className="w-full h-full object-cover object-top" />
               </div>
               <div className="px-3.5 pb-3.5 pt-2 flex-1 flex flex-col justify-between">
                 <div>

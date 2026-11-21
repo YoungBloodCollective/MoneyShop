@@ -10,6 +10,7 @@ import { useBroker } from '@/context/brokerContextValue';
 
 // Lazy-loaded pages
 const LandingPage = lazy(() => import('@/pages/landing/LandingPage'));
+const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'));
 const BrokerHomePage = lazy(() => import('@/pages/broker-home/BrokerHomePage'));
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'));
@@ -202,7 +203,7 @@ export function AppRouter() {
         </Route>
 
         {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   );

@@ -54,6 +54,11 @@ public class EmailService
                     ? "Nu"
                     : intarzieriBirou.Replace("Da-", "").ToLowerInvariant() + " intarziere";
 
+            // Everything below comes from the public form: encode it so nobody can inject HTML into the broker's inbox.
+            nume = Html(nume); prenume = Html(prenume); telefon = Html(telefon); email = Html(email);
+            judet = Html(judet); tipCredit = Html(tipCredit); popriRecuperare = Html(popriRecuperare);
+            intarzieriDisplay = Html(intarzieriDisplay);
+
             var subject = $"Programare noua #{appointmentId} - {subjectName}";
             var body = $@"
 <div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"">
@@ -112,6 +117,10 @@ public class EmailService
                 return false;
             }
 
+            // Public form input: encode it (keeping line breaks in the description).
+            nume = Html(nume); prenume = Html(prenume); telefon = Html(telefon); email = Html(email); judet = Html(judet);
+            descriere = System.Net.WebUtility.HtmlEncode(descriere ?? string.Empty);
+
             var subject = $"Cerere partener noua #{applicationId} - {subjectName}";
             var body = $@"
 <div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"">
@@ -155,7 +164,7 @@ public class EmailService
         var body = $@"
 <div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"">
     <h2 style=""color: #0075EB;"">Acordul dumneavoastra semnat</h2>
-    <p>Buna ziua, {clientName},</p>
+    <p>Buna ziua, {Html(clientName)},</p>
     <p>Va multumim pentru increderea acordata. Atasat gasiti o copie a acordului de intermediere si prelucrare date pe care l-ati semnat.</p>
     <p>Pastrati acest document pentru evidenta dumneavoastra. Un consultant MoneyShop va va contacta in cel mai scurt timp.</p>
     <p>Daca nu ati semnat acest acord, va rugam sa ne contactati imediat.</p>
@@ -170,7 +179,7 @@ public class EmailService
         var body = $@"
 <div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"">
     <h2 style=""color: #0075EB;"">Informare precontractuala si solicitare servicii - Mango Broker</h2>
-    <p>Buna ziua, {clientName},</p>
+    <p>Buna ziua, {Html(clientName)},</p>
     <p>Atasat gasiti informarea precontractuala si solicitarea de servicii catre Mango Broker SRL, semnate impreuna cu acordul MoneyShop.</p>
     <p>Pastrati acest document pentru evidenta dumneavoastra.</p>
     <p>Daca nu ati semnat acest document, va rugam sa ne contactati imediat.</p>

@@ -70,15 +70,19 @@ namespace MoneyShop.Api.Controllers
                 var since = DateTime.UtcNow.AddDays(-7);
                 var recent = await _db.Appointments
                     .Where(a => a.CreatedAt >= since && a.BrokerProfileId == brokerId)
-                    .Select(a => a.Telefon)
+                    .OrderByDescending(a => a.CreatedAt)
                     .ToListAsync();
-                if (recent.Any(t => NormalizePhone(t) == normalized))
+                var existing = recent.FirstOrDefault(a => NormalizePhone(a.Telefon) == normalized);
+                if (existing != null)
                 {
-                    _logger.LogInformation("Duplicate appointment blocked for phone {Phone} within 7-day window.", request.Telefon);
+                    _logger.LogInformation("Repeat request for appointment {Id} within the 7-day window.", existing.Id);
+                    // A time picked on the site is never thrown away: it goes on the request we already have.
+                    if (request.ScheduledAt.HasValue)
+                        return await BookOnExistingAsync(existing, request, brokerId);
                     return Conflict(new
                     {
                         code = "already_registered",
-                        message = "Te avem deja pe lista — un consultant te va contacta in curand."
+                        message = "Te avem deja pe listă. Un consultant te va contacta în curând."
                     });
                 }
             }
@@ -155,6 +159,85 @@ namespace MoneyShop.Api.Controllers
                 id = appointment.Id,
                 scheduledAt = appointment.ScheduledAt,
                 confirmationSent,
+            });
+        }
+
+        /// <summary>
+        /// Same phone again within 7 days, this time with a time picked. A request without a live call gets the
+        /// time (the client is not turned away with "already registered" and the slot lost). A request that
+        /// already has a call coming up keeps it, and the private link is sent again to the email on file,
+        /// so nobody can move someone else's call by typing their phone number.
+        /// </summary>
+        private async Task<IActionResult> BookOnExistingAsync(Appointment existing, CreateAppointmentRequest request, int? brokerId)
+        {
+            var now = DateTime.UtcNow;
+            var root = _configuration["Brokers:RootDomain"] ?? "moneyshop.ro";
+            var firstName = string.IsNullOrWhiteSpace(existing.Prenume) ? existing.Nume : existing.Prenume;
+            var live = existing.ScheduledAt.HasValue && existing.ScheduledAt.Value > now
+                && existing.CancelledAt == null && existing.Status != SchedulingRules.CancelledStatus;
+
+            if (live)
+            {
+                var resent = false;
+                if (!string.IsNullOrWhiteSpace(existing.Email))
+                {
+                    var token = _booking.NewToken(out var hash);
+                    existing.ConfirmationTokenHash = hash;
+                    existing.UpdatedAt = now;
+                    await _db.SaveChangesAsync();
+                    _ = _emailService.SendBookingConfirmationRequestAsync(existing.Email, firstName, existing.ScheduledAt!.Value,
+                        existing.DurationMinutes, $"https://{root}/programare/{token}");
+                    resent = true;
+                }
+                return Conflict(new
+                {
+                    code = "already_booked",
+                    message = resent
+                        ? "Ai deja un apel programat. Ți-am retrimis pe email linkul cu care îl poți muta sau anula."
+                        : "Ai deja un apel programat. Te sunăm la ora stabilită.",
+                });
+            }
+
+            var capacityBroker = brokerId ?? _brokerProfiles.ResolveIntakeBrokerId(request.BrokerSlug);
+            var start = request.ScheduledAt!.Value.ToUniversalTime();
+            if (!await _booking.IsBookableAsync(capacityBroker, start, now, existing.Id))
+                return StatusCode(409, new { code = "slot_taken", message = "Intervalul ales nu mai este disponibil. Alege altă oră." });
+
+            var manageToken = _booking.NewToken(out var manageHash);
+            existing.ScheduledAt = start;
+            existing.DurationMinutes = _booking.SlotDurationMinutes;
+            existing.ConfirmationTokenHash = manageHash;
+            existing.ConfirmedAt = null;
+            existing.CancelledAt = null;
+            existing.Reminder24hSentAt = null;
+            existing.Reminder30mSentAt = null;
+            existing.Source ??= "site";
+            if (existing.Status == SchedulingRules.CancelledStatus) existing.Status = "Nou";
+            if (string.IsNullOrWhiteSpace(existing.Email) && !string.IsNullOrWhiteSpace(request.Email))
+                existing.Email = request.Email.Trim();
+            existing.UpdatedAt = now;
+            await _db.SaveChangesAsync();
+
+            _ = _emailService.SendAppointmentNotificationAsync(
+                _brokerProfiles.GetNotificationEmail(brokerId) ?? NotificationEmail,
+                existing.Id, existing.Nume, existing.Prenume, existing.Telefon, existing.Judet, existing.TipCredit,
+                existing.SalariuNet, existing.Email, existing.IntarzieriBirou, existing.PopriRecuperare);
+
+            var confirmationSent = false;
+            if (!string.IsNullOrWhiteSpace(existing.Email))
+            {
+                _ = _emailService.SendBookingConfirmationRequestAsync(existing.Email, firstName, start,
+                    existing.DurationMinutes, $"https://{root}/programare/{manageToken}");
+                confirmationSent = true;
+            }
+
+            return Ok(new
+            {
+                message = "Am actualizat programarea ta.",
+                id = existing.Id,
+                scheduledAt = existing.ScheduledAt,
+                confirmationSent,
+                updated = true,
             });
         }
 
