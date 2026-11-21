@@ -19,6 +19,10 @@ public class OutlookSyncService : IOutlookSyncService
 {
     public const int PastDays = 1;
     public const int FutureDays = 60;
+    public static readonly TimeSpan MissingMailboxRetry = TimeSpan.FromHours(6);
+
+    // Mailboxes Graph does not know (404), skipped until the time stored here.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> MissingMailboxes = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly MoneyShopDbContext _db;
     private readonly IOutlookCalendar _outlook;
@@ -47,11 +51,20 @@ public class OutlookSyncService : IOutlookSyncService
         {
             var mailbox = _outlook.MailboxFor(broker.Slug, broker.NotificationEmail, broker.PublicEmail);
             if (mailbox == null) continue;
+            if (MissingMailboxes.TryGetValue(mailbox, out var retryAt) && retryAt > nowUtc) continue;
             mailboxes++;
             try
             {
                 var (c, u, d) = await SyncBrokerAsync(broker.Id, mailbox, nowUtc, ct);
                 created += c; updated += u; deleted += d;
+                MissingMailboxes.TryRemove(mailbox, out _);
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // An address in the company domain with no Microsoft 365 mailbox: not an error, check again later.
+                MissingMailboxes[mailbox] = nowUtc.Add(MissingMailboxRetry);
+                _logger.LogInformation("Broker {BrokerId} has no Outlook mailbox at {Mailbox}; retrying in {Hours} h",
+                    broker.Id, mailbox, MissingMailboxRetry.TotalHours);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
