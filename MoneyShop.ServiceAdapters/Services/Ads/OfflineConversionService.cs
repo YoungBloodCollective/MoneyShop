@@ -49,17 +49,19 @@ public class OfflineConversionService : IOfflineConversionService
             .ToList();
     }
 
-    /// <summary>Google Ads upload template (times in UTC, stated in the parameters line).</summary>
+    /// <summary>
+    /// Plain CSV with the header on the first line, as Google Ads Data Manager reads it (it treats a
+    /// "Parameters:" line as the header); each time carries its UTC offset.
+    /// </summary>
     public static string ToCsv(IEnumerable<OfflineConversion> conversions)
     {
         var sb = new StringBuilder();
-        sb.Append("Parameters:TimeZone=+0000\r\n");
         sb.Append("Google Click ID,Conversion Name,Conversion Time,Conversion Value,Conversion Currency\r\n");
         foreach (var c in conversions)
         {
             sb.Append(c.Gclid).Append(',')
               .Append(ConversionName).Append(',')
-              .Append(c.AtUtc.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)).Append(',')
+              .Append(c.AtUtc.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)).Append("+00:00").Append(',')
               .Append("1,RON\r\n");
         }
         return sb.ToString();
