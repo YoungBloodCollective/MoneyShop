@@ -152,6 +152,14 @@ namespace MoneyShop.Api.Controllers
                     appointment.DurationMinutes, $"https://{root}/programare/{manageToken}");
                 confirmationSent = true;
             }
+            else if (!string.IsNullOrWhiteSpace(appointment.Email))
+            {
+                // No time picked: still answer at once, so the client knows the request arrived and what comes next.
+                string? brokerName = null;
+                if (brokerId.HasValue) _brokerProfiles.GetDisplayNames().TryGetValue(brokerId.Value, out brokerName);
+                var firstName = string.IsNullOrWhiteSpace(appointment.Prenume) ? appointment.Nume : appointment.Prenume;
+                _ = _emailService.SendLeadReceivedAsync(appointment.Email, firstName, brokerName);
+            }
 
             return Ok(new
             {

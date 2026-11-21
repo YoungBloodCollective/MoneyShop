@@ -6,6 +6,7 @@ import { eligibilityApi } from '@/services/api/eligibilityApi';
 import { DEFAULT_CONFIG } from '@/lib/eligibility/config';
 import './brokerHome.css';
 import { openCookieSettings } from '@/lib/consent';
+import { BrokerBookingModal } from './BrokerBookingModal';
 
 const FONTS_URL = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap';
 const AMOUNT_MIN = 5000;
@@ -35,7 +36,7 @@ function scrollToId(id: string) {
 
 export default function BrokerHomePage() {
   const navigate = useNavigate();
-  const { profile } = useBroker();
+  const { profile, slug } = useBroker();
   const contact = useBrokerContact();
   const { isAuthenticated } = useAuth();
   const [rates, setRates] = useState({
@@ -47,6 +48,7 @@ export default function BrokerHomePage() {
   const [years, setYears] = useState(5);
   const [rate, setRate] = useState(DEFAULT_CONFIG.np.aprMin);
   const [contactOpen, setContactOpen] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(false);
 
   useEffect(() => {
     if (document.getElementById('bh-fonts')) return;
@@ -199,8 +201,8 @@ export default function BrokerHomePage() {
                 </div>
               </div>
               <div>
-                <button className="whitebtn" onClick={() => navigate(`/dashboard/apply?tip=NP&suma=${amount}&luni=${months}`)}>
-                  Vreau o ofertă personalizată →
+                <button className="whitebtn" onClick={() => setBookingOpen(true)}>
+                  Programează un apel gratuit →
                 </button>
                 <p className="note">
                   Calcul orientativ pentru un credit de nevoi personale, cu DAE între {pct(rates.aprMin)} și {pct(rates.aprMax)} în funcție de profilul tău. Nu reprezintă o ofertă de credit sau o aprobare.
@@ -247,7 +249,7 @@ export default function BrokerHomePage() {
           </div>
           <div className="steps">
             <div className="step"><span className="stepnum">1</span><div><b>Calculezi rata</b><small>În mai puțin de un minut</small></div></div>
-            <div className="step"><span className="stepnum">2</span><div><b>Te conectezi în MoneyShop</b><small>Un singur cont, oriunde ai intra</small></div></div>
+            <div className="step"><span className="stepnum">2</span><div><b>Alegi ora apelului</b><small>Fără cont, confirmi din email</small></div></div>
             <div className="step"><span className="stepnum">3</span><div><b>Discuți cu brokerul tău</b><small>Primești îndrumare personalizată</small></div></div>
           </div>
         </section>
@@ -274,10 +276,20 @@ export default function BrokerHomePage() {
             <button className="x" aria-label="Închide" onClick={() => setContactOpen(false)}>×</button>
           </div>
           <p>Ai o întrebare despre credit? Alege cum preferi să discutăm.</p>
-          <a className="primary full" href={contact.phoneHref}>☎ Sună la {contact.phone}</a>
+          <button className="primary full" onClick={() => { setContactOpen(false); setBookingOpen(true); }}>📅 Alege o oră și te sun eu</button>
+          <a className="login full" style={{ display: 'flex', justifyContent: 'center' }} href={contact.phoneHref}>☎ Sună la {contact.phone}</a>
           <a className="login full" style={{ display: 'flex', justifyContent: 'center' }} href={whatsappHref} target="_blank" rel="noreferrer">✉ Scrie-mi pe WhatsApp</a>
         </div>
       </div>
+      {bookingOpen && (
+        <BrokerBookingModal
+          brokerSlug={slug}
+          brokerFirstName={firstName}
+          amount={amount}
+          months={months}
+          onClose={() => setBookingOpen(false)}
+        />
+      )}
     </div>
   );
 }
