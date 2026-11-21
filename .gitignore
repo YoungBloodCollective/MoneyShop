@@ -1,5 +1,3 @@
-DataAccess/EntityFramework/ProjectOnProjectsContext.cs
-/DataAccess/EntityFramework/ProjectOnProjectsContext.cs
 
 # Environment files (may contain secrets)
 .env
@@ -398,7 +396,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-DataAccess/EntityFramework/ProjectOnProjectsContext.cs
 
 # User Secrets and Development Settings
 appsettings.Development.json
