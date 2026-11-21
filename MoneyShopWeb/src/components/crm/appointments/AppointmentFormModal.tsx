@@ -16,11 +16,22 @@ interface SlotConflict { appointmentId: number; clientName: string; startUtc: st
  * New appointment (manual booking) or a new time for an existing one. The server refuses times
  * that overlap another appointment of the same broker and says which one is in the way.
  */
+/** Client details to start a new booking with (from a lead or a client file), so nothing is retyped. */
+export interface AppointmentPrefill {
+  nume?: string;
+  prenume?: string;
+  telefon?: string;
+  email?: string;
+  tipCredit?: string;
+  notes?: string;
+}
+
 export function AppointmentFormModal({
-  appointment, brokers, chooseBroker, onClose, onSaved,
+  appointment, prefill, brokers, chooseBroker, onClose, onSaved,
 }: {
   /** Set = change the time of this appointment; unset = book a new one. */
   appointment?: Appointment | null;
+  prefill?: AppointmentPrefill;
   brokers: BrokerAdminItem[];
   /** Super Admin in /admin picks the broker; brokers always book on their own calendar. */
   chooseBroker: boolean;
@@ -32,12 +43,12 @@ export function AppointmentFormModal({
   const editing = !!appointment;
   const initial = toLocalInputs(appointment?.scheduledAt);
 
-  const [nume, setNume] = useState('');
-  const [prenume, setPrenume] = useState('');
-  const [telefon, setTelefon] = useState('');
-  const [email, setEmail] = useState('');
-  const [tipCredit, setTipCredit] = useState('');
-  const [notes, setNotes] = useState('');
+  const [nume, setNume] = useState(prefill?.nume ?? '');
+  const [prenume, setPrenume] = useState(prefill?.prenume ?? '');
+  const [telefon, setTelefon] = useState(prefill?.telefon ?? '');
+  const [email, setEmail] = useState(prefill?.email ?? '');
+  const [tipCredit, setTipCredit] = useState(prefill?.tipCredit ?? '');
+  const [notes, setNotes] = useState(prefill?.notes ?? '');
   const [date, setDate] = useState(initial.date);
   const [time, setTime] = useState(initial.time);
   const [duration, setDuration] = useState(appointment?.durationMinutes ?? 15);

@@ -5,7 +5,7 @@ import { useCrmPath } from '@/lib/crmPath';
 import {
   ArrowLeft, Phone, Mail, CalendarDays, CheckCircle2, XCircle,
   FileText, FolderKanban, Wallet, ShieldCheck, TrendingUp, Send,
-  MessageCircle, ExternalLink, PenLine, Download, Eye, Landmark, ChevronDown, AlertTriangle,
+  MessageCircle, ExternalLink, PenLine, Download, Eye, Landmark, ChevronDown, AlertTriangle, CalendarPlus,
 } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import { crediusApi } from '@/services/api/crediusApi';
@@ -18,6 +18,7 @@ import { TIP_ACT_LABELS, fileLabel, formatDateTime, whatsappLink } from '@/compo
 import { CopyIntakeLinkButton } from '@/components/crm/CopyIntakeLinkButton';
 import { DocumentPreviewModal, type DocumentPreviewSource } from '@/components/crm/DocumentPreviewModal';
 import { IncomeForm } from '@/components/crm/client/IncomeForm';
+import { AppointmentFormModal } from '@/components/crm/appointments/AppointmentFormModal';
 import { BcUploadButton } from '@/components/crm/client/BcUploadButton';
 import { FinancialAnalysisCard } from '@/components/crm/client/FinancialAnalysisCard';
 import { Spinner, StatusPill, AcordPill, ErrorState } from './crmShared';
@@ -450,6 +451,7 @@ function ClientDetail({ userId }: { userId: number }) {
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [preview, setPreview] = useState<DocumentPreviewSource | null>(null);
+  const [booking, setBooking] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -526,6 +528,15 @@ function ClientDetail({ userId }: { userId: number }) {
               >
                 <MessageCircle className="h-4 w-4" /> WhatsApp
               </a>
+            )}
+            {client.phone && (
+              <button
+                type="button"
+                onClick={() => setBooking(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-3.5 py-2 text-sm font-medium text-brand-primary hover:bg-brand-primary/10"
+              >
+                <CalendarPlus className="h-4 w-4" /> Programează apel
+              </button>
             )}
             {client.acord && (
               <Link to={crm(`/crm/acorduri/${client.acord.acordId}`)} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-primary px-3.5 py-2 text-sm font-semibold text-white hover:opacity-90">
@@ -633,6 +644,21 @@ function ClientDetail({ userId }: { userId: number }) {
         </div>
       </div>
       {preview && <DocumentPreviewModal key={preview.title} source={preview} onClose={() => setPreview(null)} />}
+      {booking && (
+        <AppointmentFormModal
+          prefill={{
+            nume: client.fullName.trim().split(' ').filter(Boolean)[0] ?? '',
+            prenume: client.fullName.trim().split(' ').filter(Boolean).slice(1).join(' '),
+            telefon: client.phone ?? '',
+            email: client.email ?? '',
+            notes: `Programat din fișa clientului #${client.userId}`,
+          }}
+          brokers={[]}
+          chooseBroker={false}
+          onClose={() => setBooking(false)}
+          onSaved={() => { setBooking(false); toast.success('Apel programat. Îl găsești în Programări.'); }}
+        />
+      )}
     </div>
   );
 }

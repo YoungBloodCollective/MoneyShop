@@ -9,6 +9,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { getBrokerSlug } from '@/lib/brokerHost';
 import { CrmCommandPalette } from './CrmCommandPalette';
+import { useNavBadges } from './useNavBadges';
 import { useDialogBehavior } from './useDialogBehavior';
 import { FOCUS_RING, isMac } from '@/pages/crm/crmHelpers';
 
@@ -68,7 +69,7 @@ function initials(name?: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase()).join('');
 }
 
-function SidebarContent({ variant, onNavigate }: { variant: WorkspaceVariant; onNavigate?: () => void }) {
+function SidebarContent({ variant, badges = {}, onNavigate }: { variant: WorkspaceVariant; badges?: Record<string, number>; onNavigate?: () => void }) {
   const slug = getBrokerSlug();
   const groups = variant === 'admin' ? ADMIN_NAV : CRM_NAV;
   const home = variant === 'admin' ? '/admin' : '/crm';
@@ -107,7 +108,12 @@ function SidebarContent({ variant, onNavigate }: { variant: WorkspaceVariant; on
                   }
                 >
                   <Icon className="h-[18px] w-[18px]" />
-                  <span>{item.label}</span>
+                  <span className="flex-1">{item.label}</span>
+                  {(badges[item.to] ?? 0) > 0 && (
+                    <span className="min-w-[1.25rem] rounded-full bg-rose-500 px-1.5 py-0.5 text-center text-[11px] font-semibold leading-none text-white" aria-label={`${badges[item.to]} în așteptare`}>
+                      {badges[item.to]}
+                    </span>
+                  )}
                 </NavLink>
               );
             })}
@@ -122,6 +128,7 @@ export function CrmLayout({ variant = 'crm' }: { variant?: WorkspaceVariant }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const badges = useNavBadges(variant);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
@@ -173,7 +180,7 @@ export function CrmLayout({ variant = 'crm' }: { variant?: WorkspaceVariant }) {
     <div className="flex h-screen overflow-hidden bg-slate-50">
       {/* Desktop sidebar */}
       <aside className="hidden lg:block w-64 shrink-0">
-        <SidebarContent variant={variant} />
+        <SidebarContent variant={variant} badges={badges} />
       </aside>
 
       {/* Mobile drawer */}
@@ -188,7 +195,7 @@ export function CrmLayout({ variant = 'crm' }: { variant?: WorkspaceVariant }) {
             tabIndex={-1}
             className={`fixed inset-y-0 left-0 z-50 w-64 lg:hidden ${FOCUS_RING}`}
           >
-            <SidebarContent variant={variant} onNavigate={() => setMobileOpen(false)} />
+            <SidebarContent variant={variant} badges={badges} onNavigate={() => setMobileOpen(false)} />
           </aside>
         </>
       )}

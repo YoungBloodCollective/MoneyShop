@@ -199,3 +199,21 @@ export function usePaged<T>(items: T[], pageSize = 25) {
   const slice = items.slice(start, start + pageSize);
   return { page, setPage, pageCount, slice, total: items.length, pageSize };
 }
+
+/**
+ * Phone digits without country prefix or leading zero ("+40 722 000 000", "0722000000" and
+ * "722000000" all become "722000000"), so searches match however the number was typed.
+ */
+export function normalizePhone(value: string | null | undefined): string {
+  let digits = (value ?? '').replace(/\D/g, '');
+  if (digits.startsWith('0040')) digits = digits.slice(4);
+  else if (digits.startsWith('40') && digits.length >= 11) digits = digits.slice(2);
+  if (digits.startsWith('0')) digits = digits.slice(1);
+  return digits;
+}
+
+/** True when a typed search looks like (part of) this phone number, in any format. */
+export function matchesPhone(phone: string | null | undefined, query: string): boolean {
+  const q = normalizePhone(query);
+  return q.length >= 3 && normalizePhone(phone).includes(q);
+}
