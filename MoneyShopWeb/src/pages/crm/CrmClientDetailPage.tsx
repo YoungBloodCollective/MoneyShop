@@ -9,13 +9,12 @@ import {
 } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import { crediusApi } from '@/services/api/crediusApi';
-import { acordApi } from '@/services/api/acordApi';
 import { downloadBlob } from '@/lib/downloadBlob';
 import type { CrmAcordSnapshot, CrmBcReportSnapshot, CrmClientDetail } from '@/types/crm.types';
 import { BankConsentsSection } from '@/components/crm/acord/BankConsentsSection';
 import { CnpField } from '@/components/crm/acord/CnpField';
 import { AcordReviewPanel } from '@/components/crm/acord/AcordReviewPanel';
-import { TIP_ACT_LABELS, fileLabel, formatDateTime, whatsappLink } from '@/components/crm/acord/acordLabels';
+import { TIP_ACT_LABELS, formatDateTime, whatsappLink } from '@/components/crm/acord/acordLabels';
 import { CopyIntakeLinkButton } from '@/components/crm/CopyIntakeLinkButton';
 import { DocumentPreviewModal, type DocumentPreviewSource } from '@/components/crm/DocumentPreviewModal';
 import { IncomeForm } from '@/components/crm/client/IncomeForm';
@@ -25,8 +24,9 @@ import { splitClientName } from '@/components/crm/appointments/appointmentModel'
 import { BcUploadButton } from '@/components/crm/client/BcUploadButton';
 import { FinancialAnalysisCard } from '@/components/crm/client/FinancialAnalysisCard';
 import { ClientWorkSection } from '@/components/crm/client/ClientWorkSection';
+import { ClientFolderCard } from '@/components/crm/client/ClientFolderCard';
 import { Spinner, StatusPill, AcordPill, ErrorState } from './crmShared';
-import { money, dateShort, initials, creditTypeLabel, docTypeLabel, useGoBack, FOCUS_RING } from './crmHelpers';
+import { money, dateShort, initials, creditTypeLabel, useGoBack, FOCUS_RING } from './crmHelpers';
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -232,81 +232,6 @@ function NoAcordCard() {
         <p className="text-sm text-slate-500">Clientul nu are încă un acord. Trimite-i linkul tău.</p>
         <CopyIntakeLinkButton />
       </div>
-    </Card>
-  );
-}
-
-function DocumentsCard({ client, onPreview }: { client: CrmClientDetail; onPreview: (source: DocumentPreviewSource) => void }) {
-  const acordFiles = client.acord?.files ?? [];
-  const total = acordFiles.length + client.documents.length;
-
-  const download = async (fileId: string, fileName: string) => {
-    try {
-      downloadBlob(await acordApi.adminFileBlob(fileId), fileName);
-    } catch {
-      toast.error('Nu s-a putut descărca fișierul');
-    }
-  };
-
-  return (
-    <Card title={`Documente (${total})`} icon={FileText}>
-      {total === 0 ? (
-        <p className="py-4 text-center text-sm text-slate-400">Niciun document încărcat</p>
-      ) : (
-        <div className="space-y-4">
-          {acordFiles.length > 0 && (
-            <div className="divide-y divide-slate-50">
-              {acordFiles.map(f => (
-                <div key={f.fileId} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500"><FileText className="h-4 w-4" /></div>
-                    <div className="min-w-0">
-                      <div className="truncate font-medium text-slate-700">{fileLabel(f.fileType)}</div>
-                      <div className="text-xs text-slate-400">{dateShort(f.createdAt)} · {(f.fileSize / 1024).toFixed(0)} KB</div>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <button
-                      onClick={() => onPreview({ title: fileLabel(f.fileType), fileName: f.fileName, mimeType: f.mimeType, load: () => acordApi.adminFileBlob(f.fileId) })}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
-                    >
-                      <Eye className="h-3.5 w-3.5" /> Vezi
-                    </button>
-                    <button
-                      onClick={() => download(f.fileId, f.fileName)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
-                    >
-                      <Download className="h-3.5 w-3.5" /> Descarcă
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {client.documents.length > 0 && (
-            <div>
-              <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 border-t border-slate-100 pt-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Documente dosar (metadate)</h3>
-                <span className="text-xs text-slate-400">Doar metadate — fișierul nu este stocat</span>
-              </div>
-              <div className="divide-y divide-slate-50">
-                {client.documents.map(d => (
-                  <div key={d.id} className="flex items-center justify-between py-2.5 text-sm">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-400"><FileText className="h-4 w-4" /></div>
-                      <div>
-                        <div className="font-medium text-slate-700">{docTypeLabel(d.docType)}</div>
-                        <div className="text-xs text-slate-400">{d.fileName ? `${d.fileName} · ` : ''}{dateShort(d.createdAt)}</div>
-                      </div>
-                    </div>
-                    {d.fileSize != null && <span className="text-xs text-slate-400">{(d.fileSize / 1024).toFixed(0)} KB</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </Card>
   );
 }
@@ -544,6 +469,7 @@ function ClientDetail({ userId }: { userId: number }) {
         <div className="min-w-0 space-y-4 lg:col-span-2">
           <ClientWorkSection userId={userId} />
           <FinancialAnalysisCard income={client.income} bc={client.bcReport} />
+          <ClientFolderCard client={client} onPreview={setPreview} />
           {client.acord ? <AcordCard key={client.acord.acordId} acord={client.acord} onStatusChange={() => { void refreshClient(); }} /> : <NoAcordCard />}
           {client.acord && (
             <div className="[&>div]:mb-0">
@@ -590,7 +516,6 @@ function ClientDetail({ userId }: { userId: number }) {
             )}
           </Card>
 
-          <DocumentsCard client={client} onPreview={setPreview} />
         </div>
 
         {/* Right: financial + KYC */}

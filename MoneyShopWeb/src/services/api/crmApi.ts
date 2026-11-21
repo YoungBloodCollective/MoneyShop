@@ -3,6 +3,7 @@ import type {
   CrmDashboardSummary, CrmClientListItem, CrmClientDetail,
   CrmFileListItem, StatusTransitions, CrmIncomeInput, CrmIncomeSnapshot,
   CrmClientWork, CrmTaskItem, CrmBankFileItem, CrmBankFileInput, CrmWorkBoard,
+  ClientDocumentInfo,
 } from '@/types/crm.types';
 
 /** The broker's secret calendar subscription link (https and webcal forms). */
@@ -92,5 +93,25 @@ export const crmApi = {
   async setTags(userId: number, tags: string[]): Promise<string[]> {
     const { data } = await apiClient.put<string[]>(`/crm/clients/${userId}/tags`, { tags });
     return data;
+  },
+  // ── Client folder: documents the broker files by folder ──
+  async listDocuments(userId: number): Promise<ClientDocumentInfo[]> {
+    const { data } = await apiClient.get<ClientDocumentInfo[]>(`/crm/clients/${userId}/documents`);
+    return data;
+  },
+  async uploadDocument(userId: number, file: File, folder: string, bankName?: string): Promise<ClientDocumentInfo> {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('folder', folder);
+    if (bankName) fd.append('bankName', bankName);
+    const { data } = await apiClient.post<ClientDocumentInfo>(`/crm/clients/${userId}/documents`, fd);
+    return data;
+  },
+  async documentBlob(documentId: number): Promise<Blob> {
+    const { data } = await apiClient.get(`/crm/documents/${documentId}`, { responseType: 'blob' });
+    return data as Blob;
+  },
+  async deleteDocument(documentId: number): Promise<void> {
+    await apiClient.delete(`/crm/documents/${documentId}`);
   },
 };

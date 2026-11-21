@@ -79,6 +79,7 @@ public class MoneyShopDbContext : DbContext
     public virtual DbSet<ClientTask> ClientTasks { get; set; }
     public virtual DbSet<BankFile> BankFiles { get; set; }
     public virtual DbSet<ClientTag> ClientTags { get; set; }
+    public virtual DbSet<ClientDocument> ClientDocuments { get; set; }
 
     public virtual DbSet<RetentionRun> RetentionRuns { get; set; }
 
@@ -897,6 +898,17 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
             foreach (var name in new[] { nameof(BankFile.StatusChangedAt), nameof(BankFile.CreatedAt), nameof(BankFile.UpdatedAt) })
                 entity.Property<DateTime>(name).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+            entity.HasIndex(e => e.UserId);
+        });
+
+        ConfigureBrokerOwned<ClientDocument>(modelBuilder);
+        modelBuilder.Entity<ClientDocument>(entity =>
+        {
+            entity.Property(e => e.Folder).HasMaxLength(20);
+            entity.Property(e => e.BankName).HasMaxLength(100);
+            entity.Property(e => e.FileName).HasMaxLength(255);
+            entity.Property(e => e.MimeType).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
             entity.HasIndex(e => e.UserId);
         });
 
