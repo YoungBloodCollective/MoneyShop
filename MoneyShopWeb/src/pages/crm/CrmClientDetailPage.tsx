@@ -18,6 +18,7 @@ import { TIP_ACT_LABELS, fileLabel, formatDateTime, whatsappLink } from '@/compo
 import { CopyIntakeLinkButton } from '@/components/crm/CopyIntakeLinkButton';
 import { DocumentPreviewModal, type DocumentPreviewSource } from '@/components/crm/DocumentPreviewModal';
 import { IncomeForm } from '@/components/crm/client/IncomeForm';
+import { ClientTimeline } from '@/components/crm/client/ClientTimeline';
 import { AppointmentFormModal } from '@/components/crm/appointments/AppointmentFormModal';
 import { BcUploadButton } from '@/components/crm/client/BcUploadButton';
 import { FinancialAnalysisCard } from '@/components/crm/client/FinancialAnalysisCard';
@@ -602,6 +603,7 @@ function ClientDetail({ userId }: { userId: number }) {
 
         {/* Right: financial + KYC */}
         <div className="min-w-0 space-y-4">
+          <ClientTimeline userId={userId} />
           <Card title="Profil financiar" icon={TrendingUp}>
             {f ? (
               <div className="divide-y divide-slate-50">
