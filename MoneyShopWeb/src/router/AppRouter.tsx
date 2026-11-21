@@ -71,8 +71,7 @@ const CrmClientsPage = lazy(() => import('@/pages/crm/CrmClientsPage'));
 const CrmClientDetailPage = lazy(() => import('@/pages/crm/CrmClientDetailPage'));
 const CrmDosarePage = lazy(() => import('@/pages/crm/CrmDosarePage'));
 const CrmLeadsPage = lazy(() => import('@/pages/crm/CrmLeadsPage'));
-const CrmAcorduriPage = lazy(() => import('@/pages/crm/CrmAcorduriPage'));
-const CrmAcordDetailPage = lazy(() => import('@/pages/crm/CrmAcordDetailPage'));
+const AcordToClientRedirect = lazy(() => import('@/pages/crm/AcordToClientRedirect'));
 const CrmProgramariPage = lazy(() => import('@/pages/crm/CrmProgramariPage'));
 const CrmRapoartePage = lazy(() => import('@/pages/crm/CrmRapoartePage'));
 const CrmProfilPage = lazy(() => import('@/pages/crm/CrmProfilPage'));
@@ -169,8 +168,8 @@ export function AppRouter() {
           <Route path="/admin/de-atribuit" element={<SuperAdminInboxPage />} />
           <Route path="/admin/clienti" element={<CrmClientsPage />} />
           <Route path="/admin/clienti/:userId" element={<CrmClientDetailPage />} />
-          <Route path="/admin/acorduri" element={<CrmAcorduriPage />} />
-          <Route path="/admin/acorduri/:acordId" element={<CrmAcordDetailPage />} />
+          <Route path="/admin/acorduri" element={<Navigate to="/admin/clienti?seg=acord" replace />} />
+          <Route path="/admin/acorduri/:acordId" element={<AcordToClientRedirect />} />
           <Route path="/admin/dosare" element={<CrmDosarePage />} />
           <Route path="/admin/leaduri" element={<CrmLeadsPage />} />
           <Route path="/admin/programari" element={<CrmProgramariPage />} />
@@ -193,8 +192,8 @@ export function AppRouter() {
           <Route path="/crm" element={<CrmDashboardPage />} />
           <Route path="/crm/clienti" element={<CrmClientsPage />} />
           <Route path="/crm/clienti/:userId" element={<CrmClientDetailPage />} />
-          <Route path="/crm/acorduri" element={<CrmAcorduriPage />} />
-          <Route path="/crm/acorduri/:acordId" element={<CrmAcordDetailPage />} />
+          <Route path="/crm/acorduri" element={<Navigate to="/crm/clienti?seg=acord" replace />} />
+          <Route path="/crm/acorduri/:acordId" element={<AcordToClientRedirect />} />
           <Route path="/crm/programari" element={<CrmProgramariPage />} />
           <Route path="/crm/rapoarte" element={<CrmRapoartePage />} />
           <Route path="/crm/profil" element={<ProtectedRoute brokerOnly><CrmProfilPage /></ProtectedRoute>} />

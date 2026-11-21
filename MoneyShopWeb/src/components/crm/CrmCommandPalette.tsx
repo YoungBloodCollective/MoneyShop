@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { useNavigate } from 'react-router-dom';
 import { useCrmPath } from '@/lib/crmPath';
 import {
-  Search, Users, FolderKanban, LayoutDashboard, Sparkles, CornerDownLeft, FileSignature, CalendarClock, BarChart3, UserCircle,
+  Search, Users, FolderKanban, LayoutDashboard, Sparkles, CornerDownLeft, CalendarClock, BarChart3, UserCircle,
 } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,7 +22,6 @@ interface Item {
 const PAGES: Item[] = [
   { key: 'p-dash', title: 'Dashboard', to: '/crm', icon: LayoutDashboard, group: 'Pagini' },
   { key: 'p-cli', title: 'Clienți', to: '/crm/clienti', icon: Users, group: 'Pagini' },
-  { key: 'p-acord', title: 'Acorduri', to: '/crm/acorduri', icon: FileSignature, group: 'Pagini' },
   { key: 'p-dos', title: 'Dosare', to: '/crm/dosare', icon: FolderKanban, group: 'Pagini' },
   { key: 'p-lead', title: 'Lead-uri', to: '/crm/leaduri', icon: Sparkles, group: 'Pagini' },
   { key: 'p-prog', title: 'Programări', to: '/crm/programari', icon: CalendarClock, group: 'Pagini' },

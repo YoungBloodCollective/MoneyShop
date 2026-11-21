@@ -6,6 +6,7 @@ import { apiClient } from '@/services/api/apiClient';
 import type { BrokerAdminItem } from '@/services/api/brokersApi';
 import { FIELD_FOCUS, FOCUS_RING } from '@/pages/crm/crmHelpers';
 import { useDialogBehavior } from '../useDialogBehavior';
+import { ClientPicker } from './ClientPicker';
 import {
   DURATION_OPTIONS, fromLocalInputs, timeRange, toLocalInputs, type Appointment,
 } from './appointmentModel';
@@ -94,7 +95,7 @@ export function AppointmentFormModal({
     }
   };
 
-  const input = `w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 ${FIELD_FOCUS}`;
+  const input = `block w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 ${FIELD_FOCUS}`;
   const label = 'mb-1 block text-xs font-medium text-slate-600';
   const activeBrokers = brokers.filter(b => b.status === 'Active');
 
@@ -118,6 +119,16 @@ export function AppointmentFormModal({
         <form onSubmit={submit} className="space-y-4 px-5 py-5">
           {!editing && (
             <>
+              {!prefill && (
+                <ClientPicker
+                  onPick={c => {
+                    setNume(c?.nume ?? '');
+                    setPrenume(c?.prenume ?? '');
+                    setTelefon(c?.telefon ?? '');
+                    setEmail(c?.email ?? '');
+                  }}
+                />
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div><label className={label} htmlFor="ap-nume">Nume *</label><input id="ap-nume" className={input} value={nume} onChange={e => setNume(e.target.value)} autoComplete="off" /></div>
                 <div><label className={label} htmlFor="ap-prenume">Prenume</label><input id="ap-prenume" className={input} value={prenume} onChange={e => setPrenume(e.target.value)} autoComplete="off" /></div>
@@ -136,9 +147,9 @@ export function AppointmentFormModal({
             </>
           )}
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-3 sm:col-span-1"><label className={label} htmlFor="ap-date">Data *</label><input id="ap-date" type="date" className={input} value={date} onChange={e => setDate(e.target.value)} required /></div>
-            <div><label className={label} htmlFor="ap-time">Ora *</label><input id="ap-time" type="time" step={300} className={input} value={time} onChange={e => setTime(e.target.value)} required /></div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="col-span-2 min-w-0 sm:col-span-1"><label className={label} htmlFor="ap-date">Data *</label><input id="ap-date" type="date" className={`${input} appearance-none`} value={date} onChange={e => setDate(e.target.value)} required /></div>
+            <div className="min-w-0"><label className={label} htmlFor="ap-time">Ora *</label><input id="ap-time" type="time" step={300} className={`${input} appearance-none`} value={time} onChange={e => setTime(e.target.value)} required /></div>
             <div>
               <label className={label} htmlFor="ap-dur">Durată</label>
               <select id="ap-dur" className={input} value={duration} onChange={e => setDuration(Number(e.target.value))}>

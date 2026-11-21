@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, FolderKanban, Sparkles,
   BarChart3, Search,
-  Menu, X, LogOut, ChevronDown, ExternalLink, FileSignature, CalendarClock, UserCircle,
+  Menu, X, LogOut, ChevronDown, ExternalLink, CalendarClock, UserCircle,
   ShieldCheck, UserCheck, BookUser, Handshake, FileText, Inbox,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -30,7 +30,6 @@ const CRM_NAV: NavGroup[] = [{
   items: [
     { label: 'Dashboard', icon: LayoutDashboard, to: '/crm' },
     { label: 'Clienți', icon: Users, to: '/crm/clienti' },
-    { label: 'Acorduri', icon: FileSignature, to: '/crm/acorduri' },
     { label: 'Dosare', icon: FolderKanban, to: '/crm/dosare' },
     { label: 'Lead-uri', icon: Sparkles, to: '/crm/leaduri' },
     { label: 'Programări', icon: CalendarClock, to: '/crm/programari' },
@@ -46,7 +45,6 @@ const ADMIN_NAV: NavGroup[] = [
       { label: 'De atribuit', icon: Inbox, to: '/admin/de-atribuit' },
       { label: 'Lead-uri', icon: Sparkles, to: '/admin/leaduri' },
       { label: 'Programări', icon: CalendarClock, to: '/admin/programari' },
-      { label: 'Acorduri', icon: FileSignature, to: '/admin/acorduri' },
       { label: 'Clienți', icon: Users, to: '/admin/clienti' },
       { label: 'Dosare', icon: FolderKanban, to: '/admin/dosare' },
       { label: 'Rapoarte', icon: BarChart3, to: '/admin/rapoarte' },
