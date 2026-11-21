@@ -335,16 +335,140 @@ namespace MoneyShop.Api.Controllers
         [Authorize(Roles = "Administrator,Broker")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] AppointmentStatusRequest request)
         {
+            if (!AppointmentStatuses.All.Contains(request.Status))
+                return BadRequest("Status necunoscut.");
             var appointment = await _db.Appointments.FindAsync(id);
             if (appointment == null) return NotFound();
 
+            var now = DateTime.UtcNow;
             appointment.Status = request.Status;
-            appointment.Notes = request.Notes ?? appointment.Notes;
-            appointment.UpdatedAt = DateTime.UtcNow;
+            if (request.Status == SchedulingRules.CancelledStatus) appointment.CancelledAt ??= now;
+            else appointment.CancelledAt = null;
+            if (!string.IsNullOrWhiteSpace(request.Notes)) AppendNote(appointment, request.Notes, now);
+            appointment.UpdatedAt = now;
             await _db.SaveChangesAsync();
 
             return Ok(appointment);
         }
+
+        /// <summary>
+        /// What happened on the call, in one tap: sets the status, writes a dated note, and for
+        /// "call back later" / "no answer, try again at…" moves the call to the new time.
+        /// </summary>
+        [HttpPost("{id}/outcome")]
+        [Authorize(Roles = "Administrator,Broker")]
+        public async Task<IActionResult> RecordOutcome(int id, [FromBody] CallOutcomeRequest request)
+        {
+            if (!CallOutcomes.ByKey.TryGetValue(request.Outcome ?? "", out var outcome))
+                return BadRequest("Rezultat necunoscut.");
+            if (outcome.NeedsTime && request.FollowUpAt == null)
+                return BadRequest("Alege ora la care revii.");
+
+            var appointment = await _db.Appointments.FirstOrDefaultAsync(a => a.Id == id);
+            if (appointment == null) return NotFound();
+
+            var now = DateTime.UtcNow;
+            if (request.FollowUpAt.HasValue)
+            {
+                var moved = await _scheduling.RescheduleAsync(id, request.FollowUpAt.Value.ToUniversalTime(),
+                    appointment.DurationMinutes > 0 ? appointment.DurationMinutes : SchedulingRules.DefaultDuration);
+                if (!moved.Ok) return ScheduleErrorResult(moved);
+                await _db.Entry(appointment).ReloadAsync();
+            }
+
+            if (outcome.Status != null && !(outcome.OnlyFromNew && appointment.Status != "Nou"))
+                appointment.Status = outcome.Status;
+            if (appointment.Status == SchedulingRules.CancelledStatus) appointment.CancelledAt ??= now;
+
+            var text = outcome.Label;
+            if (request.FollowUpAt.HasValue)
+                text += $" · revin {ToRoTime(request.FollowUpAt.Value.ToUniversalTime()):dd.MM HH:mm}";
+            if (!string.IsNullOrWhiteSpace(request.Note)) text += $": {request.Note.Trim()}";
+            AppendNote(appointment, text, now);
+            appointment.UpdatedAt = now;
+            await _db.SaveChangesAsync();
+
+            return Ok(appointment, "Rezultat salvat");
+        }
+
+        /// <summary>Adds a dated note to the appointment (newest first); earlier notes are kept.</summary>
+        [HttpPost("{id}/notes")]
+        [Authorize(Roles = "Administrator,Broker")]
+        public async Task<IActionResult> AddNote(int id, [FromBody] AppointmentNoteRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Text)) return BadRequest("Notița este goală.");
+            if (request.Text.Length > 2000) return BadRequest("Notița e prea lungă (maximum 2000 de caractere).");
+            var appointment = await _db.Appointments.FirstOrDefaultAsync(a => a.Id == id);
+            if (appointment == null) return NotFound();
+
+            var now = DateTime.UtcNow;
+            AppendNote(appointment, request.Text, now);
+            appointment.UpdatedAt = now;
+            await _db.SaveChangesAsync();
+            return Ok(appointment, "Notiță adăugată");
+        }
+
+        private const int NotesMaxLength = 20_000;
+
+        private void AppendNote(Appointment appointment, string text, DateTime nowUtc)
+        {
+            var author = User.FindFirst(ClaimTypes.GivenName)?.Value ?? User.FindFirst(ClaimTypes.Name)?.Value;
+            var line = $"[{ToRoTime(nowUtc):dd.MM.yyyy HH:mm}{(string.IsNullOrWhiteSpace(author) ? "" : ", " + author)}] {text.Trim().Replace("\r", " ").Replace("\n", " ")}";
+            var notes = string.IsNullOrWhiteSpace(appointment.Notes) ? line : line + "\n" + appointment.Notes;
+            appointment.Notes = notes.Length > NotesMaxLength ? notes[..NotesMaxLength] : notes;
+        }
+
+        private static readonly Lazy<TimeZoneInfo> RoZone = new(() =>
+        {
+            foreach (var id in new[] { "Europe/Bucharest", "GTB Standard Time" })
+            {
+                try { return TimeZoneInfo.FindSystemTimeZoneById(id); } catch (TimeZoneNotFoundException) { } catch (InvalidTimeZoneException) { }
+            }
+            return TimeZoneInfo.Utc;
+        });
+
+        private static DateTime ToRoTime(DateTime utc) =>
+            TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), RoZone.Value);
+    }
+
+    /// <summary>Appointment statuses the CRM offers (same list as the web app).</summary>
+    public static class AppointmentStatuses
+    {
+        public static readonly HashSet<string> All = new(StringComparer.Ordinal)
+        {
+            "Nou", "Contactat", "In lucru", "Trimis Lead", "BC Probleme", "DTI", "Nu se incadreaza", "Finalizat", SchedulingRules.CancelledStatus,
+        };
+    }
+
+    public record CallOutcome(string Key, string Label, string? Status, bool NeedsTime = false, bool OnlyFromNew = false);
+
+    /// <summary>The short list a broker picks from after a call.</summary>
+    public static class CallOutcomes
+    {
+        public static readonly CallOutcome[] List =
+        {
+            new("answered", "A răspuns", "Contactat", OnlyFromNew: true),
+            new("moving_on", "Merge mai departe (dosar)", "In lucru"),
+            new("no_answer", "Nu a răspuns", null),
+            new("callback", "Revin la altă oră", "Contactat", NeedsTime: true, OnlyFromNew: true),
+            new("not_eligible", "Nu se încadrează", "Nu se incadreaza"),
+            new("not_interested", "Nu e interesat", "Finalizat"),
+        };
+
+        public static readonly Dictionary<string, CallOutcome> ByKey = List.ToDictionary(o => o.Key);
+    }
+
+    public class CallOutcomeRequest
+    {
+        public string? Outcome { get; set; }
+        public string? Note { get; set; }
+        /// <summary>When to call again (moves this call to that time).</summary>
+        public DateTime? FollowUpAt { get; set; }
+    }
+
+    public class AppointmentNoteRequest
+    {
+        public string Text { get; set; } = "";
     }
 
     public class CreateAppointmentRequest
