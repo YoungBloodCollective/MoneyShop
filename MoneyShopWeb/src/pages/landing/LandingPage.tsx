@@ -6,7 +6,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useInView } from '@/hooks/useInView';
 import { apiClient } from '@/services/api/apiClient';
 import LoanDisclosure, { LoanDisclosureSummary } from '@/components/shared/LoanDisclosure';
-import HowWeEarn from '@/components/shared/HowWeEarn';
 import { DEFAULT_CONFIG } from '@/lib/eligibility/config';
 import { SlotPicker } from '@/components/booking/SlotPicker';
 import { adClickId, trackLeadConversion } from '@/lib/adsConversion';
@@ -900,7 +899,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <HowWeEarn />
       <LoanDisclosure />
 
       {/* ══════════ FOOTER ══════════ */}
