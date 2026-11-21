@@ -13,7 +13,7 @@ public class CrmServiceIncomeTests
 
     private static void AddBcReport(MoneyShop.Infrastructure.EntityFramework.DBContext.MoneyShopDbContext db, decimal obligations)
     {
-        db.BcReports.Add(new BcReport
+        db.BcReports.Add(new MoneyShop.DomainModel.Entities.BcReport
         {
             UserId = Client,
             ReportId = Guid.NewGuid().ToString("N"),
