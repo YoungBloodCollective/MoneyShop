@@ -5,7 +5,7 @@ import { Phone, Lock, ChevronLeft, ChevronRight, CheckCircle2, Shield, Award, Cl
 import { useAuth } from '@/hooks/useAuth';
 import { useInView } from '@/hooks/useInView';
 import { apiClient } from '@/services/api/apiClient';
-import LoanDisclosure from '@/components/shared/LoanDisclosure';
+import LoanDisclosure, { LoanDisclosureSummary } from '@/components/shared/LoanDisclosure';
 import HowWeEarn from '@/components/shared/HowWeEarn';
 import { DEFAULT_CONFIG } from '@/lib/eligibility/config';
 import { SlotPicker } from '@/components/booking/SlotPicker';
@@ -622,6 +622,7 @@ export default function LandingPage() {
                   >
                     <Phone size={14} /> Vreau sa fiu sunat
                   </button>
+                  <LoanDisclosureSummary className="mt-2" />
                 </div>
               </div>
             </div>
