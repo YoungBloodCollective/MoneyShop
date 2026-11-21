@@ -330,6 +330,19 @@ public class EmailService
         return SendHtmlAsync(toEmail, $"Programare {Plain(change)}: {Plain(clientName)}", body, "booking change to broker");
     }
 
+    /// <summary>"Am uitat parola": the one-hour link to choose a new password.</summary>
+    public Task<bool> SendPasswordResetAsync(string toEmail, string firstName, string resetUrl)
+    {
+        var url = Html(resetUrl);
+        var greeting = string.IsNullOrWhiteSpace(firstName) ? "Bună!" : $"Bună, {Html(firstName)}!";
+        var body = BookingLayout("Resetează parola", $@"
+    <p>{greeting}</p>
+    <p>Ai cerut o parolă nouă pentru contul tău MoneyShop. Apasă butonul de mai jos ca s-o alegi:</p>
+    <p><a href=""{url}"" style=""display:inline-block;padding:12px 22px;background:#16a34a;color:#fff;border-radius:10px;text-decoration:none;font-weight:bold;"">Alege o parolă nouă</a></p>
+    <p style=""font-size:13px;color:#64748b;"">Linkul e valabil o oră și se poate folosi o singură dată. Nu ai cerut tu resetarea? Ignoră mesajul: parola rămâne neschimbată.</p>");
+        return SendHtmlAsync(toEmail, "Resetează parola - MoneyShop", body, "password reset");
+    }
+
     private static string Plain(string? value) =>
         (value ?? string.Empty).Replace("\r", " ").Replace("\n", " ").Trim();
 

@@ -16,6 +16,7 @@ const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'));
 const OtpLoginPage = lazy(() => import('@/pages/auth/OtpLoginPage'));
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'));
 const OnboardingPage = lazy(() => import('@/pages/onboarding/OnboardingPage'));
 const KycScanPage = lazy(() => import('@/pages/kyc/KycScanPage'));
 const FullKycPage = lazy(() => import('@/pages/kyc/FullKycPage'));
@@ -123,6 +124,7 @@ export function AppRouter() {
           <Route path="/auth/register" element={<RegisterPage />} />
           <Route path="/auth/otp-login" element={<OtpLoginPage />} />
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
         </Route>
 
         {/* Onboarding (protected but no AppLayout) */}

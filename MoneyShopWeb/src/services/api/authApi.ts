@@ -24,6 +24,16 @@ export const authApi = {
     return response.data;
   },
 
+  async checkResetToken(token: string): Promise<{ valid: boolean }> {
+    const response = await apiClient.get('/auth/reset-password/check', { params: { token } });
+    return response.data;
+  },
+
+  async resetPassword(token: string, password: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post('/auth/reset-password', { token, password });
+    return response.data;
+  },
+
   async sendEmailVerification(email?: string): Promise<{ success: boolean; message: string; otpId: string; expiresInSeconds: number }> {
     const response = await apiClient.post('/auth/send-email-verification', { email });
     return response.data;
