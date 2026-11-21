@@ -12,30 +12,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { WeekCalendar } from '@/components/crm/appointments/WeekCalendar';
 import { AppointmentFormModal } from '@/components/crm/appointments/AppointmentFormModal';
 import { CalendarSubscribeModal } from '@/components/crm/appointments/CalendarSubscribeModal';
-import { startOfWeek, addDays, timeRange, type Appointment } from '@/components/crm/appointments/appointmentModel';
+import { startOfWeek, addDays, timeRange, STATUS_OPTIONS, STATUS_PILL, statusLabel, type Appointment } from '@/components/crm/appointments/appointmentModel';
+import { AppointmentDrawer } from '@/components/crm/appointments/AppointmentDrawer';
 import { PageHeader, SkeletonCards, EmptyState, SegmentChips, Pagination } from './crmShared';
 import { usePaged, FIELD_FOCUS, FOCUS_RING } from './crmHelpers';
 
-const STATUS_OPTIONS = ['Nou', 'Contactat', 'In lucru', 'Trimis Lead', 'BC Probleme', 'DTI', 'Nu se incadreaza', 'Finalizat', 'Anulat'];
-
-const STATUS_LABEL: Record<string, string> = {
-  'In lucru': 'În lucru',
-  'Nu se incadreaza': 'Nu se încadrează',
-};
-
-const statusLabel = (s: string) => STATUS_LABEL[s] ?? s;
-
-const STATUS_PILL: Record<string, string> = {
-  Nou: 'bg-sky-50 text-sky-700',
-  Contactat: 'bg-amber-50 text-amber-700',
-  'In lucru': 'bg-violet-50 text-violet-700',
-  'Trimis Lead': 'bg-indigo-50 text-indigo-700',
-  'BC Probleme': 'bg-orange-50 text-orange-700',
-  DTI: 'bg-yellow-50 text-yellow-700',
-  'Nu se incadreaza': 'bg-rose-50 text-rose-700',
-  Finalizat: 'bg-emerald-50 text-emerald-700',
-  Anulat: 'bg-slate-100 text-slate-600',
-};
+// Notes are dated lines, newest first (see POST /appointments/{id}/notes).
+const NEWLINE = String.fromCharCode(10);
 
 const SEGMENTS = [{ key: 'toate', label: 'Toate' }, ...STATUS_OPTIONS.map(s => ({ key: s, label: statusLabel(s) }))];
 
@@ -57,6 +40,7 @@ export default function CrmProgramariPage() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [form, setForm] = useState<{ appointment: Appointment | null } | null>(null);
   const [subscribing, setSubscribing] = useState(false);
+  const [selected, setSelected] = useState<Appointment | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -80,11 +64,27 @@ export default function CrmProgramariPage() {
       .catch(() => undefined);
   }, [isSuperAdmin]);
 
-  const updateStatus = async (id: number, status: string) => {
+  // Saved at once, with "Anulează" in the confirmation for a mis-tap.
+  const updateStatus = async (id: number, status: string, previous?: string) => {
     try {
       const res = await apiClient.patch(`/appointments/${id}/status`, { status });
       setAppointments(prev => prev.map(a => a.id === id ? res.data : a));
-      toast.success(`Status actualizat: ${statusLabel(status)}`);
+      if (previous && previous !== status) {
+        toast.success(t => (
+          <span className="flex items-center gap-3">
+            Status: {statusLabel(status)}
+            <button
+              type="button"
+              onClick={() => { toast.dismiss(t.id); void updateStatus(id, previous); }}
+              className="rounded-md border border-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Anulează
+            </button>
+          </span>
+        ), { duration: 6000 });
+      } else {
+        toast.success(`Status actualizat: ${statusLabel(status)}`);
+      }
     } catch {
       toast.error('Eroare la actualizare');
     }
@@ -178,6 +178,16 @@ export default function CrmProgramariPage() {
       </div>
 
       {subscribing && <CalendarSubscribeModal onClose={() => setSubscribing(false)} />}
+      {selected && (
+        <AppointmentDrawer
+          key={selected.id}
+          appointment={selected}
+          brokers={brokers}
+          chooseBroker={isSuperAdmin && inAdmin}
+          onClose={() => setSelected(null)}
+          onChanged={a => setAppointments(prev => prev.map(x => (x.id === a.id ? a : x)))}
+        />
+      )}
       {form && (
         <AppointmentFormModal
           appointment={form.appointment}
@@ -197,7 +207,7 @@ export default function CrmProgramariPage() {
             onPrev={() => setWeekStart(w => addDays(w, -7))}
             onNext={() => setWeekStart(w => addDays(w, 7))}
             onToday={() => setWeekStart(startOfWeek(new Date()))}
-            onOpen={a => setForm({ appointment: a })}
+            onOpen={a => setSelected(a)}
           />
         )
       ) : (
@@ -219,7 +229,7 @@ export default function CrmProgramariPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-semibold text-slate-900">{a.nume} {a.prenume}</h3>
+                    <h3 className="text-sm font-semibold text-slate-900"><button type="button" onClick={() => setSelected(a)} className={`text-left hover:text-brand-primary hover:underline ${FOCUS_RING}`}>{a.nume} {a.prenume}</button></h3>
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_PILL[a.status] ?? 'bg-slate-100 text-slate-600'}`}>
                       {statusLabel(a.status)}
                     </span>
@@ -252,7 +262,7 @@ export default function CrmProgramariPage() {
                       )}
                     </div>
                   )}
-                  {a.notes && <p className="mt-2 text-xs text-slate-600">{a.notes}</p>}
+                  {a.notes && <p className="mt-2 line-clamp-2 text-xs text-slate-600" title="Ultima notiță">{a.notes.split(NEWLINE)[0]}</p>}
                   <p className="mt-1 text-[11px] text-slate-400">
                     {a.scheduledAt
                       ? <span className="font-medium text-brand-primary">
@@ -287,7 +297,7 @@ export default function CrmProgramariPage() {
                   <select
                     value={a.status}
                     aria-label={`Status programare ${a.nume} ${a.prenume}`}
-                    onChange={e => updateStatus(a.id, e.target.value)}
+                    onChange={e => updateStatus(a.id, e.target.value, a.status)}
                     className={`rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 ${FIELD_FOCUS}`}
                   >
                     {STATUS_OPTIONS.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}

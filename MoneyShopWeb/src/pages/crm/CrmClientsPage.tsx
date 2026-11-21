@@ -5,7 +5,7 @@ import { Search, Phone, Mail, ChevronRight } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmClientListItem } from '@/types/crm.types';
 import { PageHeader, SkeletonTable, EmptyState, ErrorState, StatusPill, AcordPill, SegmentChips, Pagination } from './crmShared';
-import { moneyShort, relTime, initials, CLIENT_STATUS_SEGMENTS, matchesClientSegment, usePaged, FOCUS_RING, FIELD_FOCUS } from './crmHelpers';
+import { moneyShort, relTime, initials, CLIENT_STATUS_SEGMENTS, matchesClientSegment, matchesPhone, usePaged, FOCUS_RING, FIELD_FOCUS } from './crmHelpers';
 
 const SEG_KEY = 'moneyshop:crm-clienti-seg';
 
@@ -55,7 +55,7 @@ export default function CrmClientsPage() {
     const t = q.trim().toLowerCase();
     return clients.filter(c =>
       matchesClientSegment(c, segment) &&
-      (!t || c.fullName.toLowerCase().includes(t) || (c.phone ?? '').toLowerCase().includes(t) || (c.email ?? '').toLowerCase().includes(t)));
+      (!t || c.fullName.toLowerCase().includes(t) || matchesPhone(c.phone, t) || (c.email ?? '').toLowerCase().includes(t)));
   }, [clients, q, segment]);
 
   const { page, setPage, pageCount, slice, total, pageSize } = usePaged(filtered, 25);

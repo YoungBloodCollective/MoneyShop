@@ -47,7 +47,7 @@ public class ClientTimelineServiceTests
             Nume = "Alt", Prenume = "Client", Judet = "", TipCredit = "", Telefon = "0733111222", Email = "", Status = "Nou",
             CreatedAt = T0, UpdatedAt = T0,
         });
-        db.BcReports.Add(new BcReport { UserId = 5, ReportId = "r1", FicoScore = 640, CreatedAt = T0.AddDays(3) });
+        db.BcReports.Add(new MoneyShop.DomainModel.Entities.BcReport { UserId = 5, ReportId = "r1", FicoScore = 640, CreatedAt = T0.AddDays(3) });
         db.Applications.Add(new Application { Id = 9, UserId = 5, CreatedAt = T0.AddDays(4), UpdatedAt = T0.AddDays(4) });
         db.ApplicationStatusHistories.Add(new ApplicationStatusHistory { ApplicationId = 9, FromStatus = "INREGISTRAT", ToStatus = "IN_ANALIZA", ChangedAt = T0.AddDays(5) });
         db.SaveChanges();
