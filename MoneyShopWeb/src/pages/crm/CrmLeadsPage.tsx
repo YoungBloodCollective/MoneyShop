@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Phone, Mail, MapPin, AlertTriangle, MessageCircle, MessageSquare, Save, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adminApi, type LeadItem } from '@/services/api/adminApi';
+import { AssignBrokerControl } from '@/components/crm/AssignBrokerControl';
 import { whatsappLink } from '@/components/crm/acord/acordLabels';
 import { PageHeader, SkeletonCards, EmptyState } from './crmShared';
 import { money, dateShort, initials, FIELD_FOCUS, FOCUS_RING } from './crmHelpers';
@@ -17,9 +18,10 @@ const sourceLabel = (source: string) => SOURCE_LABELS[source] ?? source;
 const fmt = (v?: number) => (v ?? 0).toLocaleString('ro-RO', { maximumFractionDigits: 0 });
 
 function LeadDrawer({
-  lead, onClose, onSaved,
+  lead, onClose, onSaved, onAssigned,
 }: {
   lead: LeadItem; onClose: () => void; onSaved: (id: number, notes: string) => void;
+  onAssigned: (id: number, brokerProfileId: number | null) => void;
 }) {
   const [notes, setNotes] = useState(lead.adminNotes ?? '');
   const [saving, setSaving] = useState(false);
@@ -88,6 +90,12 @@ function LeadDrawer({
           <button onClick={requestClose} className="text-slate-400 hover:text-slate-700" aria-label="Închide"><X size={20} /></button>
         </div>
         <div className="space-y-5 px-5 py-5">
+          <AssignBrokerControl
+            entityType="lead"
+            id={String(lead.id)}
+            currentBrokerId={lead.brokerProfileId}
+            onAssigned={brokerId => onAssigned(lead.id, brokerId)}
+          />
           <div className="space-y-2 text-sm">
             {lead.telefon && (
               <div className="flex flex-wrap items-center gap-2">
@@ -250,6 +258,7 @@ export default function CrmLeadsPage() {
           lead={selected}
           onClose={() => setSelectedId(null)}
           onSaved={(id, notes) => setLeads(prev => prev.map(l => l.id === id ? { ...l, adminNotes: notes } : l))}
+          onAssigned={(id, brokerProfileId) => setLeads(prev => prev.map(l => l.id === id ? { ...l, brokerProfileId } : l))}
         />
       )}
     </div>

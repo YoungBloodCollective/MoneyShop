@@ -30,6 +30,12 @@ class ApiClient {
           delete config.headers['Content-Type'];
         }
 
+        // A Super Admin who is also a broker sees only their own data inside /crm ("CRM-ul meu");
+        // in /admin they see the whole network. Brokers are always scoped server-side.
+        if (config.headers && window.location.pathname.startsWith('/crm')) {
+          config.headers['X-MoneyShop-Workspace'] = 'crm';
+        }
+
         return config;
       },
       (error: AxiosError) => {

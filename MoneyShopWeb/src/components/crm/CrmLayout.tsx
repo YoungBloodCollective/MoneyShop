@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, FolderKanban, Sparkles,
   BarChart3, Search,
   Menu, X, LogOut, ChevronDown, ExternalLink, FileSignature, CalendarClock, UserCircle,
-  ShieldCheck, UserCheck, BookUser, Handshake, FileText,
+  ShieldCheck, UserCheck, BookUser, Handshake, FileText, Inbox,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getBrokerSlug } from '@/lib/brokerHost';
@@ -42,6 +42,7 @@ const ADMIN_NAV: NavGroup[] = [
   {
     items: [
       { label: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
+      { label: 'De atribuit', icon: Inbox, to: '/admin/de-atribuit' },
       { label: 'Lead-uri', icon: Sparkles, to: '/admin/leaduri' },
       { label: 'Programări', icon: CalendarClock, to: '/admin/programari' },
       { label: 'Acorduri', icon: FileSignature, to: '/admin/acorduri' },

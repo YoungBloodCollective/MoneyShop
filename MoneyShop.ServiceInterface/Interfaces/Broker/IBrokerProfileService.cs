@@ -11,6 +11,14 @@ public interface IBrokerProfileService
     /// </summary>
     int? ResolveIntakeBrokerId(string? slug);
 
+    /// <summary>
+    /// Owner of a public call request or lead. With a slug (broker subdomain / broker link) it is
+    /// that broker. Without one it goes to the Super Admin inbox (null) when
+    /// <c>Brokers:PublicLeadsToInbox</c> is true, otherwise to the default broker as before.
+    /// Acords keep using <see cref="ResolveIntakeBrokerId"/>: they need a broker's legal identity.
+    /// </summary>
+    int? ResolvePublicLeadBrokerId(string? slug);
+
     BrokerLegalIdentity? GetLegalIdentity(int? brokerProfileId);
     string? GetNotificationEmail(int? brokerProfileId);
     Dictionary<int, string> GetDisplayNames();

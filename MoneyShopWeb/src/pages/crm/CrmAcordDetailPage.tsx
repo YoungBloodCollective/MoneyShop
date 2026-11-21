@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useCrmPath } from '@/lib/crmPath';
+import { AssignBrokerControl } from '@/components/crm/AssignBrokerControl';
 import {
   ArrowLeft, Phone, Mail, Calendar, ShieldCheck, ShieldAlert, PenLine, AlertTriangle, Check, XCircle,
 } from 'lucide-react';
@@ -113,6 +114,14 @@ export default function CrmAcordDetailPage() {
           </div>
         </div>
         <AcordStatusBadge status={selected.status} />
+      </div>
+      <div className="-mt-3 mb-6">
+        <AssignBrokerControl
+          entityType="acord"
+          id={selected.acordId}
+          currentBrokerId={selected.brokerProfileId}
+          onAssigned={brokerId => setSelected(prev => (prev ? { ...prev, brokerProfileId: brokerId } : prev))}
+        />
       </div>
       <div className="mb-6 grid gap-3 sm:grid-cols-4">
         <div className={`${CARD} p-4`}>
