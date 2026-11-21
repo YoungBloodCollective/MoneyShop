@@ -54,4 +54,18 @@ public class OfflineConversionServiceTests
         Assert.Equal("Google Click ID,Conversion Name,Conversion Time,Conversion Value,Conversion Currency", lines[0]);
         Assert.Equal("abc123XYZ_-,Lead calificat (CRM),2030-02-27 09:05:00+00:00,1,RON", lines[1]);
     }
+
+    [Fact]
+    public void Empty_csv_gets_one_placeholder_row_so_google_can_read_the_schema()
+    {
+        var at = new DateTime(2030, 3, 1, 12, 0, 0, DateTimeKind.Utc);
+        var empty = Array.Empty<MoneyShop.ServiceInterface.Interfaces.Ads.OfflineConversion>();
+
+        var lines = OfflineConversionService.ToCsv(empty, at).Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(2, lines.Length);
+        Assert.StartsWith(OfflineConversionService.PlaceholderGclid + ",", lines[1]);
+
+        var withData = OfflineConversionService.ToCsv(new[] { new MoneyShop.ServiceInterface.Interfaces.Ads.OfflineConversion("real", at) }, at);
+        Assert.DoesNotContain(OfflineConversionService.PlaceholderGclid, withData);
+    }
 }
