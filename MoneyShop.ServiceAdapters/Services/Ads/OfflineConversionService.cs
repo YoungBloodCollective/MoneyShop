@@ -52,12 +52,19 @@ public class OfflineConversionService : IOfflineConversionService
     /// <summary>
     /// Plain CSV with the header on the first line, as Google Ads Data Manager reads it (it treats a
     /// "Parameters:" line as the header); each time carries its UTC offset.
+    /// Data Manager needs at least one data row to read the file's schema, so an empty list yields a
+    /// single placeholder row (when <paramref name="placeholderAtUtc"/> is given) whose click ID is not
+    /// a real GCLID: Google rejects it as invalid and no conversion is recorded.
     /// </summary>
-    public static string ToCsv(IEnumerable<OfflineConversion> conversions)
+    public static string ToCsv(IEnumerable<OfflineConversion> conversions, DateTime? placeholderAtUtc = null)
     {
+        var rows = conversions.ToList();
+        if (rows.Count == 0 && placeholderAtUtc is { } at)
+            rows.Add(new OfflineConversion(PlaceholderGclid, at));
+
         var sb = new StringBuilder();
         sb.Append("Google Click ID,Conversion Name,Conversion Time,Conversion Value,Conversion Currency\r\n");
-        foreach (var c in conversions)
+        foreach (var c in rows)
         {
             sb.Append(c.Gclid).Append(',')
               .Append(ConversionName).Append(',')
@@ -66,6 +73,8 @@ public class OfflineConversionService : IOfflineConversionService
         }
         return sb.ToString();
     }
+
+    public const string PlaceholderGclid = "PLACEHOLDER-NO-CONVERSIONS";
 
     private static string NormalizePhone(string? phone)
     {

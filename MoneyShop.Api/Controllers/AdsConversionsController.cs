@@ -38,7 +38,8 @@ public class AdsConversionsController : ControllerBase
             return Unauthorized();
         }
 
-        var csv = OfflineConversionService.ToCsv(await _conversions.GetQualifiedAsync(DateTime.UtcNow));
+        var now = DateTime.UtcNow;
+        var csv = OfflineConversionService.ToCsv(await _conversions.GetQualifiedAsync(now), placeholderAtUtc: now);
         Response.Headers.CacheControl = "no-store";
         return File(Encoding.UTF8.GetBytes(csv), "text/csv; charset=utf-8", "offline-conversions.csv");
     }
