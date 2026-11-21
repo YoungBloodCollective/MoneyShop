@@ -143,6 +143,24 @@ public class OutlookSyncServiceTests
     }
 
     [Fact]
+    public async Task A_company_address_without_a_mailbox_is_skipped_for_a_while()
+    {
+        var (sync, db, outlook) = Build();
+        var missing = $"nobody-{Guid.NewGuid():N}@moneyshop.ro";
+        db.BrokerProfiles.Add(new BrokerProfile { Id = 3, UserId = 12, Slug = "nobody", DisplayName = "Fara casuta", Status = "Active", NotificationEmail = missing });
+        db.SaveChanges();
+        outlook.MissingMailbox = missing;
+
+        var first = await sync.SyncAllAsync(Now);
+        var second = await sync.SyncAllAsync(Now.AddMinutes(2));
+        var later = await sync.SyncAllAsync(Now.Add(OutlookSyncService.MissingMailboxRetry).AddMinutes(1));
+
+        Assert.Equal((2, 0), (first.Mailboxes, first.Failed));   // alex + the missing one, not counted as a failure
+        Assert.Equal(1, second.Mailboxes);                         // skipped
+        Assert.Equal(2, later.Mailboxes);                          // tried again
+    }
+
+    [Fact]
     public async Task Does_nothing_when_Graph_is_not_configured()
     {
         var (sync, db, outlook) = Build(enabled: false);
@@ -226,8 +244,12 @@ public class OutlookSyncServiceTests
 
         public void Seed(string mailbox, OutlookCalendarItem item) => Events.Add(new Stored(mailbox, item, "", ""));
 
+        public string? MissingMailbox { get; set; }
+
         public Task<List<OutlookCalendarItem>> ListAsync(string mailbox, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default) =>
-            Task.FromResult(Events.Where(e => e.Mailbox == mailbox && e.Item.StartUtc < toUtc && e.Item.EndUtc > fromUtc).Select(e => e.Item).ToList());
+            mailbox == MissingMailbox
+                ? throw new System.Net.Http.HttpRequestException("Graph GET failed: 404", null, System.Net.HttpStatusCode.NotFound)
+                : Task.FromResult(Events.Where(e => e.Mailbox == mailbox && e.Item.StartUtc < toUtc && e.Item.EndUtc > fromUtc).Select(e => e.Item).ToList());
 
         public Task CreateAsync(string mailbox, OutlookEvent ev, CancellationToken ct = default)
         {
