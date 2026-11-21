@@ -67,6 +67,10 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public string? AcordStatus { get; set; }
         public DateTime? AcordSignedAt { get; set; }
         public DateTime? AcordCreatedAt { get; set; }
+        /// <summary>The broker's labels on the client (PROBLEME_BC, DE_REVENIT, DTI).</summary>
+        public List<string> Tags { get; set; } = new();
+        /// <summary>Stage of the client's most recently changed bank file, if any.</summary>
+        public string? BankFileStatus { get; set; }
     }
 
     public class CrmClientDetail

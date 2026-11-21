@@ -320,6 +320,17 @@ public class EmailService
         return SendHtmlAsync(toEmail, halfHourBefore ? "Te sunăm în curând - MoneyShop" : "Reminder: apelul de mâine - MoneyShop", body, "booking reminder");
     }
 
+    /// <summary>Reminds the broker of a task they set on a client in the CRM.</summary>
+    public Task<bool> SendTaskReminderAsync(string toEmail, string clientName, string? clientPhone, string title, DateTime dueUtc, string crmUrl)
+    {
+        var due = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(dueUtc, DateTimeKind.Utc), RoZone.Value);
+        var body = BookingLayout("Reminder: " + Html(title), $@"
+    <p><strong>{Html(clientName)}</strong>{(string.IsNullOrWhiteSpace(clientPhone) ? "" : $" &middot; {Html(clientPhone)}")}</p>
+    <p style=""background:#f8fafc;border-radius:10px;padding:14px 16px;font-size:16px;"">{Html(title)}<br><span style=""font-size:13px;color:#64748b;"">{Html(due.ToString("dddd, d MMMM yyyy, HH:mm", RoCulture))}</span></p>
+    <p><a href=""{Html(crmUrl)}"" style=""display:inline-block;padding:10px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;"">Deschide clientul</a></p>");
+        return SendHtmlAsync(toEmail, $"Reminder: {Plain(title)} - {Plain(clientName)}", body, "task reminder");
+    }
+
     /// <summary>Tells the broker that a client confirmed, moved or cancelled a booked call.</summary>
     public Task<bool> SendBookingChangeToBrokerAsync(string toEmail, string clientName, string change, DateTime startUtc, int durationMinutes, string crmUrl)
     {

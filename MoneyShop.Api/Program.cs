@@ -311,6 +311,7 @@ else
 // ── Data Retention (erases expired KYC / Acord documents) ──
 builder.Services.AddHostedService<MoneyShop.Api.Services.DataRetentionHostedService>();
 builder.Services.AddHostedService<MoneyShop.Api.Services.BookingReminderHostedService>();
+builder.Services.AddHostedService<MoneyShop.Api.Services.ClientTaskReminderHostedService>();
 // Outlook calendars through Microsoft Graph (Etapa 4B). One instance keeps the app token; the sync is a no-op until Graph:* is configured.
 builder.Services.AddSingleton<MoneyShop.ServiceInterface.Interfaces.Scheduling.IOutlookCalendar>(sp => new MoneyShop.ServiceAdapters.Services.Scheduling.Outlook.GraphOutlookCalendar(
     new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10) }) { Timeout = TimeSpan.FromSeconds(30) },
