@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { apiClient } from '@/services/api/apiClient';
 import { SlotPicker } from '@/components/booking/SlotPicker';
-import { trackLeadConversion } from '@/lib/adsConversion';
+import { adClickId, trackLeadConversion } from '@/lib/adsConversion';
 
 const MIN_SALARY = 2500;
 
@@ -74,6 +74,7 @@ export function BrokerBookingModal({ brokerSlug, brokerFirstName, amount, months
     try {
       const { data } = await apiClient.post<{ id?: number; scheduledAt?: string | null; confirmationSent?: boolean }>('/appointments', {
         brokerSlug: brokerSlug ?? undefined,
+        gclid: adClickId(),
         scheduledAt: slot ?? undefined,
         nume,
         prenume: rest.join(' '),

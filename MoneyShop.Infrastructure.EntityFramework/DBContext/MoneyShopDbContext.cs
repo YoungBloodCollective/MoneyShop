@@ -881,6 +881,7 @@ public class MoneyShopDbContext : DbContext
             }
             entity.Property(e => e.ConfirmationTokenHash).HasMaxLength(64);
             entity.Property(e => e.Source).HasMaxLength(30);
+            entity.Property(e => e.Gclid).HasMaxLength(200);
             entity.HasIndex(e => new { e.BrokerProfileId, e.ScheduledAt }).HasDatabaseName("IX_Appointments_Broker_ScheduledAt");
         });
     }

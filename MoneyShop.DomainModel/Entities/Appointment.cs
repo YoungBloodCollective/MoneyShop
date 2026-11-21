@@ -33,6 +33,8 @@ namespace MoneyShop.DomainModel.Entities
         public DateTime? CancelledAt { get; set; }
         public DateTime? Reminder24hSentAt { get; set; }
         public DateTime? Reminder30mSentAt { get; set; }
+        /// <summary>Google Ads click id of the visit that sent the request (only with marketing consent).</summary>
+        public string? Gclid { get; set; }
 
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }

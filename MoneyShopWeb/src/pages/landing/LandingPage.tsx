@@ -9,7 +9,7 @@ import LoanDisclosure from '@/components/shared/LoanDisclosure';
 import HowWeEarn from '@/components/shared/HowWeEarn';
 import { DEFAULT_CONFIG } from '@/lib/eligibility/config';
 import { SlotPicker } from '@/components/booking/SlotPicker';
-import { trackLeadConversion } from '@/lib/adsConversion';
+import { adClickId, trackLeadConversion } from '@/lib/adsConversion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { openCookieSettings } from '@/lib/consent';
@@ -167,6 +167,7 @@ export default function LandingPage() {
     try {
       const { data } = await apiClient.post<{ id?: number; scheduledAt?: string | null; confirmationSent?: boolean }>('/appointments', {
         brokerSlug: brokerSlug ?? undefined,
+        gclid: adClickId(),
         scheduledAt: progSlot ?? undefined,
         nume: progForm.nume,
         prenume: progForm.prenume,
@@ -217,6 +218,7 @@ export default function LandingPage() {
     try {
       const { data } = await apiClient.post<{ id?: number }>('/appointments', {
         brokerSlug: brokerSlug ?? undefined,
+        gclid: adClickId(),
         nume: inlineForm.nume,
         prenume: inlineForm.prenume,
         judet: inlineForm.judet,
