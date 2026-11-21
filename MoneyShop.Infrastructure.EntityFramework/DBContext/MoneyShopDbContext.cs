@@ -861,6 +861,17 @@ public class MoneyShopDbContext : DbContext
         ConfigureBrokerOwned<Appointment>(modelBuilder);
         ConfigureBrokerOwned<LeadCapture>(modelBuilder);
         ConfigureBrokerOwned<BankConsentRequest>(modelBuilder);
+
+        // Appointment times are stored in UTC; read them back marked as UTC so the API sends them
+        // with a "Z" and the browser shows them in the user's local time instead of shifting them.
+        modelBuilder.Entity<Appointment>(entity =>
+        {
+            entity.Property(e => e.ScheduledAt).HasConversion(
+                v => v,
+                v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+            entity.Property(e => e.Source).HasMaxLength(30);
+            entity.HasIndex(e => new { e.BrokerProfileId, e.ScheduledAt }).HasDatabaseName("IX_Appointments_Broker_ScheduledAt");
+        });
     }
 
     private void ConfigureBrokerOwned<TEntity>(ModelBuilder modelBuilder) where TEntity : class, IBrokerOwned

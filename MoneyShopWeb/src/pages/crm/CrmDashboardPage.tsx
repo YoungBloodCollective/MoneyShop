@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCrmPath } from '@/lib/crmPath';
+import { TodayAgenda } from '@/components/crm/appointments/TodayAgenda';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmDashboardSummary } from '@/types/crm.types';
 import { ErrorState } from './crmShared';
@@ -147,6 +148,8 @@ export default function CrmDashboardPage() {
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
         <p className="mt-1 text-sm text-slate-500">Prezentare generală a activității tale</p>
       </div>
+
+      <TodayAgenda />
 
       <IntakeLinkCard />
 

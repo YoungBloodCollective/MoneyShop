@@ -6,6 +6,8 @@ using MoneyShop.DomainModel.Entities;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using MoneyShop.ServiceAdapters.Services.Otp;
 using MoneyShop.ServiceInterface.Interfaces.Broker;
+using MoneyShop.ServiceInterface.Interfaces.Scheduling;
+using System.Security.Claims;
 
 namespace MoneyShop.Api.Controllers
 {
@@ -17,14 +19,17 @@ namespace MoneyShop.Api.Controllers
         private readonly ILogger<AppointmentsController> _logger;
         private readonly EmailService _emailService;
         private readonly IBrokerProfileService _brokerProfiles;
+        private readonly IAppointmentSchedulingService _scheduling;
         private const string NotificationEmail = "alex.moore@moneyshop.ro";
 
-        public AppointmentsController(MoneyShopDbContext db, ILogger<AppointmentsController> logger, EmailService emailService, IBrokerProfileService brokerProfiles)
+        public AppointmentsController(MoneyShopDbContext db, ILogger<AppointmentsController> logger, EmailService emailService,
+            IBrokerProfileService brokerProfiles, IAppointmentSchedulingService scheduling)
         {
             _brokerProfiles = brokerProfiles;
             _db = db;
             _logger = logger;
             _emailService = emailService;
+            _scheduling = scheduling;
         }
 
         private static string NormalizePhone(string? phone)
@@ -84,6 +89,7 @@ namespace MoneyShop.Api.Controllers
                 Telefon = request.Telefon.Trim(),
                 Email = request.Email?.Trim() ?? "",
                 Status = "Nou",
+                Source = "site",
                 IntarzieriBirou = string.IsNullOrWhiteSpace(request.IntarzieriBirou) ? null : request.IntarzieriBirou.Trim(),
                 PopriRecuperare = string.IsNullOrWhiteSpace(request.PopriRecuperare) ? null : request.PopriRecuperare.Trim(),
                 CreatedAt = DateTime.UtcNow,
@@ -114,13 +120,25 @@ namespace MoneyShop.Api.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Administrator,Broker")]
-        public async Task<IActionResult> GetAll([FromQuery] string? status = null, [FromQuery] int? brokerId = null)
+        public async Task<IActionResult> GetAll([FromQuery] string? status = null, [FromQuery] int? brokerId = null,
+            [FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null)
         {
             var query = _db.Appointments.AsQueryable();
             if (brokerId.HasValue && User.IsInRole("Administrator"))
                 query = query.Where(a => a.BrokerProfileId == brokerId.Value);
             if (!string.IsNullOrEmpty(status))
                 query = query.Where(a => a.Status == status);
+            // Calendar view: only appointments with a time inside [from, to).
+            if (from.HasValue)
+            {
+                var fromUtc = from.Value.ToUniversalTime();
+                query = query.Where(a => a.ScheduledAt != null && a.ScheduledAt >= fromUtc);
+            }
+            if (to.HasValue)
+            {
+                var toUtc = to.Value.ToUniversalTime();
+                query = query.Where(a => a.ScheduledAt != null && a.ScheduledAt < toUtc);
+            }
 
             var appointments = await query
                 .OrderByDescending(a => a.CreatedAt)
@@ -128,6 +146,67 @@ namespace MoneyShop.Api.Controllers
 
             return Ok(appointments);
         }
+
+        /// <summary>
+        /// Broker or Super Admin books a call/meeting at a time. Brokers (and a Super Admin working in
+        /// their own CRM) book on their own calendar; a Super Admin in /admin picks the broker.
+        /// Refused with 409 when it overlaps another appointment of the same broker.
+        /// </summary>
+        [HttpPost("manual")]
+        [Authorize(Roles = "Administrator,Broker")]
+        public async Task<IActionResult> CreateManual([FromBody] ManualAppointmentInput request)
+        {
+            int? owner;
+            if (_db.BrokerScopeId is > 0)
+            {
+                owner = _db.BrokerScopeId;
+            }
+            else if (User.IsInRole("Administrator"))
+            {
+                owner = request.BrokerProfileId;
+                if (owner.HasValue && !await _db.BrokerProfiles.AnyAsync(p => p.Id == owner.Value && p.Status == "Active"))
+                    return BadRequest("Brokerul nu există sau nu este activ.");
+            }
+            else
+            {
+                return StatusCode(403, new { message = "Contul de broker nu este activ." });
+            }
+
+            var actor = int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : (int?)null;
+            var outcome = await _scheduling.CreateManualAsync(request, owner, actor);
+            if (!outcome.Ok) return ScheduleErrorResult(outcome);
+
+            var created = await _db.Appointments.AsNoTracking().FirstAsync(a => a.Id == outcome.AppointmentId);
+            return Ok(created, "Programare creată");
+        }
+
+        /// <summary>Sets or moves the time of an appointment; 409 when it would overlap another one.</summary>
+        [HttpPatch("{id}/schedule")]
+        [Authorize(Roles = "Administrator,Broker")]
+        public async Task<IActionResult> Reschedule(int id, [FromBody] RescheduleRequest request)
+        {
+            var outcome = await _scheduling.RescheduleAsync(id, request.ScheduledAt, request.DurationMinutes ?? SchedulingRules.DefaultDuration);
+            if (!outcome.Ok) return ScheduleErrorResult(outcome);
+
+            var updated = await _db.Appointments.AsNoTracking().FirstAsync(a => a.Id == id);
+            return Ok(updated, "Programare actualizată");
+        }
+
+        private IActionResult ScheduleErrorResult(ScheduleOutcome outcome) => outcome.Error switch
+        {
+            ScheduleError.MissingName => BadRequest("Numele este obligatoriu."),
+            ScheduleError.MissingPhone => BadRequest("Telefonul este obligatoriu."),
+            ScheduleError.InvalidDuration =>
+                BadRequest($"Durata trebuie să fie între {SchedulingRules.MinDuration} și {SchedulingRules.MaxDuration} de minute."),
+            ScheduleError.InvalidTime => BadRequest("Data programării nu este validă."),
+            ScheduleError.NotFound => NotFound("Programarea nu există."),
+            _ => StatusCode(409, new
+            {
+                code = "slot_taken",
+                message = "Intervalul se suprapune cu altă programare.",
+                conflict = outcome.Conflict,
+            }),
+        };
 
         [HttpPatch("{id}/status")]
         [Authorize(Roles = "Administrator,Broker")]
@@ -157,6 +236,12 @@ namespace MoneyShop.Api.Controllers
         public string? IntarzieriBirou { get; set; }
         public string? PopriRecuperare { get; set; }
         public string? BrokerSlug { get; set; }
+    }
+
+    public class RescheduleRequest
+    {
+        public DateTime ScheduledAt { get; set; }
+        public int? DurationMinutes { get; set; }
     }
 
     public class AppointmentStatusRequest
