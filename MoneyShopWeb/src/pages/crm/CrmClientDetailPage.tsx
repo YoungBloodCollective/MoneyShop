@@ -21,6 +21,7 @@ import { DocumentPreviewModal, type DocumentPreviewSource } from '@/components/c
 import { IncomeForm } from '@/components/crm/client/IncomeForm';
 import { ClientTimeline } from '@/components/crm/client/ClientTimeline';
 import { AppointmentFormModal } from '@/components/crm/appointments/AppointmentFormModal';
+import { splitClientName } from '@/components/crm/appointments/appointmentModel';
 import { BcUploadButton } from '@/components/crm/client/BcUploadButton';
 import { FinancialAnalysisCard } from '@/components/crm/client/FinancialAnalysisCard';
 import { ClientWorkSection } from '@/components/crm/client/ClientWorkSection';
@@ -640,8 +641,7 @@ function ClientDetail({ userId }: { userId: number }) {
       {booking && (
         <AppointmentFormModal
           prefill={{
-            nume: client.fullName.trim().split(' ').filter(Boolean)[0] ?? '',
-            prenume: client.fullName.trim().split(' ').filter(Boolean).slice(1).join(' '),
+            ...splitClientName(client.fullName),
             telefon: client.phone ?? '',
             email: client.email ?? '',
             notes: `Programat din fișa clientului #${client.userId}`,

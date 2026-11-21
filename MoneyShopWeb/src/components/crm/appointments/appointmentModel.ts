@@ -124,3 +124,10 @@ export function whatsAppNumber(phone: string | null | undefined): string | null 
   if (digits.startsWith('7') && digits.length === 9) return '40' + digits;
   return null;
 }
+
+/** Splits "Prenume Nume" (as client names are shown) into the booking form's two fields. */
+export function splitClientName(fullName: string): { nume: string; prenume: string } {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return { nume: parts[0] ?? '', prenume: '' };
+  return { nume: parts[parts.length - 1], prenume: parts.slice(0, -1).join(' ') };
+}
