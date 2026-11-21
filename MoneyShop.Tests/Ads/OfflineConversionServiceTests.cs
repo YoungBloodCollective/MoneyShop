@@ -50,8 +50,8 @@ public class OfflineConversionServiceTests
         var csv = OfflineConversionService.ToCsv(new[] { new MoneyShop.ServiceInterface.Interfaces.Ads.OfflineConversion("abc123XYZ_-", new DateTime(2030, 2, 27, 9, 5, 0, DateTimeKind.Utc)) });
         var lines = csv.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
 
-        Assert.Equal("Parameters:TimeZone=+0000", lines[0]);
-        Assert.Equal("Google Click ID,Conversion Name,Conversion Time,Conversion Value,Conversion Currency", lines[1]);
-        Assert.Equal("abc123XYZ_-,Lead calificat (CRM),2030-02-27 09:05:00,1,RON", lines[2]);
+
+        Assert.Equal("Google Click ID,Conversion Name,Conversion Time,Conversion Value,Conversion Currency", lines[0]);
+        Assert.Equal("abc123XYZ_-,Lead calificat (CRM),2030-02-27 09:05:00+00:00,1,RON", lines[1]);
     }
 }
