@@ -4,7 +4,14 @@ import type {
   CrmFileListItem, StatusTransitions, CrmIncomeInput, CrmIncomeSnapshot,
 } from '@/types/crm.types';
 
+/** The broker's secret calendar subscription link (https and webcal forms). */
+export interface CalendarFeedLink { url: string; webcalUrl: string }
+
 export const crmApi = {
+  async getCalendarFeed(): Promise<CalendarFeedLink> {
+    const { data } = await apiClient.get<CalendarFeedLink>('/crm/calendar-feed');
+    return data;
+  },
   async getDashboard(): Promise<CrmDashboardSummary> {
     const { data } = await apiClient.get<CrmDashboardSummary>('/crm/dashboard');
     return data;

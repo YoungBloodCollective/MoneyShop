@@ -43,17 +43,17 @@ public class PublicBookingController : BaseController
 
     [HttpPost("{token}/confirm")]
     public async Task<IActionResult> Confirm(string token) =>
-        Respond(await _booking.ConfirmAsync(token, DateTime.UtcNow), "confirmat");
+        Respond(token, await _booking.ConfirmAsync(token, DateTime.UtcNow), "confirmat");
 
     [HttpPost("{token}/cancel")]
     public async Task<IActionResult> Cancel(string token) =>
-        Respond(await _booking.CancelAsync(token, DateTime.UtcNow), "anulat");
+        Respond(token, await _booking.CancelAsync(token, DateTime.UtcNow), "anulat");
 
     [HttpPost("{token}/reschedule")]
     public async Task<IActionResult> Reschedule(string token, [FromBody] PublicRescheduleRequest request) =>
-        Respond(await _booking.RescheduleAsync(token, request.ScheduledAt.ToUniversalTime(), DateTime.UtcNow), "mutat");
+        Respond(token, await _booking.RescheduleAsync(token, request.ScheduledAt.ToUniversalTime(), DateTime.UtcNow), "mutat");
 
-    private IActionResult Respond(BookingActionResult result, string change)
+    private IActionResult Respond(string token, BookingActionResult result, string change)
     {
         switch (result.Error)
         {
@@ -67,9 +67,18 @@ public class PublicBookingController : BaseController
         var to = _brokerProfiles.GetNotificationEmail(result.BrokerProfileId)
             ?? _configuration["Brokers:DefaultNotificationEmail"] ?? "alex.moore@moneyshop.ro";
         var booking = result.Booking!;
+        var root = _configuration["Brokers:RootDomain"] ?? "moneyshop.ro";
+
+        // The client gets the call as a calendar event; the same event is updated when moved and removed when cancelled.
+        if (!string.IsNullOrWhiteSpace(result.ClientEmail))
+        {
+            _ = _email.SendBookingCalendarAsync(result.ClientEmail, booking.FirstName, booking.AppointmentId, booking.ScheduledAtUtc,
+                booking.DurationMinutes, booking.Status == BookingStatus.Cancelled, result.UpdatedAtUtc, booking.BrokerName,
+                $"https://{root}/programare/{token.Trim()}");
+        }
+
         if (!string.IsNullOrWhiteSpace(to))
         {
-            var root = _configuration["Brokers:RootDomain"] ?? "moneyshop.ro";
             var path = result.BrokerProfileId.HasValue ? "/crm/programari" : "/admin/de-atribuit";
             _ = _email.SendBookingChangeToBrokerAsync(to, booking.FirstName, change, booking.ScheduledAtUtc, booking.DurationMinutes, $"https://{root}{path}");
         }
