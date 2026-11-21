@@ -64,6 +64,21 @@ const ADMIN_NAV: NavGroup[] = [
   },
 ];
 
+// Bottom bar on phones: the screens a broker opens many times a day.
+const CRM_BOTTOM: NavItem[] = [
+  { label: 'Azi', icon: LayoutDashboard, to: '/crm' },
+  { label: 'Lead-uri', icon: Sparkles, to: '/crm/leaduri' },
+  { label: 'Calendar', icon: CalendarClock, to: '/crm/programari' },
+  { label: 'Clienți', icon: Users, to: '/crm/clienti' },
+];
+
+const ADMIN_BOTTOM: NavItem[] = [
+  { label: 'Azi', icon: LayoutDashboard, to: '/admin' },
+  { label: 'De atribuit', icon: Inbox, to: '/admin/de-atribuit' },
+  { label: 'Calendar', icon: CalendarClock, to: '/admin/programari' },
+  { label: 'Clienți', icon: Users, to: '/admin/clienti' },
+];
+
 function initials(name?: string) {
   if (!name) return 'B';
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase()).join('');
@@ -286,10 +301,50 @@ export function CrmLayout({ variant = 'crm' }: { variant?: WorkspaceVariant }) {
         </header>
 
         <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
+          {/* Extra bottom space on phones so the bottom bar never covers the last row. */}
+          <div className="mx-auto max-w-7xl px-4 py-6 pb-24 lg:px-8 lg:pb-6">
             <Outlet />
           </div>
         </main>
+
+        {/* Phones: the four daily screens under the thumb, the rest behind "Mai mult". */}
+        <nav aria-label="Navigare rapidă" className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+          <div className="grid grid-cols-5">
+            {(variant === 'admin' ? ADMIN_BOTTOM : CRM_BOTTOM).map(item => {
+              const Icon = item.icon;
+              const count = badges[item.to] ?? 0;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === '/crm' || item.to === '/admin'}
+                  className={({ isActive }) =>
+                    `relative flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${FOCUS_RING} ${
+                      isActive ? 'text-brand-primary' : 'text-slate-500'
+                    }`
+                  }
+                >
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                  <span>{item.label}</span>
+                  {count > 0 && (
+                    <span className="absolute right-[22%] top-1.5 min-w-[1.1rem] rounded-full bg-rose-500 px-1 text-center text-[10px] font-semibold leading-4 text-white" aria-label={`${count} în așteptare`}>
+                      {count}
+                    </span>
+                  )}
+                </NavLink>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className={`flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-slate-500 ${FOCUS_RING}`}
+              aria-label="Mai multe secțiuni"
+            >
+              <Menu className="h-5 w-5" aria-hidden="true" />
+              <span>Mai mult</span>
+            </button>
+          </div>
+        </nav>
       </div>
 
       <CrmCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

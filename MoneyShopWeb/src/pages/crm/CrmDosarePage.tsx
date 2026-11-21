@@ -374,7 +374,13 @@ export default function CrmDosarePage() {
                         <td className="px-5 py-3 text-slate-700">{f.clientName}</td>
                         <td className="px-5 py-3 text-slate-500">{creditTypeLabel(f.typeCredit)}</td>
                         <td className="whitespace-nowrap px-5 py-3 text-right font-medium text-slate-700">{money(f.requestedAmount)}</td>
-                        <td className="px-5 py-3"><StatusPill status={f.status} /></td>
+                        <td className="px-5 py-3">
+                          {/* Change one file's status right here, with the same allowed moves as the pipeline. */}
+                          <div className="flex items-center gap-2">
+                            <StatusPill status={f.status} />
+                            <MoveToMenu code={f.code} targets={allowedTargets(transitions, f.status, COLUMNS)} onSelect={t => moveCard(f.id, t)} />
+                          </div>
+                        </td>
                         <td className="whitespace-nowrap px-5 py-3 text-slate-400">{dateShort(f.updatedAt)}</td>
                         <td className="whitespace-nowrap px-5 py-3 text-right">
                           {f.status === 'DISBURSAT' && (

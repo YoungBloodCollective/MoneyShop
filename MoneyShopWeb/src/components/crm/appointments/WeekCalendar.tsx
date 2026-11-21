@@ -46,13 +46,18 @@ export function WeekCalendar({
           const isToday = sameDay(day, today);
           const items = byDay[i];
           return (
-            <section key={day.toISOString()} aria-label={`${DAY_NAMES[i]} ${day.getDate()}`} className={`min-h-[7rem] p-2.5 ${isToday ? 'bg-brand-primary/[0.03]' : ''}`}>
+            <section
+              key={day.toISOString()}
+              aria-label={`${DAY_NAMES[i]} ${day.getDate()}`}
+              /* Phones: only days with calls (and today) are shown, not seven empty boxes. */
+              className={`p-2.5 md:block md:min-h-[7rem] ${items.length === 0 && !isToday ? 'hidden' : ''} ${isToday ? 'bg-brand-primary/[0.03]' : ''}`}
+            >
               <div className="mb-2 flex items-baseline gap-1.5">
                 <span className={`text-xs font-semibold ${isToday ? 'text-brand-primary' : 'text-slate-500'}`}>{DAY_NAMES[i]}</span>
                 <span className={`text-xs ${isToday ? 'rounded-full bg-brand-primary px-1.5 text-white' : 'text-slate-400'}`}>{day.getDate()}</span>
               </div>
               {items.length === 0 ? (
-                <p className="hidden text-[11px] text-slate-300 md:block">—</p>
+                <p className="text-[11px] text-slate-300"><span className="md:hidden">Nicio programare azi.</span><span className="hidden md:inline">—</span></p>
               ) : (
                 <ul className="space-y-1.5">
                   {items.map(a => {
@@ -86,6 +91,9 @@ export function WeekCalendar({
           );
         })}
       </div>
+      {!days.some(d => sameDay(d, today)) && byDay.every(list => list.length === 0) && (
+        <p className="p-4 text-sm text-slate-400 md:hidden">Nicio programare în săptămâna aceasta.</p>
+      )}
     </div>
   );
 }
