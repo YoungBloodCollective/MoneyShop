@@ -28,6 +28,10 @@ namespace MoneyShop.DomainModel.Entities
 
         public string Source { get; set; } = "api"; // api, chat_state_machine
         public string? AdminNotes { get; set; }
+        /// <summary>Nou, Contactat, Necalificat, Convertit (see LeadStatuses).</summary>
+        public string Status { get; set; } = "Nou";
+        /// <summary>First time the lead was marked contacted (response-time metric).</summary>
+        public DateTime? ContactedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

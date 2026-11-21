@@ -210,6 +210,8 @@ namespace MoneyShop.Api.Controllers
                     l.Source,
                     l.AdminNotes,
                     l.BrokerProfileId,
+                    l.Status,
+                    l.ContactedAt,
                     l.CreatedAt
                 })
                 .ToList();
@@ -256,6 +258,25 @@ namespace MoneyShop.Api.Controllers
             _leadCaptureRepository.Insert(lead);
             await _leadCaptureRepository.SaveChangesAsync();
             return Ok(new { message = "Lead creat cu succes", leadId = lead.Id });
+        }
+
+        /// <summary>Nou → Contactat / Necalificat / Convertit; the first "contacted" moment is kept for the response-time metric.</summary>
+        [HttpPatch("leads/{id}/status")]
+        public async Task<IActionResult> UpdateLeadStatus(int id, [FromBody] UpdateLeadStatusRequest request)
+        {
+            if (!LeadStatuses.All.Contains(request.Status ?? ""))
+                return BadRequest(new { message = "Status necunoscut." });
+            var lead = _leadCaptureRepository.Get().FirstOrDefault(l => l.Id == id);
+            if (lead == null)
+                return NotFound(new { message = "Lead not found" });
+
+            var now = DateTime.UtcNow;
+            lead.Status = request.Status!;
+            if (lead.Status != LeadStatuses.New) lead.ContactedAt ??= now;
+            lead.UpdatedAt = now;
+            _leadCaptureRepository.Update(lead);
+            await _leadCaptureRepository.SaveChangesAsync();
+            return Ok(new { lead.Id, lead.Status, lead.ContactedAt });
         }
 
         [HttpPut("leads/{id}/notes")]
@@ -340,6 +361,17 @@ namespace MoneyShop.Api.Controllers
     public class UpdateLeadNotesRequest
     {
         public string? Notes { get; set; }
+    }
+
+    public class UpdateLeadStatusRequest
+    {
+        public string? Status { get; set; }
+    }
+
+    public static class LeadStatuses
+    {
+        public const string New = "Nou";
+        public static readonly HashSet<string> All = new(StringComparer.Ordinal) { New, "Contactat", "Necalificat", "Convertit" };
     }
 
     public class UpdateStatusRequest
