@@ -12,6 +12,9 @@ export function TodayAgenda() {
   const [items, setItems] = useState<Appointment[] | null>(null);
   // Moment of the last refresh; used to dim calls that are already over.
   const [now, setNow] = useState(0);
+  // A failed refresh must never look like a free day: the broker could miss calls.
+  const [failed, setFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -26,13 +29,16 @@ export function TodayAgenda() {
             .sort((x, y) => new Date(x.scheduledAt!).getTime() - new Date(y.scheduledAt!).getTime());
           setItems(list);
           setNow(Date.now());
+          setFailed(false);
         })
-        .catch(() => { if (active) setItems(prev => prev ?? []); });
+        .catch(() => { if (active) setFailed(true); });
     };
     queueMicrotask(() => { if (active) load(); });
     const timer = window.setInterval(load, 30_000);
     return () => { active = false; window.clearInterval(timer); };
-  }, []);
+  }, [reloadKey]);
+
+  const lastUpdate = now ? new Date(now).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : null;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -42,8 +48,22 @@ export function TodayAgenda() {
         </h2>
         <Link to={crm('/crm/programari')} className={`text-xs font-medium text-brand-primary hover:underline ${FOCUS_RING}`}>Calendar</Link>
       </div>
+      {failed && (
+        <div role="alert" className="mb-3 flex items-center justify-between gap-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+          <span>
+            Nu am putut încărca agenda.{lastUpdate ? ` Afișăm datele de la ${lastUpdate}.` : ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => setReloadKey(k => k + 1)}
+            className={`shrink-0 rounded-md border border-red-200 bg-white px-2 py-1 font-medium text-red-700 hover:bg-red-100 ${FOCUS_RING}`}
+          >
+            Reîncearcă
+          </button>
+        </div>
+      )}
       {items === null ? (
-        <div className="h-12 animate-pulse rounded-lg bg-slate-50" />
+        failed ? null : <div className="h-12 animate-pulse rounded-lg bg-slate-50" />
       ) : items.length === 0 ? (
         <p className="text-sm text-slate-400">Nicio programare azi.</p>
       ) : (

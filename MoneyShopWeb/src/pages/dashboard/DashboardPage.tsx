@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import {
   Wallet, CreditCard, CalendarClock, ArrowRight,
   Plus, Calculator, FileText, ChevronRight, Upload, ShieldCheck,
@@ -33,18 +34,27 @@ export default function DashboardPage() {
   const [financial, setFinancial] = useState<UserFinancialData | null>(null);
   const [bcReport, setBcReport] = useState<BcReportSummaryDto | null>(null);
   const [loading, setLoading] = useState(true);
+  // A network or server error is shown as such, not as "no data yet".
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    let failed = false;
+    const soft = <T,>(fallback: T) => (err: unknown): T => {
+      if (!axios.isAxiosError(err) || !err.response || err.response.status >= 500) failed = true;
+      return fallback;
+    };
     Promise.all([
-      applicationsApi.getAll().catch(() => []),
-      userFinancialDataApi.getMyData().catch(() => null),
-      bcReportApi.getLatest().catch(() => null),
+      applicationsApi.getAll().catch(soft<Application[]>([])),
+      userFinancialDataApi.getMyData().catch(soft<UserFinancialData | null>(null)),
+      bcReportApi.getLatest().catch(soft<Awaited<ReturnType<typeof bcReportApi.getLatest>> | null>(null)),
     ]).then(([apps, fin, bc]) => {
       setApplications(apps);
       setFinancial(fin);
       setBcReport(bc && !('isEmpty' in bc) ? bc : null);
+      setLoadFailed(failed);
     }).finally(() => setLoading(false));
-  }, []);
+  }, [reloadKey]);
 
   const hasFinancial = financial && !financial.isEmpty;
   const fmt = (v?: number) => (v ?? 0).toLocaleString('ro-RO', { maximumFractionDigits: 0 });
@@ -88,7 +98,7 @@ export default function DashboardPage() {
     },
     {
       key: 'payment',
-      label: 'Urmatoarea rata',
+      label: 'Rate lunare totale',
       value: (bcReport && bcTotalMonthly > 0)
         ? `${fmt(bcTotalMonthly)} RON`
         : hasFinancial ? `${fmt(financial?.rataTotalaLunara)} RON` : '— RON',
@@ -146,6 +156,18 @@ export default function DashboardPage() {
           </div>
           <button onClick={() => navigate('/onboarding')} className="shrink-0 px-4 py-2 bg-warning-500 text-dark-900 text-xs font-bold rounded-lg hover:bg-warning-400 transition-colors">
             Verifica acum
+          </button>
+        </div>
+      )}
+
+      {loadFailed && (
+        <div role="alert" className="flex flex-col gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-4 sm:flex-row sm:items-center">
+          <p className="flex-1 text-sm text-red-600">Nu am putut încărca toate datele tale. Verifică conexiunea și încearcă din nou.</p>
+          <button
+            onClick={() => { setLoading(true); setReloadKey(k => k + 1); }}
+            className="shrink-0 rounded-lg border border-red-500/40 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-500/10"
+          >
+            Reîncearcă
           </button>
         </div>
       )}

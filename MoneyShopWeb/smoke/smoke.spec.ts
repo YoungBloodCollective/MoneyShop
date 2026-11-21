@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-const routes = ['/', '/auth/login', '/auth/register', '/auth/otp-login', '/acord', '/despre', '/verifica-broker', '/legal']
+const routes = ['/', '/auth/login', '/auth/register', '/auth/otp-login', '/acord', '/despre', '/verifica-broker', '/legal', '/pagina-care-nu-exista']
 
 const ignored = /Failed to load resource|net::ERR_|favicon|ERR_NAME_NOT_RESOLVED|blocked by CORS policy|the server responded with a status of (401|403|404)/i
 
