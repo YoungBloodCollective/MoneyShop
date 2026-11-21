@@ -50,6 +50,7 @@ export interface LeadItem {
   situatiePoprireInchisa?: boolean;
   source: string;
   adminNotes?: string;
+  brokerProfileId?: number | null;
   createdAt: string;
 }
 

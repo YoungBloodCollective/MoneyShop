@@ -81,6 +81,14 @@ public class BrokerProfileService : IBrokerProfileService
             .FirstOrDefault();
     }
 
+    public int? ResolvePublicLeadBrokerId(string? slug)
+    {
+        var hasSlug = !string.IsNullOrWhiteSpace(slug);
+        if (!hasSlug && bool.TryParse(_configuration["Brokers:PublicLeadsToInbox"], out var toInbox) && toInbox)
+            return null;
+        return ResolveIntakeBrokerId(slug);
+    }
+
     public BrokerLegalIdentity? GetLegalIdentity(int? brokerProfileId)
     {
         if (!brokerProfileId.HasValue) return null;

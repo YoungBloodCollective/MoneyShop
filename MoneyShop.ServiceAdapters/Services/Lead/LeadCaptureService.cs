@@ -33,7 +33,7 @@ public class LeadCaptureService : ILeadCaptureService
         var lead = new LeadCapture
         {
             UserId = userId,
-            BrokerProfileId = _brokerProfiles.ResolveIntakeBrokerId(request.BrokerSlug),
+            BrokerProfileId = _brokerProfiles.ResolvePublicLeadBrokerId(request.BrokerSlug),
             NumePrenume = request.NumePrenume,
             Telefon = request.Telefon,
             Email = request.Email,

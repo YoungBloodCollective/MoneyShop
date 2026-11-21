@@ -4,7 +4,8 @@ import { useCrmPath } from '@/lib/crmPath';
 import { Phone, Mail, MapPin, CreditCard, UserPlus, AlertTriangle, Gavel } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { brokersApi } from '@/services/api/brokersApi';
+import { brokersApi, type BrokerAdminItem } from '@/services/api/brokersApi';
+import { AssignBrokerControl } from '@/components/crm/AssignBrokerControl';
 import { apiClient } from '@/services/api/apiClient';
 import { adminApi } from '@/services/api/adminApi';
 import { useAuth } from '@/hooks/useAuth';
@@ -62,6 +63,7 @@ export default function CrmProgramariPage() {
   const [segment, setSegment] = useState('toate');
   const [converting, setConverting] = useState<number | null>(null);
   const [brokerNames, setBrokerNames] = useState<Record<number, string>>({});
+  const [brokers, setBrokers] = useState<BrokerAdminItem[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -80,7 +82,7 @@ export default function CrmProgramariPage() {
   useEffect(() => {
     if (!isSuperAdmin) return;
     brokersApi.list()
-      .then(list => setBrokerNames(Object.fromEntries(list.map(b => [b.id, b.displayName]))))
+      .then(list => { setBrokers(list); setBrokerNames(Object.fromEntries(list.map(b => [b.id, b.displayName]))); })
       .catch(() => undefined);
   }, [isSuperAdmin]);
 
@@ -178,6 +180,13 @@ export default function CrmProgramariPage() {
                   )}
                   {a.notes && <p className="mt-2 text-xs text-slate-600">{a.notes}</p>}
                   <p className="mt-1 text-[11px] text-slate-400">{new Date(a.createdAt).toLocaleString('ro-RO')}</p>
+                  <AssignBrokerControl
+                    entityType="appointment"
+                    id={String(a.id)}
+                    currentBrokerId={a.brokerProfileId}
+                    brokers={brokers}
+                    onAssigned={brokerId => setAppointments(prev => prev.map(x => x.id === a.id ? { ...x, brokerProfileId: brokerId } : x))}
+                  />
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <button

@@ -56,6 +56,7 @@ const PublicBrokerSearchPage = lazy(() => import('@/pages/broker/PublicBrokerSea
 const AcordClientPage = lazy(() => import('@/pages/acord/AcordClientPage'));
 const BankConsentPage = lazy(() => import('@/pages/bank-consent/BankConsentPage'));
 
+const SuperAdminInboxPage = lazy(() => import('@/pages/admin/SuperAdminInboxPage'));
 const AdminApplicationsPage = lazy(() => import('@/pages/admin/AdminApplicationsPage'));
 const AdminKycPage = lazy(() => import('@/pages/admin/AdminKycPage'));
 const AdminBrokersPage = lazy(() => import('@/pages/admin/AdminBrokersPage'));
@@ -158,6 +159,7 @@ export function AppRouter() {
             menu). Brokers who open any /admin URL are sent to their CRM by ProtectedRoute. */}
         <Route element={<ProtectedRoute superAdminOnly><CrmLayout variant="admin" /></ProtectedRoute>}>
           <Route path="/admin" element={<CrmDashboardPage />} />
+          <Route path="/admin/de-atribuit" element={<SuperAdminInboxPage />} />
           <Route path="/admin/clienti" element={<CrmClientsPage />} />
           <Route path="/admin/clienti/:userId" element={<CrmClientDetailPage />} />
           <Route path="/admin/acorduri" element={<CrmAcorduriPage />} />

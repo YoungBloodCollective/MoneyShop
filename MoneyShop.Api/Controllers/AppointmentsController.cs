@@ -51,7 +51,7 @@ namespace MoneyShop.Api.Controllers
                     message = "Salariul net minim acceptat este 2500 RON (salariul minim pe economie)."
                 });
 
-            var brokerId = _brokerProfiles.ResolveIntakeBrokerId(request.BrokerSlug);
+            var brokerId = _brokerProfiles.ResolvePublicLeadBrokerId(request.BrokerSlug);
             if (brokerId == null && !string.IsNullOrWhiteSpace(request.BrokerSlug))
                 return BadRequest(new { message = "Brokerul nu a fost gasit." });
             var normalized = NormalizePhone(request.Telefon);

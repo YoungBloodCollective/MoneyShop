@@ -209,6 +209,7 @@ namespace MoneyShop.Api.Controllers
                     l.SituatiePoprireInchisa,
                     l.Source,
                     l.AdminNotes,
+                    l.BrokerProfileId,
                     l.CreatedAt
                 })
                 .ToList();

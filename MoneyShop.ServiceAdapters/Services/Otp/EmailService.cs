@@ -180,6 +180,53 @@ public class EmailService
         return SendPdfAsync(toEmail, "Informare precontractuala si solicitare servicii - Mango Broker", body, agreementPdf, fileName, "Mango agreement");
     }
 
+    /// <summary>
+    /// Tells a broker that the Super Admin assigned them a lead, appointment or acord.
+    /// Only name and phone are included; the details live in the CRM.
+    /// </summary>
+    public async Task<bool> SendAssignmentNotificationAsync(string toEmail, string kindLabel, string clientName, string? phone, string crmUrl)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_fromEmail))
+            {
+                _logger.LogWarning("[EmailService] Brevo ApiKey or FromEmail not configured — skipping assignment notification to {Email}", toEmail);
+                return false;
+            }
+
+            var subject = $"{Plain(kindLabel)} atribuit: {Plain(clientName)}";
+            var body = $@"
+<div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"">
+    <h2 style=""color: #16a34a;"">Ai primit un {Html(kindLabel).ToLowerInvariant()} nou</h2>
+    <p><strong>{Html(clientName)}</strong>{(string.IsNullOrWhiteSpace(phone) ? "" : $" &middot; {Html(phone)}")}</p>
+    <p>Super Admin ți l-a atribuit în CRM-ul MoneyShop.</p>
+    <p><a href=""{Html(crmUrl)}"" style=""display:inline-block;padding:10px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;"">Deschide în CRM</a></p>
+    <p style=""margin-top: 24px; color: #666; font-size: 12px;"">Echipa MoneyShop</p>
+</div>";
+
+            var emailRequest = new
+            {
+                sender = new { name = _fromName, email = _fromEmail },
+                to = new[] { new { email = toEmail } },
+                subject,
+                htmlContent = body
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("smtp/email", emailRequest);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("[EmailService] Brevo rejected assignment notification to {Email}. Status: {Status}, Body: {Error}", toEmail, response.StatusCode, error);
+            }
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[EmailService] Exception sending assignment notification to {Email}", toEmail);
+            return false;
+        }
+    }
+
     private static string Plain(string? value) =>
         (value ?? string.Empty).Replace("\r", " ").Replace("\n", " ").Trim();
 
