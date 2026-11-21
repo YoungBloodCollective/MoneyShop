@@ -262,3 +262,15 @@ export interface CrmWorkBoard {
   bankFiles: CrmBankFileItem[];
   openTasks: CrmTaskItem[];
 }
+
+/** A document the broker filed in the client's folder (metadata only). */
+export interface ClientDocumentInfo {
+  id: number;
+  userId: number;
+  folder: 'ACORD' | 'VENITURI' | 'BC' | 'BANCA' | 'ALTELE';
+  bankName?: string | null;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  createdAt: string;
+}
