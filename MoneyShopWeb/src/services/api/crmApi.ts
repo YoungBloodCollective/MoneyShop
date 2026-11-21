@@ -1,7 +1,7 @@
 import { apiClient } from './apiClient';
 import type {
   CrmDashboardSummary, CrmClientListItem, CrmClientDetail,
-  CrmFileListItem, StatusTransitions,
+  CrmFileListItem, StatusTransitions, CrmIncomeInput, CrmIncomeSnapshot,
 } from '@/types/crm.types';
 
 export const crmApi = {
@@ -29,6 +29,18 @@ export const crmApi = {
     const fd = new FormData();
     fd.append('file', file);
     await apiClient.post(`/crm/clients/${userId}/anaf`, fd);
+  },
+  /** Broker uploads the client's Biroul de Credit report (PDF); it is parsed on upload. */
+  async uploadBcReport(userId: number, file: File): Promise<{ ficoScore?: number | null; parseWarnings: string[] }> {
+    const fd = new FormData();
+    fd.append('file', file);
+    const { data } = await apiClient.post(`/crm/clients/${userId}/bc-report`, fd);
+    return data;
+  },
+  /** Income for the last 3 months, read off the client's ANAF document. */
+  async saveIncome(userId: number, input: CrmIncomeInput): Promise<CrmIncomeSnapshot> {
+    const { data } = await apiClient.put<CrmIncomeSnapshot>(`/crm/clients/${userId}/income`, input);
+    return data;
   },
   async getAnafBlob(userId: number): Promise<Blob> {
     const { data } = await apiClient.get(`/crm/clients/${userId}/anaf`, { responseType: 'blob' });

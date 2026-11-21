@@ -26,6 +26,14 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         CrmAnafUploadResult UploadClientAnaf(int userId, byte[] content, string fileName, string mimeType);
 
         CrmBcReportPdf? GetClientBcReportPdf(int userId, int reportId, CnpAccessContext access);
+
+        /// <summary>True when the signed-in broker (or Super Admin) can see this client: the
+        /// client has an acord or a file in their scope.</summary>
+        bool IsClientVisible(int userId);
+
+        /// <summary>Saves the income the broker read off the client's ANAF document and
+        /// recomputes the debt-to-income ratio against the latest BC report.</summary>
+        CrmIncomeSnapshot SaveClientIncome(int userId, CrmIncomeInput input);
     }
 
     public class CrmFileListItem
@@ -86,6 +94,36 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public bool CanAttachAnaf { get; set; }
         public string? AnafFileName { get; set; }
         public DateTime? AnafUploadedAt { get; set; }
+
+        /// <summary>Income the broker entered from the client's ANAF document (last 3 months).</summary>
+        public CrmIncomeSnapshot? Income { get; set; }
+    }
+
+    /// <summary>Net income for the last 3 months, read by the broker off the ANAF document.</summary>
+    public class CrmIncomeInput
+    {
+        public decimal? Salariu1 { get; set; }
+        public decimal? Salariu2 { get; set; }
+        public decimal? Salariu3 { get; set; }
+        /// <summary>Monthly meal-ticket value; 0 or null when the client receives none.</summary>
+        public decimal? BonuriMasa { get; set; }
+    }
+
+    public class CrmIncomeSnapshot
+    {
+        public decimal? Salariu1 { get; set; }
+        public decimal? Salariu2 { get; set; }
+        public decimal? Salariu3 { get; set; }
+        /// <summary>Average of the salaries entered.</summary>
+        public decimal? SalariuNet { get; set; }
+        public decimal? BonuriMasa { get; set; }
+        /// <summary>SalariuNet + meal tickets.</summary>
+        public decimal? VenitTotal { get; set; }
+        /// <summary>Monthly instalments from the latest BC report, when there is one.</summary>
+        public decimal? RataTotalaLunara { get; set; }
+        /// <summary>RataTotalaLunara / VenitTotal (0.35 = 35%).</summary>
+        public decimal? Dti { get; set; }
+        public DateTime UpdatedAt { get; set; }
     }
 
     public class CrmFinancialSnapshot
@@ -191,6 +229,12 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public string? ReportDate { get; set; }
         public int? FicoScore { get; set; }
         public decimal? ExistingMonthlyObligations { get; set; }
+        /// <summary>Monthly instalments to banks / to non-bank lenders (IFN).</summary>
+        public decimal BankMonthlyPayment { get; set; }
+        public decimal NonBankMonthlyPayment { get; set; }
+        /// <summary>Outstanding balance owed to banks / to non-bank lenders (IFN).</summary>
+        public decimal BankAmountOwed { get; set; }
+        public decimal NonBankAmountOwed { get; set; }
         public int TotalAccounts { get; set; }
         public int ActiveAccounts { get; set; }
         public int AccountsWithArrears { get; set; }

@@ -134,6 +134,11 @@ export interface CrmBcReportSnapshot {
   reportDate?: string | null;
   ficoScore?: number | null;
   existingMonthlyObligations?: number | null;
+  /** Monthly instalments / balance owed to banks and to non-bank lenders (IFN). */
+  bankMonthlyPayment: number;
+  nonBankMonthlyPayment: number;
+  bankAmountOwed: number;
+  nonBankAmountOwed: number;
   totalAccounts: number;
   activeAccounts: number;
   accountsWithArrears: number;
@@ -171,6 +176,27 @@ export interface CrmClientDetail {
   canAttachAnaf: boolean;
   anafFileName?: string;
   anafUploadedAt?: string;
+  /** Income the broker entered from the ANAF document. */
+  income?: CrmIncomeSnapshot | null;
+}
+
+export interface CrmIncomeInput {
+  salariu1?: number | null;
+  salariu2?: number | null;
+  salariu3?: number | null;
+  bonuriMasa?: number | null;
+}
+
+export interface CrmIncomeSnapshot extends CrmIncomeInput {
+  /** Average of the salaries entered. */
+  salariuNet?: number | null;
+  /** salariuNet + meal tickets. */
+  venitTotal?: number | null;
+  /** Monthly instalments from the latest BC report. */
+  rataTotalaLunara?: number | null;
+  /** rataTotalaLunara / venitTotal (0.35 = 35%). */
+  dti?: number | null;
+  updatedAt: string;
 }
 
 export interface CrmFileListItem {
