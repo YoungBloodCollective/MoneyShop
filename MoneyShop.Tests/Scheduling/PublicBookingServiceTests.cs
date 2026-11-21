@@ -20,7 +20,7 @@ public class PublicBookingServiceTests
     private static readonly DateTime Now = new(2030, 1, 7, 8, 0, 0, DateTimeKind.Utc);
     private static DateTime At(int hour, int minute = 0, int day = 7) => new(2030, 1, day, hour, minute, 0, DateTimeKind.Utc);
 
-    private static (PublicBookingService Service, MoneyShopDbContext Db) Build()
+    private static (PublicBookingService Service, MoneyShopDbContext Db) Build(IOutlookBusyTimes? outlookBusy = null)
     {
         var options = new DbContextOptionsBuilder<MoneyShopDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -37,7 +37,7 @@ public class PublicBookingServiceTests
             ["Booking:LeadMinutes"] = "0",
             ["Booking:DaysAhead"] = "1",
         }).Build();
-        return (new PublicBookingService(db, new FakeBrokers(), config), db);
+        return (new PublicBookingService(db, new FakeBrokers(), config, outlookBusy), db);
     }
 
     private static Appointment Add(MoneyShopDbContext db, int? broker, DateTime start, string source = "manual",
@@ -72,6 +72,31 @@ public class PublicBookingServiceTests
         Assert.DoesNotContain(At(10), times);
         Assert.Contains(At(10, 30), times);
         Assert.Contains(At(9, day: 8), times); // next working day
+    }
+
+    [Fact]
+    public async Task Outlook_meetings_of_the_broker_hide_those_times()
+    {
+        var outlook = new FixedBusy(Alex, new BusyInterval(At(9, 40), At(10, 10)));
+        var (service, _) = Build(outlook);
+
+        var times = Times(await service.GetSlotsAsync(null, Now));
+
+        Assert.Contains(At(9), times);
+        Assert.DoesNotContain(At(9, 30), times);   // 09:30–09:45 overlaps 09:40
+        Assert.DoesNotContain(At(10), times);      // 10:00–10:15 overlaps until 10:10
+        Assert.Contains(At(10, 30), times);
+        Assert.False(await service.IsBookableAsync(Alex, At(10), Now));
+        Assert.True(await service.IsBookableAsync(Maria, At(10), Now)); // another broker's Outlook is separate
+    }
+
+    private sealed class FixedBusy : IOutlookBusyTimes
+    {
+        private readonly int _broker;
+        private readonly BusyInterval[] _busy;
+        public FixedBusy(int broker, params BusyInterval[] busy) { _broker = broker; _busy = busy; }
+        public Task<List<BusyInterval>> GetAsync(int brokerProfileId, DateTime fromUtc, DateTime toUtc, DateTime nowUtc) =>
+            Task.FromResult(brokerProfileId == _broker ? _busy.Where(b => b.StartUtc < toUtc && b.EndUtc > fromUtc).ToList() : new List<BusyInterval>());
     }
 
     [Fact]

@@ -16,12 +16,14 @@ public class PublicBookingService : IPublicBookingService
     private readonly MoneyShopDbContext _db;
     private readonly IBrokerProfileService _brokerProfiles;
     private readonly BookingHours _hours;
+    private readonly IOutlookBusyTimes? _outlookBusy;
 
-    public PublicBookingService(MoneyShopDbContext db, IBrokerProfileService brokerProfiles, IConfiguration configuration)
+    public PublicBookingService(MoneyShopDbContext db, IBrokerProfileService brokerProfiles, IConfiguration configuration, IOutlookBusyTimes? outlookBusy = null)
     {
         _db = db;
         _brokerProfiles = brokerProfiles;
         _hours = BookingHours.From(configuration);
+        _outlookBusy = outlookBusy;
     }
 
     public int SlotDurationMinutes => _hours.DurationMinutes;
@@ -208,9 +210,14 @@ public class PublicBookingService : IPublicBookingService
                 && (excludeId == null || a.Id != excludeId))
             .Select(a => new { a.ScheduledAt, a.DurationMinutes })
             .ToListAsync();
-        return rows
+        var busy = rows
             .Select(r => (Start: DateTime.SpecifyKind(r.ScheduledAt!.Value, DateTimeKind.Utc), End: DateTime.SpecifyKind(r.ScheduledAt!.Value, DateTimeKind.Utc).AddMinutes(r.DurationMinutes)))
             .ToList();
+
+        // Meetings the broker has in Outlook block those times too (Etapa 4B; off until Graph is configured).
+        if (brokerId is > 0 && _outlookBusy != null)
+            busy.AddRange((await _outlookBusy.GetAsync(brokerId.Value, fromUtc, toUtc, nowUtc)).Select(b => (Start: b.StartUtc, End: b.EndUtc)));
+        return busy;
     }
 
     private static bool Overlaps(List<(DateTime Start, DateTime End)> busy, DateTime start, int minutes)
