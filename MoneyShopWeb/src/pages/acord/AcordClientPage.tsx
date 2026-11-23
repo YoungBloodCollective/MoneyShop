@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  FileText, UploadCloud, Check, X, Info, ChevronRight, ChevronDown,
+  FileText, X, Info, ChevronRight, ChevronDown,
   Loader2, CheckCircle, ShieldCheck,
 } from 'lucide-react';
 import axios from 'axios';
@@ -10,18 +10,8 @@ import { useBroker } from '@/context/brokerContextValue';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { Logo } from '@/components/shared/Logo';
 import { API_BASE_URL } from '@/utils/constants';
-
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const ACCEPTED = 'image/png,image/jpeg,image/jpg,image/heic,image/heif,application/pdf';
-
-/**
- * The API still wants a document type. Both values below need the back of the card, and only the
- * electronic one needs the proof of address, which is exactly what this page asks for.
- */
-const TIP_ACT_SIMPLA = 'carte_identitate_simpla';
-const TIP_ACT_ELECTRONICA = 'carte_identitate_electronica';
-
-type SlotKey = 'front' | 'back' | 'proof';
+import { IdScanStep } from './IdScanStep';
+import { useIdScan } from './useIdScan';
 
 /**
  * Mirrors the three opt-ins the API serves. Kept locally so a failed
@@ -53,12 +43,6 @@ type AcordStep = 1 | 2 | 3 | 4;
 const LAST_STEP: AcordStep = 4;
 const STEP_TITLES = ['Contact', 'Act de identitate', 'Situația ta', 'Semnătură'];
 
-const DOCUMENT_SLOTS: { key: SlotKey; title: string }[] = [
-  { key: 'front', title: 'Față' },
-  { key: 'back', title: 'Verso' },
-  { key: 'proof', title: 'Dovadă de adresă' },
-];
-
 const STARE_CIVILA_OPTIONS = [
   { value: 'casatorit', label: 'Căsătorit/ă' },
   { value: 'necasatorit', label: 'Necăsătorit/ă' },
@@ -87,36 +71,6 @@ function parseYears(value: string): number | null {
   if (!/^\d+(\.\d+)?$/.test(normalised)) return null;
   const years = Number(normalised);
   return years >= 0 && years <= 60 ? years : null;
-}
-
-const MAX_IMAGE_DIMENSION = 2000;
-const COMPRESSED_QUALITY = 0.82;
-
-async function compressImage(file: File): Promise<File> {
-  if (!file.type.startsWith('image/')) return file;
-  try {
-    let bitmap: ImageBitmap;
-    try {
-      bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-    } catch {
-      bitmap = await createImageBitmap(file);
-    }
-    const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return file;
-    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-    const blob = await new Promise<Blob | null>(resolve =>
-      canvas.toBlob(resolve, 'image/jpeg', COMPRESSED_QUALITY),
-    );
-    if (!blob || blob.size === 0 || blob.size >= file.size) return file;
-    return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
-  } catch {
-    return file;
-  }
 }
 
 function InfoCard({ title, onOpen }: { title: string; onOpen: () => void }) {
@@ -261,7 +215,7 @@ export default function AcordClientPage() {
   const [prenume, setPrenume] = useState('');
   const [telefon, setTelefon] = useState('');
   const [email, setEmail] = useState('');
-  const [electronic, setElectronic] = useState<boolean | null>(null);
+  const id = useIdScan();
   const [stareCivila, setStareCivila] = useState('');
   const [stareLocativa, setStareLocativa] = useState('');
   const [functieActuala, setFunctieActuala] = useState('');
@@ -269,10 +223,6 @@ export default function AcordClientPage() {
   const [numeFirma, setNumeFirma] = useState('');
   const [vechimeTotala, setVechimeTotala] = useState('');
   const [vechimeLocActual, setVechimeLocActual] = useState('');
-
-  const [files, setFiles] = useState<Record<SlotKey, File | null>>({
-    front: null, back: null, proof: null,
-  });
 
   const [consentText, setConsentText] = useState<AcordConsentText | null>(null);
   const [openDoc, setOpenDoc] = useState<'gdpr' | 'mango' | null>(null);
@@ -286,12 +236,6 @@ export default function AcordClientPage() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
-
-  const inputRefs = {
-    front: useRef<HTMLInputElement>(null),
-    back: useRef<HTMLInputElement>(null),
-    proof: useRef<HTMLInputElement>(null),
-  };
 
   useEffect(() => {
     acordApi.getConsentText(brokerSlug).then(setConsentText).catch(() => undefined);
@@ -313,27 +257,6 @@ export default function AcordClientPage() {
     return () => { active = false; };
   }, [leadToken]);
 
-  const pickFile = async (key: SlotKey, file: File | undefined) => {
-    if (!file) return;
-
-    const prepared = await compressImage(file);
-
-    if (prepared.size > MAX_FILE_BYTES) {
-      setError(`${file.name}: fișierul depășește 10MB.`);
-      return;
-    }
-
-    setError('');
-    setFiles(prev => ({ ...prev, [key]: prepared }));
-  };
-
-  const tipAct = electronic ? TIP_ACT_ELECTRONICA : TIP_ACT_SIMPLA;
-  const visibleSlots = DOCUMENT_SLOTS.filter(slot => slot.key !== 'proof' || electronic === true);
-
-  const chooseElectronic = (value: boolean) => {
-    setElectronic(value);
-    if (!value) setFiles(prev => ({ ...prev, proof: null }));
-  };
   const showMango = consentText === null || !!consentText.mangoAgreement;
   const bankDocuments = consentText?.bankDocuments?.items.length ? consentText.bankDocuments : null;
 
@@ -362,10 +285,7 @@ export default function AcordClientPage() {
     prenume.trim().length >= 2 &&
     (phoneDigits.length === 10 || phoneDigits.length === 11) &&
     profileComplete &&
-    electronic !== null &&
-    !!files.front &&
-    !!files.back &&
-    (!electronic || !!files.proof) &&
+    id.complete &&
     !!signature;
 
   // What is still missing on the current step, in plain words, next to the button (the button
@@ -376,10 +296,7 @@ export default function AcordClientPage() {
     if (prenume.trim().length < 2) missing.push('prenumele');
     if (!(phoneDigits.length === 10 || phoneDigits.length === 11)) missing.push('telefonul (10 cifre)');
   } else if (step === 2) {
-    if (electronic === null) missing.push('dacă actul are cip');
-    if (!files.front) missing.push('poza cu fața actului');
-    if (!files.back) missing.push('poza cu versoul actului');
-    if (electronic && !files.proof) missing.push('dovada adresei');
+    missing.push(...id.missing);
   } else if (step === 3) {
     if (!stareCivila) missing.push('starea civilă');
     if (!stareLocativa) missing.push('starea locativă');
@@ -419,7 +336,7 @@ export default function AcordClientPage() {
         prenume: prenume.trim(),
         telefon: telefon.trim(),
         email: email.trim() || undefined,
-        tipAct,
+        tipAct: id.tipAct!,
         agentCode,
         brokerSlug: brokerSlug ?? undefined,
         leadToken,
@@ -430,9 +347,9 @@ export default function AcordClientPage() {
         numeFirma: numeFirma.trim() || undefined,
         vechimeTotalaAni: vechimeTotala.trim(),
         vechimeLocActualAni: vechimeLocActual.trim(),
-        documentFront: files.front!,
-        documentBack: files.back,
-        addressProof: files.proof,
+        documentFront: id.submitFiles.front!,
+        documentBack: id.submitFiles.back,
+        addressProof: id.submitFiles.proof,
         signatureDataUri: signature!,
         // The required consents are listed above the signature; signing accepts them.
         acceptIntermediere: true,
@@ -524,74 +441,7 @@ export default function AcordClientPage() {
           </p>
           </>)}
 
-          {step === 2 && (<>
-          <p className="text-sm font-semibold text-light-90 mb-2.5">Poze cu actul de identitate</p>
-          <div className="grid grid-cols-2 gap-2">
-            {visibleSlots.map(slot => {
-              const file = files[slot.key];
-              return (
-                <div
-                  key={slot.key}
-                  className={`rounded-xl p-3 flex flex-col items-center text-center transition ${
-                    file ? 'ring-2 ring-success-500 bg-success-500/5' : 'ring-1 ring-dark-500 bg-white'
-                  }`}
-                >
-                  <p className="text-[13px] font-medium text-light-80 leading-tight mb-2">{slot.title}</p>
-                  {file ? <Check size={26} className="text-success-600 mb-2" />
-                        : <FileText size={26} className="text-light-50 mb-2" />}
-                  <button
-                    type="button"
-                    onClick={() => inputRefs[slot.key].current?.click()}
-                    className="text-[12px] font-medium text-brand-primary flex items-center gap-1 min-h-[32px]"
-                  >
-                    <UploadCloud size={14} /> {file ? 'Schimbă' : 'Încarcă'}
-                  </button>
-                  {file && (
-                    <span className="text-[10px] text-light-60 truncate w-full mt-0.5">{file.name}</span>
-                  )}
-                  <input
-                    ref={inputRefs[slot.key]}
-                    type="file"
-                    accept={ACCEPTED}
-                    className="hidden"
-                    onChange={e => { pickFile(slot.key, e.target.files?.[0]); e.target.value = ''; }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <p className="text-[12px] text-light-60 mt-2.5 mb-5">
-            Formate acceptate: PNG, JPG, PDF. Dimensiune max: 10MB / fișier.
-          </p>
-
-          <fieldset className="mb-2">
-            <legend className="text-sm font-medium text-light-80 mb-2">Cartea ta de identitate are cip (e electronică)?</legend>
-            <div className="grid grid-cols-2 gap-2">
-              {[{ value: false, label: 'Nu' }, { value: true, label: 'Da' }].map(option => (
-                <label
-                  key={option.label}
-                  className={`flex items-center justify-center rounded-xl py-3 text-base font-medium cursor-pointer transition ${
-                    electronic === option.value ? 'bg-brand-primary text-white' : 'bg-white ring-1 ring-dark-500 text-light-80'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="carte-electronica"
-                    checked={electronic === option.value}
-                    onChange={() => chooseElectronic(option.value)}
-                    className="sr-only"
-                  />
-                  {option.label}
-                </label>
-              ))}
-            </div>
-            {electronic && (
-              <p className="text-[12px] text-light-60 mt-2">
-                Pentru cartea electronică avem nevoie și de o dovadă de adresă.
-              </p>
-            )}
-          </fieldset>
-          </>)}
+          {step === 2 && <IdScanStep state={id} nume={nume} prenume={prenume} />}
 
           {step === 3 && (<>
           <p className="text-sm font-semibold text-light-90 mb-2.5">Situația personală și profesională</p>

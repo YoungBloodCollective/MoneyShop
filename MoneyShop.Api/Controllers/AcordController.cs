@@ -50,15 +50,17 @@ public class AcordController : BaseController
     };
 
     private readonly IAcordService _acordService;
+    private readonly IAcordIdScanService _idScan;
     private readonly IBankConsentService _bankConsentService;
     private readonly ILogger<AcordController> _logger;
     private readonly IAuditService _audit;
     private readonly ILeadService _leads;
 
-    public AcordController(IAcordService acordService, IBankConsentService bankConsentService, ILogger<AcordController> logger, IAuditService audit, ILeadService leads)
+    public AcordController(IAcordService acordService, IAcordIdScanService idScan, IBankConsentService bankConsentService, ILogger<AcordController> logger, IAuditService audit, ILeadService leads)
     {
         _leads = leads;
         _acordService = acordService;
+        _idScan = idScan;
         _bankConsentService = bankConsentService;
         _logger = logger;
         _audit = audit;
@@ -132,6 +134,44 @@ public class AcordController : BaseController
         catch (InvalidOperationException ex)
         {
             return Conflict(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Reads the ID card for the acord's identity step. Anonymous, stores nothing and returns
+    /// only a masked CNP, so it cannot be used to pull a client's data out of a document.
+    /// </summary>
+    [HttpPost("id-scan")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(25_000_000)]
+    [EnableRateLimiting("public-scan")]
+    public async Task<IActionResult> IdScan([FromForm] AcordIdScanRequest request)
+    {
+        if (request.Front == null || request.Front.Length == 0)
+            return BadRequest("Poza cu fața actului este obligatorie");
+        if (request.Front.Length > MaxUploadBytes || (request.Back?.Length ?? 0) > MaxUploadBytes)
+            return BadRequest("Fișierul depășește 10MB");
+
+        try
+        {
+            var front = (await ReadUpload(request.Front)).Content;
+            var back = request.Back is { Length: > 0 } ? (await ReadUpload(request.Back)).Content : null;
+            var result = await _idScan.ScanAsync(front, back);
+            Response.Headers.CacheControl = "no-store";
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error scanning ID for acord");
+            return Ok(new AcordIdScanResult
+            {
+                Readable = false,
+                Problems = { "Nu am putut citi actul, încearcă o poză mai clară." }
+            });
         }
     }
 
@@ -474,6 +514,12 @@ public class AcordSubmitRequest
     public bool AcceptMarketing { get; set; }
     public bool WaiveOug52 { get; set; }
     public bool AcceptBanci { get; set; }
+}
+
+public class AcordIdScanRequest
+{
+    public IFormFile? Front { get; set; }
+    public IFormFile? Back { get; set; }
 }
 
 public class AcordStatusRequest

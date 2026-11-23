@@ -66,6 +66,21 @@ export interface AcordSubmitPayload {
   acceptBanci: boolean;
 }
 
+export interface AcordIdScan {
+  readable: boolean;
+  isNewFormat: boolean;
+  hasAddress: boolean;
+  lastName?: string | null;
+  firstName?: string | null;
+  cnpMasked?: string | null;
+  expiryDate?: string | null;
+  expired: boolean;
+  needsBack: boolean;
+  needsProofOfAddress: boolean;
+  tipAct?: string | null;
+  problems: string[];
+}
+
 export interface AcordLeadPrefill {
   nume: string;
   prenume: string;
@@ -234,6 +249,13 @@ export const acordApi = {
 
   getLeadPrefill: (token: string) =>
     publicClient.get('/acord/lead-prefill', { params: { t: token } }).then(r => unwrap<AcordLeadPrefill>(r.data)),
+
+  idScan: (front: File, back?: File | null) => {
+    const fd = new FormData();
+    fd.append('Front', front, front.name);
+    if (back) fd.append('Back', back, back.name);
+    return publicClient.post('/acord/id-scan', fd).then(r => unwrap<AcordIdScan>(r.data));
+  },
 
   submit: (payload: AcordSubmitPayload) => {
     const fd = new FormData();

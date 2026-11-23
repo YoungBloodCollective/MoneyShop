@@ -64,6 +64,8 @@ interface CameraProps {
   instruction: string;
   /** Enable auto-capture when document is stable and sharp (default: true for environment) */
   autoCapture?: boolean;
+  /** Called when the camera cannot be opened (permission denied, no device, insecure context). */
+  onCameraError?: () => void;
 }
 
 export default function Camera({
@@ -72,6 +74,7 @@ export default function Camera({
   overlay,
   instruction,
   autoCapture,
+  onCameraError,
 }: CameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -87,6 +90,10 @@ export default function Camera({
   const [stableFrames, setStableFrames] = useState(0);
   const [autoCaptured, setAutoCaptured] = useState(false);
   const captureRef = useRef<(() => void) | undefined>(undefined);
+  const onCameraErrorRef = useRef(onCameraError);
+  useEffect(() => {
+    onCameraErrorRef.current = onCameraError;
+  }, [onCameraError]);
 
   // Determine whether auto-capture should be active
   const shouldAutoCapture = autoCapture !== undefined ? autoCapture : facingMode === "environment";
@@ -144,7 +151,10 @@ export default function Camera({
   }, [facingMode]);
 
   useEffect(() => {
-    startCamera().catch((e: Error) => setError(e.message));
+    startCamera().catch((e: Error) => {
+      setError(e.message);
+      onCameraErrorRef.current?.();
+    });
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
