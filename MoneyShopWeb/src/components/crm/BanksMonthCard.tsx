@@ -88,7 +88,7 @@ export function BanksMonthCard() {
             <div className="text-sm text-slate-400">Niciun prag setat</div>
           )}
         </div>
-        {networkView && (
+        {networkView && stats.byBroker != null && (
           <div>
             <div className="text-xs text-slate-500">Top brokeri</div>
             {summary.topBrokers.length === 0 ? (

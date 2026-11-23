@@ -159,8 +159,10 @@ export default function CrmBanciPage() {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
               { label: 'Disbursat în rețea', value: money(totals.network.disbursedAmount), hint: totals.network.detailed ? `${totals.network.disbursedCount} dosare` : 'toți brokerii' },
-              { label: 'Disbursat de mine', value: money(totals.mine.disbursedAmount), hint: `${totals.mine.disbursedCount} dosare` },
-              { label: 'Comision estimat', value: money(totals.commission), hint: data.hasBrokerProfile ? 'din dosarele mele' : 'fără profil de broker' },
+              ...(data.hasBrokerProfile ? [
+                { label: 'Disbursat de mine', value: money(totals.mine.disbursedAmount), hint: `${totals.mine.disbursedCount} dosare` },
+                { label: 'Comision estimat', value: money(totals.commission), hint: 'din dosarele mele' },
+              ] : []),
               { label: 'Dosare în lucru', value: String(totals.mine.inProgressCount), hint: totals.network.detailed ? `${money(totals.mine.inProgressAmount)} · rețea ${totals.network.inProgressCount}` : money(totals.mine.inProgressAmount) },
             ].map(c => (
               <div key={c.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -173,7 +175,7 @@ export default function CrmBanciPage() {
 
           {data.unattributed.count > 0 && (
             <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Neatribuite: {data.unattributed.count} dosare ({money(data.unattributed.amount)}) — alege banca în fișa clientului ca să apară aici.
+              Neatribuite (toate lunile): {data.unattributed.count} dosare ({money(data.unattributed.amount)}) — alege banca în fișa clientului ca să apară aici.
             </p>
           )}
 
