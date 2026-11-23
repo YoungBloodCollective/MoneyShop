@@ -277,7 +277,7 @@ export default function AcordClientPage() {
   const [consentText, setConsentText] = useState<AcordConsentText | null>(null);
   const [openDoc, setOpenDoc] = useState<'gdpr' | 'mango' | null>(null);
   const [choices, setChoices] = useState<Record<string, boolean>>({
-    intermediere: false, marketing: false, oug52Waiver: false, banci: false,
+    intermediere: false, marketing: true, oug52Waiver: true, banci: true,
   });
   const [signature, setSignature] = useState<string | null>(null);
   const [showBankForms, setShowBankForms] = useState(false);
@@ -623,8 +623,8 @@ export default function AcordClientPage() {
             {showMango && <InfoCard title={MANGO_TITLE} onOpen={() => setOpenDoc('mango')} />}
           </div>
 
-          {/* Optional choices stay unticked checkboxes the client opts into. The required ones are
-              not checkboxes: they are listed above the signature, and signing is the act of acceptance. */}
+          {/* Optional choices start ticked (business decision, 23 Nov 2026) and the client can untick them.
+              The required ones are not checkboxes: they are listed above the signature, and signing is the act of acceptance. */}
           <div className="space-y-2.5 mb-5">
             {optionalOptions.length > 0 && (
               <button
