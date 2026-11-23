@@ -349,7 +349,7 @@ public class BankConsentService : IBankConsentService
         if (string.IsNullOrEmpty(signature?.FileContentBase64))
             throw new InvalidOperationException("Semnătura acordului nu mai este disponibilă.");
 
-        var supplied = new BankConsentSignInput { Cnp = StoredCnp(acord.AcordId, acord.UserId, "codebitor_form", actorUserId, actorRole ?? "Broker", ip, userAgent) };
+        var supplied = new BankConsentSignInput { Cnp = StoredCnp(acord.AcordId, acord.SubjectId, "codebitor_form", actorUserId, actorRole ?? "Broker", ip, userAgent) };
         var input = BuildInputForAcord(
             acord,
             $"{acord.Prenume} {acord.Nume}".Trim().ToUpper(RomanianCulture),
@@ -393,16 +393,16 @@ public class BankConsentService : IBankConsentService
         return new BankConsentDocumentFile { FileName = $"patria-cerere-codebitor-{acord.AcordId}.pdf", Content = pdf };
     }
 
-    private int? UserIdFor(Guid acordId) =>
+    private string? SubjectIdFor(Guid acordId) =>
         _context.AcordClients.IgnoreQueryFilters()
             .Where(a => a.AcordId == acordId)
-            .Select(a => (int?)a.UserId)
+            .Select(a => a.SubjectId)
             .FirstOrDefault();
 
     private bool HasStoredCnp(Guid acordId)
     {
-        var userId = UserIdFor(acordId);
-        return userId.HasValue && (_subjectService.GetSubjectByUserId(userId.Value)?.HasStoredCnp ?? false);
+        var subjectId = SubjectIdFor(acordId);
+        return subjectId != null && (_subjectService.GetSubjectById(subjectId)?.HasStoredCnp ?? false);
     }
 
     /// <summary>
@@ -411,17 +411,22 @@ public class BankConsentService : IBankConsentService
     /// </summary>
     private string? StoredCnp(BankConsentRequest request, string? ip, string? userAgent)
     {
-        var userId = UserIdFor(request.AcordId);
-        if (!userId.HasValue) return null;
+        var acord = _context.AcordClients.IgnoreQueryFilters()
+            .Where(a => a.AcordId == request.AcordId)
+            .Select(a => new { a.UserId, a.SubjectId })
+            .FirstOrDefault();
+        if (acord?.SubjectId == null) return null;
 
-        return StoredCnp(request.AcordId, userId.Value, "bank_consent_form", userId.Value, "Client", ip, userAgent);
+        return StoredCnp(request.AcordId, acord.SubjectId, "bank_consent_form", acord.UserId, "Client", ip, userAgent);
     }
 
-    private string? StoredCnp(Guid acordId, int userId, string reason, int? actorUserId, string actorRole, string? ip, string? userAgent)
+    private string? StoredCnp(Guid acordId, string? subjectId, string reason, int? actorUserId, string actorRole, string? ip, string? userAgent)
     {
+        if (subjectId == null) return null;
+
         try
         {
-            return _subjectService.RevealCnpByUserId(userId, new CnpAccessContext
+            return _subjectService.RevealCnpBySubjectId(subjectId, new CnpAccessContext
             {
                 ActorUserId = actorUserId,
                 ActorRole = actorRole,
@@ -445,8 +450,8 @@ public class BankConsentService : IBankConsentService
     /// </summary>
     private string? StoredBirthDate(Guid acordId)
     {
-        var userId = UserIdFor(acordId);
-        var derived = userId.HasValue ? _subjectService.GetSubjectByUserId(userId.Value)?.BirthDate : null;
+        var subjectId = SubjectIdFor(acordId);
+        var derived = subjectId != null ? _subjectService.GetSubjectById(subjectId)?.BirthDate : null;
         if (derived != null) return CnpIdentity.Format(derived);
 
         return FormatBirthDate(_context.AcordClients.IgnoreQueryFilters()

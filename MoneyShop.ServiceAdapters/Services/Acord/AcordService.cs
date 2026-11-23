@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -124,7 +125,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         if (!input.Choices.AcceptIntermediere)
             return new AcordSubmitResult { Success = false, Message = "Acordul pentru prelucrarea datelor este obligatoriu" };
 
-        var user = FindOrCreateUser(input.Nume.Trim(), input.Prenume.Trim(), telefon, email);
+        var user = FindOrCreateUser(input.Nume.Trim(), input.Prenume.Trim(), telefon, email, identity.BrokerProfileId);
 
         var kycSession = new KycSession
         {
@@ -857,7 +858,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             CompletedAt = acord.CompletedAt,
             ExpiresAt = acord.ExpiresAt,
             CnpMasked = kycSession?.Cnp,
-            CnpAvailable = _subjectService.GetSubjectByUserId(acord.UserId)?.HasStoredCnp ?? false,
+            CnpAvailable = acord.SubjectId != null && (_subjectService.GetSubjectById(acord.SubjectId)?.HasStoredCnp ?? false),
             Address = kycSession?.Address,
             AutomaticChecksRan = !string.IsNullOrEmpty(kycSession?.ProviderTransactionId),
             Ocr = DeserialiseOcr(acord.OcrDataJson),
@@ -917,7 +918,8 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         if (access != null && FilePrintsCnp(file.FileType))
         {
             access.AcordId ??= acord.AcordId;
-            _subjectService.LogCnpAccess(acord.UserId, access);
+            if (acord.SubjectId != null)
+                _subjectService.LogCnpAccessBySubjectId(acord.SubjectId, access);
         }
 
         _audit.Log("KycFile", fileId.ToString(), "file_read", newValue: new { fileType = file.FileType, acordId = acord.AcordId });
@@ -960,8 +962,10 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         var acord = _acordRepository.Get().FirstOrDefault(a => a.AcordId == acordId);
         if (acord == null) return null;
 
+        if (acord.SubjectId == null) return null;
+
         access.AcordId = acordId;
-        return _subjectService.RevealCnpByUserId(acord.UserId, access);
+        return _subjectService.RevealCnpBySubjectId(acord.SubjectId, access);
     }
 
     // ── Helpers ──
@@ -994,18 +998,21 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         return _kycSessionRepository.Get().FirstOrDefault(k => k.KycId == acord.KycId.Value);
     }
 
-    private Utilizatori FindOrCreateUser(string nume, string prenume, string telefon, string? email)
+    private Utilizatori FindOrCreateUser(string nume, string prenume, string telefon, string? email, int brokerProfileId)
     {
-        var existing = _userRepository.Get()
+        var byPhone = _userRepository.Get()
             .FirstOrDefault(u => u.NumarTelefon == telefon && u.IsDeleted != true && u.IdRol == CLIENT_ROLE_ID);
 
-        if (existing == null && !string.IsNullOrWhiteSpace(email))
-        {
-            existing = _userRepository.Get()
-                .FirstOrDefault(u => u.Mail == email && u.IsDeleted != true && u.IdRol == CLIENT_ROLE_ID);
-        }
+        if (byPhone != null && IsReusableForBroker(byPhone, brokerProfileId)) return byPhone;
 
-        if (existing != null) return existing;
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            var byEmail = _userRepository.Get()
+                .FirstOrDefault(u => u.Mail == email && u.IsDeleted != true && u.IdRol == CLIENT_ROLE_ID);
+
+            if (byEmail != null && byEmail.IdUtilizator != byPhone?.IdUtilizator && IsReusableForBroker(byEmail, brokerProfileId))
+                return byEmail;
+        }
 
         var phoneTaken = _userRepository.Get().Any(u => u.NumarTelefon == telefon && u.IsDeleted != true);
         var emailTaken = !string.IsNullOrWhiteSpace(email) &&
@@ -1031,6 +1038,28 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
         return user;
     }
 
+    /// <summary>
+    /// The form is public and nothing proves the submitter controls the phone or email they
+    /// typed, so an existing client is only reused when attaching to it exposes nothing: it is
+    /// not an account someone logs into, and everything a broker already holds on it is this
+    /// broker's own. A record with no broker belongs to Super Admin, so it counts as foreign.
+    /// </summary>
+    private bool IsReusableForBroker(Utilizatori user, int brokerProfileId)
+    {
+        if (user.Parola != null || user.Username != null || user.FirebaseUid != null) return false;
+
+        var userId = user.IdUtilizator;
+        var broker = (int?)brokerProfileId;
+
+        return !_context.AcordClients.IgnoreQueryFilters().Any(r => r.UserId == userId && r.BrokerProfileId != broker)
+            && !_context.Applications.IgnoreQueryFilters().Any(r => r.UserId == userId && r.BrokerProfileId != broker)
+            && !_context.BankFiles.IgnoreQueryFilters().Any(r => r.UserId == userId && r.BrokerProfileId != broker)
+            && !_context.ClientDocuments.IgnoreQueryFilters().Any(r => r.UserId == userId && r.BrokerProfileId != broker)
+            && !_context.ClientTasks.IgnoreQueryFilters().Any(r => r.UserId == userId && r.BrokerProfileId != broker)
+            && !_context.ClientTags.IgnoreQueryFilters().Any(r => r.UserId == userId && r.BrokerProfileId != broker)
+            && !_context.LeadCaptures.IgnoreQueryFilters().Any(r => r.UserId == userId && r.BrokerProfileId != broker);
+    }
+
     private void StoreIdentityData(AcordClient acord, KycSession kycSession, OcrData ocr, LogicValidation? validation)
     {
         string? cnpMasked = null;
@@ -1045,6 +1074,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
                 // only ever holds the mask.
                 subject = _subjectService.GetOrCreateSubject(acord.UserId, ocr.Cnp, allowExistingOtherUser: true);
                 cnpMasked = subject.CnpMasked;
+                acord.SubjectId = subject.SubjectId;
             }
             catch (Exception ex)
             {

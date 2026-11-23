@@ -12,7 +12,7 @@ namespace MoneyShop.ServiceInterface.Interfaces.Subject
         /// Decrypts the stored CNP and records the reading. Returns null when the subject is
         /// unknown or has no stored CNP, in which case nothing is recorded.
         /// </summary>
-        string? RevealCnpByUserId(int userId, CnpAccessContext access);
+        string? RevealCnpBySubjectId(string subjectId, CnpAccessContext access);
 
         /// <summary>
         /// Records that a full CNP was read back somewhere other than the reveal endpoint —
@@ -20,6 +20,8 @@ namespace MoneyShop.ServiceInterface.Interfaces.Subject
         /// decrypting anything. Returns false when the subject is unknown, so nothing is logged.
         /// </summary>
         bool LogCnpAccess(int userId, CnpAccessContext access);
+
+        bool LogCnpAccessBySubjectId(string subjectId, CnpAccessContext access);
     }
 
     public class SubjectConflictException : Exception
