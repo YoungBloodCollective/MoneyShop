@@ -74,6 +74,9 @@ public class SubjectService : ISubjectService
             return ToResult(existingSubject, isNew: false);
         }
 
+        if (_subjectMapRepository.Get().Any(s => s.UserId == userId))
+            throw new SubjectConflictException();
+
         var subjectId = GenerateSubjectId(cnp, pepper2);
         var cnpLast4 = cnp.Length >= 4 ? cnp.Substring(cnp.Length - 4) : null;
 
@@ -153,6 +156,10 @@ public class SubjectService : ISubjectService
         return true;
     }
 
+    /// <summary>
+    /// Records a full-CNP read against a known subject without decrypting anything. Returns
+    /// false when the subject is unknown, so nothing is logged.
+    /// </summary>
     public bool LogCnpAccessBySubjectId(string subjectId, CnpAccessContext access)
     {
         if (access == null) throw new ArgumentNullException(nameof(access));

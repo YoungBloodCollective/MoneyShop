@@ -920,6 +920,10 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             access.AcordId ??= acord.AcordId;
             if (acord.SubjectId != null)
                 _subjectService.LogCnpAccessBySubjectId(acord.SubjectId, access);
+            else
+                _audit.Log("AcordClient", acord.AcordId.ToString(), "cnp_form_read_unbound", null,
+                    new { fileId, fileType = file.FileType, actorUserId = access.ActorUserId, actorRole = access.ActorRole },
+                    access.Reason);
         }
 
         _audit.Log("KycFile", fileId.ToString(), "file_read", newValue: new { fileType = file.FileType, acordId = acord.AcordId });
@@ -1000,18 +1004,19 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
 
     private Utilizatori FindOrCreateUser(string nume, string prenume, string telefon, string? email, int brokerProfileId)
     {
-        var byPhone = _userRepository.Get()
-            .FirstOrDefault(u => u.NumarTelefon == telefon && u.IsDeleted != true && u.IdRol == CLIENT_ROLE_ID);
+        var broker = (int?)brokerProfileId;
+        var own = _context.AcordClients.IgnoreQueryFilters().Where(a => a.BrokerProfileId == broker);
 
-        if (byPhone != null && IsReusableForBroker(byPhone, brokerProfileId)) return byPhone;
-
+        var candidateIds = own.Where(a => a.Telefon == telefon).OrderByDescending(a => a.CreatedAt).Select(a => a.UserId).ToList();
         if (!string.IsNullOrWhiteSpace(email))
-        {
-            var byEmail = _userRepository.Get()
-                .FirstOrDefault(u => u.Mail == email && u.IsDeleted != true && u.IdRol == CLIENT_ROLE_ID);
+            candidateIds.AddRange(own.Where(a => a.Email == email).OrderByDescending(a => a.CreatedAt).Select(a => a.UserId).ToList());
 
-            if (byEmail != null && byEmail.IdUtilizator != byPhone?.IdUtilizator && IsReusableForBroker(byEmail, brokerProfileId))
-                return byEmail;
+        foreach (var candidateId in candidateIds.Distinct())
+        {
+            var candidate = _userRepository.Get()
+                .FirstOrDefault(u => u.IdUtilizator == candidateId && u.IsDeleted != true && u.IdRol == CLIENT_ROLE_ID);
+
+            if (candidate != null && IsReusableForBroker(candidate, brokerProfileId)) return candidate;
         }
 
         var phoneTaken = _userRepository.Get().Any(u => u.NumarTelefon == telefon && u.IsDeleted != true);
@@ -1040,15 +1045,20 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
 
     /// <summary>
     /// The form is public and nothing proves the submitter controls the phone or email they
-    /// typed, so an existing client is only reused when attaching to it exposes nothing: it is
-    /// not an account someone logs into, and everything a broker already holds on it is this
-    /// broker's own. A record with no broker belongs to Super Admin, so it counts as foreign.
+    /// typed, so a client is only found through this broker's own earlier acords (a positive
+    /// signal), and only reused when attaching to it exposes nothing: no self-service signal
+    /// (password, username, Firebase, verified phone/email, any session) and every broker-owned
+    /// record on it is this broker's. A record with no broker belongs to Super Admin, so it
+    /// counts as foreign.
     /// </summary>
     private bool IsReusableForBroker(Utilizatori user, int brokerProfileId)
     {
-        if (user.Parola != null || user.Username != null || user.FirebaseUid != null) return false;
+        if (user.Parola != null || user.Username != null || user.FirebaseUid != null || user.PhoneVerified || user.EmailVerified)
+            return false;
 
         var userId = user.IdUtilizator;
+        if (_context.Sessions.Any(x => x.UserId == userId)) return false;
+
         var broker = (int?)brokerProfileId;
 
         return !_context.AcordClients.IgnoreQueryFilters().Any(r => r.UserId == userId && r.BrokerProfileId != broker)

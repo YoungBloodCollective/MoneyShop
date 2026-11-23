@@ -16,6 +16,7 @@ using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using MoneyShop.ServiceAdapters.Services.Acord;
 using MoneyShop.ServiceAdapters.Services.Subject;
 using MoneyShop.ServiceInterface.Interfaces.Acord;
+using MoneyShop.ServiceInterface.Interfaces.Audit;
 using MoneyShop.ServiceInterface.Interfaces.Broker;
 using MoneyShop.ServiceInterface.Interfaces.Kyc;
 using MoneyShop.ServiceInterface.Interfaces.Subject;
@@ -38,6 +39,17 @@ public class AcordSubjectBindingTests
             if (targetMethod.Name == nameof(IBrokerProfileService.GetLegalIdentity))
                 return new BrokerLegalIdentity { BrokerProfileId = (int)args![0]!, Slug = "b", FirmaNume = "F", FirmaSediu = "S", FirmaCui = "C", FirmaRegCom = "R", FirmaEuid = "E", FirmaDataInfiintarii = "D", ReprezentantNume = "N", ReprezentantTelefon = "T" };
             throw new NotImplementedException(targetMethod.Name);
+        }
+    }
+
+    public class AuditStub : DispatchProxy
+    {
+        public static readonly List<(string Type, string Id, string Action, string? Reason)> Events = new();
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            if (targetMethod!.Name == "Log")
+                Events.Add(((string)args![0]!, (string)args[1]!, (string)args[2]!, args.Length > 5 ? (string?)args[5] : null));
+            return null;
         }
     }
 
@@ -67,29 +79,29 @@ public class AcordSubjectBindingTests
         var scopes = new ServiceCollection().BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
         var acords = new AcordService(
             new AcordClientRepository(db), new KycSessionRepository(db), new KycFileRepository(db), new UserRepository(db),
-            null!, subjects, null!, null!, scopes, db, config, NullLogger<AcordService>.Instance, brokers, null!);
+            null!, subjects, null!, null!, scopes, db, config, NullLogger<AcordService>.Instance, brokers, DispatchProxy.Create<IAuditService, AuditStub>());
         var consents = new BankConsentService(db, null!, brokers, subjects, null!, NullLogger<BankConsentService>.Instance);
         return new Rig { Db = db, Subjects = subjects, Acords = acords, Consents = consents };
     }
 
-    private static Utilizatori AddClient(MoneyShopDbContext db, string phone, string? email = null, string? password = null)
+    private static Utilizatori AddClient(MoneyShopDbContext db, string phone, string? email = null, string? password = null, bool phoneVerified = false)
     {
         var user = new Utilizatori
         {
             Nume = "Client", Prenume = "Test", NumarTelefon = phone, Mail = email, Parola = password,
-            IdRol = 1, IsDeleted = false,
+            IdRol = 1, IsDeleted = false, PhoneVerified = phoneVerified,
         };
         db.Utilizatoris.Add(user);
         db.SaveChanges();
         return user;
     }
 
-    private static AcordClient AddAcord(MoneyShopDbContext db, int userId, int? broker, string? subjectId = null)
+    private static AcordClient AddAcord(MoneyShopDbContext db, int userId, int? broker, string? subjectId = null, string phone = "0700000000", string? email = null)
     {
         var acord = new AcordClient
         {
             UserId = userId, BrokerProfileId = broker, SubjectId = subjectId, Token = Guid.NewGuid().ToString("N"),
-            Nume = "Client", Prenume = "Test", Telefon = "0700000000",
+            Nume = "Client", Prenume = "Test", Telefon = phone, Email = email,
         };
         db.AcordClients.Add(acord);
         db.SaveChanges();
@@ -135,17 +147,33 @@ public class AcordSubjectBindingTests
     }
 
     [Fact]
-    public void Two_acords_of_one_user_each_reveal_their_own_cnp()
+    public void A_second_cnp_for_a_user_that_already_has_a_subject_conflicts_without_touching_the_context()
     {
         var r = Build();
         var user = AddClient(r.Db, "0711111111");
-        var sa = r.Subjects.GetOrCreateSubject(user.IdUtilizator, CnpA, allowExistingOtherUser: true);
-        var sb = r.Subjects.GetOrCreateSubject(user.IdUtilizator, CnpB, allowExistingOtherUser: true);
-        var a1 = AddAcord(r.Db, user.IdUtilizator, BrokerOne, sa.SubjectId);
-        var a2 = AddAcord(r.Db, user.IdUtilizator, BrokerOne, sb.SubjectId);
+        r.Subjects.GetOrCreateSubject(user.IdUtilizator, CnpA);
 
-        Assert.Equal(CnpA, r.Acords.RevealCnpForAdmin(a1.AcordId, Access()));
-        Assert.Equal(CnpB, r.Acords.RevealCnpForAdmin(a2.AcordId, Access()));
+        Assert.Throws<SubjectConflictException>(() => r.Subjects.GetOrCreateSubject(user.IdUtilizator, CnpB, allowExistingOtherUser: true));
+
+        Assert.Single(r.Db.SubjectMaps);
+        Assert.Empty(r.Db.ChangeTracker.Entries<SubjectMap>().Where(e => e.State == EntityState.Added));
+    }
+
+    [Fact]
+    public void Storing_identity_data_leaves_the_subject_null_when_the_user_already_has_another_cnp()
+    {
+        var r = Build();
+        var user = AddClient(r.Db, "0711111111");
+        r.Subjects.GetOrCreateSubject(user.IdUtilizator, CnpA);
+        var acord = AddAcord(r.Db, user.IdUtilizator, BrokerOne);
+        var kyc = new KycSession { KycId = Guid.NewGuid(), UserId = user.IdUtilizator, KycType = "ACORD_CLIENT", Status = "pending" };
+
+        typeof(AcordService).GetMethod("StoreIdentityData", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(r.Acords, new object?[] { acord, kyc, new OcrData { Cnp = CnpB }, null });
+        r.Db.SaveChanges();
+
+        Assert.Null(acord.SubjectId);
+        Assert.Single(r.Db.SubjectMaps);
     }
 
     [Fact]
@@ -175,7 +203,7 @@ public class AcordSubjectBindingTests
     {
         var r = Build();
         var client = AddClient(r.Db, "0733333333");
-        AddAcord(r.Db, client.IdUtilizator, BrokerOne);
+        AddAcord(r.Db, client.IdUtilizator, BrokerOne, phone: "0733333333");
         r.Db.Applications.Add(new Application { UserId = client.IdUtilizator, BrokerProfileId = BrokerOne });
         r.Db.ClientTags.Add(new ClientTag { UserId = client.IdUtilizator, BrokerProfileId = BrokerOne, Tag = "vip" });
         r.Db.SaveChanges();
@@ -191,7 +219,7 @@ public class AcordSubjectBindingTests
     {
         var r = Build();
         var client = AddClient(r.Db, "0744444444");
-        AddAcord(r.Db, client.IdUtilizator, BrokerOne);
+        AddAcord(r.Db, client.IdUtilizator, BrokerOne, phone: "0744444444");
         r.Db.LeadCaptures.Add(new LeadCapture
         {
             UserId = client.IdUtilizator, BrokerProfileId = null, NumePrenume = "X", Telefon = "0744444444", Email = "x@example.com", Oras = "Cluj",
@@ -210,6 +238,7 @@ public class AcordSubjectBindingTests
     {
         var r = Build();
         var holder = AddClient(r.Db, "0755555555", password: "hash");
+        AddAcord(r.Db, holder.IdUtilizator, BrokerOne, phone: "0755555555");
 
         var result = await r.Acords.SubmitAsync(Input("0755555555", BrokerOne), new AcordSignContext());
 
@@ -218,11 +247,82 @@ public class AcordSubjectBindingTests
     }
 
     [Fact]
+    public async Task Sms_otp_user_with_verified_phone_is_not_reused_even_through_its_own_acord()
+    {
+        var r = Build();
+        var otpUser = AddClient(r.Db, "0756666666", phoneVerified: true);
+        AddAcord(r.Db, otpUser.IdUtilizator, BrokerOne, phone: "0756666666");
+
+        var result = await r.Acords.SubmitAsync(Input("0756666666", BrokerOne), new AcordSignContext());
+
+        Assert.NotEqual(otpUser.IdUtilizator, r.Db.AcordClients.IgnoreQueryFilters().Single(a => a.AcordId == result.AcordId).UserId);
+    }
+
+    [Fact]
+    public async Task User_with_a_session_is_not_reused()
+    {
+        var r = Build();
+        var user = AddClient(r.Db, "0757777777");
+        AddAcord(r.Db, user.IdUtilizator, BrokerOne, phone: "0757777777");
+        r.Db.Sessions.Add(new Session { UserId = user.IdUtilizator, SourceChannel = "web", ExpiresAt = DateTime.UtcNow.AddDays(1) });
+        r.Db.SaveChanges();
+
+        var result = await r.Acords.SubmitAsync(Input("0757777777", BrokerOne), new AcordSignContext());
+
+        Assert.NotEqual(user.IdUtilizator, r.Db.AcordClients.IgnoreQueryFilters().Single(a => a.AcordId == result.AcordId).UserId);
+    }
+
+    [Fact]
+    public async Task Returning_client_whose_user_has_no_phone_is_found_through_the_brokers_own_acord()
+    {
+        var r = Build();
+        var client = AddClient(r.Db, "0758888888");
+        client.NumarTelefon = null;
+        r.Db.SaveChanges();
+        AddAcord(r.Db, client.IdUtilizator, BrokerOne, phone: "0758888888");
+
+        var result = await r.Acords.SubmitAsync(Input("0758888888", BrokerOne), new AcordSignContext());
+
+        Assert.Equal(client.IdUtilizator, r.Db.AcordClients.IgnoreQueryFilters().Single(a => a.AcordId == result.AcordId).UserId);
+    }
+
+    [Fact]
+    public async Task Utilizatori_phone_match_without_an_acord_at_this_broker_is_not_reused()
+    {
+        var r = Build();
+        var stranger = AddClient(r.Db, "0759999999");
+
+        var result = await r.Acords.SubmitAsync(Input("0759999999", BrokerOne), new AcordSignContext());
+
+        Assert.NotEqual(stranger.IdUtilizator, r.Db.AcordClients.IgnoreQueryFilters().Single(a => a.AcordId == result.AcordId).UserId);
+    }
+
+    [Fact]
+    public void Signed_bank_form_download_of_an_unbound_acord_is_still_recorded_in_the_audit_trail()
+    {
+        var r = Build();
+        var user = AddClient(r.Db, "0750000001");
+        var kycId = Guid.NewGuid();
+        var acord = AddAcord(r.Db, user.IdUtilizator, BrokerOne);
+        acord.KycId = kycId;
+        var file = new KycFile { FileId = Guid.NewGuid(), KycId = kycId, FileType = "bank_patria_acord", FileName = "f.pdf", MimeType = "application/pdf", FileContentBase64 = Convert.ToBase64String(new byte[] { 1 }) };
+        r.Db.KycFiles.Add(file);
+        r.Db.SaveChanges();
+        AuditStub.Events.Clear();
+
+        var content = r.Acords.GetFileForAdmin(file.FileId, new CnpAccessContext { ActorUserId = 9, ActorRole = "Broker", Reason = "bank_form_download" });
+
+        Assert.NotNull(content);
+        Assert.Contains(AuditStub.Events, e => e.Action == "cnp_form_read_unbound" && e.Id == acord.AcordId.ToString() && e.Reason == "bank_form_download");
+        Assert.Empty(r.Db.CnpAccessLogs);
+    }
+
+    [Fact]
     public async Task Email_match_of_another_brokers_client_is_not_reused_either()
     {
         var r = Build();
         var other = AddClient(r.Db, "0766666666", "x@example.com");
-        AddAcord(r.Db, other.IdUtilizator, BrokerOne);
+        AddAcord(r.Db, other.IdUtilizator, BrokerOne, phone: "0766666666", email: "x@example.com");
 
         var result = await r.Acords.SubmitAsync(Input("0700000001", BrokerTwo, "x@example.com"), new AcordSignContext());
 

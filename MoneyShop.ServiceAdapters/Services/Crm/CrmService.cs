@@ -337,8 +337,13 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 .FirstOrDefault();
             if (report == null) return null;
 
-            access.AcordId ??= FindAcord(userId)?.AcordId;
-            if (!_subjects.LogCnpAccess(userId, access)) return null;
+            // The report is keyed by user, not by acord. The read is logged against the subject of
+            // the user's latest in-scope acord that has one, else against the user's own subject.
+            var bound = _context.AcordClients.Where(a => a.UserId == userId && a.SubjectId != null)
+                .OrderByDescending(a => a.CreatedAt).FirstOrDefault();
+            access.AcordId ??= bound?.AcordId ?? FindAcord(userId)?.AcordId;
+            var logged = bound != null && _subjects.LogCnpAccessBySubjectId(bound.SubjectId!, access);
+            if (!logged && !_subjects.LogCnpAccess(userId, access)) return null;
 
             return new CrmBcReportPdf
             {

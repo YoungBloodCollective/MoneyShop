@@ -21,6 +21,9 @@ namespace MoneyShop.ServiceInterface.Interfaces.Subject
         /// </summary>
         bool LogCnpAccess(int userId, CnpAccessContext access);
 
+        /// <summary>
+        /// Same as <see cref="LogCnpAccess"/> but keyed by subject, for acord-scoped reads.
+        /// </summary>
         bool LogCnpAccessBySubjectId(string subjectId, CnpAccessContext access);
     }
 
