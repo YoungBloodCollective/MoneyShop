@@ -104,7 +104,7 @@ export default function Camera({
     setError(null);
   }
 
-  const startCamera = useCallback(async () => {
+  const startCamera = useCallback(async (isCancelled?: () => boolean) => {
     try {
       // Stop any existing stream first
       streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -119,6 +119,11 @@ export default function Camera({
         },
         audio: false,
       });
+
+      if (isCancelled?.()) {
+        s.getTracks().forEach((t) => t.stop());
+        return;
+      }
 
       // Request continuous autofocus and auto-exposure for sharper captures
       const track = s.getVideoTracks()[0];
@@ -137,6 +142,11 @@ export default function Camera({
         }
       }
 
+      if (isCancelled?.()) {
+        s.getTracks().forEach((t) => t.stop());
+        return;
+      }
+
       streamRef.current = s;
       if (videoRef.current) {
         videoRef.current.srcObject = s;
@@ -151,11 +161,14 @@ export default function Camera({
   }, [facingMode]);
 
   useEffect(() => {
-    startCamera().catch((e: Error) => {
+    let cancelled = false;
+    startCamera(() => cancelled).catch((e: Error) => {
+      if (cancelled) return;
       setError(e.message);
       onCameraErrorRef.current?.();
     });
     return () => {
+      cancelled = true;
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };

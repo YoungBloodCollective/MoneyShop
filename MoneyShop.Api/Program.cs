@@ -61,10 +61,16 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = 429;
-    o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
-        HttpMethods.IsOptions(ctx.Request.Method)
-            ? RateLimitPartition.GetNoLimiter("options")
-            : RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "anon", _ => new FixedWindowRateLimiterOptions { PermitLimit = 600, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    o.GlobalLimiter = PartitionedRateLimiter.CreateChained(
+        PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+            HttpMethods.IsOptions(ctx.Request.Method)
+                ? RateLimitPartition.GetNoLimiter("options")
+                : RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "anon", _ => new FixedWindowRateLimiterOptions { PermitLimit = 600, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })),
+        // The ID scan is paid OCR on an anonymous endpoint: besides the per-IP policy it has a cap shared by all clients.
+        PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+            HttpMethods.IsPost(ctx.Request.Method) && ctx.Request.Path.Equals("/api/acord/id-scan", StringComparison.OrdinalIgnoreCase)
+                ? RateLimitPartition.GetFixedWindowLimiter("id-scan-global", _ => new FixedWindowRateLimiterOptions { PermitLimit = 300, Window = TimeSpan.FromHours(1), QueueLimit = 0 })
+                : RateLimitPartition.GetNoLimiter("other")));
     o.AddPolicy("public-form", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "anon", _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
     o.AddPolicy("public-scan", ctx =>

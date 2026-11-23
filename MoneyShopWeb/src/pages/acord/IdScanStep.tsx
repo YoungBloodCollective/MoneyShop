@@ -260,7 +260,7 @@ export function IdScanStep({ state, nume, prenume }: { state: IdScanState; nume:
             )}
           </div>
 
-          {scan?.readable && scan.needsBack && (
+          {(files.back || (scan?.readable && scan.needsBack)) && (
             <div className="mt-3 rounded-xl ring-1 ring-dark-500 bg-white p-4">
               <p className="text-[13px] font-medium text-light-80 mb-3">
                 {files.back ? 'Versoul buletinului' : 'Acum întoarce buletinul și scanează verso'}
@@ -273,7 +273,7 @@ export function IdScanStep({ state, nume, prenume }: { state: IdScanState; nume:
             </div>
           )}
 
-          {scan?.readable && scan.needsBack && files.back && message && !reading && !scan.tipAct && (
+          {files.back && message && !reading && !scan?.tipAct && (
             <p className="mt-2 text-[12.5px] text-light-60">Refă poza cu versoul ca să putem continua.</p>
           )}
 

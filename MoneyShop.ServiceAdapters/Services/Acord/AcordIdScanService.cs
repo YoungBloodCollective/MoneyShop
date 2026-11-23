@@ -23,20 +23,27 @@ public class AcordIdScanService : IAcordIdScanService
         _logger = logger;
     }
 
-    public async Task<AcordIdScanResult> ScanAsync(byte[] front, byte[]? back)
+    public async Task<AcordIdScanResult> ScanAsync(byte[] front, byte[]? back, CancellationToken cancellationToken = default)
     {
         EnsureImage(front, "Poza cu fața actului");
         if (back is { Length: > 0 }) EnsureImage(back, "Poza cu versoul actului");
         else back = null;
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         OcrData? data;
         LogicValidation? validation;
         try
         {
             var session = await _externalKyc.CreateSessionAsync();
+            cancellationToken.ThrowIfCancellationRequested();
             var ocr = await _externalKyc.SubmitDocumentOcrAsync(session.SessionId, session.Token, front, back);
             data = ocr.OcrData;
             validation = ocr.LogicValidation;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -115,7 +122,7 @@ public class AcordIdScanService : IAcordIdScanService
         if (!LooksLikeImage(bytes)) throw new ArgumentException($"{label}: acceptăm doar imagini JPG, PNG, WebP sau HEIC.");
     }
 
-    internal static bool LooksLikeImage(byte[] b)
+    public static bool LooksLikeImage(byte[] b)
     {
         if (b.Length < 12) return false;
         if (b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF) return true;

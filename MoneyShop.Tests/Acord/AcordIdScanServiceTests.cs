@@ -222,4 +222,15 @@ public class AcordIdScanServiceTests
 
         Assert.True(r.Readable);
     }
+
+    [Fact]
+    public async Task Cancelled_request_stops_before_the_provider_and_is_not_reported_as_unreadable()
+    {
+        var (svc, kyc) = Build(Ocr(false, null));
+        using var cts = new System.Threading.CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => svc.ScanAsync(Jpeg, null, cts.Token));
+        Assert.Equal(0, kyc.Calls);
+    }
 }

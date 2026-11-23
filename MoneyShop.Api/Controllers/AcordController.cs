@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MoneyShop.ServiceAdapters.Services.Acord;
 using MoneyShop.ServiceInterface.Interfaces.Acord;
 using MoneyShop.ServiceInterface.Interfaces.Audit;
 using MoneyShop.ServiceInterface.Interfaces.Lead;
@@ -147,6 +148,8 @@ public class AcordController : BaseController
     [EnableRateLimiting("public-scan")]
     public async Task<IActionResult> IdScan([FromForm] AcordIdScanRequest request)
     {
+        Response.Headers.CacheControl = "no-store";
+
         if (request.Front == null || request.Front.Length == 0)
             return BadRequest("Poza cu fața actului este obligatorie");
         if (request.Front.Length > MaxUploadBytes || (request.Back?.Length ?? 0) > MaxUploadBytes)
@@ -154,15 +157,18 @@ public class AcordController : BaseController
 
         try
         {
-            var front = (await ReadUpload(request.Front)).Content;
-            var back = request.Back is { Length: > 0 } ? (await ReadUpload(request.Back)).Content : null;
-            var result = await _idScan.ScanAsync(front, back);
-            Response.Headers.CacheControl = "no-store";
+            var front = await ReadImage(request.Front, "Poza cu fața actului");
+            var back = request.Back is { Length: > 0 } ? await ReadImage(request.Back, "Poza cu versoul actului") : null;
+            var result = await _idScan.ScanAsync(front, back, HttpContext.RequestAborted);
             return Ok(result);
         }
         catch (ArgumentException ex)
         {
             return BadRequest(ex.Message);
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499);
         }
         catch (Exception ex)
         {
@@ -445,6 +451,27 @@ public class AcordController : BaseController
             return $"{label}: format acceptat PNG, JPG sau PDF";
 
         return null;
+    }
+
+    private static async Task<byte[]> ReadImage(IFormFile file, string label)
+    {
+        await using var stream = file.OpenReadStream();
+        var head = new byte[16];
+        var read = 0;
+        while (read < head.Length)
+        {
+            var n = await stream.ReadAsync(head.AsMemory(read));
+            if (n == 0) break;
+            read += n;
+        }
+
+        if (read < 12 || !AcordIdScanService.LooksLikeImage(head))
+            throw new ArgumentException($"{label}: acceptăm doar imagini JPG, PNG, WebP sau HEIC.");
+
+        using var ms = new MemoryStream((int)file.Length);
+        ms.Write(head, 0, read);
+        await stream.CopyToAsync(ms);
+        return ms.ToArray();
     }
 
     private static async Task<AcordUpload> ReadUpload(IFormFile file)

@@ -5,9 +5,10 @@ public interface IAcordIdScanService
     /// <summary>
     /// Reads an ID card with the OCR provider and says which documents the acord still needs.
     /// Nothing is stored and the full CNP never leaves the server. Throws
+    /// <see cref="OperationCanceledException"/> when cancelled before the provider is called, and
     /// <see cref="ArgumentException"/> (Romanian message) when a file is empty, too big or not an image.
     /// </summary>
-    Task<AcordIdScanResult> ScanAsync(byte[] front, byte[]? back);
+    Task<AcordIdScanResult> ScanAsync(byte[] front, byte[]? back, CancellationToken cancellationToken = default);
 }
 
 public class AcordIdScanResult

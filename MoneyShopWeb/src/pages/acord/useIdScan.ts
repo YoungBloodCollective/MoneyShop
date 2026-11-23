@@ -66,6 +66,11 @@ export function namesDiffer(scan: AcordIdScan | null, nume: string, prenume: str
   return !straight && !swapped;
 }
 
+function frontOnly(scan: AcordIdScan | null): AcordIdScan | null {
+  if (!scan || !scan.isNewFormat) return scan;
+  return { ...scan, tipAct: null, needsProofOfAddress: false, needsBack: true };
+}
+
 function scanErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err) && err.response?.status === 400) {
     const body = err.response.data as { message?: string } | string | undefined;
@@ -81,14 +86,13 @@ export function useIdScan() {
   const [reading, setReading] = useState(false);
   const [manual, setManual] = useState(false);
   const [electronic, setElectronic] = useState<boolean | null>(null);
-  const [failures, setFailures] = useState(0);
   const [message, setMessage] = useState('');
   const [cameraSlot, setCameraSlot] = useState<'front' | 'back' | null>(null);
   const [cameraDenied, setCameraDenied] = useState(false);
   const requestRef = useRef(0);
+  const failuresRef = useRef(0);
 
-  const runScan = useCallback(async (front: File, back: File | null) => {
-    const request = ++requestRef.current;
+  const runScan = useCallback(async (request: number, front: File, back: File | null) => {
     setReading(true);
     setMessage('');
     let failure: string | null = null;
@@ -96,7 +100,7 @@ export function useIdScan() {
       const result = await acordApi.idScan(front, back);
       if (request !== requestRef.current) return;
       if (result.readable) {
-        setFailures(0);
+        failuresRef.current = 0;
         setScan(result);
       } else {
         failure = result.problems[0] || UNREADABLE;
@@ -107,15 +111,14 @@ export function useIdScan() {
     }
     setReading(false);
     if (failure === null) return;
-    const total = failures + 1;
-    setFailures(total);
+    const total = ++failuresRef.current;
     if (total >= FAILURES_BEFORE_MANUAL) {
       setManual(true);
       setMessage('Nu am reușit să citim automat actul. Încarcă pozele manual.');
     } else {
       setMessage(failure);
     }
-  }, [failures]);
+  }, []);
 
   const accept = useCallback(async (file: File): Promise<File | null> => {
     const prepared = await compressImage(file);
@@ -128,7 +131,9 @@ export function useIdScan() {
 
   const pick = useCallback(async (slot: SlotKey, file: File | undefined) => {
     if (!file) return;
+    const request = ++requestRef.current;
     const prepared = await accept(file);
+    if (request !== requestRef.current) return;
     if (!prepared) return;
     setMessage('');
     if (manual || slot === 'proof') {
@@ -136,13 +141,14 @@ export function useIdScan() {
       return;
     }
     if (slot === 'front') {
-      requestRef.current++;
       setScan(null);
       setFiles({ front: prepared, back: null, proof: null });
-      await runScan(prepared, null);
+      await runScan(request, prepared, null);
     } else {
-      setFiles(prev => ({ ...prev, back: prepared }));
-      if (files.front) await runScan(files.front, prepared);
+      if (!files.front) return;
+      setScan(frontOnly);
+      setFiles(prev => ({ ...prev, back: prepared, proof: null }));
+      await runScan(request, files.front, prepared);
     }
   }, [accept, manual, files.front, runScan]);
 
@@ -180,6 +186,7 @@ export function useIdScan() {
       setScan(null);
       setFiles({ front: null, back: null, proof: null });
     } else {
+      setScan(frontOnly);
       setFiles(prev => ({ ...prev, back: null, proof: null }));
     }
   }, []);

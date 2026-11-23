@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import Camera from '@/pages/kyc/components/Camera';
 import DocumentOverlay from '@/pages/kyc/components/DocumentOverlay';
@@ -10,8 +11,34 @@ interface DocumentScannerProps {
 }
 
 export function DocumentScanner({ instruction, onCapture, onClose, onUnavailable }: DocumentScannerProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeRef.current();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      previous?.focus?.();
+    };
+  }, []);
+
   return (
-    <div role="dialog" aria-modal="true" aria-label="Scanare act de identitate" className="fixed inset-0 z-[60] bg-black h-[100dvh]">
+    <div
+      ref={dialogRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Scanare act de identitate"
+      className="fixed inset-0 z-[60] bg-black h-[100dvh] outline-none"
+    >
       <Camera
         facingMode="environment"
         onCapture={onCapture}
