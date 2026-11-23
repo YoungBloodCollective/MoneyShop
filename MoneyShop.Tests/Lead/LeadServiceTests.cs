@@ -146,18 +146,121 @@ public class LeadServiceTests
     }
 
     [Fact]
-    public async Task Link_keeps_both_brokers_when_they_differ()
+    public async Task Link_is_refused_when_the_acord_belongs_to_another_broker()
     {
         var (svc, db, _) = Build();
         var lead = AddLead(db, broker: 1);
         var acord = AddAcord(db, userId: 7, broker: 2);
         var token = (await svc.IssueAcordLinkAsync(lead.Id))!.Token;
 
+        Assert.False(await svc.LinkAcordAsync(token, acord.AcordId));
+
+        var saved = db.LeadCaptures.Single();
+        Assert.Null(saved.UserId);
+        Assert.Equal(LeadStatuses.Contacted, saved.Status);
+        Assert.Equal(1, saved.BrokerProfileId);
+        Assert.Equal(2, db.AcordClients.Single().BrokerProfileId);
+    }
+
+    [Fact]
+    public async Task Lead_without_a_broker_links_to_any_broker_acord()
+    {
+        var (svc, db, _) = Build();
+        var lead = AddLead(db, broker: null);
+        var acord = AddAcord(db, userId: 7, broker: 2);
+        var token = (await svc.IssueAcordLinkAsync(lead.Id))!.Token;
+
         Assert.True(await svc.LinkAcordAsync(token, acord.AcordId));
 
-        Assert.Equal(1, db.LeadCaptures.Single().BrokerProfileId);
-        Assert.Equal(2, db.AcordClients.Single().BrokerProfileId);
         Assert.Equal(7, db.LeadCaptures.Single().UserId);
+        Assert.Null(db.LeadCaptures.Single().BrokerProfileId);
+    }
+
+    [Fact]
+    public async Task Link_is_refused_when_the_phone_differs()
+    {
+        var (svc, db, _) = Build();
+        var lead = AddLead(db, phone: "0733 000 222");
+        var acord = AddAcord(db, userId: 7);
+        var token = (await svc.IssueAcordLinkAsync(lead.Id))!.Token;
+
+        Assert.False(await svc.LinkAcordAsync(token, acord.AcordId));
+
+        var saved = db.LeadCaptures.Single();
+        Assert.Null(saved.UserId);
+        Assert.Equal(LeadStatuses.Contacted, saved.Status);
+    }
+
+    [Fact]
+    public async Task Link_matches_the_phone_across_formats()
+    {
+        var (svc, db, _) = Build();
+        var lead = AddLead(db, phone: "0040 722 000 111");
+        var acord = AddAcord(db, userId: 7);
+        var token = (await svc.IssueAcordLinkAsync(lead.Id))!.Token;
+
+        Assert.True(await svc.LinkAcordAsync(token, acord.AcordId));
+    }
+
+    [Fact]
+    public async Task Link_never_overwrites_a_different_client_and_does_not_convert()
+    {
+        var (svc, db, _) = Build();
+        var lead = AddLead(db);
+        lead.UserId = 99;
+        db.SaveChanges();
+        var acord = AddAcord(db, userId: 7);
+        var token = (await svc.IssueAcordLinkAsync(lead.Id))!.Token;
+
+        Assert.False(await svc.LinkAcordAsync(token, acord.AcordId));
+
+        var saved = db.LeadCaptures.Single();
+        Assert.Equal(99, saved.UserId);
+        Assert.NotEqual(LeadStatuses.Converted, saved.Status);
+    }
+
+    [Fact]
+    public async Task Issuing_a_link_returns_the_slug_of_the_leads_broker()
+    {
+        var (svc, db, _) = Build();
+        db.BrokerProfiles.Add(new BrokerProfile { Id = 1, Slug = "alex", DisplayName = "Alex" });
+        db.SaveChanges();
+        var withBroker = AddLead(db, broker: 1);
+        var withoutBroker = AddLead(db, broker: null, phone: "0733000222");
+
+        Assert.Equal("alex", (await svc.IssueAcordLinkAsync(withBroker.Id))!.BrokerSlug);
+        Assert.Null((await svc.IssueAcordLinkAsync(withoutBroker.Id))!.BrokerSlug);
+    }
+
+    [Fact]
+    public async Task Prefill_only_gives_names_for_appointment_leads()
+    {
+        var (svc, db, _) = Build();
+        var lead = AddLead(db);
+        lead.Source = "api";
+        db.SaveChanges();
+        var token = (await svc.IssueAcordLinkAsync(lead.Id))!.Token;
+
+        var prefill = await svc.GetAcordPrefillAsync(token);
+
+        Assert.Equal("", prefill!.Nume);
+        Assert.Equal("", prefill.Prenume);
+        Assert.Equal("ana@example.com", prefill.Email);
+        Assert.Equal("0722 000 111", prefill.Telefon);
+    }
+
+    [Fact]
+    public async Task Prefill_is_gone_once_the_lead_is_converted()
+    {
+        var (svc, db, _) = Build();
+        var lead = AddLead(db);
+        var acord = AddAcord(db, userId: 42);
+        var token = (await svc.IssueAcordLinkAsync(lead.Id))!.Token;
+        Assert.NotNull(await svc.GetAcordPrefillAsync(token));
+
+        await svc.LinkAcordAsync(token, acord.AcordId);
+
+        Assert.Null(await svc.GetAcordPrefillAsync(token));
     }
 
     [Fact]

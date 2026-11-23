@@ -120,8 +120,8 @@ export const adminApi = {
     return response.data;
   },
 
-  async createLeadAcordLink(id: number): Promise<{ token: string; expiresAt: string }> {
-    const response = await apiClient.post<{ token: string; expiresAt: string }>(`/admin/leads/${id}/acord-link`);
+  async createLeadAcordLink(id: number): Promise<{ token: string; expiresAt: string; brokerSlug?: string | null }> {
+    const response = await apiClient.post<{ token: string; expiresAt: string; brokerSlug?: string | null }>(`/admin/leads/${id}/acord-link`);
     return response.data;
   },
 

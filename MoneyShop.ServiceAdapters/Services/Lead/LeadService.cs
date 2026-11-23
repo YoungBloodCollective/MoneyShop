@@ -95,8 +95,12 @@ public class LeadService : ILeadService
             await _context.SaveChangesAsync();
         }
 
+        string? slug = null;
+        if (lead.BrokerProfileId.HasValue)
+            slug = await _context.BrokerProfiles.Where(b => b.Id == lead.BrokerProfileId.Value).Select(b => b.Slug).FirstOrDefaultAsync();
+
         var expiresAt = now.Add(LinkValidity);
-        return new LeadAcordLink { Token = BuildToken(leadId, expiresAt), ExpiresAt = expiresAt };
+        return new LeadAcordLink { Token = BuildToken(leadId, expiresAt), ExpiresAt = expiresAt, BrokerSlug = slug };
     }
 
     public async Task<LeadAcordPrefill?> GetAcordPrefillAsync(string? token)
@@ -104,9 +108,11 @@ public class LeadService : ILeadService
         var leadId = ReadToken(token);
         if (leadId == null) return null;
         var lead = await _context.LeadCaptures.IgnoreQueryFilters().FirstOrDefaultAsync(l => l.Id == leadId.Value);
-        if (lead == null) return null;
+        if (lead == null || (lead.Status == LeadStatuses.Converted && lead.UserId != null)) return null;
 
+        var named = lead.Source == "appointment";
         var parts = (lead.NumePrenume ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        if (!named) parts = Array.Empty<string>();
         return new LeadAcordPrefill
         {
             Nume = parts.Length > 0 ? parts[0] : "",
@@ -121,17 +127,22 @@ public class LeadService : ILeadService
         var leadId = ReadToken(token);
         if (leadId == null) return false;
 
-        var userId = await _context.AcordClients.IgnoreQueryFilters()
+        var acord = await _context.AcordClients.IgnoreQueryFilters()
             .Where(a => a.AcordId == acordId)
-            .Select(a => (int?)a.UserId)
+            .Select(a => new { a.UserId, a.BrokerProfileId, a.Telefon })
             .FirstOrDefaultAsync();
-        if (userId == null) return false;
+        if (acord == null) return false;
 
         var lead = await _context.LeadCaptures.IgnoreQueryFilters().FirstOrDefaultAsync(l => l.Id == leadId.Value);
         if (lead == null) return false;
 
+        if (lead.BrokerProfileId != null && lead.BrokerProfileId != acord.BrokerProfileId) return false;
+        var leadPhone = NormalizePhone(lead.Telefon);
+        if (leadPhone.Length == 0 || leadPhone != NormalizePhone(acord.Telefon)) return false;
+        if (lead.UserId != null && lead.UserId != acord.UserId) return false;
+
         var now = _time.GetUtcNow().UtcDateTime;
-        lead.UserId ??= userId;
+        lead.UserId ??= acord.UserId;
         lead.Status = LeadStatuses.Converted;
         lead.ContactedAt ??= now;
         lead.UpdatedAt = now;
@@ -188,7 +199,8 @@ public class LeadService : ILeadService
     private static string NormalizePhone(string? phone)
     {
         var digits = new string((phone ?? "").Where(char.IsDigit).ToArray());
-        if (digits.StartsWith("40") && digits.Length >= 11) digits = digits.Substring(2);
+        if (digits.StartsWith("0040") && digits.Length >= 13) digits = digits.Substring(4);
+        else if (digits.StartsWith("40") && digits.Length >= 11) digits = digits.Substring(2);
         if (digits.StartsWith("0")) digits = digits.Substring(1);
         return digits;
     }

@@ -15,7 +15,7 @@ namespace MoneyShop.ServiceInterface.Interfaces.Lead
 
         /// <summary>
         /// After a client signed through the link: ties the lead to the client and marks it converted.
-        /// An invalid token changes nothing.
+        /// An invalid token, a lead of another broker, a different phone or a lead already tied to another client changes nothing.
         /// </summary>
         Task<bool> LinkAcordAsync(string? token, Guid acordId);
     }
@@ -30,6 +30,7 @@ namespace MoneyShop.ServiceInterface.Interfaces.Lead
     {
         public string Token { get; set; } = null!;
         public DateTime ExpiresAt { get; set; }
+        public string? BrokerSlug { get; set; }
     }
 
     public class LeadAcordPrefill

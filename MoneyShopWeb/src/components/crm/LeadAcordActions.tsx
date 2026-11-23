@@ -9,13 +9,8 @@ import { leadAcordLinkFor } from '@/lib/brokerHost';
 import { copyToClipboard } from '@/lib/clipboard';
 import { useCrmPath } from '@/lib/crmPath';
 import { whatsappLink } from '@/components/crm/acord/acordLabels';
+import { leadGivenName } from '@/lib/leadName';
 import { FOCUS_RING } from '@/pages/crm/crmHelpers';
-
-/** Lead names are stored as "Nume Prenume": the first word is the family name. */
-function leadFirstName(lead: LeadItem): string {
-  const [nume = '', ...rest] = lead.numePrenume.trim().split(/\s+/);
-  return rest.join(' ') || nume;
-}
 
 export function LeadAcordActions({
   lead, compact = false, onIssued,
@@ -30,7 +25,8 @@ export function LeadAcordActions({
   const [link, setLink] = useState<string | null>(null);
   const slugRef = useRef<string | null | undefined>(undefined);
 
-  if (lead.status === 'Convertit' && lead.userId) {
+  if (lead.status === 'Convertit') {
+    if (!lead.userId) return null;
     return (
       <Link
         to={crm(`/crm/clienti/${lead.userId}`)}
@@ -45,11 +41,15 @@ export function LeadAcordActions({
     if (link) return link;
     setBusy(true);
     try {
-      if (slugRef.current === undefined) {
-        try { slugRef.current = (await brokersApi.getMe()).slug ?? hostSlug; } catch { slugRef.current = hostSlug; }
+      const { token, brokerSlug } = await adminApi.createLeadAcordLink(lead.id);
+      let slug = brokerSlug ?? null;
+      if (!slug) {
+        if (slugRef.current === undefined) {
+          try { slugRef.current = (await brokersApi.getMe()).slug ?? hostSlug; } catch { slugRef.current = hostSlug; }
+        }
+        slug = slugRef.current ?? null;
       }
-      const { token } = await adminApi.createLeadAcordLink(lead.id);
-      const url = leadAcordLinkFor(slugRef.current ?? null, token);
+      const url = leadAcordLinkFor(slug, token);
       setLink(url);
       onIssued(lead);
       return url;
@@ -69,6 +69,7 @@ export function LeadAcordActions({
 
   const fillNow = async () => {
     const win = window.open('', '_blank');
+    if (win) win.opener = null;
     const url = await issue();
     if (url && win) win.location.href = url;
     else win?.close();
@@ -90,14 +91,20 @@ export function LeadAcordActions({
           <button type="button" onClick={() => { void copy(); }} className={primary}>
             <Copy size={14} /> Copiază linkul
           </button>
-          <a
-            href={whatsappLink(lead.telefon ?? '', `Bună, ${leadFirstName(lead)}! Aici completezi acordul pentru analiza creditului, durează 3 minute: ${link}`)}
-            target="_blank"
-            rel="noreferrer"
-            className={`inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 font-semibold text-emerald-700 hover:bg-emerald-100 ${size} ${FOCUS_RING}`}
-          >
-            <MessageCircle size={14} /> Trimite pe WhatsApp
-          </a>
+          {lead.telefon ? (
+            <a
+              href={whatsappLink(lead.telefon, `Bună, ${leadGivenName(lead)}! Aici completezi acordul pentru analiza creditului, durează 3 minute: ${link}`)}
+              target="_blank"
+              rel="noreferrer"
+              className={`inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 font-semibold text-emerald-700 hover:bg-emerald-100 ${size} ${FOCUS_RING}`}
+            >
+              <MessageCircle size={14} /> Trimite pe WhatsApp
+            </a>
+          ) : (
+            <span aria-disabled="true" title="Lead-ul nu are telefon" className={`inline-flex items-center gap-1.5 rounded-xl bg-slate-100 font-semibold text-slate-400 ${size}`}>
+              <MessageCircle size={14} /> Trimite pe WhatsApp
+            </span>
+          )}
         </>
       )}
       <button type="button" onClick={() => { void fillNow(); }} disabled={busy} className={secondary}>

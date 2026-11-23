@@ -8,6 +8,7 @@ namespace MoneyShop.DomainModel.Entities
         public const string New = "Nou";
         public const string Contacted = "Contactat";
         public const string Converted = "Convertit";
-        public static readonly HashSet<string> All = new(StringComparer.Ordinal) { New, Contacted, "Necalificat", Converted };
+        public const string Unqualified = "Necalificat";
+        public static readonly HashSet<string> All = new(StringComparer.Ordinal) { New, Contacted, Unqualified, Converted };
     }
 }

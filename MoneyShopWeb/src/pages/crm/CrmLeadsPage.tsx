@@ -5,12 +5,14 @@ import { adminApi, type LeadItem, type LeadStatus } from '@/services/api/adminAp
 import { AssignBrokerControl } from '@/components/crm/AssignBrokerControl';
 import { whatsappLink } from '@/components/crm/acord/acordLabels';
 import { LeadAcordActions } from '@/components/crm/LeadAcordActions';
+import { leadGivenName } from '@/lib/leadName';
 import { PageHeader, SkeletonCards, EmptyState, SegmentChips } from './crmShared';
 import { money, dateShort, initials, normalizePhone, FIELD_FOCUS, FOCUS_RING } from './crmHelpers';
 import { AppointmentFormModal, type AppointmentPrefill } from '@/components/crm/appointments/AppointmentFormModal';
 
 const SOURCE_LABELS: Record<string, string> = {
   api: 'Formular',
+  appointment: 'Programare',
   chat_state_machine: 'Chat',
   landing: 'Landing',
 };
@@ -168,7 +170,7 @@ function LeadDrawer({
               <div className="flex flex-wrap items-center gap-2">
                 <a href={`tel:${lead.telefon}`} className="flex items-center gap-1.5 text-slate-700 hover:text-brand-primary"><Phone size={14} /> {lead.telefon}</a>
                 <a
-                  href={whatsappLink(lead.telefon, `Bună, ${lead.numePrenume.split(' ')[0]}!`)}
+                  href={whatsappLink(lead.telefon, `Bună, ${leadGivenName(lead)}!`)}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
@@ -364,7 +366,7 @@ export default function CrmLeadsPage() {
               {l.telefon && (
                 <div className="flex items-center gap-3 border-t border-slate-100 px-4 py-2.5 text-xs text-slate-500">
                   <a href={`tel:${l.telefon}`} className="flex items-center gap-1.5 hover:text-brand-primary"><Phone className="h-3 w-3" />{l.telefon}</a>
-                  <a href={whatsappLink(l.telefon, `Bună, ${l.numePrenume.split(' ')[0]}!`)} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700"><MessageCircle className="h-3.5 w-3.5" />WhatsApp</a>
+                  <a href={whatsappLink(l.telefon, `Bună, ${leadGivenName(l)}!`)} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700"><MessageCircle className="h-3.5 w-3.5" />WhatsApp</a>
                 </div>
               )}
               <div className="border-t border-slate-100 px-4 py-2.5">

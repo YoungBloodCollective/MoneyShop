@@ -254,14 +254,14 @@ function SelectField({
 export default function AcordClientPage() {
   const [searchParams] = useSearchParams();
   const agentCode = searchParams.get('ag') ?? undefined;
-  const leadToken = searchParams.get('l') ?? undefined;
+  const [leadToken] = useState(() => searchParams.get('l') ?? undefined);
   const { slug: brokerSlug } = useBroker();
 
   const [nume, setNume] = useState('');
   const [prenume, setPrenume] = useState('');
   const [telefon, setTelefon] = useState('');
   const [email, setEmail] = useState('');
-  const [electronic, setElectronic] = useState(false);
+  const [electronic, setElectronic] = useState<boolean | null>(null);
   const [stareCivila, setStareCivila] = useState('');
   const [stareLocativa, setStareLocativa] = useState('');
   const [functieActuala, setFunctieActuala] = useState('');
@@ -299,6 +299,9 @@ export default function AcordClientPage() {
 
   useEffect(() => {
     if (!leadToken) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('l');
+    window.history.replaceState(window.history.state, '', url);
     let active = true;
     acordApi.getLeadPrefill(leadToken).then(p => {
       if (!active) return;
@@ -325,7 +328,7 @@ export default function AcordClientPage() {
   };
 
   const tipAct = electronic ? TIP_ACT_ELECTRONICA : TIP_ACT_SIMPLA;
-  const visibleSlots = DOCUMENT_SLOTS.filter(slot => slot.key !== 'proof' || electronic);
+  const visibleSlots = DOCUMENT_SLOTS.filter(slot => slot.key !== 'proof' || electronic === true);
 
   const chooseElectronic = (value: boolean) => {
     setElectronic(value);
@@ -359,6 +362,7 @@ export default function AcordClientPage() {
     prenume.trim().length >= 2 &&
     (phoneDigits.length === 10 || phoneDigits.length === 11) &&
     profileComplete &&
+    electronic !== null &&
     !!files.front &&
     !!files.back &&
     (!electronic || !!files.proof) &&
@@ -372,6 +376,7 @@ export default function AcordClientPage() {
     if (prenume.trim().length < 2) missing.push('prenumele');
     if (!(phoneDigits.length === 10 || phoneDigits.length === 11)) missing.push('telefonul (10 cifre)');
   } else if (step === 2) {
+    if (electronic === null) missing.push('dacă actul are cip');
     if (!files.front) missing.push('poza cu fața actului');
     if (!files.back) missing.push('poza cu versoul actului');
     if (electronic && !files.proof) missing.push('dovada adresei');

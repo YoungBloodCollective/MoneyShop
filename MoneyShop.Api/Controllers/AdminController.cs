@@ -241,7 +241,7 @@ namespace MoneyShop.Api.Controllers
             var link = await _leadService.IssueAcordLinkAsync(id);
             if (link == null)
                 return NotFound(new { message = "Lead not found" });
-            return Ok(new { token = link.Token, expiresAt = link.ExpiresAt });
+            return Ok(new { token = link.Token, expiresAt = link.ExpiresAt, brokerSlug = link.BrokerSlug });
         }
 
         /// <summary>Nou → Contactat / Necalificat / Convertit; the first "contacted" moment is kept for the response-time metric.</summary>
