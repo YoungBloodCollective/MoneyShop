@@ -48,6 +48,7 @@ export interface AcordSubmitPayload {
   tipAct: string;
   agentCode?: string;
   brokerSlug?: string;
+  leadToken?: string;
   stareCivila: string;
   stareLocativa: string;
   functieActuala: string;
@@ -63,6 +64,13 @@ export interface AcordSubmitPayload {
   acceptMarketing: boolean;
   waiveOug52: boolean;
   acceptBanci: boolean;
+}
+
+export interface AcordLeadPrefill {
+  nume: string;
+  prenume: string;
+  telefon: string;
+  email: string;
 }
 
 export interface AcordSubmitResult {
@@ -224,6 +232,9 @@ export const acordApi = {
       .get('/acord/consent-text', { params: brokerSlug ? { broker: brokerSlug } : undefined })
       .then(r => unwrap<AcordConsentText>(r.data)),
 
+  getLeadPrefill: (token: string) =>
+    publicClient.get('/acord/lead-prefill', { params: { t: token } }).then(r => unwrap<AcordLeadPrefill>(r.data)),
+
   submit: (payload: AcordSubmitPayload) => {
     const fd = new FormData();
     fd.append('Nume', payload.nume);
@@ -233,6 +244,7 @@ export const acordApi = {
     fd.append('TipAct', payload.tipAct);
     if (payload.agentCode) fd.append('AgentCode', payload.agentCode);
     if (payload.brokerSlug) fd.append('BrokerSlug', payload.brokerSlug);
+    if (payload.leadToken) fd.append('LeadToken', payload.leadToken);
     fd.append('StareCivila', payload.stareCivila);
     fd.append('StareLocativa', payload.stareLocativa);
     fd.append('FunctieActuala', payload.functieActuala);

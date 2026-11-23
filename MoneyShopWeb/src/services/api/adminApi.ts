@@ -53,6 +53,8 @@ export interface LeadItem {
   source: string;
   adminNotes?: string;
   brokerProfileId?: number | null;
+  /** The client the lead became, once they signed the acord. */
+  userId?: number | null;
   /** Nou, Contactat, Necalificat, Convertit. */
   status: LeadStatus;
   contactedAt?: string | null;
@@ -115,6 +117,11 @@ export const adminApi = {
 
   async updateLeadStatus(id: number, status: LeadStatus): Promise<{ status: LeadStatus; contactedAt?: string | null }> {
     const response = await apiClient.patch(`/admin/leads/${id}/status`, { status });
+    return response.data;
+  },
+
+  async createLeadAcordLink(id: number): Promise<{ token: string; expiresAt: string }> {
+    const response = await apiClient.post<{ token: string; expiresAt: string }>(`/admin/leads/${id}/acord-link`);
     return response.data;
   },
 

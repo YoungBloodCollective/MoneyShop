@@ -14,12 +14,12 @@ import { API_BASE_URL } from '@/utils/constants';
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ACCEPTED = 'image/png,image/jpeg,image/jpg,image/heic,image/heif,application/pdf';
 
-/** Which documents each type of ID needs, per the operator's rules. */
-const TIP_ACT_OPTIONS = [
-  { value: 'carte_identitate', label: 'Carte de identitate', back: false, proof: false },
-  { value: 'carte_identitate_electronica', label: 'Carte de identitate electronică', back: true, proof: true },
-  { value: 'carte_identitate_simpla', label: 'Carte de identitate simplă (fără cip)', back: true, proof: false },
-] as const;
+/**
+ * The API still wants a document type. Both values below need the back of the card, and only the
+ * electronic one needs the proof of address, which is exactly what this page asks for.
+ */
+const TIP_ACT_SIMPLA = 'carte_identitate_simpla';
+const TIP_ACT_ELECTRONICA = 'carte_identitate_electronica';
 
 type SlotKey = 'front' | 'back' | 'proof';
 
@@ -49,13 +49,14 @@ const MANGO_TITLE = 'Acord prestare servicii prin Mango Broker SRL';
 const BANK_OPTION_KEY = 'banci';
 const BANK_FORMS_PANEL_ID = 'acord-bank-forms';
 
-type AcordStep = 1 | 2 | 3;
-const STEP_TITLES = ['Date', 'Documente', 'Semnătură'];
+type AcordStep = 1 | 2 | 3 | 4;
+const LAST_STEP: AcordStep = 4;
+const STEP_TITLES = ['Contact', 'Act de identitate', 'Situația ta', 'Semnătură'];
 
-const DOCUMENT_SLOTS: { key: SlotKey; step: string; title: string }[] = [
-  { key: 'front', step: '1', title: 'Poză față' },
-  { key: 'back', step: '2', title: 'Poză spate/verso' },
-  { key: 'proof', step: '3', title: 'Dovadă de adresă' },
+const DOCUMENT_SLOTS: { key: SlotKey; title: string }[] = [
+  { key: 'front', title: 'Față' },
+  { key: 'back', title: 'Verso' },
+  { key: 'proof', title: 'Dovadă de adresă' },
 ];
 
 const STARE_CIVILA_OPTIONS = [
@@ -253,13 +254,14 @@ function SelectField({
 export default function AcordClientPage() {
   const [searchParams] = useSearchParams();
   const agentCode = searchParams.get('ag') ?? undefined;
+  const leadToken = searchParams.get('l') ?? undefined;
   const { slug: brokerSlug } = useBroker();
 
   const [nume, setNume] = useState('');
   const [prenume, setPrenume] = useState('');
   const [telefon, setTelefon] = useState('');
   const [email, setEmail] = useState('');
-  const [tipAct, setTipAct] = useState('');
+  const [electronic, setElectronic] = useState(false);
   const [stareCivila, setStareCivila] = useState('');
   const [stareLocativa, setStareLocativa] = useState('');
   const [functieActuala, setFunctieActuala] = useState('');
@@ -295,6 +297,19 @@ export default function AcordClientPage() {
     acordApi.getConsentText(brokerSlug).then(setConsentText).catch(() => undefined);
   }, [brokerSlug]);
 
+  useEffect(() => {
+    if (!leadToken) return;
+    let active = true;
+    acordApi.getLeadPrefill(leadToken).then(p => {
+      if (!active) return;
+      setNume(v => v || p.nume || '');
+      setPrenume(v => v || p.prenume || '');
+      setTelefon(v => v || p.telefon || '');
+      setEmail(v => v || p.email || '');
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [leadToken]);
+
   const pickFile = async (key: SlotKey, file: File | undefined) => {
     if (!file) return;
 
@@ -309,12 +324,15 @@ export default function AcordClientPage() {
     setFiles(prev => ({ ...prev, [key]: prepared }));
   };
 
-  const rules = TIP_ACT_OPTIONS.find(o => o.value === tipAct);
+  const tipAct = electronic ? TIP_ACT_ELECTRONICA : TIP_ACT_SIMPLA;
+  const visibleSlots = DOCUMENT_SLOTS.filter(slot => slot.key !== 'proof' || electronic);
+
+  const chooseElectronic = (value: boolean) => {
+    setElectronic(value);
+    if (!value) setFiles(prev => ({ ...prev, proof: null }));
+  };
   const showMango = consentText === null || !!consentText.mangoAgreement;
   const bankDocuments = consentText?.bankDocuments?.items.length ? consentText.bankDocuments : null;
-
-  const isRequired = (key: SlotKey) =>
-    key === 'front' ? true : key === 'back' ? !!rules?.back : !!rules?.proof;
 
   const phoneDigits = telefon.replace(/\D/g, '');
   const yearsTotal = parseYears(vechimeTotala);
@@ -331,16 +349,19 @@ export default function AcordClientPage() {
 
   const acordUnavailable = consentText?.available === false;
   const consentOptions: { key: string; label: string; required: boolean }[] = consentText?.options?.length ? consentText.options : FALLBACK_CONSENT_OPTIONS;
+  const optionalOptions = consentOptions.filter(o => !o.required);
+  const allOptionalTicked = optionalOptions.length > 0 && optionalOptions.every(o => choices[o.key]);
+  const setAllOptional = (value: boolean) =>
+    setChoices(prev => ({ ...prev, ...Object.fromEntries(optionalOptions.map(o => [o.key, value])) }));
   const canSubmit =
     !acordUnavailable &&
     nume.trim().length >= 2 &&
     prenume.trim().length >= 2 &&
     (phoneDigits.length === 10 || phoneDigits.length === 11) &&
     profileComplete &&
-    !!rules &&
     !!files.front &&
-    (!rules.back || !!files.back) &&
-    (!rules.proof || !!files.proof) &&
+    !!files.back &&
+    (!electronic || !!files.proof) &&
     !!signature;
 
   // What is still missing on the current step, in plain words, next to the button (the button
@@ -350,6 +371,11 @@ export default function AcordClientPage() {
     if (nume.trim().length < 2) missing.push('numele');
     if (prenume.trim().length < 2) missing.push('prenumele');
     if (!(phoneDigits.length === 10 || phoneDigits.length === 11)) missing.push('telefonul (10 cifre)');
+  } else if (step === 2) {
+    if (!files.front) missing.push('poza cu fața actului');
+    if (!files.back) missing.push('poza cu versoul actului');
+    if (electronic && !files.proof) missing.push('dovada adresei');
+  } else if (step === 3) {
     if (!stareCivila) missing.push('starea civilă');
     if (!stareLocativa) missing.push('starea locativă');
     if (functieActuala.trim().length < 2) missing.push('funcția actuală');
@@ -357,13 +383,6 @@ export default function AcordClientPage() {
     if (yearsTotal === null) missing.push('vechimea totală');
     if (yearsCurrent === null) missing.push('vechimea la locul actual');
     if (tenureConflict) missing.push('vechimea corectată');
-  } else if (step === 2) {
-    if (!rules) missing.push('tipul actului de identitate');
-    else {
-      if (!files.front) missing.push(DOCUMENT_SLOTS.find(s => s.key === 'front')?.title.toLowerCase() ?? 'fața actului');
-      if (rules.back && !files.back) missing.push(DOCUMENT_SLOTS.find(s => s.key === 'back')?.title.toLowerCase() ?? 'verso');
-      if (rules.proof && !files.proof) missing.push(DOCUMENT_SLOTS.find(s => s.key === 'proof')?.title.toLowerCase() ?? 'dovada adresei');
-    }
   } else if (!signature) {
     missing.push('semnătura');
   }
@@ -371,13 +390,13 @@ export default function AcordClientPage() {
   const goNext = () => {
     if (missing.length > 0) return;
     setError('');
-    setStep(s => (s < 3 ? ((s + 1) as AcordStep) : s));
+    setStep(s => (s < LAST_STEP ? ((s + 1) as AcordStep) : s));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const goBack = () => {
     setError('');
-    // The signature pad starts empty when step 3 is shown again.
+    // The signature pad starts empty when the last step is shown again.
     setSignature(null);
     setStep(s => (s > 1 ? ((s - 1) as AcordStep) : s));
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -398,6 +417,7 @@ export default function AcordClientPage() {
         tipAct,
         agentCode,
         brokerSlug: brokerSlug ?? undefined,
+        leadToken,
         stareCivila,
         stareLocativa,
         functieActuala: functieActuala.trim(),
@@ -472,7 +492,7 @@ export default function AcordClientPage() {
             </p>
           )}
 
-          <ol className="mb-6 grid grid-cols-3 gap-2" aria-label="Pașii acordului">
+          <ol className="mb-6 grid grid-cols-4 gap-2" aria-label="Pașii acordului">
             {STEP_TITLES.map((title, i) => {
               const n = (i + 1) as AcordStep;
               const state = n < step ? 'done' : n === step ? 'current' : 'next';
@@ -494,69 +514,24 @@ export default function AcordClientPage() {
             <Field label="Telefon" value={telefon} onChange={setTelefon} placeholder="07xxxxxxxx" type="tel" inputMode="tel" required />
             <Field label="Email" value={email} onChange={setEmail} placeholder="exemplu@email.com" type="email" inputMode="email" optional />
           </div>
-          <p className="text-xs text-light-50 -mt-2 mb-6">
+          <p className="text-xs text-light-50 -mt-2 mb-2">
             Dacă ne lași emailul, primești copii ale documentelor semnate.
           </p>
-
-          <p className="text-sm font-semibold text-light-90 mb-2.5">Situația personală și profesională</p>
-          <div className="grid grid-cols-2 gap-3 mb-2 items-end">
-            <SelectField label="Stare civilă" value={stareCivila} onChange={setStareCivila} options={STARE_CIVILA_OPTIONS} />
-            <SelectField label="Stare locativă" value={stareLocativa} onChange={setStareLocativa} options={STARE_LOCATIVA_OPTIONS} />
-            <Field label="Funcție actuală" value={functieActuala} onChange={setFunctieActuala} placeholder="ex. Operator vânzări" required />
-            <SelectField label="Studii" value={studii} onChange={setStudii} options={STUDII_OPTIONS} />
-          </div>
-          <div className="mb-3">
-            <Field label="Numele firmei unde lucrezi" value={numeFirma} onChange={setNumeFirma} placeholder="ex. Exemplu SRL" optional />
-          </div>
-          <div className="grid grid-cols-2 gap-3 items-end">
-            <Field label="Vechime totală în muncă (ani)" value={vechimeTotala} onChange={setVechimeTotala} placeholder="ex. 8" inputMode="decimal" required />
-            <Field label="Vechime la locul actual (ani)" value={vechimeLocActual} onChange={setVechimeLocActual} placeholder="ex. 2" inputMode="decimal" required />
-          </div>
-          {tenureConflict && (
-            <p className="text-[12px] text-error-600 mt-1.5">
-              Vechimea la locul actual nu poate depăși vechimea totală în muncă.
-            </p>
-          )}
-          <div className="mb-6" />
           </>)}
 
           {step === 2 && (<>
-          <div className="mb-6">
-            <SelectField
-              label="Alege ce tip de act de identitate ai"
-              value={tipAct}
-              onChange={setTipAct}
-              options={TIP_ACT_OPTIONS}
-            />
-          </div>
-
-          <p className="text-sm font-semibold text-light-90 mb-2.5">Încarcă documentele</p>
-          {!rules && (
-            <p className="text-[13px] text-light-60 rounded-xl bg-dark-800 ring-1 ring-dark-600 px-4 py-3">
-              Alege mai întâi tipul actului de identitate ca să vezi ce documente trebuie încărcate.
-            </p>
-          )}
-          <div className={`grid grid-cols-3 gap-2 ${rules ? '' : 'hidden'}`}>
-            {DOCUMENT_SLOTS.map(slot => {
+          <p className="text-sm font-semibold text-light-90 mb-2.5">Poze cu actul de identitate</p>
+          <div className="grid grid-cols-2 gap-2">
+            {visibleSlots.map(slot => {
               const file = files[slot.key];
-              const required = isRequired(slot.key);
               return (
                 <div
                   key={slot.key}
                   className={`rounded-xl p-3 flex flex-col items-center text-center transition ${
-                    file ? 'ring-2 ring-success-500 bg-success-500/5'
-                         : required ? 'ring-1 ring-dark-500 bg-white'
-                         : 'ring-1 ring-dark-600 bg-dark-800'
+                    file ? 'ring-2 ring-success-500 bg-success-500/5' : 'ring-1 ring-dark-500 bg-white'
                   }`}
                 >
-                  <p className="text-[11.5px] font-medium text-light-80 leading-tight mb-1 h-[28px] flex items-center justify-center">
-                    {slot.step}. {slot.title}
-                  </p>
-                  <span className={`text-[10px] font-medium mb-1.5 ${
-                    required ? 'text-brand-primary' : 'text-light-60'
-                  }`}>
-                    {required ? 'Obligatoriu' : 'Opțional'}
-                  </span>
+                  <p className="text-[13px] font-medium text-light-80 leading-tight mb-2">{slot.title}</p>
                   {file ? <Check size={26} className="text-success-600 mb-2" />
                         : <FileText size={26} className="text-light-50 mb-2" />}
                   <button
@@ -583,9 +558,60 @@ export default function AcordClientPage() {
           <p className="text-[12px] text-light-60 mt-2.5 mb-5">
             Formate acceptate: PNG, JPG, PDF. Dimensiune max: 10MB / fișier.
           </p>
+
+          <fieldset className="mb-2">
+            <legend className="text-sm font-medium text-light-80 mb-2">Cartea ta de identitate are cip (e electronică)?</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {[{ value: false, label: 'Nu' }, { value: true, label: 'Da' }].map(option => (
+                <label
+                  key={option.label}
+                  className={`flex items-center justify-center rounded-xl py-3 text-base font-medium cursor-pointer transition ${
+                    electronic === option.value ? 'bg-brand-primary text-white' : 'bg-white ring-1 ring-dark-500 text-light-80'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="carte-electronica"
+                    checked={electronic === option.value}
+                    onChange={() => chooseElectronic(option.value)}
+                    className="sr-only"
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+            {electronic && (
+              <p className="text-[12px] text-light-60 mt-2">
+                Pentru cartea electronică avem nevoie și de o dovadă de adresă.
+              </p>
+            )}
+          </fieldset>
           </>)}
 
           {step === 3 && (<>
+          <p className="text-sm font-semibold text-light-90 mb-2.5">Situația personală și profesională</p>
+          <div className="grid grid-cols-2 gap-3 mb-2 items-end">
+            <SelectField label="Stare civilă" value={stareCivila} onChange={setStareCivila} options={STARE_CIVILA_OPTIONS} />
+            <SelectField label="Stare locativă" value={stareLocativa} onChange={setStareLocativa} options={STARE_LOCATIVA_OPTIONS} />
+            <Field label="Funcție actuală" value={functieActuala} onChange={setFunctieActuala} placeholder="ex. Operator vânzări" required />
+            <SelectField label="Studii" value={studii} onChange={setStudii} options={STUDII_OPTIONS} />
+          </div>
+          <div className="mb-3">
+            <Field label="Numele firmei unde lucrezi" value={numeFirma} onChange={setNumeFirma} placeholder="ex. Exemplu SRL" optional />
+          </div>
+          <div className="grid grid-cols-2 gap-3 items-end">
+            <Field label="Vechime totală în muncă (ani)" value={vechimeTotala} onChange={setVechimeTotala} placeholder="ex. 8" inputMode="decimal" required />
+            <Field label="Vechime la locul actual (ani)" value={vechimeLocActual} onChange={setVechimeLocActual} placeholder="ex. 2" inputMode="decimal" required />
+          </div>
+          {tenureConflict && (
+            <p className="text-[12px] text-error-600 mt-1.5">
+              Vechimea la locul actual nu poate depăși vechimea totală în muncă.
+            </p>
+          )}
+          <div className="mb-6" />
+          </>)}
+
+          {step === 4 && (<>
 
           <div className="space-y-2.5 mb-5">
             <InfoCard title="Informații GDPR și Intermediere credit" onOpen={() => setOpenDoc('gdpr')} />
@@ -595,7 +621,16 @@ export default function AcordClientPage() {
           {/* Optional choices stay unticked checkboxes the client opts into. The required ones are
               not checkboxes: they are listed above the signature, and signing is the act of acceptance. */}
           <div className="space-y-2.5 mb-5">
-            {consentOptions.filter(o => !o.required).map(option => (
+            {optionalOptions.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setAllOptional(!allOptionalTicked)}
+                className="text-[13px] font-medium text-brand-primary min-h-[32px]"
+              >
+                {allOptionalTicked ? 'Debifează toate opțiunile' : 'Bifează toate opțiunile'}
+              </button>
+            )}
+            {optionalOptions.map(option => (
               <div key={option.key}>
                 <label className="flex items-start gap-2.5 cursor-pointer">
                   <input
@@ -642,7 +677,7 @@ export default function AcordClientPage() {
             </p>
           )}
 
-          {step < 3 ? (
+          {step < LAST_STEP ? (
             <button
               type="button"
               onClick={goNext}

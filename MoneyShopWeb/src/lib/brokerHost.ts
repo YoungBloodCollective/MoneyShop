@@ -36,3 +36,7 @@ export function clientLinkFor(slug: string | null) {
   if (slug) return `${brokerSiteUrl(slug)}/acord`;
   return `${window.location.origin}/acord`;
 }
+
+export function leadAcordLinkFor(slug: string | null, token: string) {
+  return `${clientLinkFor(slug)}?l=${encodeURIComponent(token)}`;
+}

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { adminApi, type LeadItem, type LeadStatus } from '@/services/api/adminApi';
 import { AssignBrokerControl } from '@/components/crm/AssignBrokerControl';
 import { whatsappLink } from '@/components/crm/acord/acordLabels';
+import { LeadAcordActions } from '@/components/crm/LeadAcordActions';
 import { PageHeader, SkeletonCards, EmptyState, SegmentChips } from './crmShared';
 import { money, dateShort, initials, normalizePhone, FIELD_FOCUS, FOCUS_RING } from './crmHelpers';
 import { AppointmentFormModal, type AppointmentPrefill } from '@/components/crm/appointments/AppointmentFormModal';
@@ -59,9 +60,10 @@ function LeadAge({ createdAt, now }: { createdAt: string; now: number }) {
 }
 
 function LeadDrawer({
-  lead, onClose, onSaved, onAssigned, onBook, onStatus,
+  lead, onClose, onSaved, onAssigned, onBook, onStatus, onAcordIssued,
 }: {
   lead: LeadItem; onClose: () => void; onSaved: (id: number, notes: string) => void;
+  onAcordIssued: (lead: LeadItem) => void;
   onAssigned: (id: number, brokerProfileId: number | null) => void;
   onBook: (lead: LeadItem) => void;
   onStatus: (lead: LeadItem, status: LeadStatus) => void;
@@ -150,6 +152,10 @@ function LeadDrawer({
                 </button>
               ))}
             </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Acord</p>
+            <LeadAcordActions lead={lead} onIssued={onAcordIssued} />
           </div>
           <AssignBrokerControl
             entityType="lead"
@@ -291,6 +297,11 @@ export default function CrmLeadsPage() {
 
   const selected = leads.find(l => l.id === selectedId) ?? null;
 
+  const markContacted = (lead: LeadItem) => {
+    if ((lead.status ?? 'Nou') !== 'Nou') return;
+    setLeads(prev => prev.map(l => (l.id === lead.id && l.status === 'Nou' ? { ...l, status: 'Contactat', contactedAt: l.contactedAt ?? new Date().toISOString() } : l)));
+  };
+
   if (loading) return (<div className="space-y-6"><PageHeader title="Lead-uri" /><SkeletonCards count={6} /></div>);
 
   return (
@@ -356,6 +367,9 @@ export default function CrmLeadsPage() {
                   <a href={whatsappLink(l.telefon, `Bună, ${l.numePrenume.split(' ')[0]}!`)} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700"><MessageCircle className="h-3.5 w-3.5" />WhatsApp</a>
                 </div>
               )}
+              <div className="border-t border-slate-100 px-4 py-2.5">
+                <LeadAcordActions lead={l} compact onIssued={markContacted} />
+              </div>
             </div>
           ))}
         </div>
@@ -368,6 +382,7 @@ export default function CrmLeadsPage() {
           onAssigned={(id, brokerProfileId) => setLeads(prev => prev.map(l => l.id === id ? { ...l, brokerProfileId } : l))}
           onBook={lead => { setSelectedId(null); setBooking(lead); }}
           onStatus={setStatus}
+          onAcordIssued={markContacted}
         />
       )}
       {booking && (
