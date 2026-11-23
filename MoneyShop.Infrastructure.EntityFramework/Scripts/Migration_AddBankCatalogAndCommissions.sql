@@ -25,7 +25,7 @@ SELECT v.Name, 0, 1, v.SortOrder
 FROM (VALUES
     (N'Banca Transilvania', 1), (N'BCR', 2), (N'BRD', 3), (N'ING Bank', 4), (N'Raiffeisen Bank', 5),
     (N'UniCredit Bank', 6), (N'CEC Bank', 7), (N'ProCredit Bank', 8), (N'Libra Bank', 9), (N'Exim Bank', 10),
-    (N'Patria Bank', 11), (N'Garanti BBVA', 12), (N'OTP Bank', 13), (N'Alpha Bank', 14)
+    (N'Patria Bank', 11), (N'Garanti BBVA', 12)
 ) AS v (Name, SortOrder)
 WHERE NOT EXISTS (SELECT 1 FROM dbo.Banks b WHERE b.Name = v.Name);
 GO
