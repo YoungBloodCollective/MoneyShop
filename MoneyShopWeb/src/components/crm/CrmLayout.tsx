@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, FolderKanban, Sparkles,
   BarChart3, Search,
@@ -228,6 +228,9 @@ export function CrmLayout({ variant = 'crm' }: { variant?: WorkspaceVariant }) {
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
+          <Link to={variant === 'admin' ? '/admin' : '/crm'} aria-label="MoneyShop, la Dashboard" className={`shrink-0 rounded-lg lg:hidden ${FOCUS_RING}`}>
+            <img src="/images/logo/logo-trimmed.png" alt="MoneyShop" className="h-7 w-auto" />
+          </Link>
 
           <button
             onClick={() => setPaletteOpen(true)}
