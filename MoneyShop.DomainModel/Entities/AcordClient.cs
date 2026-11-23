@@ -10,6 +10,7 @@ namespace MoneyShop.DomainModel.Entities
         public Guid AcordId { get; set; } = Guid.NewGuid();
         public int UserId { get; set; }
         public Guid? KycId { get; set; }
+        public string? SubjectId { get; set; }
         public string Token { get; set; } = null!;
 
         public string Nume { get; set; } = null!;

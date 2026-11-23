@@ -222,6 +222,31 @@ public class CrmServiceClientDetailTests
     }
 
     [Fact]
+    public void GetClientBcReportPdf_logs_against_the_subject_of_the_latest_bound_acord()
+    {
+        var (service, db, subjects) = BuildRich();
+        foreach (var a in db.AcordClients.Where(a => a.UserId == RichUser)) a.SubjectId = "MS-ACORDBOUND";
+        db.SaveChanges();
+
+        Assert.NotNull(service.GetClientBcReportPdf(RichUser, ReportId(db, RichUser), new CnpAccessContext { Reason = "bc_report_download" }));
+
+        var logged = Assert.Single(subjects.LoggedBySubject);
+        Assert.Equal("MS-ACORDBOUND", logged.SubjectId);
+        Assert.Empty(subjects.Logged);
+    }
+
+    [Fact]
+    public void GetClientBcReportPdf_falls_back_to_the_users_subject_when_no_acord_is_bound()
+    {
+        var (service, db, subjects) = BuildRich();
+
+        Assert.NotNull(service.GetClientBcReportPdf(RichUser, ReportId(db, RichUser), new CnpAccessContext { Reason = "bc_report_download" }));
+
+        Assert.Empty(subjects.LoggedBySubject);
+        Assert.Single(subjects.Logged);
+    }
+
+    [Fact]
     public void GetClientBcReportPdf_returns_null_when_cnp_log_cannot_be_written()
     {
         var (service, db, subjects) = BuildRich();

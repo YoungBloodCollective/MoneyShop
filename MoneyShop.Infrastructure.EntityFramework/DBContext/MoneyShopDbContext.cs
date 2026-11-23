@@ -750,6 +750,7 @@ public class MoneyShopDbContext : DbContext
             entity.HasKey(e => e.AcordId);
             entity.ToTable("AcordClients");
 
+            entity.Property(e => e.SubjectId).HasMaxLength(19);
             entity.Property(e => e.Token).HasMaxLength(64).IsRequired();
             entity.Property(e => e.Nume).HasMaxLength(255).IsRequired();
             entity.Property(e => e.Prenume).HasMaxLength(255).IsRequired();

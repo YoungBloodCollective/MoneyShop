@@ -135,5 +135,13 @@ internal class FakeSubjectService : ISubjectService
     public SubjectMapResult GetOrCreateSubject(int userId, string cnp, bool allowExistingOtherUser = false) => throw new NotImplementedException();
     public SubjectMapResult? GetSubjectByUserId(int userId) => throw new NotImplementedException();
     public SubjectMapResult? GetSubjectById(string subjectId) => throw new NotImplementedException();
-    public string? RevealCnpByUserId(int userId, CnpAccessContext access) => throw new NotImplementedException();
+    public string? RevealCnpBySubjectId(string subjectId, CnpAccessContext access) => throw new NotImplementedException();
+    public List<(string SubjectId, CnpAccessContext Access)> LoggedBySubject { get; } = new();
+
+    public bool LogCnpAccessBySubjectId(string subjectId, CnpAccessContext access)
+    {
+        if (!Result) return false;
+        LoggedBySubject.Add((subjectId, access));
+        return true;
+    }
 }

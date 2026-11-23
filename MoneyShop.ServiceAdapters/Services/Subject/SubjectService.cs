@@ -74,6 +74,9 @@ public class SubjectService : ISubjectService
             return ToResult(existingSubject, isNew: false);
         }
 
+        if (_subjectMapRepository.Get().Any(s => s.UserId == userId))
+            throw new SubjectConflictException();
+
         var subjectId = GenerateSubjectId(cnp, pepper2);
         var cnpLast4 = cnp.Length >= 4 ? cnp.Substring(cnp.Length - 4) : null;
 
@@ -116,14 +119,15 @@ public class SubjectService : ISubjectService
         return subject == null ? null : ToResult(subject, isNew: false);
     }
 
-    public string? RevealCnpByUserId(int userId, CnpAccessContext access)
+    public string? RevealCnpBySubjectId(string subjectId, CnpAccessContext access)
     {
         if (access == null) throw new ArgumentNullException(nameof(access));
         if (string.IsNullOrWhiteSpace(access.Reason))
             throw new ArgumentException("A reason is required to read a CNP", nameof(access));
+        if (string.IsNullOrWhiteSpace(subjectId)) return null;
 
         var subject = _subjectMapRepository.Get()
-            .FirstOrDefault(s => s.UserId == userId);
+            .FirstOrDefault(s => s.SubjectId == subjectId);
 
         if (subject?.CnpEncrypted == null) return null;
 
@@ -145,6 +149,26 @@ public class SubjectService : ISubjectService
 
         var subject = _subjectMapRepository.Get()
             .FirstOrDefault(s => s.UserId == userId);
+
+        if (subject == null) return false;
+
+        WriteAccessLog(subject.SubjectId, access);
+        return true;
+    }
+
+    /// <summary>
+    /// Records a full-CNP read against a known subject without decrypting anything. Returns
+    /// false when the subject is unknown, so nothing is logged.
+    /// </summary>
+    public bool LogCnpAccessBySubjectId(string subjectId, CnpAccessContext access)
+    {
+        if (access == null) throw new ArgumentNullException(nameof(access));
+        if (string.IsNullOrWhiteSpace(access.Reason))
+            throw new ArgumentException("A reason is required to log a CNP access", nameof(access));
+        if (string.IsNullOrWhiteSpace(subjectId)) return false;
+
+        var subject = _subjectMapRepository.Get()
+            .FirstOrDefault(s => s.SubjectId == subjectId);
 
         if (subject == null) return false;
 
