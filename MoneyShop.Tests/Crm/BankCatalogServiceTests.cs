@@ -27,6 +27,9 @@ public class BankCatalogServiceTests
         return (new BankCatalogService(db), new CrmWorkService(db), db);
     }
 
+    private static BankCatalogInput In(string name, decimal percent = 0m, decimal? threshold = null, bool active = true) =>
+        new() { Name = name, Active = active, CommissionPercent = percent, MonthlyThresholdAmount = threshold, SortOrder = 0 };
+
     private static BrokerProfile Profile(int id, int userId, string name) => new()
     {
         Id = id,
@@ -74,8 +77,17 @@ public class BankCatalogServiceTests
         File(db, BrokerId, bt, "NP", 30m, BankFileStatuses.Analiza, novStart.AddMonths(-3));
         File(db, OtherBrokerId, bt, "IP", 70m, BankFileStatuses.Trimis, novStart.AddDays(2));
 
-        var stats = banks.GetStats(BrokerUserId, "2026-11", false);
+        var brokerRow = Assert.Single(banks.GetStats(BrokerUserId, "2026-11", false).Banks);
+        Assert.Equal(750m, brokerRow.Network.DisbursedAmount);
+        Assert.Null(brokerRow.Network.DisbursedCount);
+        Assert.Null(brokerRow.Network.NpAmount);
+        Assert.Null(brokerRow.Network.IpCount);
+        Assert.Null(brokerRow.Network.UnknownAmount);
+        Assert.Null(brokerRow.Network.InProgressAmount);
+        Assert.Null(brokerRow.Network.InProgressCount);
+        Assert.Equal(300m, brokerRow.Mine.DisbursedAmount);
 
+        var stats = banks.GetStats(BrokerUserId, "2026-11", true);
         var row = Assert.Single(stats.Banks);
         Assert.Equal(1_000_000m, row.Threshold);
         Assert.Equal(750m, row.Network.DisbursedAmount);
@@ -190,18 +202,95 @@ public class BankCatalogServiceTests
     public void Catalog_names_are_unique_ignoring_case_and_banks_are_deactivated_not_deleted()
     {
         var (banks, _, _) = Setup();
-        var bt = banks.CreateBank(new BankCatalogInput { Name = "  Banca Test ", CommissionPercent = 1m, MonthlyThresholdAmount = 5000m, SortOrder = 2 });
+        var bt = banks.CreateBank(In("  Banca Test ", 1m, 5000m));
         Assert.Equal("Banca Test", bt.Name);
 
-        Assert.Throws<InvalidOperationException>(() => banks.CreateBank(new BankCatalogInput { Name = "banca test" }));
-        Assert.Throws<InvalidOperationException>(() => banks.CreateBank(new BankCatalogInput { Name = new string('a', 101) }));
-        Assert.Throws<InvalidOperationException>(() => banks.CreateBank(new BankCatalogInput { Name = "Alta", CommissionPercent = 120m }));
-        Assert.Throws<InvalidOperationException>(() => banks.CreateBank(new BankCatalogInput { Name = "Alta", MonthlyThresholdAmount = -1m }));
+        Assert.Throws<InvalidOperationException>(() => banks.CreateBank(In("banca test")));
+        Assert.Throws<InvalidOperationException>(() => banks.CreateBank(In(new string('a', 101))));
+        Assert.Throws<InvalidOperationException>(() => banks.CreateBank(In("Alta", 120m)));
+        Assert.Throws<InvalidOperationException>(() => banks.CreateBank(In("Alta", 0m, -1m)));
 
-        var off = banks.UpdateBank(bt.Id, new BankCatalogInput { Name = "Banca Test", Active = false });
+        var off = banks.UpdateBank(bt.Id, In("Banca Test", 1m, 5000m, false));
+        Assert.Throws<InvalidOperationException>(() => banks.UpdateBank(bt.Id, new BankCatalogInput { Name = "Banca Test" }));
         Assert.False(off!.Active);
         Assert.Empty(banks.GetActiveBanks());
         Assert.Single(banks.GetAllBanks());
-        Assert.Null(banks.UpdateBank(999, new BankCatalogInput { Name = "Z" }));
+        Assert.Null(banks.UpdateBank(999, In("Z")));
+    }
+
+    [Fact]
+    public void A_file_keeps_its_deactivated_bank_but_cannot_move_to_one()
+    {
+        var (_, work, db) = Setup();
+        var bt = SeedBank(db, "BT");
+        var other = SeedBank(db, "BCR");
+        var file = work.AddBankFile(BothUser, new CrmBankFileInput { BankId = bt, CreditType = "NP", Amount = 10, Status = BankFileStatuses.Trimis });
+        db.Banks.Single(b => b.Id == bt).Active = false;
+        db.Banks.Single(b => b.Id == other).Active = false;
+        db.SaveChanges();
+
+        var kept = work.UpdateBankFile(file.Id, new CrmBankFileInput { BankId = bt, CreditType = "IP", Amount = 20, Status = BankFileStatuses.Analiza });
+        Assert.Equal(bt, kept!.BankId);
+        Assert.Equal("IP", kept.CreditType);
+        Assert.Throws<InvalidOperationException>(() => work.UpdateBankFile(file.Id, new CrmBankFileInput { BankId = other, CreditType = "NP", Amount = 20, Status = BankFileStatuses.Analiza }));
+        Assert.Throws<InvalidOperationException>(() => work.AddBankFile(BothUser, new CrmBankFileInput { BankId = bt, CreditType = "NP", Amount = 20, Status = BankFileStatuses.Trimis }));
+    }
+
+    [Fact]
+    public void Deactivated_banks_with_files_stay_in_the_stats_muted_and_empty_ones_drop_out()
+    {
+        var (banks, _, db) = Setup();
+        var used = SeedBank(db, "Veche");
+        var unused = SeedBank(db, "Neutilizata");
+        SeedBank(db, "Activa");
+        File(db, BrokerId, used, "NP", 500m, BankFileStatuses.Disbursat, DateTime.UtcNow);
+        db.Banks.Single(b => b.Id == used).Active = false;
+        db.Banks.Single(b => b.Id == unused).Active = false;
+        db.SaveChanges();
+
+        var stats = banks.GetStats(BrokerUserId, null, false);
+
+        Assert.DoesNotContain(stats.Banks, b => b.BankId == unused);
+        var old = stats.Banks.Single(b => b.BankId == used);
+        Assert.False(old.Active);
+        Assert.Equal(500m, old.Network.DisbursedAmount);
+        Assert.Equal(500m, old.Mine.DisbursedAmount);
+        Assert.True(stats.Banks.Single(b => b.Name == "Activa").Active);
+    }
+
+    [Fact]
+    public void Files_without_a_bank_are_counted_in_the_callers_scope_and_the_network_for_admin()
+    {
+        var (banks, _, db) = Setup();
+        var now = DateTime.UtcNow;
+        db.BankFiles.AddRange(
+            new BankFile { BrokerProfileId = BrokerId, UserId = 1, BankName = "x", Amount = 100, Status = BankFileStatuses.Trimis, StatusChangedAt = now, CreatedAt = now, UpdatedAt = now },
+            new BankFile { BrokerProfileId = OtherBrokerId, UserId = 2, BankName = "x", Amount = 250, Status = BankFileStatuses.Disbursat, StatusChangedAt = now, CreatedAt = now, UpdatedAt = now },
+            new BankFile { BrokerProfileId = BrokerId, UserId = 3, BankName = "x", Amount = 999, Status = BankFileStatuses.Respins, StatusChangedAt = now, CreatedAt = now, UpdatedAt = now });
+        db.SaveChanges();
+
+        var mine = banks.GetStats(BrokerUserId, null, false).Unattributed;
+        Assert.Equal(1, mine.Count);
+        Assert.Equal(100m, mine.Amount);
+        var network = banks.GetStats(AdminUserId, null, true).Unattributed;
+        Assert.Equal(2, network.Count);
+        Assert.Equal(350m, network.Amount);
+    }
+
+    [Fact]
+    public void Per_broker_rows_include_files_without_a_broker_and_the_month_year_is_bounded()
+    {
+        var (banks, _, db) = Setup();
+        var bt = SeedBank(db, "BT");
+        var now = DateTime.UtcNow;
+        File(db, BrokerId, bt, "NP", 100m, BankFileStatuses.Disbursat, now);
+        db.BankFiles.Add(new BankFile { BrokerProfileId = null, UserId = 9, BankId = bt, BankName = "BT", CreditType = "IP", Amount = 40, Status = BankFileStatuses.Disbursat, StatusChangedAt = now, CreatedAt = now, UpdatedAt = now });
+        db.SaveChanges();
+
+        var stats = banks.GetStats(AdminUserId, null, true);
+        Assert.Equal(stats.Banks.Single().Network.DisbursedAmount, stats.ByBroker!.Sum(b => b.DisbursedAmount));
+        Assert.Contains(stats.ByBroker!, b => b.BrokerName == "Fără broker" && b.DisbursedAmount == 40m);
+        Assert.Throws<InvalidOperationException>(() => banks.GetStats(AdminUserId, "1999-12", true));
+        Assert.Throws<InvalidOperationException>(() => banks.GetStats(AdminUserId, "2101-01", true));
     }
 }

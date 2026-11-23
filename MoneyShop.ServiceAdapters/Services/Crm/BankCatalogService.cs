@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MoneyShop.DomainModel.Entities;
 using BankEntity = MoneyShop.DomainModel.Entities.Bank;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
@@ -18,20 +19,23 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
     {
         private const int MaxName = 100;
 
-        private static readonly Lazy<TimeZoneInfo> RoZone = new(() =>
+        private readonly MoneyShopDbContext _context;
+        private readonly TimeZoneInfo _zone;
+
+        public BankCatalogService(MoneyShopDbContext context, ILogger<BankCatalogService>? logger = null)
+        {
+            _context = context;
+            _zone = ResolveZone(logger);
+        }
+
+        private static TimeZoneInfo ResolveZone(ILogger? logger)
         {
             foreach (var id in new[] { "Europe/Bucharest", "GTB Standard Time" })
             {
                 try { return TimeZoneInfo.FindSystemTimeZoneById(id); } catch (TimeZoneNotFoundException) { } catch (InvalidTimeZoneException) { }
             }
+            logger?.LogWarning("The Romania time zone could not be resolved; bank stats fall back to UTC month boundaries.");
             return TimeZoneInfo.Utc;
-        });
-
-        private readonly MoneyShopDbContext _context;
-
-        public BankCatalogService(MoneyShopDbContext context)
-        {
-            _context = context;
         }
 
         public List<BankCatalogItem> GetAllBanks() =>
@@ -82,62 +86,87 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             var bank = _context.Banks.FirstOrDefault(b => b.Id == bankId && b.Active);
             if (bank == null) return null;
 
+            var bankName = bank.Name;
+            var bankDefault = bank.CommissionPercent;
+            var value = percent == null ? (decimal?)null : Math.Round(percent.Value, 2);
             var row = _context.BrokerBankCommissions.FirstOrDefault(c => c.BrokerProfileId == profileId && c.BankId == bankId);
-            if (percent == null)
+            if (value == null)
             {
                 if (row != null) _context.BrokerBankCommissions.Remove(row);
+                _context.SaveChanges();
+            }
+            else if (row != null)
+            {
+                row.CommissionPercent = value.Value;
+                row.UpdatedAt = DateTime.UtcNow;
+                _context.SaveChanges();
             }
             else
             {
-                var value = Math.Round(percent.Value, 2);
-                if (row == null)
+                _context.BrokerBankCommissions.Add(new BrokerBankCommission
                 {
-                    _context.BrokerBankCommissions.Add(new BrokerBankCommission
-                    {
-                        BrokerProfileId = profileId,
-                        BankId = bankId,
-                        CommissionPercent = value,
-                        UpdatedAt = DateTime.UtcNow,
-                    });
+                    BrokerProfileId = profileId,
+                    BankId = bankId,
+                    CommissionPercent = value.Value,
+                    UpdatedAt = DateTime.UtcNow,
+                });
+                try
+                {
+                    _context.SaveChanges();
                 }
-                else
+                catch (DbUpdateException)
                 {
-                    row.CommissionPercent = value;
-                    row.UpdatedAt = DateTime.UtcNow;
+                    _context.ChangeTracker.Clear();
+                    var existing = _context.BrokerBankCommissions.FirstOrDefault(c => c.BrokerProfileId == profileId && c.BankId == bankId);
+                    if (existing == null) throw;
+                    existing.CommissionPercent = value.Value;
+                    existing.UpdatedAt = DateTime.UtcNow;
+                    _context.SaveChanges();
                 }
             }
-            _context.SaveChanges();
             return new BrokerCommissionItem
             {
-                BankId = bank.Id,
-                Name = bank.Name,
-                DefaultPercent = bank.CommissionPercent,
-                MyPercent = percent == null ? null : Math.Round(percent.Value, 2),
+                BankId = bankId,
+                Name = bankName,
+                DefaultPercent = bankDefault,
+                MyPercent = value,
             };
         }
 
-        public BankStatsResult GetStats(int userId, string? month, bool includeByBroker)
+        public BankStatsResult GetStats(int userId, string? month, bool isAdmin)
         {
             var (label, fromUtc, toUtc) = MonthRange(month);
             var profileId = ResolveProfileId(userId);
-            var banks = _context.Banks.AsNoTracking().Where(b => b.Active).AsEnumerable()
-                .OrderBy(b => b.SortOrder).ThenBy(b => b.Name).ToList();
-            var bankIds = banks.Select(b => b.Id).ToList();
 
             var files = _context.BankFiles.IgnoreQueryFilters().AsNoTracking()
                 .Where(f => f.BankId != null && f.Status != BankFileStatuses.Respins
                             && (f.Status != BankFileStatuses.Disbursat || (f.StatusChangedAt >= fromUtc && f.StatusChangedAt < toUtc)))
                 .Select(f => new { f.BrokerProfileId, BankId = f.BankId ?? 0, f.CreditType, f.Amount, f.Status })
-                .ToList()
-                .Where(f => bankIds.Contains(f.BankId))
                 .ToList();
+            var withFiles = files.Select(f => f.BankId).Distinct().ToList();
+
+            var banks = _context.Banks.AsNoTracking().Where(b => b.Active || withFiles.Contains(b.Id)).AsEnumerable()
+                .OrderBy(b => b.SortOrder).ThenBy(b => b.Name).ToList();
+            var bankIds = banks.Select(b => b.Id).ToHashSet();
+            files = files.Where(f => bankIds.Contains(f.BankId)).ToList();
 
             var commissions = profileId == null
                 ? new Dictionary<int, decimal>()
                 : _context.BrokerBankCommissions.AsNoTracking().Where(c => c.BrokerProfileId == profileId)
                     .ToDictionary(c => c.BankId, c => c.CommissionPercent);
 
-            var result = new BankStatsResult { Month = label, HasBrokerProfile = profileId != null };
+            var unattributed = _context.BankFiles.IgnoreQueryFilters().AsNoTracking()
+                .Where(f => f.BankId == null && f.Status != BankFileStatuses.Respins
+                            && (isAdmin || (profileId != null && f.BrokerProfileId == profileId)))
+                .Select(f => f.Amount)
+                .ToList();
+
+            var result = new BankStatsResult
+            {
+                Month = label,
+                HasBrokerProfile = profileId != null,
+                Unattributed = new UnattributedFiles { Count = unattributed.Count, Amount = unattributed.Sum() },
+            };
             foreach (var bank in banks)
             {
                 var bankFiles = files.Where(f => f.BankId == bank.Id).ToList();
@@ -145,28 +174,42 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 var mine = new BankMineVolume { CommissionPercent = percent };
                 Fill(mine, bankFiles.Where(f => profileId != null && f.BrokerProfileId == profileId).Select(f => (f.CreditType, f.Amount, f.Status)));
                 mine.EstimatedCommission = Math.Round(mine.DisbursedAmount * percent / 100m, 2);
-                var network = new BankVolume();
-                Fill(network, bankFiles.Select(f => (f.CreditType, f.Amount, f.Status)));
+                var all = new BankVolume();
+                Fill(all, bankFiles.Select(f => (f.CreditType, f.Amount, f.Status)));
+                var network = new BankNetworkVolume { DisbursedAmount = all.DisbursedAmount };
+                if (isAdmin)
+                {
+                    network.DisbursedCount = all.DisbursedCount;
+                    network.NpAmount = all.NpAmount;
+                    network.NpCount = all.NpCount;
+                    network.IpAmount = all.IpAmount;
+                    network.IpCount = all.IpCount;
+                    network.UnknownAmount = all.UnknownAmount;
+                    network.UnknownCount = all.UnknownCount;
+                    network.InProgressAmount = all.InProgressAmount;
+                    network.InProgressCount = all.InProgressCount;
+                }
                 result.Banks.Add(new BankStatsItem
                 {
                     BankId = bank.Id,
                     Name = bank.Name,
+                    Active = bank.Active,
                     Threshold = bank.MonthlyThresholdAmount,
                     Network = network,
                     Mine = mine,
                 });
             }
 
-            if (includeByBroker)
+            if (isAdmin)
             {
                 var names = _context.BrokerProfiles.AsNoTracking().Select(p => new { p.Id, p.DisplayName }).ToDictionary(p => p.Id, p => p.DisplayName);
                 result.ByBroker = files
-                    .Where(f => f.Status == BankFileStatuses.Disbursat && f.BrokerProfileId != null)
-                    .GroupBy(f => f.BrokerProfileId!.Value)
+                    .Where(f => f.Status == BankFileStatuses.Disbursat)
+                    .GroupBy(f => f.BrokerProfileId ?? 0)
                     .Select(g => new BrokerStatsItem
                     {
                         BrokerProfileId = g.Key,
-                        BrokerName = names.TryGetValue(g.Key, out var n) ? n : $"Broker #{g.Key}",
+                        BrokerName = g.Key == 0 ? "Fără broker" : names.TryGetValue(g.Key, out var n) ? n : $"Broker #{g.Key}",
                         DisbursedAmount = g.Sum(f => f.Amount),
                         DisbursedCount = g.Count(),
                         NpAmount = g.Where(f => f.CreditType == CreditTypes.Np).Sum(f => f.Amount),
@@ -208,9 +251,9 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             return id;
         }
 
-        private static (string Label, DateTime FromUtc, DateTime ToUtc) MonthRange(string? month)
+        private (string Label, DateTime FromUtc, DateTime ToUtc) MonthRange(string? month)
         {
-            var zone = RoZone.Value;
+            var zone = _zone;
             int year, mon;
             if (string.IsNullOrWhiteSpace(month))
             {
@@ -226,6 +269,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             {
                 year = parsed.Year;
                 mon = parsed.Month;
+                if (year < 2000 || year > 2100) throw new InvalidOperationException("Luna trebuie să fie între anii 2000 și 2100.");
             }
             var start = new DateTime(year, mon, 1, 0, 0, 0, DateTimeKind.Unspecified);
             var end = start.AddMonths(1);
@@ -237,6 +281,8 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             var name = input.Name?.Trim();
             if (string.IsNullOrEmpty(name)) throw new InvalidOperationException("Scrie numele băncii.");
             if (name.Length > MaxName) throw new InvalidOperationException($"Numele băncii poate avea cel mult {MaxName} de caractere.");
+            if (input.Active == null || input.CommissionPercent == null || input.SortOrder == null)
+                throw new InvalidOperationException("Completează toate câmpurile băncii.");
             if (_context.Banks.AsNoTracking().AsEnumerable().Any(b => b.Id != existingId && string.Equals(b.Name.Trim(), name, StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException("Există deja o bancă cu acest nume.");
             if (input.CommissionPercent < 0 || input.CommissionPercent > 100)
@@ -244,10 +290,10 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             if (input.MonthlyThresholdAmount is < 0 or > 999_999_999_999m)
                 throw new InvalidOperationException("Pragul lunar nu poate fi negativ.");
             bank.Name = name;
-            bank.Active = input.Active;
-            bank.CommissionPercent = Math.Round(input.CommissionPercent, 2);
+            bank.Active = input.Active.Value;
+            bank.CommissionPercent = Math.Round(input.CommissionPercent.Value, 2);
             bank.MonthlyThresholdAmount = input.MonthlyThresholdAmount == null ? null : Math.Round(input.MonthlyThresholdAmount.Value, 2);
-            bank.SortOrder = input.SortOrder;
+            bank.SortOrder = input.SortOrder.Value;
         }
 
         private static BankCatalogItem ToItem(BankEntity b) => new()

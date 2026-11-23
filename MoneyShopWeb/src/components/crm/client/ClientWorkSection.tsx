@@ -176,7 +176,7 @@ function TasksPanel({ userId, tasks, onChange }: { userId: number; tasks: CrmTas
 
 const EMPTY_FILE: CrmBankFileInput = { bankId: null, creditType: '', amount: 0, status: 'TRIMIS', notes: '' };
 
-function CreditTypePill({ type }: { type?: string | null }) {
+export function CreditTypePill({ type }: { type?: string | null }) {
   if (type !== 'NP' && type !== 'IP') return null;
   const label = CREDIT_TYPES.find(t => t.key === type)?.label ?? type;
   return (
@@ -186,7 +186,7 @@ function CreditTypePill({ type }: { type?: string | null }) {
   );
 }
 
-function BankFileForm({ initial, banks, onSave, onCancel }: { initial: CrmBankFileInput; banks: BankCatalogItem[]; onSave: (input: CrmBankFileInput) => Promise<void>; onCancel: () => void }) {
+function BankFileForm({ initial, banks, current, onSave, onCancel }: { initial: CrmBankFileInput; banks: BankCatalogItem[]; current?: { id: number; name: string } | null; onSave: (input: CrmBankFileInput) => Promise<void>; onCancel: () => void }) {
   const [bankId, setBankId] = useState(initial.bankId ? String(initial.bankId) : '');
   const [creditType, setCreditType] = useState<string>(initial.creditType);
   const [amount, setAmount] = useState(initial.amount ? String(initial.amount) : '');
@@ -215,6 +215,7 @@ function BankFileForm({ initial, banks, onSave, onCancel }: { initial: CrmBankFi
           Banca
           <select value={bankId} onChange={e => setBankId(e.target.value)} className={`${INPUT} mt-1`}>
             <option value="">Alege banca…</option>
+            {current && !banks.some(b => b.id === current.id) && <option value={current.id}>{current.name} (inactivă)</option>}
             {banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
         </label>
@@ -252,11 +253,11 @@ function BankFilesPanel({ userId, files, onChange }: { userId: number; files: Cr
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
   const [editStatus, setEditStatus] = useState<string | null>(null);
-  const [banks, setBanks] = useState<BankCatalogItem[]>([]);
+  const [banks, setBanks] = useState<BankCatalogItem[] | null>(null);
 
   useEffect(() => {
     let active = true;
-    crmApi.getBanks().then(b => { if (active) setBanks(b); }).catch(() => { if (active) toast.error('Nu am putut încărca lista de bănci'); });
+    crmApi.getBanks().then(b => { if (active) setBanks(b); }).catch(() => { if (active) { setBanks([]); toast.error('Nu am putut încărca lista de bănci'); } });
     return () => { active = false; };
   }, []);
 
@@ -294,6 +295,7 @@ function BankFilesPanel({ userId, files, onChange }: { userId: number; files: Cr
   };
 
   const active = files.filter(f => !CLOSED_BANK_STAGES.includes(f.status));
+  if (!banks) return <div className="h-24 animate-pulse rounded-2xl border border-slate-200 bg-white" />;
 
   return (
     <Panel
@@ -311,6 +313,7 @@ function BankFilesPanel({ userId, files, onChange }: { userId: number; files: Cr
               key={f.id}
               initial={{ bankId: f.bankId ?? banks.find(b => b.name === f.bankName)?.id ?? null, creditType: f.creditType ?? '', amount: f.amount, status: editStatus ?? f.status, notes: f.notes }}
               banks={banks}
+              current={f.bankId ? { id: f.bankId, name: f.bankName } : null}
               onSave={input => save(f, input)}
               onCancel={() => { setEditing(null); setEditStatus(null); }}
             />

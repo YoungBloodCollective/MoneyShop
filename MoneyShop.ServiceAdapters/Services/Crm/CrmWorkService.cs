@@ -76,7 +76,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         public CrmBankFileItem AddBankFile(int userId, CrmBankFileInput input)
         {
             var now = DateTime.UtcNow;
-            var bank = ResolveBank(input);
+            var bank = ResolveBank(input, null);
             var file = new BankFile
             {
                 BrokerProfileId = OwnerFor(userId),
@@ -100,7 +100,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         {
             var file = _context.BankFiles.FirstOrDefault(f => f.Id == bankFileId);
             if (file == null) return null;
-            var bank = ResolveBank(input);
+            var bank = ResolveBank(input, file.BankId);
             var now = DateTime.UtcNow;
             if (file.Status != input.Status) file.StatusChangedAt = now;
             file.BankId = bank.Id;
@@ -237,9 +237,10 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             return string.IsNullOrWhiteSpace(full) ? $"Client #{userId}" : full;
         }
 
-        private BankEntity ResolveBank(CrmBankFileInput input)
+        private BankEntity ResolveBank(CrmBankFileInput input, int? currentBankId)
         {
-            var bank = input.BankId == null ? null : _context.Banks.AsNoTracking().FirstOrDefault(b => b.Id == input.BankId && b.Active);
+            var bank = input.BankId == null ? null
+                : _context.Banks.AsNoTracking().FirstOrDefault(b => b.Id == input.BankId && (b.Active || b.Id == currentBankId));
             if (bank == null) throw new InvalidOperationException("Alege o bancă din listă.");
             if (!CreditTypes.IsValid(input.CreditType)) throw new InvalidOperationException("Alege tipul de credit.");
             return bank;

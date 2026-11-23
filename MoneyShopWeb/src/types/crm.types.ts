@@ -299,11 +299,26 @@ export interface BankMineVolume extends BankVolume {
   estimatedCommission: number;
 }
 
+/** Network numbers: brokers only get the disbursed amount, every other field is absent. */
+export interface BankNetworkVolume {
+  disbursedAmount: number;
+  disbursedCount?: number | null;
+  npAmount?: number | null;
+  npCount?: number | null;
+  ipAmount?: number | null;
+  ipCount?: number | null;
+  unknownAmount?: number | null;
+  unknownCount?: number | null;
+  inProgressAmount?: number | null;
+  inProgressCount?: number | null;
+}
+
 export interface BankStatsItem {
   bankId: number;
   name: string;
+  active: boolean;
   threshold?: number | null;
-  network: BankVolume;
+  network: BankNetworkVolume;
   mine: BankMineVolume;
 }
 
@@ -320,6 +335,7 @@ export interface BrokerStatsItem {
 
 export interface BankStatsResult {
   month: string;
+  unattributed: { count: number; amount: number };
   hasBrokerProfile: boolean;
   banks: BankStatsItem[];
   byBroker?: BrokerStatsItem[] | null;

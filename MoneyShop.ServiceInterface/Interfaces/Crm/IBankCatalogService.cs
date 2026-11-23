@@ -20,8 +20,11 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         /// <summary>Sets the caller's percent for a bank; a null percent removes the override. Null when the bank is not an active catalog bank.</summary>
         BrokerCommissionItem? SetMyCommission(int userId, int bankId, decimal? percent);
 
-        /// <summary>Per bank, the network totals (aggregates only) and the caller's own numbers for a month (yyyy-MM, Europe/Bucharest).</summary>
-        BankStatsResult GetStats(int userId, string? month, bool includeByBroker);
+        /// <summary>
+        /// Per bank, the network disbursed amount and the caller's own numbers for a month (yyyy-MM, Europe/Bucharest).
+        /// Only an admin also gets the network counts, NP/IP split, in-progress numbers and the per-broker breakdown.
+        /// </summary>
+        BankStatsResult GetStats(int userId, string? month, bool isAdmin);
     }
 
     public static class CreditTypes
@@ -35,10 +38,11 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
     public class BankCatalogInput
     {
         public string? Name { get; set; }
-        public bool Active { get; set; } = true;
-        public decimal CommissionPercent { get; set; }
+        public bool? Active { get; set; }
+        public decimal? CommissionPercent { get; set; }
+        /// <summary>Null means no threshold.</summary>
         public decimal? MonthlyThresholdAmount { get; set; }
-        public int SortOrder { get; set; }
+        public int? SortOrder { get; set; }
     }
 
     public class BankCatalogItem
@@ -73,6 +77,21 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public int InProgressCount { get; set; }
     }
 
+    /// <summary>Network numbers for a bank. Brokers only get the disbursed amount; every other field is null.</summary>
+    public class BankNetworkVolume
+    {
+        public decimal DisbursedAmount { get; set; }
+        public int? DisbursedCount { get; set; }
+        public decimal? NpAmount { get; set; }
+        public int? NpCount { get; set; }
+        public decimal? IpAmount { get; set; }
+        public int? IpCount { get; set; }
+        public decimal? UnknownAmount { get; set; }
+        public int? UnknownCount { get; set; }
+        public decimal? InProgressAmount { get; set; }
+        public int? InProgressCount { get; set; }
+    }
+
     public class BankMineVolume : BankVolume
     {
         public decimal CommissionPercent { get; set; }
@@ -83,8 +102,10 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
     {
         public int BankId { get; set; }
         public string Name { get; set; } = null!;
+        /// <summary>False for a deactivated bank that still has files, kept so history does not change.</summary>
+        public bool Active { get; set; } = true;
         public decimal? Threshold { get; set; }
-        public BankVolume Network { get; set; } = new();
+        public BankNetworkVolume Network { get; set; } = new();
         public BankMineVolume Mine { get; set; } = new();
     }
 
@@ -100,8 +121,15 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public int IpCount { get; set; }
     }
 
+    public class UnattributedFiles
+    {
+        public int Count { get; set; }
+        public decimal Amount { get; set; }
+    }
+
     public class BankStatsResult
     {
+        public UnattributedFiles Unattributed { get; set; } = new();
         public string Month { get; set; } = null!;
         public bool HasBrokerProfile { get; set; }
         public List<BankStatsItem> Banks { get; set; } = new();

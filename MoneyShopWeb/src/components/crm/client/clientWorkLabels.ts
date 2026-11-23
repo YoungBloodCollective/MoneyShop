@@ -27,11 +27,6 @@ export function clientTag(key: string) {
   return CLIENT_TAGS.find(t => t.key === key);
 }
 
-export const BANK_SUGGESTIONS = [
-  'Banca Transilvania', 'BCR', 'BRD', 'ING Bank', 'Raiffeisen Bank', 'UniCredit Bank',
-  'CEC Bank', 'ProCredit Bank', 'Libra Bank', 'Exim Bank', 'Patria Bank', 'Garanti BBVA', 'OTP Bank', 'Alpha Bank',
-];
-
 export const CREDIT_TYPES: { key: 'NP' | 'IP'; label: string }[] = [
   { key: 'NP', label: 'Credit Nevoi Personale' },
   { key: 'IP', label: 'Credit Ipotecar' },

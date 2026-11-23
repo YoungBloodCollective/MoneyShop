@@ -18,10 +18,6 @@ export function monthLabel(month: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-export function lei(v: number): string {
-  return `${v.toLocaleString('ro-RO', { maximumFractionDigits: 2 })} lei`;
-}
-
 export function thresholdPct(bank: BankStatsItem): number | null {
   return bank.threshold && bank.threshold > 0 ? (bank.network.disbursedAmount / bank.threshold) * 100 : null;
 }

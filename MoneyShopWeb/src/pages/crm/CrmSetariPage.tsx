@@ -233,6 +233,9 @@ export default function CrmSetariPage() {
       <PageHeader title="Setări" subtitle={admin ? 'Catalogul de bănci și comisioanele tale' : 'Comisioanele tale cu băncile'} />
       {admin && <CatalogBlock />}
       {hasProfile && <CommissionsBlock />}
+      {admin && hasProfile === false && (
+        <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">Contul tău nu are profil de broker, deci nu ai comisioane proprii de setat.</p>
+      )}
     </div>
   );
 }

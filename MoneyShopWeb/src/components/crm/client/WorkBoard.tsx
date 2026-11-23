@@ -8,7 +8,7 @@ import { apiErrorMessage } from '@/services/api/brokersApi';
 import type { CrmWorkBoard } from '@/types/crm.types';
 import { money, dateShort, FOCUS_RING } from '@/pages/crm/crmHelpers';
 import { BANK_FILE_STAGES, CLOSED_BANK_STAGES, dueLabel } from './clientWorkLabels';
-import { StagePill } from './ClientWorkSection';
+import { CreditTypePill, StagePill } from './ClientWorkSection';
 
 function formatAmount(v: number): string {
   if (v >= 1_000_000) return `${(v / 1_000_000).toLocaleString('ro-RO', { maximumFractionDigits: 1 })} mil lei`;
@@ -102,7 +102,7 @@ export function WorkBoard() {
                   <Link to={crm(`/crm/clienti/${f.userId}`)} className={`-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-slate-50 ${FOCUS_RING}`}>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-medium text-slate-800">{f.clientName ?? `Client #${f.userId}`}</div>
-                      <div className="truncate text-xs text-slate-400">{f.bankName} · {money(f.amount)} · din {dateShort(f.statusChangedAt)}</div>
+                      <div className="truncate text-xs text-slate-400">{f.bankName} <CreditTypePill type={f.creditType} /> · {money(f.amount)} · din {dateShort(f.statusChangedAt)}</div>
                     </div>
                     <StagePill status={f.status} />
                     <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />

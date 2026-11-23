@@ -11,6 +11,8 @@ export const BROKER_ADMIN_REDIRECTS: Record<string, string> = {
   '/admin/rapoarte': '/crm/rapoarte',
   '/admin/clienti': '/crm/clienti',
   '/admin/dosare': '/crm/dosare',
+  '/admin/banci': '/crm/banci',
+  '/admin/setari': '/crm/setari',
   '/admin/profil': '/crm/profil',
   '/admin/applications': '/crm/dosare',
 };

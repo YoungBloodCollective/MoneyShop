@@ -17,7 +17,7 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         CrmTaskItem? SetTaskDone(int taskId, bool done);
         bool DeleteTask(int taskId);
 
-        /// <summary>Throws <see cref="InvalidOperationException"/> when the bank is not an active catalog bank or the credit type is missing/invalid.</summary>
+        /// <summary>Throws <see cref="InvalidOperationException"/> when the bank is not an active catalog bank (an update may keep the file's current bank even if deactivated) or the credit type is missing/invalid.</summary>
         CrmBankFileItem AddBankFile(int userId, CrmBankFileInput input);
         CrmBankFileItem? UpdateBankFile(int bankFileId, CrmBankFileInput input);
         bool DeleteBankFile(int bankFileId);

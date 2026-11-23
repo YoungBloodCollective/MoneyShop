@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
-import type { BankStatsItem, BankStatsResult, BankVolume } from '@/types/crm.types';
+import type { BankNetworkVolume, BankStatsItem, BankStatsResult, BankVolume } from '@/types/crm.types';
 import { EmptyState, ErrorState, PageHeader, SkeletonCards } from './crmShared';
-import { FOCUS_RING } from './crmHelpers';
-import { currentMonth, lei, monthLabel, shiftMonth, thresholdPct } from './bankStatsHelpers';
+import { FOCUS_RING, money } from './crmHelpers';
+import { currentMonth, monthLabel, shiftMonth, thresholdPct } from './bankStatsHelpers';
 
 function sumVolume(items: BankVolume[]): BankVolume {
   return items.reduce<BankVolume>((t, v) => ({
@@ -31,7 +31,7 @@ function ThresholdBar({ bank }: { bank: BankStatsItem }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2 text-xs">
-        <span className="text-slate-500">Prag {lei(bank.threshold!)}</span>
+        <span className="text-slate-500">Prag {money(bank.threshold!)}</span>
         <span className={`font-semibold ${reached ? 'text-emerald-600' : 'text-slate-700'}`}>{Math.round(pct)}%</span>
       </div>
       <div
@@ -48,36 +48,46 @@ function ThresholdBar({ bank }: { bank: BankStatsItem }) {
   );
 }
 
-function Split({ v }: { v: BankVolume }) {
+function Split({ v }: { v: Pick<BankNetworkVolume, 'npAmount' | 'npCount' | 'ipAmount' | 'ipCount' | 'unknownAmount' | 'unknownCount'> }) {
+  if (v.npAmount == null || v.ipAmount == null) return null;
   return (
     <div className="text-xs text-slate-500">
-      NP {lei(v.npAmount)} ({v.npCount}) · IP {lei(v.ipAmount)} ({v.ipCount})
-      {v.unknownCount > 0 && <> · fără tip {lei(v.unknownAmount)} ({v.unknownCount})</>}
+      NP {money(v.npAmount)} ({v.npCount}) · IP {money(v.ipAmount)} ({v.ipCount})
+      {(v.unknownCount ?? 0) > 0 && <> · fără tip {money(v.unknownAmount)} ({v.unknownCount})</>}
     </div>
   );
+}
+
+function BankName({ bank }: { bank: BankStatsItem }) {
+  return <>{bank.name}{!bank.active && <span className="ml-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">inactivă</span>}</>;
+}
+
+function Count({ n }: { n?: number | null }) {
+  return n == null ? null : <span className="font-normal text-slate-500"> ({n})</span>;
 }
 
 function BankCard({ bank }: { bank: BankStatsItem }) {
   const { network: n, mine: m } = bank;
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="font-semibold text-slate-800">{bank.name}</div>
+    <div className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${bank.active ? '' : 'opacity-70'}`}>
+      <div className="font-semibold text-slate-800"><BankName bank={bank} /></div>
       <div className="mt-2"><ThresholdBar bank={bank} /></div>
       <dl className="mt-3 space-y-3 text-sm">
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">Rețea, disbursat</dt>
-          <dd className="font-semibold text-slate-800">{lei(n.disbursedAmount)} <span className="font-normal text-slate-500">({n.disbursedCount} dosare)</span></dd>
+          <dd className="font-semibold text-slate-800">{money(n.disbursedAmount)}{n.disbursedCount != null && <span className="font-normal text-slate-500"> ({n.disbursedCount} dosare)</span>}</dd>
           <dd><Split v={n} /></dd>
         </div>
         <div className="rounded-xl bg-slate-50 p-3">
           <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">Ale mele</dt>
-          <dd className="font-semibold text-slate-800">{lei(m.disbursedAmount)} <span className="font-normal text-slate-500">({m.disbursedCount} dosare)</span></dd>
+          <dd className="font-semibold text-slate-800">{money(m.disbursedAmount)} <span className="font-normal text-slate-500">({m.disbursedCount} dosare)</span></dd>
           <dd><Split v={m} /></dd>
-          <dd className="mt-1 text-slate-600">Comision {m.commissionPercent.toLocaleString('ro-RO')}%: <span className="font-semibold text-slate-800">{lei(m.estimatedCommission)}</span></dd>
+          <dd className="mt-1 text-slate-600">Comision {m.commissionPercent.toLocaleString('ro-RO')}%: <span className="font-semibold text-slate-800">{money(m.estimatedCommission)}</span></dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">În lucru (rețea / ale mele)</dt>
-          <dd className="text-slate-700">{n.inProgressCount} dosare, {lei(n.inProgressAmount)} / {m.inProgressCount} dosare, {lei(m.inProgressAmount)}</dd>
+          <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">În lucru</dt>
+          <dd className="text-slate-700">Ale mele: {m.inProgressCount} dosare, {money(m.inProgressAmount)}</dd>
+          {n.inProgressCount != null && <dd className="text-slate-500">Rețea: {n.inProgressCount} dosare, {money(n.inProgressAmount)}</dd>}
         </div>
       </dl>
     </div>
@@ -109,7 +119,12 @@ export default function CrmBanciPage() {
   const totals = useMemo(() => {
     const banks = data?.banks ?? [];
     return {
-      network: sumVolume(banks.map(b => b.network)),
+      network: {
+        disbursedAmount: banks.reduce((s, b) => s + b.network.disbursedAmount, 0),
+        disbursedCount: banks.reduce((s, b) => s + (b.network.disbursedCount ?? 0), 0),
+        inProgressCount: banks.reduce((s, b) => s + (b.network.inProgressCount ?? 0), 0),
+        detailed: banks.length > 0 && banks.every(b => b.network.disbursedCount != null),
+      },
       mine: sumVolume(banks.map(b => b.mine)),
       commission: banks.reduce((s, b) => s + b.mine.estimatedCommission, 0),
     };
@@ -143,10 +158,10 @@ export default function CrmBanciPage() {
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
-              { label: 'Disbursat în rețea', value: lei(totals.network.disbursedAmount), hint: `${totals.network.disbursedCount} dosare` },
-              { label: 'Disbursat de mine', value: lei(totals.mine.disbursedAmount), hint: `${totals.mine.disbursedCount} dosare` },
-              { label: 'Comision estimat', value: lei(totals.commission), hint: data.hasBrokerProfile ? 'din dosarele mele' : 'fără profil de broker' },
-              { label: 'Dosare în lucru', value: String(totals.mine.inProgressCount), hint: `${lei(totals.mine.inProgressAmount)} · rețea ${totals.network.inProgressCount}` },
+              { label: 'Disbursat în rețea', value: money(totals.network.disbursedAmount), hint: totals.network.detailed ? `${totals.network.disbursedCount} dosare` : 'toți brokerii' },
+              { label: 'Disbursat de mine', value: money(totals.mine.disbursedAmount), hint: `${totals.mine.disbursedCount} dosare` },
+              { label: 'Comision estimat', value: money(totals.commission), hint: data.hasBrokerProfile ? 'din dosarele mele' : 'fără profil de broker' },
+              { label: 'Dosare în lucru', value: String(totals.mine.inProgressCount), hint: totals.network.detailed ? `${money(totals.mine.inProgressAmount)} · rețea ${totals.network.inProgressCount}` : money(totals.mine.inProgressAmount) },
             ].map(c => (
               <div key={c.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="text-xs font-medium text-slate-500">{c.label}</div>
@@ -155,6 +170,12 @@ export default function CrmBanciPage() {
               </div>
             ))}
           </div>
+
+          {data.unattributed.count > 0 && (
+            <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Neatribuite: {data.unattributed.count} dosare ({money(data.unattributed.amount)}) — alege banca în fișa clientului ca să apară aici.
+            </p>
+          )}
 
           <div className="space-y-3 md:hidden">
             {data.banks.map(b => <BankCard key={b.bankId} bank={b} />)}
@@ -174,24 +195,24 @@ export default function CrmBanciPage() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {data.banks.map(b => (
-                  <tr key={b.bankId}>
-                    <td className={`${TD} font-semibold text-slate-800`}>{b.name}</td>
+                  <tr key={b.bankId} className={b.active ? '' : 'opacity-70'}>
+                    <td className={`${TD} font-semibold text-slate-800`}><BankName bank={b} /></td>
                     <td className={TD}><ThresholdBar bank={b} /></td>
                     <td className={TD}>
-                      <div className="font-semibold text-slate-800">{lei(b.network.disbursedAmount)} <span className="font-normal text-slate-500">({b.network.disbursedCount})</span></div>
+                      <div className="font-semibold text-slate-800">{money(b.network.disbursedAmount)}<Count n={b.network.disbursedCount} /></div>
                       <Split v={b.network} />
                     </td>
                     <td className={TD}>
-                      <div className="font-semibold text-slate-800">{lei(b.mine.disbursedAmount)} <span className="font-normal text-slate-500">({b.mine.disbursedCount})</span></div>
+                      <div className="font-semibold text-slate-800">{money(b.mine.disbursedAmount)} <span className="font-normal text-slate-500">({b.mine.disbursedCount})</span></div>
                       <Split v={b.mine} />
                     </td>
                     <td className={TD}>
-                      <div className="font-semibold text-slate-800">{lei(b.mine.estimatedCommission)}</div>
+                      <div className="font-semibold text-slate-800">{money(b.mine.estimatedCommission)}</div>
                       <div className="text-xs text-slate-500">{b.mine.commissionPercent.toLocaleString('ro-RO')}%</div>
                     </td>
                     <td className={TD}>
-                      <div className="text-slate-700">{b.mine.inProgressCount} · {lei(b.mine.inProgressAmount)}</div>
-                      <div className="text-xs text-slate-500">rețea {b.network.inProgressCount} · {lei(b.network.inProgressAmount)}</div>
+                      <div className="text-slate-700">{b.mine.inProgressCount} · {money(b.mine.inProgressAmount)}</div>
+                      {b.network.inProgressCount != null && <div className="text-xs text-slate-500">rețea {b.network.inProgressCount} · {money(b.network.inProgressAmount)}</div>}
                     </td>
                   </tr>
                 ))}
@@ -200,10 +221,10 @@ export default function CrmBanciPage() {
                 <tr>
                   <td className={TD}>Total</td>
                   <td className={TD} />
-                  <td className={TD}>{lei(totals.network.disbursedAmount)} <span className="font-normal text-slate-500">({totals.network.disbursedCount})</span></td>
-                  <td className={TD}>{lei(totals.mine.disbursedAmount)} <span className="font-normal text-slate-500">({totals.mine.disbursedCount})</span></td>
-                  <td className={TD}>{lei(totals.commission)}</td>
-                  <td className={TD}>{totals.mine.inProgressCount} · {lei(totals.mine.inProgressAmount)}</td>
+                  <td className={TD}>{money(totals.network.disbursedAmount)}{totals.network.detailed && <span className="font-normal text-slate-500"> ({totals.network.disbursedCount})</span>}</td>
+                  <td className={TD}>{money(totals.mine.disbursedAmount)} <span className="font-normal text-slate-500">({totals.mine.disbursedCount})</span></td>
+                  <td className={TD}>{money(totals.commission)}</td>
+                  <td className={TD}>{totals.mine.inProgressCount} · {money(totals.mine.inProgressAmount)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -220,8 +241,8 @@ export default function CrmBanciPage() {
                     {data.byBroker.map(b => (
                       <div key={b.brokerProfileId} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                         <div className="font-semibold text-slate-800">{b.brokerName}</div>
-                        <div className="mt-1 text-sm font-semibold text-slate-800">{lei(b.disbursedAmount)} <span className="font-normal text-slate-500">({b.disbursedCount} dosare)</span></div>
-                        <div className="text-xs text-slate-500">NP {lei(b.npAmount)} ({b.npCount}) · IP {lei(b.ipAmount)} ({b.ipCount})</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-800">{money(b.disbursedAmount)} <span className="font-normal text-slate-500">({b.disbursedCount} dosare)</span></div>
+                        <div className="text-xs text-slate-500">NP {money(b.npAmount)} ({b.npCount}) · IP {money(b.ipAmount)} ({b.ipCount})</div>
                       </div>
                     ))}
                   </div>
@@ -240,10 +261,10 @@ export default function CrmBanciPage() {
                         {data.byBroker.map(b => (
                           <tr key={b.brokerProfileId}>
                             <td className={`${TD} font-semibold text-slate-800`}>{b.brokerName}</td>
-                            <td className={TD}>{lei(b.disbursedAmount)}</td>
+                            <td className={TD}>{money(b.disbursedAmount)}</td>
                             <td className={TD}>{b.disbursedCount}</td>
-                            <td className={TD}>{lei(b.npAmount)} <span className="text-slate-500">({b.npCount})</span></td>
-                            <td className={TD}>{lei(b.ipAmount)} <span className="text-slate-500">({b.ipCount})</span></td>
+                            <td className={TD}>{money(b.npAmount)} <span className="text-slate-500">({b.npCount})</span></td>
+                            <td className={TD}>{money(b.ipAmount)} <span className="text-slate-500">({b.ipCount})</span></td>
                           </tr>
                         ))}
                       </tbody>
