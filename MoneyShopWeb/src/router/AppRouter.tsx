@@ -74,6 +74,8 @@ const CrmLeadsPage = lazy(() => import('@/pages/crm/CrmLeadsPage'));
 const AcordToClientRedirect = lazy(() => import('@/pages/crm/AcordToClientRedirect'));
 const CrmProgramariPage = lazy(() => import('@/pages/crm/CrmProgramariPage'));
 const CrmRapoartePage = lazy(() => import('@/pages/crm/CrmRapoartePage'));
+const CrmBanciPage = lazy(() => import('@/pages/crm/CrmBanciPage'));
+const CrmSetariPage = lazy(() => import('@/pages/crm/CrmSetariPage'));
 const CrmProfilPage = lazy(() => import('@/pages/crm/CrmProfilPage'));
 
 function PageLoader() {
@@ -175,6 +177,8 @@ export function AppRouter() {
           <Route path="/admin/acorduri" element={<Navigate to="/admin/clienti?seg=acord" replace />} />
           <Route path="/admin/acorduri/:acordId" element={<AcordToClientRedirect />} />
           <Route path="/admin/dosare" element={<CrmDosarePage />} />
+          <Route path="/admin/banci" element={<CrmBanciPage />} />
+          <Route path="/admin/setari" element={<CrmSetariPage />} />
           <Route path="/admin/leaduri" element={<CrmLeadsPage />} />
           <Route path="/admin/programari" element={<CrmProgramariPage />} />
           <Route path="/admin/rapoarte" element={<CrmRapoartePage />} />
@@ -202,6 +206,8 @@ export function AppRouter() {
           <Route path="/crm/rapoarte" element={<CrmRapoartePage />} />
           <Route path="/crm/profil" element={<ProtectedRoute brokerOnly><CrmProfilPage /></ProtectedRoute>} />
           <Route path="/crm/dosare" element={<CrmDosarePage />} />
+          <Route path="/crm/banci" element={<CrmBanciPage />} />
+          <Route path="/crm/setari" element={<CrmSetariPage />} />
           <Route path="/crm/oferte" element={<Navigate to="/crm" replace />} />
           <Route path="/crm/leaduri" element={<CrmLeadsPage />} />
           <Route path="/crm/automatizari" element={<Navigate to="/crm" replace />} />

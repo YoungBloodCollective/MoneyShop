@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { useCrmPath } from '@/lib/crmPath';
 import { TodayAgenda } from '@/components/crm/appointments/TodayAgenda';
 import { WorkBoard } from '@/components/crm/client/WorkBoard';
+import { BanksMonthCard } from '@/components/crm/BanksMonthCard';
 import { crmApi } from '@/services/api/crmApi';
 import type { CrmDashboardSummary } from '@/types/crm.types';
 import { ErrorState } from './crmShared';
@@ -153,6 +154,8 @@ export default function CrmDashboardPage() {
       <TodayAgenda />
 
       <WorkBoard />
+
+      <BanksMonthCard />
 
       <IntakeLinkCard />
 

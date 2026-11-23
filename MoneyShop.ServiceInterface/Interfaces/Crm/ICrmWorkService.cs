@@ -17,6 +17,7 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         CrmTaskItem? SetTaskDone(int taskId, bool done);
         bool DeleteTask(int taskId);
 
+        /// <summary>Throws <see cref="InvalidOperationException"/> when the bank is not an active catalog bank or the credit type is missing/invalid.</summary>
         CrmBankFileItem AddBankFile(int userId, CrmBankFileInput input);
         CrmBankFileItem? UpdateBankFile(int bankFileId, CrmBankFileInput input);
         bool DeleteBankFile(int bankFileId);
@@ -82,7 +83,8 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
 
     public class CrmBankFileInput
     {
-        public string? BankName { get; set; }
+        public int? BankId { get; set; }
+        public string? CreditType { get; set; }
         public decimal Amount { get; set; }
         public string? Status { get; set; }
         public string? Notes { get; set; }
@@ -93,7 +95,9 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public int Id { get; set; }
         public int UserId { get; set; }
         public string? ClientName { get; set; }
+        public int? BankId { get; set; }
         public string BankName { get; set; } = null!;
+        public string? CreditType { get; set; }
         public decimal Amount { get; set; }
         public string Status { get; set; } = null!;
         public DateTime StatusChangedAt { get; set; }

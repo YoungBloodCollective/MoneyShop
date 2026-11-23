@@ -8,6 +8,18 @@ namespace MoneyShop.Tests.Crm;
 
 public class CrmWorkServiceTests
 {
+    internal static int SeedBank(MoneyShop.Infrastructure.EntityFramework.DBContext.MoneyShopDbContext db, string name, bool active = true)
+    {
+        var bank = db.Banks.FirstOrDefault(b => b.Name == name);
+        if (bank == null)
+        {
+            bank = new MoneyShop.DomainModel.Entities.Bank { Name = name, Active = active };
+            db.Banks.Add(bank);
+            db.SaveChanges();
+        }
+        return bank.Id;
+    }
+
     [Fact]
     public void Rows_belong_to_the_signed_in_broker_and_other_brokers_cannot_see_or_change_them()
     {
@@ -15,7 +27,7 @@ public class CrmWorkServiceTests
         var work = new CrmWorkService(db);
 
         var task = work.AddTask(BothUser, "  Sună-l joi  ", new DateTime(2030, 1, 2, 8, 0, 0, DateTimeKind.Utc));
-        var file = work.AddBankFile(BothUser, new CrmBankFileInput { BankName = "BCR", Amount = 50000, Status = BankFileStatuses.Trimis });
+        var file = work.AddBankFile(BothUser, new CrmBankFileInput { BankId = SeedBank(db, "BCR"), CreditType = CreditTypes.Np, Amount = 50000, Status = BankFileStatuses.Trimis });
         work.SetTags(BothUser, new[] { ClientTagKeys.Dti, "INVENTAT", ClientTagKeys.ProblemeBc });
 
         Assert.Equal("Sună-l joi", task.Title);
@@ -28,7 +40,7 @@ public class CrmWorkServiceTests
         db.BrokerScopeId = OtherBrokerId;
         Assert.Empty(work.GetClientWork(BothUser).Tasks);
         Assert.Null(work.SetTaskDone(task.Id, true));
-        Assert.Null(work.UpdateBankFile(file.Id, new CrmBankFileInput { BankName = "X", Amount = 1, Status = BankFileStatuses.Disbursat }));
+        Assert.Null(work.UpdateBankFile(file.Id, new CrmBankFileInput { BankId = SeedBank(db, "X"), CreditType = CreditTypes.Np, Amount = 1, Status = BankFileStatuses.Disbursat }));
         Assert.False(work.DeleteBankFile(file.Id));
         Assert.Empty(work.GetBoard().BankFiles);
     }
@@ -49,15 +61,15 @@ public class CrmWorkServiceTests
     {
         var (_, db) = Build();
         var work = new CrmWorkService(db);
-        var file = work.AddBankFile(BothUser, new CrmBankFileInput { BankName = "ING", Amount = 80000, Status = BankFileStatuses.Trimis });
+        var file = work.AddBankFile(BothUser, new CrmBankFileInput { BankId = SeedBank(db, "ING"), CreditType = CreditTypes.Np, Amount = 80000, Status = BankFileStatuses.Trimis });
         var row = db.BankFiles.Single();
         row.StatusChangedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         db.SaveChanges();
 
-        var same = work.UpdateBankFile(file.Id, new CrmBankFileInput { BankName = "ING", Amount = 90000, Status = BankFileStatuses.Trimis })!;
+        var same = work.UpdateBankFile(file.Id, new CrmBankFileInput { BankId = SeedBank(db, "ING"), CreditType = CreditTypes.Np, Amount = 90000, Status = BankFileStatuses.Trimis })!;
         Assert.Equal(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), same.StatusChangedAt);
 
-        var moved = work.UpdateBankFile(file.Id, new CrmBankFileInput { BankName = "ING", Amount = 90000, Status = BankFileStatuses.Analiza })!;
+        var moved = work.UpdateBankFile(file.Id, new CrmBankFileInput { BankId = SeedBank(db, "ING"), CreditType = CreditTypes.Np, Amount = 90000, Status = BankFileStatuses.Analiza })!;
         Assert.True(moved.StatusChangedAt > same.StatusChangedAt);
         Assert.Equal(90000m, moved.Amount);
 
@@ -92,7 +104,7 @@ public class CrmWorkServiceTests
         var (crm, db) = Build();
         var work = new CrmWorkService(db);
         work.SetTags(FileOnlyUser, new[] { ClientTagKeys.DeRevenit });
-        work.AddBankFile(FileOnlyUser, new CrmBankFileInput { BankName = "BT", Amount = 1000, Status = BankFileStatuses.Completari });
+        work.AddBankFile(FileOnlyUser, new CrmBankFileInput { BankId = SeedBank(db, "BT"), CreditType = CreditTypes.Np, Amount = 1000, Status = BankFileStatuses.Completari });
 
         var client = crm.GetClients().Single(c => c.UserId == FileOnlyUser);
         Assert.Equal(new[] { ClientTagKeys.DeRevenit }, client.Tags.ToArray());

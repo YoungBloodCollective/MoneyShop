@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { useNavigate } from 'react-router-dom';
 import { useCrmPath } from '@/lib/crmPath';
 import {
-  Search, Users, FolderKanban, LayoutDashboard, Sparkles, CornerDownLeft, CalendarClock, BarChart3, UserCircle,
+  Search, Users, FolderKanban, LayoutDashboard, Sparkles, CornerDownLeft, CalendarClock, BarChart3, UserCircle, Landmark, Settings,
 } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,8 +24,10 @@ const PAGES: Item[] = [
   { key: 'p-cli', title: 'Clienți', to: '/crm/clienti', icon: Users, group: 'Pagini' },
   { key: 'p-dos', title: 'Dosare', to: '/crm/dosare', icon: FolderKanban, group: 'Pagini' },
   { key: 'p-lead', title: 'Lead-uri', to: '/crm/leaduri', icon: Sparkles, group: 'Pagini' },
+  { key: 'p-banci', title: 'Bănci', to: '/crm/banci', icon: Landmark, group: 'Pagini' },
   { key: 'p-prog', title: 'Programări', to: '/crm/programari', icon: CalendarClock, group: 'Pagini' },
   { key: 'p-rap', title: 'Rapoarte', to: '/crm/rapoarte', icon: BarChart3, group: 'Pagini' },
+  { key: 'p-setari', title: 'Setări', to: '/crm/setari', icon: Settings, group: 'Pagini' },
   { key: 'p-profil', title: 'Profilul meu', to: '/crm/profil', icon: UserCircle, group: 'Pagini' },
 ];
 

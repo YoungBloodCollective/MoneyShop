@@ -3,10 +3,10 @@ import toast from 'react-hot-toast';
 import { AlarmClock, Building2, Check, Pencil, Plus, Tag, Trash2, X } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import { apiErrorMessage } from '@/services/api/brokersApi';
-import type { CrmBankFileInput, CrmBankFileItem, CrmClientWork, CrmTaskItem } from '@/types/crm.types';
+import type { BankCatalogItem, CrmBankFileInput, CrmBankFileItem, CrmClientWork, CrmTaskItem } from '@/types/crm.types';
 import { money, dateShort, FIELD_FOCUS, FOCUS_RING } from '@/pages/crm/crmHelpers';
 import {
-  BANK_FILE_STAGES, BANK_SUGGESTIONS, CLIENT_TAGS, CLOSED_BANK_STAGES, bankStage, dueLabel, toLocalInput,
+  BANK_FILE_STAGES, CLIENT_TAGS, CLOSED_BANK_STAGES, CREDIT_TYPES, bankStage, dueLabel, toLocalInput,
 } from './clientWorkLabels';
 
 const INPUT = `w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 ${FIELD_FOCUS}`;
@@ -174,10 +174,21 @@ function TasksPanel({ userId, tasks, onChange }: { userId: number; tasks: CrmTas
   );
 }
 
-const EMPTY_FILE: CrmBankFileInput = { bankName: '', amount: 0, status: 'TRIMIS', notes: '' };
+const EMPTY_FILE: CrmBankFileInput = { bankId: null, creditType: '', amount: 0, status: 'TRIMIS', notes: '' };
 
-function BankFileForm({ initial, onSave, onCancel }: { initial: CrmBankFileInput; onSave: (input: CrmBankFileInput) => Promise<void>; onCancel: () => void }) {
-  const [bankName, setBankName] = useState(initial.bankName);
+function CreditTypePill({ type }: { type?: string | null }) {
+  if (type !== 'NP' && type !== 'IP') return null;
+  const label = CREDIT_TYPES.find(t => t.key === type)?.label ?? type;
+  return (
+    <span title={label} className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${type === 'IP' ? 'bg-indigo-50 text-indigo-700' : 'bg-amber-50 text-amber-700'}`}>
+      {type}
+    </span>
+  );
+}
+
+function BankFileForm({ initial, banks, onSave, onCancel }: { initial: CrmBankFileInput; banks: BankCatalogItem[]; onSave: (input: CrmBankFileInput) => Promise<void>; onCancel: () => void }) {
+  const [bankId, setBankId] = useState(initial.bankId ? String(initial.bankId) : '');
+  const [creditType, setCreditType] = useState<string>(initial.creditType);
   const [amount, setAmount] = useState(initial.amount ? String(initial.amount) : '');
   const [status, setStatus] = useState(initial.status);
   const [notes, setNotes] = useState(initial.notes ?? '');
@@ -186,11 +197,12 @@ function BankFileForm({ initial, onSave, onCancel }: { initial: CrmBankFileInput
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const value = Number(amount.replace(/\s/g, '').replace(',', '.'));
-    if (!bankName.trim()) { toast.error('Alege banca.'); return; }
+    if (!bankId) { toast.error('Alege banca.'); return; }
+    if (creditType !== 'NP' && creditType !== 'IP') { toast.error('Alege tipul de credit.'); return; }
     if (!(value > 0)) { toast.error('Scrie suma.'); return; }
     setSaving(true);
     try {
-      await onSave({ bankName: bankName.trim(), amount: value, status, notes: notes.trim() || null });
+      await onSave({ bankId: Number(bankId), creditType, amount: value, status, notes: notes.trim() || null });
     } finally {
       setSaving(false);
     }
@@ -201,16 +213,23 @@ function BankFileForm({ initial, onSave, onCancel }: { initial: CrmBankFileInput
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         <label className="block text-xs text-slate-500">
           Banca
-          <input list="ms-bank-suggestions" value={bankName} onChange={e => setBankName(e.target.value)} maxLength={100} placeholder="Ex.: Banca Transilvania" className={`${INPUT} mt-1`} />
-          <datalist id="ms-bank-suggestions">
-            {BANK_SUGGESTIONS.map(b => <option key={b} value={b} />)}
-          </datalist>
+          <select value={bankId} onChange={e => setBankId(e.target.value)} className={`${INPUT} mt-1`}>
+            <option value="">Alege banca…</option>
+            {banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
         </label>
         <label className="block text-xs text-slate-500">
-          Suma (lei)
-          <input inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Ex.: 50000" className={`${INPUT} mt-1`} />
+          Tip credit
+          <select value={creditType} onChange={e => setCreditType(e.target.value)} className={`${INPUT} mt-1`}>
+            <option value="">Alege tipul…</option>
+            {CREDIT_TYPES.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+          </select>
         </label>
       </div>
+      <label className="block text-xs text-slate-500">
+        Suma (lei)
+        <input inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Ex.: 50000" className={`${INPUT} mt-1`} />
+      </label>
       <label className="block text-xs text-slate-500">
         Stadiu
         <select value={status} onChange={e => setStatus(e.target.value)} className={`${INPUT} mt-1`}>
@@ -232,6 +251,14 @@ function BankFileForm({ initial, onSave, onCancel }: { initial: CrmBankFileInput
 function BankFilesPanel({ userId, files, onChange }: { userId: number; files: CrmBankFileItem[]; onChange: (f: CrmBankFileItem[]) => void }) {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
+  const [editStatus, setEditStatus] = useState<string | null>(null);
+  const [banks, setBanks] = useState<BankCatalogItem[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    crmApi.getBanks().then(b => { if (active) setBanks(b); }).catch(() => { if (active) toast.error('Nu am putut încărca lista de bănci'); });
+    return () => { active = false; };
+  }, []);
 
   const add = async (input: CrmBankFileInput) => {
     try {
@@ -249,6 +276,7 @@ function BankFilesPanel({ userId, files, onChange }: { userId: number; files: Cr
       const f = await crmApi.updateBankFile(file.id, input);
       onChange(files.map(x => (x.id === f.id ? f : x)));
       setEditing(null);
+      setEditStatus(null);
       if (f.status !== file.status) toast.success(`${f.bankName} → ${bankStage(f.status)?.label ?? f.status}`);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Nu am putut salva dosarul'));
@@ -273,7 +301,7 @@ function BankFilesPanel({ userId, files, onChange }: { userId: number; files: Cr
       icon={Building2}
       action={!adding && <button type="button" onClick={() => { setAdding(true); setEditing(null); }} className={BTN_GHOST}><Plus className="h-4 w-4" /> Dosar</button>}
     >
-      {adding && <div className="mb-3"><BankFileForm initial={EMPTY_FILE} onSave={add} onCancel={() => setAdding(false)} /></div>}
+      {adding && <div className="mb-3"><BankFileForm initial={EMPTY_FILE} banks={banks} onSave={add} onCancel={() => setAdding(false)} /></div>}
       {files.length === 0 && !adding ? (
         <p className="py-2 text-sm text-slate-400">Niciun dosar trimis la bancă. Adaugă-l ca să-i urmărești stadiul și să apară în dashboard.</p>
       ) : (
@@ -281,27 +309,37 @@ function BankFilesPanel({ userId, files, onChange }: { userId: number; files: Cr
           {files.map(f => editing === f.id ? (
             <BankFileForm
               key={f.id}
-              initial={{ bankName: f.bankName, amount: f.amount, status: f.status, notes: f.notes }}
+              initial={{ bankId: f.bankId ?? banks.find(b => b.name === f.bankName)?.id ?? null, creditType: f.creditType ?? '', amount: f.amount, status: editStatus ?? f.status, notes: f.notes }}
+              banks={banks}
               onSave={input => save(f, input)}
-              onCancel={() => setEditing(null)}
+              onCancel={() => { setEditing(null); setEditStatus(null); }}
             />
           ) : (
             <div key={f.id} className="rounded-xl border border-slate-100 px-4 py-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="font-semibold text-slate-800">{f.bankName}</div>
+                  <div className="flex items-center gap-2 font-semibold text-slate-800">{f.bankName} <CreditTypePill type={f.creditType} /></div>
                   <div className="text-sm font-medium text-slate-600">{money(f.amount)}</div>
                 </div>
                 <div className="flex items-center gap-1">
                   <select
                     value={f.status}
-                    onChange={e => save(f, { bankName: f.bankName, amount: f.amount, status: e.target.value, notes: f.notes })}
+                    onChange={e => {
+                      if (f.bankId && f.creditType) {
+                        void save(f, { bankId: f.bankId, creditType: f.creditType, amount: f.amount, status: e.target.value, notes: f.notes });
+                      } else {
+                        setEditing(f.id);
+                        setEditStatus(e.target.value);
+                        setAdding(false);
+                        toast('Alege banca și tipul de credit ca să salvezi.');
+                      }
+                    }}
                     aria-label={`Stadiul dosarului de la ${f.bankName}`}
                     className={`rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 ${FIELD_FOCUS}`}
                   >
                     {BANK_FILE_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                   </select>
-                  <button type="button" onClick={() => { setEditing(f.id); setAdding(false); }} aria-label={`Editează dosarul de la ${f.bankName}`} className={`rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-brand-primary ${FOCUS_RING}`}>
+                  <button type="button" onClick={() => { setEditing(f.id); setEditStatus(null); setAdding(false); }} aria-label={`Editează dosarul de la ${f.bankName}`} className={`rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-brand-primary ${FOCUS_RING}`}>
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button type="button" onClick={() => remove(f)} aria-label={`Șterge dosarul de la ${f.bankName}`} className={`rounded-lg p-1.5 text-slate-300 hover:bg-slate-50 hover:text-rose-600 ${FOCUS_RING}`}>

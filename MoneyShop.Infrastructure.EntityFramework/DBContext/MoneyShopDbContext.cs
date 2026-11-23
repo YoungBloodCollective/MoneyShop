@@ -78,6 +78,7 @@ public class MoneyShopDbContext : DbContext
     // Broker's own follow-up on a client: tasks with reminders, bank files, labels
     public virtual DbSet<ClientTask> ClientTasks { get; set; }
     public virtual DbSet<BankFile> BankFiles { get; set; }
+    public virtual DbSet<BrokerBankCommission> BrokerBankCommissions { get; set; }
     public virtual DbSet<ClientTag> ClientTags { get; set; }
     public virtual DbSet<ClientDocument> ClientDocuments { get; set; }
 
@@ -267,6 +268,7 @@ public class MoneyShopDbContext : DbContext
 
             entity.Property(e => e.Name).HasMaxLength(255);
             entity.Property(e => e.CommissionPercent).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.MonthlyThresholdAmount).HasColumnType("decimal(18,2)");
         });
 
         modelBuilder.Entity<ApplicationBank>(entity =>
@@ -896,9 +898,22 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.Status).HasMaxLength(30);
             entity.Property(e => e.Notes).HasMaxLength(1000);
             entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.CreditType).HasMaxLength(10);
+            entity.HasOne<Bank>().WithMany().HasForeignKey(e => e.BankId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(e => e.BankId);
             foreach (var name in new[] { nameof(BankFile.StatusChangedAt), nameof(BankFile.CreatedAt), nameof(BankFile.UpdatedAt) })
                 entity.Property<DateTime>(name).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
             entity.HasIndex(e => e.UserId);
+        });
+
+        modelBuilder.Entity<BrokerBankCommission>(entity =>
+        {
+            entity.ToTable("BrokerBankCommissions");
+            entity.Property(e => e.CommissionPercent).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.UpdatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+            entity.HasOne<BrokerProfile>().WithMany().HasForeignKey(e => e.BrokerProfileId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne<Bank>().WithMany().HasForeignKey(e => e.BankId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(e => new { e.BrokerProfileId, e.BankId }).IsUnique();
         });
 
         ConfigureBrokerOwned<ClientDocument>(modelBuilder);

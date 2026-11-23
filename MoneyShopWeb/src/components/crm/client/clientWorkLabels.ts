@@ -32,6 +32,11 @@ export const BANK_SUGGESTIONS = [
   'CEC Bank', 'ProCredit Bank', 'Libra Bank', 'Exim Bank', 'Patria Bank', 'Garanti BBVA', 'OTP Bank', 'Alpha Bank',
 ];
 
+export const CREDIT_TYPES: { key: 'NP' | 'IP'; label: string }[] = [
+  { key: 'NP', label: 'Credit Nevoi Personale' },
+  { key: 'IP', label: 'Credit Ipotecar' },
+];
+
 /** "azi, 10:00" / "mâine, 10:00" / "vin. 28 nov., 10:00" in the browser's time zone. */
 export function dueLabel(iso: string): string {
   const d = new Date(iso);

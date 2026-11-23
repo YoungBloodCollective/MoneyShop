@@ -76,7 +76,8 @@ namespace MoneyShop.Api.Controllers
             if (!_crm.IsClientVisible(userId)) return NotFound(NotVisible);
             var error = Validate(input);
             if (error != null) return BadRequest(error);
-            return Ok(_work.AddBankFile(userId, input), "Dosar bancar adăugat");
+            try { return Ok(_work.AddBankFile(userId, input), "Dosar bancar adăugat"); }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
         }
 
         [HttpPut("bank-files/{bankFileId:int}")]
@@ -84,7 +85,9 @@ namespace MoneyShop.Api.Controllers
         {
             var error = Validate(input);
             if (error != null) return BadRequest(error);
-            var file = _work.UpdateBankFile(bankFileId, input);
+            CrmBankFileItem? file;
+            try { file = _work.UpdateBankFile(bankFileId, input); }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
             return file == null ? NotFound("Dosarul bancar nu există.") : Ok(file, "Dosar bancar actualizat");
         }
 
@@ -106,7 +109,8 @@ namespace MoneyShop.Api.Controllers
 
         private static string? Validate(CrmBankFileInput input)
         {
-            if (string.IsNullOrWhiteSpace(input.BankName)) return "Alege banca.";
+            if (input.BankId is not > 0) return "Alege banca.";
+            if (!CreditTypes.IsValid(input.CreditType)) return "Alege tipul de credit.";
             if (input.Amount <= 0 || input.Amount > 100_000_000) return "Suma trebuie să fie mai mare decât 0.";
             if (!BankFileStatuses.IsValid(input.Status)) return "Starea dosarului nu este validă.";
             return null;

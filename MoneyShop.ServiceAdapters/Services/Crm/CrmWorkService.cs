@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using MoneyShop.DomainModel.Entities;
+using BankEntity = MoneyShop.DomainModel.Entities.Bank;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using MoneyShop.ServiceInterface.Interfaces.Crm;
 
@@ -16,7 +17,6 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
     public class CrmWorkService : ICrmWorkService
     {
         private const int MaxTitle = 200;
-        private const int MaxBank = 100;
         private const int MaxNotes = 1000;
 
         private readonly MoneyShopDbContext _context;
@@ -76,11 +76,14 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         public CrmBankFileItem AddBankFile(int userId, CrmBankFileInput input)
         {
             var now = DateTime.UtcNow;
+            var bank = ResolveBank(input);
             var file = new BankFile
             {
                 BrokerProfileId = OwnerFor(userId),
                 UserId = userId,
-                BankName = Trim(input.BankName, MaxBank)!,
+                BankId = bank.Id,
+                BankName = bank.Name,
+                CreditType = input.CreditType,
                 Amount = Math.Round(input.Amount, 2),
                 Status = input.Status!,
                 StatusChangedAt = now,
@@ -97,9 +100,12 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         {
             var file = _context.BankFiles.FirstOrDefault(f => f.Id == bankFileId);
             if (file == null) return null;
+            var bank = ResolveBank(input);
             var now = DateTime.UtcNow;
             if (file.Status != input.Status) file.StatusChangedAt = now;
-            file.BankName = Trim(input.BankName, MaxBank)!;
+            file.BankId = bank.Id;
+            file.BankName = bank.Name;
+            file.CreditType = input.CreditType;
             file.Amount = Math.Round(input.Amount, 2);
             file.Status = input.Status!;
             file.Notes = Trim(input.Notes, MaxNotes);
@@ -231,6 +237,14 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             return string.IsNullOrWhiteSpace(full) ? $"Client #{userId}" : full;
         }
 
+        private BankEntity ResolveBank(CrmBankFileInput input)
+        {
+            var bank = input.BankId == null ? null : _context.Banks.AsNoTracking().FirstOrDefault(b => b.Id == input.BankId && b.Active);
+            if (bank == null) throw new InvalidOperationException("Alege o bancă din listă.");
+            if (!CreditTypes.IsValid(input.CreditType)) throw new InvalidOperationException("Alege tipul de credit.");
+            return bank;
+        }
+
         private static List<string> SortTags(List<string> tags) =>
             tags.OrderBy(t => Array.IndexOf(ClientTagKeys.All, t)).ToList();
 
@@ -257,7 +271,9 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             Id = f.Id,
             UserId = f.UserId,
             ClientName = names != null && names.TryGetValue(f.UserId, out var n) ? n : null,
+            BankId = f.BankId,
             BankName = f.BankName,
+            CreditType = f.CreditType,
             Amount = f.Amount,
             Status = f.Status,
             StatusChangedAt = f.StatusChangedAt,

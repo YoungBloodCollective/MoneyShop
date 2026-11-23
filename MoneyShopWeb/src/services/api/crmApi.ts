@@ -3,7 +3,7 @@ import type {
   CrmDashboardSummary, CrmClientListItem, CrmClientDetail,
   CrmFileListItem, StatusTransitions, CrmIncomeInput, CrmIncomeSnapshot,
   CrmClientWork, CrmTaskItem, CrmBankFileItem, CrmBankFileInput, CrmWorkBoard,
-  ClientDocumentInfo,
+  ClientDocumentInfo, BankCatalogItem, BankCatalogInput, BrokerCommissionItem, BankStatsResult,
 } from '@/types/crm.types';
 
 /** The broker's secret calendar subscription link (https and webcal forms). */
@@ -89,6 +89,35 @@ export const crmApi = {
   },
   async deleteBankFile(id: number): Promise<void> {
     await apiClient.delete(`/crm/bank-files/${id}`);
+  },
+  // ── Bank catalog, commissions and monthly bank numbers ──
+  async getBanks(): Promise<BankCatalogItem[]> {
+    const { data } = await apiClient.get<BankCatalogItem[]>('/crm/banks');
+    return data;
+  },
+  async getAllBanks(): Promise<BankCatalogItem[]> {
+    const { data } = await apiClient.get<BankCatalogItem[]>('/crm/banks/all');
+    return data;
+  },
+  async createBank(input: BankCatalogInput): Promise<BankCatalogItem> {
+    const { data } = await apiClient.post<BankCatalogItem>('/crm/banks', input);
+    return data;
+  },
+  async updateBank(id: number, input: BankCatalogInput): Promise<BankCatalogItem> {
+    const { data } = await apiClient.put<BankCatalogItem>(`/crm/banks/${id}`, input);
+    return data;
+  },
+  async getMyCommissions(): Promise<BrokerCommissionItem[]> {
+    const { data } = await apiClient.get<BrokerCommissionItem[]>('/crm/commissions/mine');
+    return data;
+  },
+  async setMyCommission(bankId: number, percent: number | null): Promise<BrokerCommissionItem> {
+    const { data } = await apiClient.put<BrokerCommissionItem>(`/crm/commissions/mine/${bankId}`, { percent });
+    return data;
+  },
+  async getBankStats(month: string): Promise<BankStatsResult> {
+    const { data } = await apiClient.get<BankStatsResult>('/crm/bank-stats', { params: { month } });
+    return data;
   },
   async setTags(userId: number, tags: string[]): Promise<string[]> {
     const { data } = await apiClient.put<string[]>(`/crm/clients/${userId}/tags`, { tags });
