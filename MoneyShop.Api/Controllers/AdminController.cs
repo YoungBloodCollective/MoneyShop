@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Application;
 using MoneyShop.DomainServices.RepositoryInterfaces.Application;
 using MoneyShop.DomainServices.RepositoryInterfaces.Lead;
+using MoneyShop.ServiceInterface.Interfaces.Lead;
 using MoneyShop.DomainModel.Entities;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using Microsoft.EntityFrameworkCore;
@@ -20,17 +21,20 @@ namespace MoneyShop.Api.Controllers
         private readonly IApplicationService _applicationService;
         private readonly IApplicationRepository _applicationRepository;
         private readonly ILeadCaptureRepository _leadCaptureRepository;
+        private readonly ILeadService _leadService;
         private readonly MoneyShopDbContext _context;
 
         public AdminController(
             IApplicationService applicationService,
             IApplicationRepository applicationRepository,
             ILeadCaptureRepository leadCaptureRepository,
+            ILeadService leadService,
             MoneyShopDbContext context)
         {
             _applicationService = applicationService;
             _applicationRepository = applicationRepository;
             _leadCaptureRepository = leadCaptureRepository;
+            _leadService = leadService;
             _context = context;
         }
 
@@ -210,6 +214,7 @@ namespace MoneyShop.Api.Controllers
                     l.Source,
                     l.AdminNotes,
                     l.BrokerProfileId,
+                    l.UserId,
                     l.Status,
                     l.ContactedAt,
                     l.CreatedAt
@@ -224,40 +229,19 @@ namespace MoneyShop.Api.Controllers
             var appointment = await _context.Appointments.FindAsync(appointmentId);
             if (appointment == null)
                 return NotFound(new { message = "Appointment not found" });
-            var existing = _leadCaptureRepository.Get().FirstOrDefault(l => l.Telefon == appointment.Telefon && l.Email == appointment.Email);
-            if (existing != null)
-                return Conflict(new { message = "Lead-ul exista deja", leadId = existing.Id });
-            var hasIntarzieri = !string.IsNullOrWhiteSpace(appointment.IntarzieriBirou)
-                && !appointment.IntarzieriBirou.Equals("NU", StringComparison.OrdinalIgnoreCase);
-            int? intarzieriZileMax = appointment.IntarzieriBirou switch
-            {
-                "Da-30 zile" => 30,
-                "Da-60 zile" => 60,
-                "Da-Peste 90 zile" => 90,
-                _ => (int?)null,
-            };
-            var hasPopriri = !string.IsNullOrWhiteSpace(appointment.PopriRecuperare)
-                && appointment.PopriRecuperare.Equals("DA", StringComparison.OrdinalIgnoreCase);
+            var result = await _leadService.CreateFromAppointmentAsync(appointment);
+            if (!result.Created)
+                return Conflict(new { message = "Lead-ul exista deja", leadId = result.Lead.Id });
+            return Ok(new { message = "Lead creat cu succes", leadId = result.Lead.Id });
+        }
 
-            var lead = new LeadCapture
-            {
-                BrokerProfileId = appointment.BrokerProfileId,
-                NumePrenume = $"{appointment.Nume} {appointment.Prenume}".Trim(),
-                Telefon = appointment.Telefon,
-                Email = appointment.Email,
-                Oras = appointment.Judet,
-                VenitNetLunar = appointment.SalariuNet,
-                CrediteActive = false,
-                Intarzieri = hasIntarzieri,
-                IntarzieriZileMax = intarzieriZileMax,
-                PoprireSauExecutorUltimii5Ani = hasPopriri,
-                Source = "appointment",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-            };
-            _leadCaptureRepository.Insert(lead);
-            await _leadCaptureRepository.SaveChangesAsync();
-            return Ok(new { message = "Lead creat cu succes", leadId = lead.Id });
+        [HttpPost("leads/{id}/acord-link")]
+        public async Task<IActionResult> CreateLeadAcordLink(int id)
+        {
+            var link = await _leadService.IssueAcordLinkAsync(id);
+            if (link == null)
+                return NotFound(new { message = "Lead not found" });
+            return Ok(new { token = link.Token, expiresAt = link.ExpiresAt, brokerSlug = link.BrokerSlug });
         }
 
         /// <summary>Nou → Contactat / Necalificat / Convertit; the first "contacted" moment is kept for the response-time metric.</summary>
@@ -366,12 +350,6 @@ namespace MoneyShop.Api.Controllers
     public class UpdateLeadStatusRequest
     {
         public string? Status { get; set; }
-    }
-
-    public static class LeadStatuses
-    {
-        public const string New = "Nou";
-        public static readonly HashSet<string> All = new(StringComparer.Ordinal) { New, "Contactat", "Necalificat", "Convertit" };
     }
 
     public class UpdateStatusRequest

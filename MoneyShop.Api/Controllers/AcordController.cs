@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoneyShop.ServiceInterface.Interfaces.Acord;
 using MoneyShop.ServiceInterface.Interfaces.Audit;
+using MoneyShop.ServiceInterface.Interfaces.Lead;
 using MoneyShop.ServiceInterface.Interfaces.Subject;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -52,9 +53,11 @@ public class AcordController : BaseController
     private readonly IBankConsentService _bankConsentService;
     private readonly ILogger<AcordController> _logger;
     private readonly IAuditService _audit;
+    private readonly ILeadService _leads;
 
-    public AcordController(IAcordService acordService, IBankConsentService bankConsentService, ILogger<AcordController> logger, IAuditService audit)
+    public AcordController(IAcordService acordService, IBankConsentService bankConsentService, ILogger<AcordController> logger, IAuditService audit, ILeadService leads)
     {
+        _leads = leads;
         _acordService = acordService;
         _bankConsentService = bankConsentService;
         _logger = logger;
@@ -81,6 +84,20 @@ public class AcordController : BaseController
 
         Response.Headers.ContentDisposition = $"inline; filename=\"{file.FileName}\"";
         return File(file.Content, "application/pdf");
+    }
+
+    /// <summary>
+    /// What the broker already knows about a lead, for the personal acord link. The opaque token is
+    /// the only credential, and anything that is not a valid, unexpired token gets the same answer.
+    /// </summary>
+    [HttpGet("lead-prefill")]
+    [EnableRateLimiting("public-booking")]
+    public async Task<IActionResult> LeadPrefill([FromQuery(Name = "t")] string? token)
+    {
+        var prefill = await _leads.GetAcordPrefillAsync(token);
+        if (prefill == null) return NotFound("Linkul nu mai este valid.");
+        Response.Headers.CacheControl = "no-store";
+        return Ok(new { nume = prefill.Nume, prenume = prefill.Prenume, telefon = prefill.Telefon, email = prefill.Email });
     }
 
     [HttpGet("admin/broker-form/{bankCode}/{documentCode}")]
@@ -208,6 +225,12 @@ public class AcordController : BaseController
 
             if (!result.Success)
                 return BadRequest(result.Message ?? "Trimiterea nu a reusit");
+
+            if (!string.IsNullOrWhiteSpace(request.LeadToken) && result.AcordId.HasValue)
+            {
+                try { await _leads.LinkAcordAsync(request.LeadToken, result.AcordId.Value); }
+                catch (Exception ex) { _logger.LogError(ex, "Could not link the lead to acord {AcordId}", result.AcordId); }
+            }
 
             return Ok(new { success = true, acordId = result.AcordId });
         }
@@ -432,6 +455,7 @@ public class AcordSubmitRequest
     public string? TipAct { get; set; }
     public string? AgentCode { get; set; }
     public string? BrokerSlug { get; set; }
+    public string? LeadToken { get; set; }
 
     public string? StareCivila { get; set; }
     public string? StareLocativa { get; set; }

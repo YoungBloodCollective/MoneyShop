@@ -6,6 +6,7 @@ using MoneyShop.DomainModel.Entities;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using MoneyShop.ServiceAdapters.Services.Otp;
 using MoneyShop.ServiceInterface.Interfaces.Broker;
+using MoneyShop.ServiceInterface.Interfaces.Lead;
 using MoneyShop.ServiceInterface.Interfaces.Scheduling;
 using System.Security.Claims;
 
@@ -22,12 +23,14 @@ namespace MoneyShop.Api.Controllers
         private readonly IAppointmentSchedulingService _scheduling;
         private readonly IPublicBookingService _booking;
         private readonly IConfiguration _configuration;
+        private readonly ILeadService _leads;
         private const string NotificationEmail = "alex.moore@moneyshop.ro";
 
         public AppointmentsController(MoneyShopDbContext db, ILogger<AppointmentsController> logger, EmailService emailService,
             IBrokerProfileService brokerProfiles, IAppointmentSchedulingService scheduling, IPublicBookingService booking,
-            IConfiguration configuration)
+            IConfiguration configuration, ILeadService leads)
         {
+            _leads = leads;
             _brokerProfiles = brokerProfiles;
             _db = db;
             _logger = logger;
@@ -137,6 +140,15 @@ namespace MoneyShop.Api.Controllers
             await _db.SaveChangesAsync();
 
             _logger.LogInformation("New appointment created: {Id} - {Nume} {Prenume}", appointment.Id, appointment.Nume, appointment.Prenume);
+
+            try
+            {
+                await _leads.CreateFromAppointmentAsync(appointment);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Could not create the lead for appointment {Id}", appointment.Id);
+            }
 
             _ = _emailService.SendAppointmentNotificationAsync(
                 _brokerProfiles.GetNotificationEmail(brokerId) ?? NotificationEmail,
