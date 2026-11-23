@@ -9,7 +9,6 @@ import type { ClientDocumentInfo, CrmClientDetail } from '@/types/crm.types';
 import type { DocumentPreviewSource } from '@/components/crm/DocumentPreviewModal';
 import { BANK_NAMES, fileLabel } from '@/components/crm/acord/acordLabels';
 import { dateShort, docTypeLabel, FOCUS_RING } from '@/pages/crm/crmHelpers';
-import { BANK_SUGGESTIONS } from './clientWorkLabels';
 
 interface FolderItem {
   key: string;
@@ -67,6 +66,13 @@ export function ClientFolderCard({ client, onPreview }: { client: CrmClientDetai
   const [busyFolder, setBusyFolder] = useState<string | null>(null);
   const [addingBank, setAddingBank] = useState(false);
   const [newBank, setNewBank] = useState('');
+  const [catalogBanks, setCatalogBanks] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    crmApi.getBanks().then(b => { if (active) setCatalogBanks(b.map(x => x.name)); }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
   const fileInput = useRef<HTMLInputElement>(null);
   const target = useRef<FolderDef | null>(null);
 
@@ -226,7 +232,7 @@ export function ClientFolderCard({ client, onPreview }: { client: CrmClientDetai
             aria-label="Banca pentru care faci dosar"
             className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm"
           />
-          <datalist id="ms-folder-banks">{BANK_SUGGESTIONS.map(b => <option key={b} value={b} />)}</datalist>
+          <datalist id="ms-folder-banks">{catalogBanks.map(b => <option key={b} value={b} />)}</datalist>
           <button type="submit" className="rounded-lg bg-brand-primary px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90">Adaugă</button>
           <button type="button" onClick={() => setAddingBank(false)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600">Renunță</button>
         </form>

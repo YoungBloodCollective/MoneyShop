@@ -11,7 +11,10 @@ namespace MoneyShop.DomainModel.Entities
         public int Id { get; set; }
         public int? BrokerProfileId { get; set; }
         public int UserId { get; set; }
+        public int? BankId { get; set; }
         public string BankName { get; set; } = null!;
+        /// <summary>NP (credit de nevoi personale) or IP (credit ipotecar).</summary>
+        public string? CreditType { get; set; }
         public decimal Amount { get; set; }
         public string Status { get; set; } = null!;
         public DateTime StatusChangedAt { get; set; }

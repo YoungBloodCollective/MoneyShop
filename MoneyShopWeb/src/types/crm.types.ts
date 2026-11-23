@@ -236,7 +236,9 @@ export interface CrmBankFileItem {
   id: number;
   userId: number;
   clientName?: string | null;
+  bankId?: number | null;
   bankName: string;
+  creditType?: CreditType | null;
   amount: number;
   status: string;
   statusChangedAt: string;
@@ -245,11 +247,98 @@ export interface CrmBankFileItem {
   updatedAt: string;
 }
 
+export type CreditType = 'NP' | 'IP';
+
 export interface CrmBankFileInput {
-  bankName: string;
+  bankId: number | null;
+  creditType: CreditType | '';
   amount: number;
   status: string;
   notes?: string | null;
+}
+
+export interface BankCatalogItem {
+  id: number;
+  name: string;
+  active: boolean;
+  commissionPercent: number;
+  monthlyThresholdAmount?: number | null;
+  sortOrder: number;
+}
+
+export interface BankCatalogInput {
+  name: string;
+  active: boolean;
+  commissionPercent: number;
+  monthlyThresholdAmount: number | null;
+  sortOrder: number;
+}
+
+export interface BrokerCommissionItem {
+  bankId: number;
+  name: string;
+  defaultPercent: number;
+  myPercent?: number | null;
+}
+
+export interface BankVolume {
+  disbursedAmount: number;
+  disbursedCount: number;
+  npAmount: number;
+  npCount: number;
+  ipAmount: number;
+  ipCount: number;
+  unknownAmount: number;
+  unknownCount: number;
+  inProgressAmount: number;
+  inProgressCount: number;
+}
+
+export interface BankMineVolume extends BankVolume {
+  commissionPercent: number;
+  estimatedCommission: number;
+}
+
+/** Network numbers: brokers only get the disbursed amount, every other field is absent. */
+export interface BankNetworkVolume {
+  disbursedAmount: number;
+  disbursedCount?: number | null;
+  npAmount?: number | null;
+  npCount?: number | null;
+  ipAmount?: number | null;
+  ipCount?: number | null;
+  unknownAmount?: number | null;
+  unknownCount?: number | null;
+  inProgressAmount?: number | null;
+  inProgressCount?: number | null;
+}
+
+export interface BankStatsItem {
+  bankId: number;
+  name: string;
+  active: boolean;
+  threshold?: number | null;
+  network: BankNetworkVolume;
+  mine: BankMineVolume;
+}
+
+export interface BrokerStatsItem {
+  brokerProfileId: number;
+  brokerName: string;
+  disbursedAmount: number;
+  disbursedCount: number;
+  npAmount: number;
+  npCount: number;
+  ipAmount: number;
+  ipCount: number;
+}
+
+export interface BankStatsResult {
+  month: string;
+  unattributed: { count: number; amount: number };
+  hasBrokerProfile: boolean;
+  banks: BankStatsItem[];
+  byBroker?: BrokerStatsItem[] | null;
 }
 
 export interface CrmClientWork {
