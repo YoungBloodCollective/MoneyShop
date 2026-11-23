@@ -1,6 +1,6 @@
 import { useBroker, useBrokerContact } from '@/context/brokerContextValue';
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Phone, Lock, ChevronLeft, ChevronRight, CheckCircle2, Shield, Award, Clock, Users, FileCheck, Building2, ArrowRight, Menu, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInView } from '@/hooks/useInView';
@@ -70,10 +70,20 @@ const judete = [
 
 const tipuriCredit = ['Credit Nevoi Personale', 'Credit Ipotecar', 'Refinantare'];
 
+const TIP_CREDIT_BY_PATH: Record<string, string> = {
+  '/nevoi-personale/credit': 'Credit Nevoi Personale',
+  '/credit/ipotecar': 'Credit Ipotecar',
+  '/refinantare/credit': 'Refinantare',
+};
+
+function tipCreditForPath(pathname: string): string {
+  return TIP_CREDIT_BY_PATH[pathname.replace(/\/+$/, '')] ?? '';
+}
+
 const howItWorks = [
   { num: 1, title: 'Calculeaza', desc: 'Alege suma si tipul de credit', img: '/images/landing/step1.jpg' },
-  { num: 2, title: 'Verificare 100% Online', desc: 'ANAF \u2022 Birou de Credite', img: '/images/landing/step2.jpg' },
-  { num: 3, title: 'Compara Oferte', desc: 'Cele mai bune banci', img: '/images/landing/step3.jpg' },
+  { num: 2, title: 'Verificare 100% Online', desc: 'Cu acordul tău, prin mandat', img: '/images/landing/step2.jpg' },
+  { num: 3, title: 'Compara Oferte', desc: 'De la bănci și IFN-uri', img: '/images/landing/step3.jpg' },
   { num: 4, title: 'Semneaza', desc: 'Aplica rapid', img: '/images/landing/step4.jpg' },
 ];
 
@@ -124,7 +134,8 @@ export default function LandingPage() {
   const [partnerAgreed, setPartnerAgreed] = useState(false);
   const [partnerMarketing, setPartnerMarketing] = useState(false);
   const [showProgrameaza, setShowProgrameaza] = useState(false);
-  const [progForm, setProgForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
+  const presetTipCredit = tipCreditForPath(useLocation().pathname);
+  const [progForm, setProgForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: presetTipCredit, salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
   const [progLoading, setProgLoading] = useState(false);
   const [progStep, setProgStep] = useState<1 | 2>(1);
   const [progAgreed, setProgAgreed] = useState(false);
@@ -134,7 +145,7 @@ export default function LandingPage() {
   const [progSlot, setProgSlot] = useState<string | null>(null);
   const [progSlotUnavailable, setProgSlotUnavailable] = useState(false);
   const [progSlotsKey, setProgSlotsKey] = useState(0);
-  const [inlineForm, setInlineForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: '', salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
+  const [inlineForm, setInlineForm] = useState({ nume: '', prenume: '', judet: '', tipCredit: presetTipCredit, salariuNet: '', telefon: '', email: '', intarzieriHas: '', intarzieriBirou: '', popriRecuperare: '' });
   const [inlineLoading, setInlineLoading] = useState(false);
   const [inlineSuccess, setInlineSuccess] = useState(false);
   const [inlineAlreadyRegistered, setInlineAlreadyRegistered] = useState(false);
@@ -422,7 +433,7 @@ export default function LandingPage() {
               <span className="text-lg sm:text-2xl lg:text-[2.2rem] font-extrabold bg-yellow-300 px-2 py-0.5 rounded-lg text-gray-900">100% Gratuit</span>
             </div>
             <p className="text-gray-500 mt-2 text-xs sm:text-sm lg:text-base hidden sm:block animate-slide-up anim-delay-2">
-              Compară ofertele <strong className="text-gray-700">băncilor partenere</strong> și discută gratuit cu un <strong className="text-gray-700">broker autorizat</strong>
+              Compară oferte de credit de la <strong className="text-gray-700">mai multe bănci</strong> și discută gratuit cu un <strong className="text-gray-700">intermediar de credite înscris la ANPC</strong>
             </p>
             <div className="hidden sm:flex flex-wrap gap-1.5 mt-3 animate-slide-up anim-delay-2">
               {[
@@ -632,7 +643,7 @@ export default function LandingPage() {
       {/* ══════════ BANK PARTNERS CAROUSEL ══════════ */}
       <section className="bg-white border-y border-gray-100 py-6 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4">
-          <p className="text-center text-xs text-gray-400 mb-5 font-medium tracking-wide">&mdash; Parteneri Bancari &mdash;</p>
+          <p className="text-center text-xs text-gray-400 mb-5 font-medium tracking-wide">&mdash; Bănci ale căror oferte le comparăm &mdash;</p>
           <div className="relative">
             <button onClick={() => scrollCarousel('left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors">
               <ChevronLeft size={16} className="text-gray-600" />
@@ -648,6 +659,9 @@ export default function LandingPage() {
               <ChevronRight size={16} className="text-gray-600" />
             </button>
           </div>
+          <p className="text-center text-[11px] text-gray-400 mt-4">
+            Mărcile aparțin titularilor lor. MoneyShop nu este afiliat cu băncile afișate și nu acționează în numele lor; prezentăm ofertele lor publice pentru comparație.
+          </p>
         </div>
       </section>
 
@@ -867,7 +881,7 @@ export default function LandingPage() {
               <Building2 size={22} className="text-blue-400 shrink-0" />
               <div>
                 <p className="text-lg font-extrabold text-white leading-tight">{bankCount}+</p>
-                <p className="text-[10px] text-gray-400">Banci Partenere</p>
+                <p className="text-[10px] text-gray-400">Bănci comparate</p>
               </div>
             </div>
             <div className="flex items-center gap-2.5">
@@ -910,7 +924,7 @@ export default function LandingPage() {
                 <img src="/images/logo/logo-trimmed.png" alt="MoneyShop" className="h-8 brightness-0 invert object-contain" />
               </div>
               <p className="text-[11px] text-gray-500 leading-relaxed">
-                Broker de credite autorizat ANPC. Comparam ofertele tuturor bancilor pentru tine, complet gratuit.
+                Platformă operată de MONEYSHOP FINTECH SRL. Intermedierea creditelor este prestată de POPIX BROKERAGE CONSULTING SRL (CUI 50477260), intermediar de credite înscris în registrul ANPC. Comparăm oferte de la bănci și IFN-uri, gratuit pentru tine.
               </p>
             </div>
             <div>

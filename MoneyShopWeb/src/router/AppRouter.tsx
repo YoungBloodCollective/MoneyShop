@@ -95,6 +95,10 @@ export function AppRouter() {
       <Routes>
         {/* Landing */}
         <Route path="/" element={<HomeRoute />} />
+        {/* Pagini de destinație din Google Ads: aceeași pagină principală, cu tipul de credit preselectat */}
+        <Route path="/nevoi-personale/credit" element={<HomeRoute />} />
+        <Route path="/credit/ipotecar" element={<HomeRoute />} />
+        <Route path="/refinantare/credit" element={<HomeRoute />} />
 
         {/* Public KYC scan page (phone browser, no layout) */}
         <Route path="/kyc/scan/:token" element={<KycScanPage />} />
