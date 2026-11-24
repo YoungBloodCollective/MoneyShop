@@ -93,7 +93,15 @@ export default function BrokerInvitePage() {
 
     let active = true;
     brokerInvitesApi.preview(token)
-      .then(invite => { if (active) setState({ kind: 'ready', invite }); })
+      .then(invite => {
+        if (!active) return;
+        setState({ kind: 'ready', invite });
+        const parts = (invite.name ?? '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) {
+          setPrenume(v => v || parts.slice(0, -1).join(' '));
+          setNume(v => v || parts[parts.length - 1]);
+        }
+      })
       .catch(err => { if (active) setState({ kind: 'problem', ...problemFrom(err) }); });
     brokerInvitesApi.terms().then(t => { if (active) setTerms(t); }).catch(() => undefined);
     return () => { active = false; };
@@ -351,10 +359,10 @@ export default function BrokerInvitePage() {
             />
             <span className="text-[13px] text-light-70 leading-snug">
               Am citit și accept{' '}
-              <button type="button" onClick={() => setTermsOpen(true)} className="font-medium text-brand-primary underline underline-offset-2">
+              <button type="button" onClick={() => setTermsOpen(true)} className="inline text-left font-medium text-brand-primary underline underline-offset-2">
                 Termenii de utilizare a CRM-ului MoneyShop
               </button>
-              . <span className="text-error-500">*</span>
+              <span className="text-error-500"> *</span>
             </span>
           </label>
 
