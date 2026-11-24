@@ -16,6 +16,7 @@ import { crmApi } from '@/services/api/crmApi';
 import type { CrmDashboardSummary } from '@/types/crm.types';
 import { ErrorState } from './crmShared';
 import { FOCUS_RING } from './crmHelpers';
+import { TargetDonuts } from '@/components/crm/TargetDonuts';
 import { IntakeLinkCard } from '@/components/crm/IntakeLinkCard';
 import { MoneyShopNetworkSection } from '@/components/crm/NetworkMirror';
 import { brokersApi } from '@/services/api/brokersApi';
@@ -156,10 +157,7 @@ export default function CrmDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-500">Prezentare generală a activității tale</p>
-      </div>
+      <TargetDonuts />
 
       <TodayAgenda />
 

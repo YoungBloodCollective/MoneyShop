@@ -26,6 +26,9 @@ export interface BrokerProfile {
   status: 'Active' | 'Suspended';
   plan: string;
   type: BrokerType;
+  targetNpAmount: number;
+  targetIpAmount: number;
+  targetCommissionAmount: number;
   loginEmail: string;
   loginPhone?: string | null;
   hasPassword: boolean;
@@ -59,7 +62,7 @@ export interface BrokerAdminItem {
   createdAt: string;
 }
 
-export type BrokerSelfUpdate = Partial<Pick<BrokerProfile, 'displayName' | 'publicPhone' | 'publicEmail' | 'notificationEmail' | 'bio'>>;
+export type BrokerSelfUpdate = Partial<Pick<BrokerProfile, 'displayName' | 'publicPhone' | 'publicEmail' | 'notificationEmail' | 'bio' | 'targetNpAmount' | 'targetIpAmount' | 'targetCommissionAmount'>>;
 
 export type BrokerAdminUpdate = BrokerSelfUpdate & Partial<Pick<BrokerProfile,
   'slug' | 'status' | 'plan' | 'type' | 'firmaNume' | 'firmaSediu' | 'firmaCui' | 'firmaRegCom' | 'firmaEuid' |
