@@ -14,7 +14,7 @@ namespace MoneyShop.ServiceAdapters.Services.Broker;
 
 public class BrokerProfileService : IBrokerProfileService
 {
-    private const int BROKER_ROLE_ID = 3;
+    internal const int BROKER_ROLE_ID = 3;
     private const string STATUS_ACTIVE = "Active";
     private const string STATUS_SUSPENDED = "Suspended";
 
@@ -169,6 +169,8 @@ public class BrokerProfileService : IBrokerProfileService
                 Status = x.Profile.Status,
                 Plan = x.Profile.Plan,
                 Type = x.Profile.Type,
+                Oras = x.Profile.Oras,
+                Judet = x.Profile.Judet,
                 AcordAvailable = HasLegalIdentity(x.Profile),
                 Acorduri = acorduri.GetValueOrDefault(x.Profile.Id),
                 Programari = programari.GetValueOrDefault(x.Profile.Id),
@@ -209,32 +211,7 @@ public class BrokerProfileService : IBrokerProfileService
         var slugError = ValidateSlug(slug, null);
         if (slugError != null) return BrokerSaveResult.Fail(slugError);
 
-        var user = new Utilizatori
-        {
-            Nume = nume,
-            Prenume = prenume,
-            Mail = email,
-            Username = email,
-            NumarTelefon = phone,
-            Parola = string.IsNullOrEmpty(input.Password) ? null : AccountService.HashPassword(input.Password),
-            IdRol = BROKER_ROLE_ID,
-            EmailVerified = false,
-            PhoneVerified = false,
-            IsDeleted = false
-        };
-
-        var profile = new BrokerProfile
-        {
-            User = user,
-            Slug = slug,
-            DisplayName = $"{prenume} {nume}",
-            PublicEmail = email,
-            PublicPhone = phone,
-            Status = STATUS_ACTIVE,
-            Plan = "Partener",
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+        var (user, profile) = BuildBrokerAccount(nume, prenume, email, phone, string.IsNullOrEmpty(input.Password) ? null : input.Password, slug, emailVerified: false, DateTime.UtcNow);
 
         var error = ApplyAdminFields(profile, input, isCreate: true);
         if (error != null) return BrokerSaveResult.Fail(error);
@@ -244,6 +221,36 @@ public class BrokerProfileService : IBrokerProfileService
 
         _logger.LogInformation("Broker {Slug} created (profile {Id}, user {UserId})", profile.Slug, profile.Id, user.IdUtilizator);
         return BrokerSaveResult.Ok(profile.Id);
+    }
+
+    internal static (Utilizatori User, BrokerProfile Profile) BuildBrokerAccount(string nume, string prenume, string email, string phone, string? password, string slug, bool emailVerified, DateTime nowUtc)
+    {
+        var user = new Utilizatori
+        {
+            Nume = nume,
+            Prenume = prenume,
+            Mail = email,
+            Username = email,
+            NumarTelefon = phone,
+            Parola = password == null ? null : AccountService.HashPassword(password),
+            IdRol = BROKER_ROLE_ID,
+            EmailVerified = emailVerified,
+            PhoneVerified = false,
+            IsDeleted = false
+        };
+        var profile = new BrokerProfile
+        {
+            User = user,
+            Slug = slug,
+            DisplayName = $"{prenume} {nume}",
+            PublicEmail = email,
+            PublicPhone = phone,
+            Status = STATUS_ACTIVE,
+            Plan = "Partener",
+            CreatedAt = nowUtc,
+            UpdatedAt = nowUtc
+        };
+        return (user, profile);
     }
 
     public BrokerSaveResult Update(int id, BrokerAdminUpdateInput input)
@@ -302,9 +309,41 @@ public class BrokerProfileService : IBrokerProfileService
             profile.Bio = bio.Length == 0 ? null : bio;
         }
 
+        var locationError = ApplyLocation(profile, input);
+        if (locationError != null) return locationError;
+
         return ApplyTarget(input.TargetNpAmount, "nevoi personale", v => profile.TargetNpAmount = v)
                ?? ApplyTarget(input.TargetIpAmount, "ipotecar", v => profile.TargetIpAmount = v)
                ?? ApplyTarget(input.TargetCommissionAmount, "comision", v => profile.TargetCommissionAmount = v);
+    }
+
+    private static string? ApplyLocation(BrokerProfile profile, BrokerSelfUpdateInput input)
+    {
+        if (input.Oras != null)
+        {
+            var city = CleanText(input.Oras);
+            if (city != null && city.Length > 100) return "Orașul poate avea maxim 100 de caractere";
+            profile.Oras = city;
+        }
+
+        if (input.Judet != null)
+        {
+            if (string.IsNullOrWhiteSpace(input.Judet)) profile.Judet = null;
+            else
+            {
+                var county = RomanianCounties.Canonical(input.Judet);
+                if (county == null) return "Județul nu este valid";
+                profile.Judet = county;
+            }
+        }
+
+        return null;
+    }
+
+    public static string? CleanText(string? value)
+    {
+        var city = Regex.Replace((value ?? string.Empty).Trim(), @"\s+", " ");
+        return city.Length == 0 ? null : city;
     }
 
     private static string? ApplyTarget(decimal? value, string label, Action<decimal> set)
@@ -391,12 +430,19 @@ public class BrokerProfileService : IBrokerProfileService
         return null;
     }
 
-    private string? ValidateSlug(string slug, int? ownId)
+    public static string? CheckSlugFormat(string slug, int maxLength = 63)
     {
-        if (!SlugPattern.IsMatch(slug))
-            return "Adresa trebuie sa aiba 3-63 de caractere: litere mici, cifre si cratime (nu la inceput sau la sfarsit)";
+        if (!SlugPattern.IsMatch(slug) || slug.Length > maxLength)
+            return $"Adresa trebuie sa aiba 3-{maxLength} de caractere: litere mici, cifre si cratime (nu la inceput sau la sfarsit)";
         if (ReservedSlugs.Contains(slug))
             return "Aceasta adresa este rezervata";
+        return null;
+    }
+
+    private string? ValidateSlug(string slug, int? ownId)
+    {
+        var formatError = CheckSlugFormat(slug);
+        if (formatError != null) return formatError;
         if (_context.BrokerProfiles.Any(p => p.Slug == slug && (ownId == null || p.Id != ownId)))
             return "Aceasta adresa este deja folosita de alt broker";
         return null;
@@ -420,7 +466,7 @@ public class BrokerProfileService : IBrokerProfileService
         return Regex.Replace(builder.ToString(), "-{2,}", "-").Trim('-');
     }
 
-    private static string? NormalisePhone(string? phone)
+    public static string? NormalisePhone(string? phone)
     {
         if (string.IsNullOrWhiteSpace(phone)) return null;
         var digits = new string(phone.Where(char.IsDigit).ToArray());
@@ -460,6 +506,10 @@ public class BrokerProfileService : IBrokerProfileService
             TargetNpAmount = p.TargetNpAmount,
             TargetIpAmount = p.TargetIpAmount,
             TargetCommissionAmount = p.TargetCommissionAmount,
+            Oras = p.Oras,
+            Judet = p.Judet,
+            TermsVersion = p.TermsVersion,
+            TermsAcceptedAt = p.TermsAcceptedAt,
             LoginEmail = user.Mail ?? string.Empty,
             LoginPhone = user.NumarTelefon,
             HasPassword = !string.IsNullOrEmpty(user.Parola),

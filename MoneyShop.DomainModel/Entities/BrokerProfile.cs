@@ -45,6 +45,13 @@ namespace MoneyShop.DomainModel.Entities
         public string? ReprezentantNume { get; set; }
         public string? ReprezentantTelefon { get; set; }
 
+        public string? Oras { get; set; }
+        public string? Judet { get; set; }
+
+        public string? TermsVersion { get; set; }
+        public DateTime? TermsAcceptedAt { get; set; }
+        public string? TermsAcceptedIp { get; set; }
+
         public bool MangoAgreementEnabled { get; set; }
         public string? MangoEmail { get; set; }
 

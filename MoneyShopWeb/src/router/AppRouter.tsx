@@ -58,6 +58,7 @@ const LegalMenuPage = lazy(() => import('@/pages/legal/LegalMenuPage'));
 const PublicBrokerSearchPage = lazy(() => import('@/pages/broker/PublicBrokerSearchPage'));
 const AcordClientPage = lazy(() => import('@/pages/acord/AcordClientPage'));
 const BankConsentPage = lazy(() => import('@/pages/bank-consent/BankConsentPage'));
+const BrokerInvitePage = lazy(() => import('@/pages/broker-invite/BrokerInvitePage'));
 
 const SuperAdminInboxPage = lazy(() => import('@/pages/admin/SuperAdminInboxPage'));
 const AdminApplicationsPage = lazy(() => import('@/pages/admin/AdminApplicationsPage'));
@@ -110,6 +111,9 @@ export function AppRouter() {
         {/* Public client consent + document upload (shared link, no layout) */}
         <Route path="/acord" element={<AcordClientPage />} />
         <Route path="/consimtamant/:token" element={<BankConsentPage />} />
+
+        {/* Private invitation link for a new broker (token in ?t=, removed from the URL on load) */}
+        <Route path="/broker/invitatie" element={<BrokerInvitePage />} />
 
         {/* Thank you page for Google Ads conversion tracking */}
         <Route path="/multumim" element={<ThankYouPage />} />
