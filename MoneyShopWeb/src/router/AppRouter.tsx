@@ -66,6 +66,7 @@ const AdminBrokersPage = lazy(() => import('@/pages/admin/AdminBrokersPage'));
 const AdminPartnersPage = lazy(() => import('@/pages/admin/AdminPartnersPage'));
 const AdminBrokerAccountsPage = lazy(() => import('@/pages/admin/AdminBrokerAccountsPage'));
 
+const AdminDashboardPage = lazy(() => import('@/pages/crm/AdminDashboardPage'));
 const CrmDashboardPage = lazy(() => import('@/pages/crm/CrmDashboardPage'));
 const CrmClientsPage = lazy(() => import('@/pages/crm/CrmClientsPage'));
 const CrmClientDetailPage = lazy(() => import('@/pages/crm/CrmClientDetailPage'));
@@ -170,7 +171,7 @@ export function AppRouter() {
         {/* Super Admin — the whole network, in its own workspace (same pages as the CRM, its own
             menu). Brokers who open any /admin URL are sent to their CRM by ProtectedRoute. */}
         <Route element={<ProtectedRoute superAdminOnly><CrmLayout variant="admin" /></ProtectedRoute>}>
-          <Route path="/admin" element={<CrmDashboardPage />} />
+          <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/de-atribuit" element={<SuperAdminInboxPage />} />
           <Route path="/admin/clienti" element={<CrmClientsPage />} />
           <Route path="/admin/clienti/:userId" element={<CrmClientDetailPage />} />

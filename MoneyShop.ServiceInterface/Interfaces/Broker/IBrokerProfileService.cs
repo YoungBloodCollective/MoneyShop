@@ -73,6 +73,7 @@ public class BrokerProfileView
     public string? Bio { get; set; }
     public string Status { get; set; } = null!;
     public string Plan { get; set; } = null!;
+    public string Type { get; set; } = null!;
     public string LoginEmail { get; set; } = null!;
     public string? LoginPhone { get; set; }
     public bool HasPassword { get; set; }
@@ -99,6 +100,7 @@ public class BrokerAdminItem
     public string LoginEmail { get; set; } = null!;
     public string Status { get; set; } = null!;
     public string Plan { get; set; } = null!;
+    public string Type { get; set; } = null!;
     public bool AcordAvailable { get; set; }
     public int Acorduri { get; set; }
     public int Programari { get; set; }
@@ -120,6 +122,7 @@ public class BrokerAdminUpdateInput : BrokerSelfUpdateInput
     public string? Slug { get; set; }
     public string? Status { get; set; }
     public string? Plan { get; set; }
+    public string? Type { get; set; }
     public string? FirmaNume { get; set; }
     public string? FirmaSediu { get; set; }
     public string? FirmaCui { get; set; }

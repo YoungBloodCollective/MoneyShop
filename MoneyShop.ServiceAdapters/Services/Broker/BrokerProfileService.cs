@@ -168,6 +168,7 @@ public class BrokerProfileService : IBrokerProfileService
                 LoginEmail = x.Mail ?? string.Empty,
                 Status = x.Profile.Status,
                 Plan = x.Profile.Plan,
+                Type = x.Profile.Type,
                 AcordAvailable = HasLegalIdentity(x.Profile),
                 Acorduri = acorduri.GetValueOrDefault(x.Profile.Id),
                 Programari = programari.GetValueOrDefault(x.Profile.Id),
@@ -333,6 +334,12 @@ public class BrokerProfileService : IBrokerProfileService
             profile.Plan = plan;
         }
 
+        if (input.Type != null)
+        {
+            if (!BrokerTypes.IsValid(input.Type)) return "Tipul brokerului este invalid";
+            profile.Type = input.Type;
+        }
+
         string? Text(string? value, int max, string label, Action<string?> set)
         {
             if (value == null) return null;
@@ -439,6 +446,7 @@ public class BrokerProfileService : IBrokerProfileService
             Bio = p.Bio,
             Status = p.Status,
             Plan = p.Plan,
+            Type = p.Type,
             LoginEmail = user.Mail ?? string.Empty,
             LoginPhone = user.NumarTelefon,
             HasPassword = !string.IsNullOrEmpty(user.Parola),

@@ -339,6 +339,7 @@ export interface BankStatsResult {
   month: string;
   unattributed: { count: number; amount: number };
   hasBrokerProfile: boolean;
+  showNetwork: boolean;
   banks: BankStatsItem[];
   byBroker?: BrokerStatsItem[] | null;
 }
@@ -364,4 +365,36 @@ export interface ClientDocumentInfo {
   mimeType: string;
   fileSize: number;
   createdAt: string;
+}
+
+export interface NetworkBankCard {
+  bankId?: number | null;
+  bankName: string;
+  amount: number;
+  count: number;
+  npAmount: number;
+  npCount: number;
+  ipAmount: number;
+  ipCount: number;
+}
+
+export interface NetworkMonthSummary {
+  month: string;
+  total: { amount: number; count: number; npAmount: number; npCount: number; ipAmount: number; ipCount: number };
+  banks: NetworkBankCard[];
+}
+
+export interface NetworkSection {
+  type: 'MoneyShop' | 'Afiliat';
+  activeBrokers: number;
+  selected: NetworkMonthSummary;
+  series: { month: string; amount: number; count: number }[];
+  estimatedCommission?: number | null;
+}
+
+export interface AdminDashboardResult {
+  currentMonth: string;
+  selectedMonth: string;
+  moneyShop: NetworkSection;
+  affiliates: NetworkSection;
 }

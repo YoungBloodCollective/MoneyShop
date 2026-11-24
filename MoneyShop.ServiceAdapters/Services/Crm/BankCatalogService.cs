@@ -155,6 +155,15 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 : _context.BrokerBankCommissions.AsNoTracking().Where(c => c.BrokerProfileId == profileId)
                     .ToDictionary(c => c.BankId, c => c.CommissionPercent);
 
+            var showNetwork = isAdmin || (profileId != null && _context.BrokerProfiles.AsNoTracking()
+                .Any(p => p.Id == profileId && p.Type == BrokerTypes.MoneyShop));
+            var moneyShopIds = isAdmin || !showNetwork
+                ? null
+                : _context.BrokerProfiles.AsNoTracking().Where(p => p.Type == BrokerTypes.MoneyShop).Select(p => p.Id).ToHashSet();
+            var networkFiles = !showNetwork
+                ? files.Take(0).ToList()
+                : moneyShopIds == null ? files : files.Where(f => f.BrokerProfileId != null && moneyShopIds.Contains(f.BrokerProfileId.Value)).ToList();
+
             var unattributed = _context.BankFiles.IgnoreQueryFilters().AsNoTracking()
                 .Where(f => f.BankId == null && f.Status != BankFileStatuses.Respins
                             && (isAdmin || (profileId != null && f.BrokerProfileId == profileId)))
@@ -165,6 +174,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             {
                 Month = label,
                 HasBrokerProfile = profileId != null,
+                ShowNetwork = showNetwork,
                 Unattributed = new UnattributedFiles { Count = unattributed.Count, Amount = unattributed.Sum() },
             };
             foreach (var bank in banks)
@@ -175,7 +185,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 Fill(mine, bankFiles.Where(f => profileId != null && f.BrokerProfileId == profileId).Select(f => (f.CreditType, f.Amount, f.Status)));
                 mine.EstimatedCommission = Math.Round(mine.DisbursedAmount * percent / 100m, 2);
                 var all = new BankVolume();
-                Fill(all, bankFiles.Select(f => (f.CreditType, f.Amount, f.Status)));
+                Fill(all, networkFiles.Where(f => f.BankId == bank.Id).Select(f => (f.CreditType, f.Amount, f.Status)));
                 var network = new BankNetworkVolume { DisbursedAmount = all.DisbursedAmount };
                 if (isAdmin)
                 {

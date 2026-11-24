@@ -807,6 +807,7 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.Bio).HasMaxLength(500);
             entity.Property(e => e.Status).HasMaxLength(20).IsRequired();
             entity.Property(e => e.Plan).HasMaxLength(30).IsRequired();
+            entity.Property(e => e.Type).HasMaxLength(20).IsRequired().HasDefaultValue(BrokerTypes.Afiliat);
             entity.Property(e => e.FirmaNume).HasMaxLength(255);
             entity.Property(e => e.FirmaSediu).HasMaxLength(500);
             entity.Property(e => e.FirmaCui).HasMaxLength(20);
