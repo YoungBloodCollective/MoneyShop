@@ -20,11 +20,13 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         private const int MaxName = 100;
 
         private readonly MoneyShopDbContext _context;
+        private readonly ICommissionCalculator _calculator;
         private readonly TimeZoneInfo _zone;
 
-        public BankCatalogService(MoneyShopDbContext context, ILogger<BankCatalogService>? logger = null)
+        public BankCatalogService(MoneyShopDbContext context, ICommissionCalculator? calculator = null, ILogger<BankCatalogService>? logger = null)
         {
             _context = context;
+            _calculator = calculator ?? new CommissionCalculator(context);
             _zone = ResolveZone(logger);
         }
 
@@ -150,10 +152,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             var bankIds = banks.Select(b => b.Id).ToHashSet();
             files = files.Where(f => bankIds.Contains(f.BankId)).ToList();
 
-            var commissions = profileId == null
-                ? new Dictionary<int, decimal>()
-                : _context.BrokerBankCommissions.AsNoTracking().Where(c => c.BrokerProfileId == profileId)
-                    .ToDictionary(c => c.BankId, c => c.CommissionPercent);
+            var commission = _calculator.ForMonth(label);
 
             var showNetwork = isAdmin || (profileId != null && _context.BrokerProfiles.AsNoTracking()
                 .Any(p => p.Id == profileId && p.Type == BrokerTypes.MoneyShop));
@@ -180,10 +179,16 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             foreach (var bank in banks)
             {
                 var bankFiles = files.Where(f => f.BankId == bank.Id).ToList();
-                var percent = commissions.TryGetValue(bank.Id, out var o) ? o : bank.CommissionPercent;
-                var mine = new BankMineVolume { CommissionPercent = percent };
-                Fill(mine, bankFiles.Where(f => profileId != null && f.BrokerProfileId == profileId).Select(f => (f.CreditType, f.Amount, f.Status)));
-                mine.EstimatedCommission = Math.Round(mine.DisbursedAmount * percent / 100m, 2);
+                var mine = new BankMineVolume
+                {
+                    CommissionPercent = commission.FallbackPercent(profileId, bank.Id),
+                    NpPercent = commission.RateFor(profileId, bank.Id, CreditTypes.Np).Percent,
+                    IpPercent = commission.RateFor(profileId, bank.Id, CreditTypes.Ip).Percent,
+                };
+                var mineFiles = bankFiles.Where(f => profileId != null && f.BrokerProfileId == profileId).ToList();
+                Fill(mine, mineFiles.Select(f => (f.CreditType, f.Amount, f.Status)));
+                mine.EstimatedCommission = mineFiles.Where(f => f.Status == BankFileStatuses.Disbursat)
+                    .Sum(f => commission.Commission(profileId, bank.Id, f.CreditType, f.Amount));
                 var all = new BankVolume();
                 Fill(all, networkFiles.Where(f => f.BankId == bank.Id).Select(f => (f.CreditType, f.Amount, f.Status)));
                 var network = new BankNetworkVolume { DisbursedAmount = all.DisbursedAmount };
@@ -207,6 +212,8 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                     Threshold = bank.MonthlyThresholdAmount,
                     Network = network,
                     Mine = mine,
+                    Tiers = !showNetwork ? new List<BankTierStatus>()
+                        : new[] { CreditTypes.Np, CreditTypes.Ip }.Select(t => commission.TierStatus(bank.Id, t)).OfType<BankTierStatus>().ToList(),
                 });
             }
 
@@ -231,6 +238,34 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                     .ToList();
             }
             return result;
+        }
+
+        public BankTiersResult? GetTiers(int bankId)
+        {
+            if (!_context.Banks.AsNoTracking().Any(b => b.Id == bankId)) return null;
+            var rows = _context.BankCommissionTiers.AsNoTracking().Where(t => t.BankId == bankId).ToList();
+            List<CommissionTierRow> Of(string type) => rows.Where(t => t.CreditType == type).OrderBy(t => t.FromAmount)
+                .Select(t => new CommissionTierRow { From = t.FromAmount, To = t.ToAmount, Percent = t.Percent }).ToList();
+            return new BankTiersResult { Np = Of(CreditTypes.Np), Ip = Of(CreditTypes.Ip) };
+        }
+
+        public List<CommissionTierRow>? SaveTiers(int bankId, string creditType, List<CommissionTierRow>? tiers)
+        {
+            if (!CreditTypes.IsValid(creditType)) throw new InvalidOperationException("Tipul de credit trebuie să fie NP sau IP.");
+            var valid = CommissionTiers.Validate(tiers);
+            if (!_context.Banks.AsNoTracking().Any(b => b.Id == bankId)) return null;
+            var existing = _context.BankCommissionTiers.Where(t => t.BankId == bankId && t.CreditType == creditType).ToList();
+            _context.BankCommissionTiers.RemoveRange(existing);
+            _context.BankCommissionTiers.AddRange(valid.Select(t => new BankCommissionTier
+            {
+                BankId = bankId,
+                CreditType = creditType,
+                FromAmount = t.From,
+                ToAmount = t.To,
+                Percent = t.Percent,
+            }));
+            _context.SaveChanges();
+            return valid;
         }
 
         private static void Fill(BankVolume volume, IEnumerable<(string? CreditType, decimal Amount, string Status)> files)

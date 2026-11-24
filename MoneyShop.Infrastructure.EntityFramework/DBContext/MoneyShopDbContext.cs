@@ -79,6 +79,7 @@ public class MoneyShopDbContext : DbContext
     public virtual DbSet<ClientTask> ClientTasks { get; set; }
     public virtual DbSet<BankFile> BankFiles { get; set; }
     public virtual DbSet<BrokerBankCommission> BrokerBankCommissions { get; set; }
+    public virtual DbSet<BankCommissionTier> BankCommissionTiers { get; set; }
     public virtual DbSet<ClientTag> ClientTags { get; set; }
     public virtual DbSet<ClientDocument> ClientDocuments { get; set; }
 
@@ -919,6 +920,17 @@ public class MoneyShopDbContext : DbContext
             entity.HasOne<BrokerProfile>().WithMany().HasForeignKey(e => e.BrokerProfileId).OnDelete(DeleteBehavior.NoAction);
             entity.HasOne<Bank>().WithMany().HasForeignKey(e => e.BankId).OnDelete(DeleteBehavior.NoAction);
             entity.HasIndex(e => new { e.BrokerProfileId, e.BankId }).IsUnique();
+        });
+
+        modelBuilder.Entity<BankCommissionTier>(entity =>
+        {
+            entity.ToTable("BankCommissionTiers");
+            entity.Property(e => e.CreditType).HasMaxLength(2).IsRequired();
+            entity.Property(e => e.FromAmount).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.ToAmount).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Percent).HasColumnType("decimal(5,2)");
+            entity.HasOne<Bank>().WithMany().HasForeignKey(e => e.BankId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(e => new { e.BankId, e.CreditType });
         });
 
         ConfigureBrokerOwned<ClientDocument>(modelBuilder);

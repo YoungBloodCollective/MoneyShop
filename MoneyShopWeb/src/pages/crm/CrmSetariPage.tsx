@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Plus } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
+import { BankCommissionTiersEditor } from '@/components/crm/BankCommissionTiersEditor';
 import { apiErrorMessage } from '@/services/api/brokersApi';
 import type { BankCatalogInput, BankCatalogItem, BrokerCommissionItem } from '@/types/crm.types';
 import { isAdminWorkspace } from '@/lib/crmPath';
@@ -207,7 +208,10 @@ function CatalogBlock() {
       ) : (
         <div className="mt-2 divide-y divide-slate-100">
           {banks.map(b => (
-            <BankEditor key={b.id} bank={b} onSaved={u => setBanks(list => sorted((list ?? []).map(x => (x.id === u.id ? u : x))))} />
+            <div key={b.id}>
+              <BankEditor bank={b} onSaved={u => setBanks(list => sorted((list ?? []).map(x => (x.id === u.id ? u : x))))} />
+              <BankCommissionTiersEditor bankId={b.id} bankName={b.name} />
+            </div>
           ))}
         </div>
       )}
