@@ -5,6 +5,8 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 
 const TOAST_ID = 'pwa-update';
 const UPDATE_CHECK_MS = 60 * 60 * 1000;
+const AUTO_UPDATE_WINDOW_MS = 15 * 1000;
+const loadedAt = Date.now();
 
 export function PwaUpdatePrompt() {
   const { needRefresh: [needRefresh, setNeedRefresh], updateServiceWorker } = useRegisterSW({
@@ -18,6 +20,11 @@ export function PwaUpdatePrompt() {
 
   useEffect(() => {
     if (!needRefresh) return;
+    if (Date.now() - loadedAt < AUTO_UPDATE_WINDOW_MS) {
+      setNeedRefresh(false);
+      void updateServiceWorker(true);
+      return;
+    }
     toast(
       t => (
         <div className="flex items-center gap-3">
