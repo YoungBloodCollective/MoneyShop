@@ -14,7 +14,7 @@ BEGIN
         CreditType NVARCHAR(2) NOT NULL CONSTRAINT CK_BankCommissionTiers_CreditType CHECK (CreditType IN (N'NP', N'IP')),
         FromAmount DECIMAL(18,2) NOT NULL,
         ToAmount   DECIMAL(18,2) NULL,
-        Percent    DECIMAL(5,2) NOT NULL
+        [Percent]  DECIMAL(5,2) NOT NULL
     );
     CREATE INDEX IX_BankCommissionTiers_Bank_Type ON dbo.BankCommissionTiers (BankId, CreditType);
     PRINT 'BankCommissionTiers created';
