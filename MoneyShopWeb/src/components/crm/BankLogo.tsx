@@ -1,20 +1,15 @@
 import { useState } from 'react';
 
 const LOGOS: [RegExp, string][] = [
-  [/transilvania|^bt$/i, 'bt.svg'],
-  [/bcr|comerciala/i, 'bcr.svg'],
-  [/^brd|societe/i, 'brd.svg'],
-  [/^ing/i, 'ing.svg'],
-  [/unicredit/i, 'unicredit.svg'],
-  [/procredit/i, 'procredit.svg'],
-  [/libra/i, 'libra.svg'],
-  [/exim/i, 'eximbank.svg'],
-  [/patria/i, 'patria.svg'],
-  [/raiffeisen/i, 'raiffeisen.svg'],
+  [/transilvania|^bt$/i, 'bt.png'],
+  [/bcr|comerciala/i, 'bcr.png'],
+  [/^brd|societe/i, 'brd.png'],
+  [/^ing/i, 'ing.png'],
+  [/unicredit/i, 'unicredit.png'],
+  [/procredit/i, 'procredit.png'],
+  [/libra/i, 'libra.png'],
+  [/raiffeisen/i, 'raiffeisen.png'],
   [/garanti/i, 'garanti.png'],
-  [/^cec/i, 'cec.svg'],
-  [/first/i, 'firstbank.svg'],
-  [/alpha/i, 'alpha.svg'],
 ];
 
 function logoFor(bank: string): string | null {
