@@ -36,6 +36,7 @@ public class BankCatalogServiceTests
         UserId = userId,
         Slug = name.ToLowerInvariant(),
         DisplayName = name,
+        Type = BrokerTypes.MoneyShop,
         User = new Utilizatori { IdUtilizator = userId, Nume = name, Prenume = name, IdRol = 1 },
     };
 
@@ -292,5 +293,29 @@ public class BankCatalogServiceTests
         Assert.Contains(stats.ByBroker!, b => b.BrokerName == "Fără broker" && b.DisbursedAmount == 40m);
         Assert.Throws<InvalidOperationException>(() => banks.GetStats(AdminUserId, "1999-12", true));
         Assert.Throws<InvalidOperationException>(() => banks.GetStats(AdminUserId, "2101-01", true));
+    }
+
+    [Fact]
+    public void Affiliates_see_only_their_own_files_and_the_network_counts_moneyshop_brokers_only()
+    {
+        var (banks, _, db) = Setup();
+        var bt = SeedBank(db, "BT");
+        var now = DateTime.UtcNow;
+        File(db, BrokerId, bt, "NP", 100m, BankFileStatuses.Disbursat, now);
+        File(db, OtherBrokerId, bt, "NP", 400m, BankFileStatuses.Disbursat, now);
+
+        db.BrokerProfiles.Single(p => p.Id == OtherBrokerId).Type = BrokerTypes.Afiliat;
+        db.SaveChanges();
+        var moneyShop = banks.GetStats(BrokerUserId, null, false);
+        Assert.True(moneyShop.ShowNetwork);
+        Assert.Equal(100m, Assert.Single(moneyShop.Banks).Network.DisbursedAmount);
+
+        db.BrokerProfiles.Single(p => p.Id == BrokerId).Type = BrokerTypes.Afiliat;
+        db.SaveChanges();
+        var affiliate = banks.GetStats(BrokerUserId, null, false);
+        Assert.False(affiliate.ShowNetwork);
+        var row = Assert.Single(affiliate.Banks);
+        Assert.Equal(0m, row.Network.DisbursedAmount);
+        Assert.Equal(100m, row.Mine.DisbursedAmount);
     }
 }

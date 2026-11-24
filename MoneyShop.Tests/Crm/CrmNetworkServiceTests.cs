@@ -51,6 +51,7 @@ public class CrmNetworkServiceTests
         {
             BrokerProfileId = broker,
             UserId = 100,
+            BankId = db.Banks.Where(b => b.Name == bank).Select(b => (int?)b.Id).FirstOrDefault() ?? 999,
             BankName = bank,
             CreditType = type,
             Amount = amount,

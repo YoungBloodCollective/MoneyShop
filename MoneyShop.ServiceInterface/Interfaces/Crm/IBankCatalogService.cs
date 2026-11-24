@@ -132,6 +132,8 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public UnattributedFiles Unattributed { get; set; } = new();
         public string Month { get; set; } = null!;
         public bool HasBrokerProfile { get; set; }
+        /// <summary>False for affiliated brokers: the network figures are for the Super Admin and MoneyShop brokers only.</summary>
+        public bool ShowNetwork { get; set; }
         public List<BankStatsItem> Banks { get; set; } = new();
         public List<BrokerStatsItem>? ByBroker { get; set; }
     }

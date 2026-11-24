@@ -4,38 +4,10 @@ import { crmApi } from '@/services/api/crmApi';
 import type { NetworkBankCard, NetworkMonthSummary } from '@/types/crm.types';
 import { FOCUS_RING } from '@/pages/crm/crmHelpers';
 import { currentMonth, monthLabel, shiftMonth } from '@/pages/crm/bankStatsHelpers';
-
-const LOGOS: [RegExp, string][] = [
-  [/transilvania|^bt$/i, 'bt.svg'],
-  [/bcr|comerciala/i, 'bcr.svg'],
-  [/^brd|societe/i, 'brd.svg'],
-  [/^ing/i, 'ing.svg'],
-  [/unicredit/i, 'unicredit.svg'],
-  [/procredit/i, 'procredit.svg'],
-  [/libra/i, 'libra.svg'],
-  [/exim/i, 'eximbank.svg'],
-  [/patria/i, 'patria.svg'],
-  [/raiffeisen/i, 'raiffeisen.svg'],
-  [/garanti/i, 'garanti.png'],
-  [/^cec/i, 'cec.svg'],
-  [/first/i, 'firstbank.svg'],
-  [/alpha/i, 'alpha.svg'],
-];
-
-function logoFor(bank: string): string | null {
-  const hit = LOGOS.find(([re]) => re.test(bank.trim()));
-  return hit ? `/images/partners/${hit[1]}` : null;
-}
+import { BankLogo } from './BankLogo';
 
 function amount(v: number): string {
   return Math.round(v).toLocaleString('ro-RO');
-}
-
-function BankLogo({ name }: { name: string }) {
-  const [broken, setBroken] = useState(false);
-  const src = logoFor(name);
-  if (!src || broken) return <span className="truncate text-base font-bold text-slate-900">{name}</span>;
-  return <img src={src} alt={name} loading="lazy" onError={() => setBroken(true)} className="h-8 w-auto max-w-[8rem] object-contain" />;
 }
 
 function Row({ label, value, count }: { label: string; value: number; count: number }) {

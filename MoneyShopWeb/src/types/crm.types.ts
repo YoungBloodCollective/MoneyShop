@@ -339,6 +339,7 @@ export interface BankStatsResult {
   month: string;
   unattributed: { count: number; amount: number };
   hasBrokerProfile: boolean;
+  showNetwork: boolean;
   banks: BankStatsItem[];
   byBroker?: BrokerStatsItem[] | null;
 }

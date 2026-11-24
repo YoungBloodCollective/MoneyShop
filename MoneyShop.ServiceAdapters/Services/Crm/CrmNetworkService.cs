@@ -89,7 +89,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         {
             var (y, m) = Split(fromMonth);
             var fromUtc = TimeZoneInfo.ConvertTimeToUtc(new DateTime(y, m, 1, 0, 0, 0, DateTimeKind.Unspecified), _zone);
-            return files.Where(f => f.Status == BankFileStatuses.Disbursat && f.StatusChangedAt >= fromUtc)
+            return files.Where(f => f.Status == BankFileStatuses.Disbursat && f.BankId != null && f.StatusChangedAt >= fromUtc)
                 .Select(f => new { f.BrokerProfileId, f.BankName, f.BankId, f.CreditType, f.Amount, f.StatusChangedAt })
                 .ToList()
                 .Select(f => new Row(f.BrokerProfileId, (f.BankName ?? string.Empty).Trim(), f.BankId, f.CreditType, f.Amount, LocalMonth(f.StatusChangedAt)))
