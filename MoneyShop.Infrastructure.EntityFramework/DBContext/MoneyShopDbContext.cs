@@ -83,6 +83,7 @@ public class MoneyShopDbContext : DbContext
     public virtual DbSet<BrokerBankCommission> BrokerBankCommissions { get; set; }
     public virtual DbSet<BankCommissionTier> BankCommissionTiers { get; set; }
     public virtual DbSet<ClientTag> ClientTags { get; set; }
+    public virtual DbSet<ClientCoDebtor> ClientCoDebtors { get; set; }
     public virtual DbSet<ClientDocument> ClientDocuments { get; set; }
 
     public virtual DbSet<RetentionRun> RetentionRuns { get; set; }
@@ -938,6 +939,7 @@ public class MoneyShopDbContext : DbContext
         ConfigureBrokerOwned<ClientTask>(modelBuilder);
         ConfigureBrokerOwned<BankFile>(modelBuilder);
         ConfigureBrokerOwned<ClientTag>(modelBuilder);
+        ConfigureBrokerOwned<ClientCoDebtor>(modelBuilder);
 
         modelBuilder.Entity<ClientTask>(entity =>
         {
@@ -998,6 +1000,19 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.MimeType).HasMaxLength(100);
             entity.Property(e => e.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
             entity.HasIndex(e => e.UserId);
+        });
+
+        modelBuilder.Entity<ClientCoDebtor>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("ClientCoDebtors", t => t.HasCheckConstraint("CK_ClientCoDebtors_NotSelf", "[ClientUserId] <> [CoDebtorUserId]"));
+            entity.Property(e => e.BrokerProfileId).IsRequired();
+            entity.Property(e => e.Relation).HasMaxLength(30).IsRequired();
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
+            entity.HasOne<Utilizatori>().WithMany().HasForeignKey(e => e.ClientUserId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne<Utilizatori>().WithMany().HasForeignKey(e => e.CoDebtorUserId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(e => new { e.ClientUserId, e.CoDebtorUserId }).IsUnique();
+            entity.HasIndex(e => e.CoDebtorUserId);
         });
 
         modelBuilder.Entity<ClientTag>(entity =>
