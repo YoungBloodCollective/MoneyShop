@@ -335,6 +335,18 @@ export interface BrokerStatsItem {
   ipCount: number;
 }
 
+export interface TargetProgress {
+  achieved: number;
+  target: number;
+}
+
+export interface BrokerTargetsResult {
+  month: string;
+  np: TargetProgress;
+  ip: TargetProgress;
+  commission: TargetProgress;
+}
+
 export interface BankStatsResult {
   month: string;
   unattributed: { count: number; amount: number };

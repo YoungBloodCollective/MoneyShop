@@ -6,6 +6,7 @@ import { crmApi } from '@/services/api/crmApi';
 import { apiErrorMessage } from '@/services/api/brokersApi';
 import type { BankCatalogInput, BankCatalogItem, BrokerCommissionItem } from '@/types/crm.types';
 import { isAdminWorkspace } from '@/lib/crmPath';
+import { BrokerTargetsCard } from '@/components/crm/BrokerTargetsCard';
 import { ErrorState, PageHeader, SkeletonCards } from './crmShared';
 import { FIELD_FOCUS, FOCUS_RING } from './crmHelpers';
 import { currentMonth } from './bankStatsHelpers';
@@ -230,8 +231,9 @@ export default function CrmSetariPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Setări" subtitle={admin ? 'Catalogul de bănci și comisioanele tale' : 'Comisioanele tale cu băncile'} />
+      <PageHeader title="Setări" subtitle={admin ? 'Catalogul de bănci și comisioanele tale' : 'Obiectivele și comisioanele tale'} />
       {admin && <CatalogBlock />}
+      {!admin && <BrokerTargetsCard />}
       {hasProfile && <CommissionsBlock />}
       {admin && hasProfile === false && (
         <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">Contul tău nu are profil de broker, deci nu ai comisioane proprii de setat.</p>

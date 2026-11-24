@@ -15,10 +15,12 @@ namespace MoneyShop.Api.Controllers
     public class CrmBanksController : BaseController
     {
         private readonly IBankCatalogService _banks;
+        private readonly ICrmTargetsService _targets;
 
-        public CrmBanksController(IBankCatalogService banks)
+        public CrmBanksController(IBankCatalogService banks, ICrmTargetsService targets)
         {
             _banks = banks;
+            _targets = targets;
         }
 
         private int UserId => int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
@@ -67,6 +69,14 @@ namespace MoneyShop.Api.Controllers
                 return item == null ? NotFound("Banca nu există sau nu este activă.") : Ok(item, "Comision salvat");
             }
             catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        }
+
+        [HttpGet("targets")]
+        [Authorize(Roles = "Broker")]
+        public IActionResult GetMyTargets()
+        {
+            var result = _targets.GetMine(UserId);
+            return result == null ? NotFound("Profilul de broker nu a fost găsit.") : Ok(result);
         }
 
         [HttpGet("bank-stats")]

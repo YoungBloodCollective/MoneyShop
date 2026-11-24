@@ -302,6 +302,16 @@ public class BrokerProfileService : IBrokerProfileService
             profile.Bio = bio.Length == 0 ? null : bio;
         }
 
+        return ApplyTarget(input.TargetNpAmount, "nevoi personale", v => profile.TargetNpAmount = v)
+               ?? ApplyTarget(input.TargetIpAmount, "ipotecar", v => profile.TargetIpAmount = v)
+               ?? ApplyTarget(input.TargetCommissionAmount, "comision", v => profile.TargetCommissionAmount = v);
+    }
+
+    private static string? ApplyTarget(decimal? value, string label, Action<decimal> set)
+    {
+        if (value == null) return null;
+        if (value <= 0 || value > BrokerTargets.MaxAmount) return $"Obiectivul pentru {label} trebuie sa fie mai mare ca 0 si cel mult 1 000 000 000 lei";
+        set(Math.Round(value.Value, 2));
         return null;
     }
 
@@ -447,6 +457,9 @@ public class BrokerProfileService : IBrokerProfileService
             Status = p.Status,
             Plan = p.Plan,
             Type = p.Type,
+            TargetNpAmount = p.TargetNpAmount,
+            TargetIpAmount = p.TargetIpAmount,
+            TargetCommissionAmount = p.TargetCommissionAmount,
             LoginEmail = user.Mail ?? string.Empty,
             LoginPhone = user.NumarTelefon,
             HasPassword = !string.IsNullOrEmpty(user.Parola),

@@ -10,6 +10,14 @@ namespace MoneyShop.DomainModel.Entities
         public static bool IsValid(string? value) => value == MoneyShop || value == Afiliat;
     }
 
+    public static class BrokerTargets
+    {
+        public const decimal DefaultNpAmount = 5_000_000m;
+        public const decimal DefaultIpAmount = 5_000_000m;
+        public const decimal DefaultCommissionAmount = 150_000m;
+        public const decimal MaxAmount = 1_000_000_000m;
+    }
+
     public class BrokerProfile : IEntity
     {
         public int Id { get; set; }
@@ -23,6 +31,10 @@ namespace MoneyShop.DomainModel.Entities
         public string Status { get; set; } = "Active";
         public string Plan { get; set; } = "Partener";
         public string Type { get; set; } = BrokerTypes.Afiliat;
+
+        public decimal TargetNpAmount { get; set; } = BrokerTargets.DefaultNpAmount;
+        public decimal TargetIpAmount { get; set; } = BrokerTargets.DefaultIpAmount;
+        public decimal TargetCommissionAmount { get; set; } = BrokerTargets.DefaultCommissionAmount;
 
         public string? FirmaNume { get; set; }
         public string? FirmaSediu { get; set; }

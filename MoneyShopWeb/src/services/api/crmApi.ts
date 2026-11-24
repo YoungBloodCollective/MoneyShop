@@ -4,7 +4,7 @@ import type {
   CrmDashboardSummary, CrmClientListItem, CrmClientDetail,
   CrmFileListItem, StatusTransitions, CrmIncomeInput, CrmIncomeSnapshot,
   CrmClientWork, CrmTaskItem, CrmBankFileItem, CrmBankFileInput, CrmWorkBoard,
-  ClientDocumentInfo, BankCatalogItem, BankCatalogInput, BrokerCommissionItem, BankStatsResult,
+  ClientDocumentInfo, BankCatalogItem, BankCatalogInput, BrokerCommissionItem, BankStatsResult, BrokerTargetsResult,
 } from '@/types/crm.types';
 
 /** The broker's secret calendar subscription link (https and webcal forms). */
@@ -124,6 +124,10 @@ export const crmApi = {
   async getNetwork(month: string): Promise<NetworkMonthSummary> {
     const [year, mon] = month.split('-').map(Number);
     const { data } = await apiClient.get<NetworkMonthSummary>('/crm/network', { params: { year, month: mon } });
+    return data;
+  },
+  async getMyTargets(): Promise<BrokerTargetsResult> {
+    const { data } = await apiClient.get<BrokerTargetsResult>('/crm/targets');
     return data;
   },
   async getBankStats(month: string): Promise<BankStatsResult> {

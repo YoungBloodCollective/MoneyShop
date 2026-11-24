@@ -74,6 +74,9 @@ public class BrokerProfileView
     public string Status { get; set; } = null!;
     public string Plan { get; set; } = null!;
     public string Type { get; set; } = null!;
+    public decimal TargetNpAmount { get; set; }
+    public decimal TargetIpAmount { get; set; }
+    public decimal TargetCommissionAmount { get; set; }
     public string LoginEmail { get; set; } = null!;
     public string? LoginPhone { get; set; }
     public bool HasPassword { get; set; }
@@ -115,6 +118,9 @@ public class BrokerSelfUpdateInput
     public string? PublicEmail { get; set; }
     public string? NotificationEmail { get; set; }
     public string? Bio { get; set; }
+    public decimal? TargetNpAmount { get; set; }
+    public decimal? TargetIpAmount { get; set; }
+    public decimal? TargetCommissionAmount { get; set; }
 }
 
 public class BrokerAdminUpdateInput : BrokerSelfUpdateInput
