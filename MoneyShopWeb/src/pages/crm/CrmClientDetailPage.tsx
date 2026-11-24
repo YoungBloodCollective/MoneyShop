@@ -24,6 +24,7 @@ import { splitClientName } from '@/components/crm/appointments/appointmentModel'
 import { BcUploadButton } from '@/components/crm/client/BcUploadButton';
 import { FinancialAnalysisCard } from '@/components/crm/client/FinancialAnalysisCard';
 import { ClientWorkSection } from '@/components/crm/client/ClientWorkSection';
+import { ClientCoDebtorsCard } from '@/components/crm/client/ClientCoDebtorsCard';
 import { ReferralButton } from '@/components/crm/ReferralDialog';
 import { ClientFolderCard } from '@/components/crm/client/ClientFolderCard';
 import { Spinner, StatusPill, AcordPill, ErrorState } from './crmShared';
@@ -489,6 +490,7 @@ function ClientDetail({ userId }: { userId: number }) {
         {/* Left: files + documents */}
         <div className="min-w-0 space-y-4 lg:col-span-2">
           <ClientWorkSection userId={userId} onBankFilesChange={setBankFiles} />
+          <ClientCoDebtorsCard userId={userId} />
           <FinancialAnalysisCard income={client.income} bc={client.bcReport} />
           <ClientFolderCard client={client} onPreview={setPreview} preparingBankDocs={preparingBankDocs} />
           {client.acord ? <AcordCard key={client.acord.acordId} acord={client.acord} onStatusChange={() => { void refreshClient(); }} /> : <NoAcordCard />}
