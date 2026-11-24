@@ -10,8 +10,9 @@ namespace MoneyShop.Api.Controllers;
 
 /// <summary>
 /// Onboarding of new brokers by invitation: the Super Admin invites an email, the invitee opens the
-/// private link and creates their own account. The link token is only ever in the email and in the
-/// request path; it is never logged and only its hash is stored.
+/// private link and creates their own account. The link token travels in the URL fragment (never sent
+/// to servers) and then in the X-Invite-Token request header, so it is not part of any request path or
+/// query string; only its hash is stored.
 /// </summary>
 [ApiController]
 public class BrokerInvitesController : BaseController
@@ -30,6 +31,10 @@ public class BrokerInvitesController : BaseController
         _audit = audit;
         _logger = logger;
     }
+
+    public const string TokenHeader = "X-Invite-Token";
+
+    private string InviteToken => Request.Headers[TokenHeader].ToString().Trim();
 
     private int CurrentUserId =>
         int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
@@ -75,38 +80,38 @@ public class BrokerInvitesController : BaseController
         return Ok(result.Invite);
     }
 
-    // ── Invitee (anonymous: the token in the route is the credential) ──
+    // ── Invitee (anonymous: the X-Invite-Token header is the credential) ──
 
     [HttpGet("/api/broker-invites/terms")]
     [AllowAnonymous]
     [EnableRateLimiting("public-booking")]
     public IActionResult Terms() => Ok(new { version = BrokerTerms.Version, title = BrokerTerms.Title, body = BrokerTerms.Body });
 
-    [HttpGet("/api/broker-invites/{token}")]
+    [HttpGet("/api/broker-invites/current")]
     [AllowAnonymous]
     [EnableRateLimiting("public-booking")]
-    public IActionResult Preview(string token)
+    public IActionResult Preview()
     {
-        var result = _invites.Preview(token, DateTime.UtcNow);
+        var result = _invites.Preview(InviteToken, DateTime.UtcNow);
         return result.Invite != null ? Ok(result.Invite) : InviteProblem(result.Error);
     }
 
-    [HttpGet("/api/broker-invites/{token}/slug-available")]
+    [HttpGet("/api/broker-invites/current/slug-available")]
     [AllowAnonymous]
     [EnableRateLimiting("public-booking")]
-    public IActionResult SlugAvailable(string token, [FromQuery] string? slug)
+    public IActionResult SlugAvailable([FromQuery] string? slug)
     {
-        var result = _invites.CheckSlug(token, slug, DateTime.UtcNow);
+        var result = _invites.CheckSlug(InviteToken, slug, DateTime.UtcNow);
         if (result.Error != BrokerInviteError.None) return InviteProblem(result.Error);
         return Ok(new { slug = result.Slug, available = result.Available, reason = result.Reason });
     }
 
-    [HttpPost("/api/broker-invites/{token}/accept")]
+    [HttpPost("/api/broker-invites/accept")]
     [AllowAnonymous]
     [EnableRateLimiting("public-form")]
-    public IActionResult Accept(string token, [FromBody] BrokerInviteAcceptInput input)
+    public IActionResult Accept([FromBody] BrokerInviteAcceptInput input)
     {
-        var result = _invites.Accept(token, input ?? new BrokerInviteAcceptInput(), HttpContext.Connection.RemoteIpAddress?.ToString(), DateTime.UtcNow);
+        var result = _invites.Accept(InviteToken, input ?? new BrokerInviteAcceptInput(), HttpContext.Connection.RemoteIpAddress?.ToString(), DateTime.UtcNow);
         if (result.InviteError != BrokerInviteError.None) return InviteProblem(result.InviteError);
         if (result.Error != null) return BadRequest(result.Error);
 
@@ -117,7 +122,7 @@ public class BrokerInvitesController : BaseController
     private async Task<bool> SendAsync(BrokerInviteCreateResult result)
     {
         var root = _configuration["Brokers:RootDomain"] ?? "moneyshop.ro";
-        var url = $"https://{root}/broker/invitatie?t={Uri.EscapeDataString(result.Token!)}";
+        var url = $"https://{root}/broker/invitatie#t={Uri.EscapeDataString(result.Token!)}";
         var sent = await _email.SendBrokerInviteAsync(result.Invite!.Email, result.Invite.Name, url, BrokerTerms.InviteLifetimeDays);
         if (!sent) _logger.LogWarning("Broker invite {InviteId} email was not sent", result.Invite.Id);
         return sent;

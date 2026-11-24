@@ -14,7 +14,7 @@ namespace MoneyShop.ServiceAdapters.Services.Broker;
 
 public class BrokerProfileService : IBrokerProfileService
 {
-    private const int BROKER_ROLE_ID = 3;
+    internal const int BROKER_ROLE_ID = 3;
     private const string STATUS_ACTIVE = "Active";
     private const string STATUS_SUSPENDED = "Suspended";
 
@@ -211,32 +211,7 @@ public class BrokerProfileService : IBrokerProfileService
         var slugError = ValidateSlug(slug, null);
         if (slugError != null) return BrokerSaveResult.Fail(slugError);
 
-        var user = new Utilizatori
-        {
-            Nume = nume,
-            Prenume = prenume,
-            Mail = email,
-            Username = email,
-            NumarTelefon = phone,
-            Parola = string.IsNullOrEmpty(input.Password) ? null : AccountService.HashPassword(input.Password),
-            IdRol = BROKER_ROLE_ID,
-            EmailVerified = false,
-            PhoneVerified = false,
-            IsDeleted = false
-        };
-
-        var profile = new BrokerProfile
-        {
-            User = user,
-            Slug = slug,
-            DisplayName = $"{prenume} {nume}",
-            PublicEmail = email,
-            PublicPhone = phone,
-            Status = STATUS_ACTIVE,
-            Plan = "Partener",
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+        var (user, profile) = BuildBrokerAccount(nume, prenume, email, phone, string.IsNullOrEmpty(input.Password) ? null : input.Password, slug, emailVerified: false, DateTime.UtcNow);
 
         var error = ApplyAdminFields(profile, input, isCreate: true);
         if (error != null) return BrokerSaveResult.Fail(error);
@@ -246,6 +221,36 @@ public class BrokerProfileService : IBrokerProfileService
 
         _logger.LogInformation("Broker {Slug} created (profile {Id}, user {UserId})", profile.Slug, profile.Id, user.IdUtilizator);
         return BrokerSaveResult.Ok(profile.Id);
+    }
+
+    internal static (Utilizatori User, BrokerProfile Profile) BuildBrokerAccount(string nume, string prenume, string email, string phone, string? password, string slug, bool emailVerified, DateTime nowUtc)
+    {
+        var user = new Utilizatori
+        {
+            Nume = nume,
+            Prenume = prenume,
+            Mail = email,
+            Username = email,
+            NumarTelefon = phone,
+            Parola = password == null ? null : AccountService.HashPassword(password),
+            IdRol = BROKER_ROLE_ID,
+            EmailVerified = emailVerified,
+            PhoneVerified = false,
+            IsDeleted = false
+        };
+        var profile = new BrokerProfile
+        {
+            User = user,
+            Slug = slug,
+            DisplayName = $"{prenume} {nume}",
+            PublicEmail = email,
+            PublicPhone = phone,
+            Status = STATUS_ACTIVE,
+            Plan = "Partener",
+            CreatedAt = nowUtc,
+            UpdatedAt = nowUtc
+        };
+        return (user, profile);
     }
 
     public BrokerSaveResult Update(int id, BrokerAdminUpdateInput input)

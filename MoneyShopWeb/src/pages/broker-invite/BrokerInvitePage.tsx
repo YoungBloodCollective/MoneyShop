@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { CheckCircle, ChevronDown, Eye, EyeOff, Loader2, ShieldCheck, X } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { COUNTIES } from '@/lib/counties';
 import { ROOT_DOMAIN_NAME } from '@/lib/brokerHost';
+import { clearInviteToken, readInviteToken } from '@/lib/inviteToken';
 import {
   brokerInvitesApi,
   type BrokerInvitePreview,
@@ -63,8 +64,7 @@ function problemFrom(err: unknown): { message: string; code?: string } {
 }
 
 export default function BrokerInvitePage() {
-  const [searchParams] = useSearchParams();
-  const [token] = useState(() => searchParams.get('t') ?? '');
+  const [token] = useState(() => readInviteToken());
   const [state, setState] = useState<PageState>(token ? { kind: 'loading' } : { kind: 'problem', message: 'Linkul de invitație nu este complet. Deschide-l din nou din email.' });
   const [terms, setTerms] = useState<BrokerTermsText | null>(null);
 
@@ -87,10 +87,6 @@ export default function BrokerInvitePage() {
 
   useEffect(() => {
     if (!token) return;
-    const url = new URL(window.location.href);
-    url.searchParams.delete('t');
-    window.history.replaceState(window.history.state, '', url);
-
     let active = true;
     brokerInvitesApi.preview(token)
       .then(invite => {
@@ -162,6 +158,7 @@ export default function BrokerInvitePage() {
         acceptTerms: accepted,
         termsVersion: terms.version,
       });
+      clearInviteToken();
       setState({ kind: 'done', slug: result.slug, email: state.invite.email });
     } catch (err) {
       const problem = problemFrom(err);

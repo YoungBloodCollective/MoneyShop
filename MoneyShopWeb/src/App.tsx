@@ -9,9 +9,11 @@ import { BrokerGate } from '@/components/shared/BrokerGate';
 import { PwaUpdatePrompt } from '@/components/pwa/PwaUpdatePrompt';
 import { InstallAppPrompt } from '@/components/pwa/InstallAppPrompt';
 import { CookieBanner } from '@/components/shared/CookieBanner';
+import { captureInviteToken } from '@/lib/inviteToken';
 import { initConsent } from '@/lib/consent';
 import { captureAdClick } from '@/lib/adsConversion';
 
+captureInviteToken();
 initConsent();
 captureAdClick();
 

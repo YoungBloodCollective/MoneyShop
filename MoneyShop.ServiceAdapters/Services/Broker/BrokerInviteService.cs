@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MoneyShop.DomainModel.Entities;
@@ -16,7 +17,9 @@ namespace MoneyShop.ServiceAdapters.Services.Broker;
 
 public class BrokerInviteService : IBrokerInviteService
 {
-    private const int BROKER_ROLE_ID = 3;
+    private const int BROKER_ROLE_ID = BrokerProfileService.BROKER_ROLE_ID;
+    internal const string DuplicateMessage = "Nu am putut crea contul: emailul, telefonul sau adresa sunt deja folosite. Încearcă din nou.";
+    internal const string GenericFailureMessage = "Nu am putut crea contul. Încearcă din nou.";
     private const int MaxSlugLength = 30;
     private const int MaxPasswordLength = 128;
     private const int ListLimit = 200;
@@ -198,40 +201,15 @@ public class BrokerInviteService : IBrokerInviteService
         if (_context.Utilizatoris.Any(u => u.NumarTelefon == phone && u.IsDeleted != true))
             return BrokerInviteAcceptResult.Fail("Există deja un cont cu acest telefon");
 
-        var user = new Utilizatori
-        {
-            Nume = nume,
-            Prenume = prenume,
-            Mail = email,
-            Username = email,
-            NumarTelefon = phone,
-            Parola = AccountService.HashPassword(password),
-            IdRol = BROKER_ROLE_ID,
-            EmailVerified = true,
-            PhoneVerified = false,
-            IsDeleted = false
-        };
-
-        var profile = new BrokerProfile
-        {
-            User = user,
-            Slug = slug,
-            DisplayName = $"{prenume} {nume}",
-            PublicEmail = email,
-            PublicPhone = phone,
-            Status = "Active",
-            Plan = "Partener",
-            Type = invite.Type,
-            Oras = city,
-            Judet = county,
-            FirmaNume = firmaNume,
-            FirmaCui = firmaCui,
-            TermsVersion = BrokerTerms.Version,
-            TermsAcceptedAt = nowUtc,
-            TermsAcceptedIp = ip?.Length > 64 ? ip[..64] : ip,
-            CreatedAt = nowUtc,
-            UpdatedAt = nowUtc
-        };
+        var (user, profile) = BrokerProfileService.BuildBrokerAccount(nume, prenume, email, phone, password, slug, emailVerified: true, nowUtc);
+        profile.Type = invite.Type;
+        profile.Oras = city;
+        profile.Judet = county;
+        profile.FirmaNume = firmaNume;
+        profile.FirmaCui = firmaCui;
+        profile.TermsVersion = BrokerTerms.Version;
+        profile.TermsAcceptedAt = nowUtc;
+        profile.TermsAcceptedIp = ip?.Length > 64 ? ip[..64] : ip;
 
         invite.UsedAt = nowUtc;
         invite.UsedByUser = user;
@@ -247,12 +225,28 @@ public class BrokerInviteService : IBrokerInviteService
         }
         catch (DbUpdateException ex)
         {
-            _logger.LogWarning(ex, "Broker invite {InviteId} could not be accepted", invite.Id);
-            return BrokerInviteAcceptResult.Fail("Nu am putut crea contul: emailul, telefonul sau adresa sunt deja folosite. Încearcă din nou.");
+            if (IsUniqueViolation(ex))
+            {
+                _logger.LogWarning("Broker invite {InviteId} hit a unique constraint", invite.Id);
+                return BrokerInviteAcceptResult.Fail(DuplicateMessage);
+            }
+            _logger.LogError("Broker invite {InviteId} could not be accepted: {ExceptionType}", invite.Id, (ex.InnerException ?? ex).GetType().Name);
+            return BrokerInviteAcceptResult.Fail(GenericFailureMessage);
         }
 
         _logger.LogInformation("Broker invite {InviteId} accepted: broker {Slug} (profile {Id}, user {UserId})", invite.Id, slug, profile.Id, user.IdUtilizator);
         return BrokerInviteAcceptResult.Ok(slug, profile.Id);
+    }
+
+    internal static bool IsUniqueViolationNumber(int number) => number is 2601 or 2627;
+
+    internal static bool IsUniqueViolation(Exception? ex)
+    {
+        for (var e = ex; e != null; e = e.InnerException)
+        {
+            if (e is SqlException sql && sql.Errors.Cast<SqlError>().Any(x => IsUniqueViolationNumber(x.Number))) return true;
+        }
+        return false;
     }
 
     private BrokerInvite? Find(string? token, DateTime nowUtc, out BrokerInviteError error)

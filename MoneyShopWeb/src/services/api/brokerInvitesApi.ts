@@ -66,6 +66,8 @@ function unwrap<T>(payload: unknown): T {
 
 const base = '/broker-invites';
 
+const tokenConfig = (token: string) => ({ headers: { 'X-Invite-Token': token } });
+
 export const brokerInvitesApi = {
   list: () => apiClient.get(base).then(r => r.data as BrokerInviteItem[]),
   create: (input: { email: string; name?: string; type: BrokerType }) =>
@@ -75,9 +77,9 @@ export const brokerInvitesApi = {
 
   terms: () => publicClient.get(`${base}/terms`).then(r => unwrap<BrokerTermsText>(r.data)),
   preview: (token: string) =>
-    publicClient.get(`${base}/${encodeURIComponent(token)}`).then(r => unwrap<BrokerInvitePreview>(r.data)),
+    publicClient.get(`${base}/current`, tokenConfig(token)).then(r => unwrap<BrokerInvitePreview>(r.data)),
   slugAvailable: (token: string, slug: string) =>
-    publicClient.get(`${base}/${encodeURIComponent(token)}/slug-available`, { params: { slug } }).then(r => unwrap<SlugAvailability>(r.data)),
+    publicClient.get(`${base}/current/slug-available`, { ...tokenConfig(token), params: { slug } }).then(r => unwrap<SlugAvailability>(r.data)),
   accept: (token: string, input: BrokerInviteAccept) =>
-    publicClient.post(`${base}/${encodeURIComponent(token)}/accept`, input).then(r => unwrap<{ success: boolean; slug: string }>(r.data)),
+    publicClient.post(`${base}/accept`, input, tokenConfig(token)).then(r => unwrap<{ success: boolean; slug: string }>(r.data)),
 };

@@ -156,6 +156,58 @@ public class BrokerInviteServiceTests
     }
 
     [Fact]
+    public void Only_sql_unique_violations_map_to_the_duplicate_message()
+    {
+        Assert.True(BrokerInviteService.IsUniqueViolationNumber(2601));
+        Assert.True(BrokerInviteService.IsUniqueViolationNumber(2627));
+        Assert.False(BrokerInviteService.IsUniqueViolationNumber(547));
+        Assert.False(BrokerInviteService.IsUniqueViolation(new DbUpdateException("x", new InvalidOperationException("y"))));
+        Assert.False(BrokerInviteService.IsUniqueViolation(null));
+    }
+
+    [Fact]
+    public void A_non_unique_save_failure_gives_the_generic_message_and_keeps_the_invite_usable()
+    {
+        var name = Guid.NewGuid().ToString();
+        var token = Invite(Service(NewDb(name)));
+
+        var failing = new FailingDb(new DbContextOptionsBuilder<MoneyShopDbContext>().UseInMemoryDatabase(name).Options);
+        var result = Service(failing).Accept(token, ValidInput(), null, Now);
+
+        Assert.Equal(BrokerInviteError.None, result.InviteError);
+        Assert.Equal(BrokerInviteService.GenericFailureMessage, result.Error);
+        Assert.NotEqual(BrokerInviteService.DuplicateMessage, result.Error);
+    }
+
+    [Fact]
+    public void Invite_accept_builds_the_account_through_the_shared_builder_with_invite_specifics()
+    {
+        var (service, db) = Build();
+        var token = Invite(service, type: BrokerTypes.Afiliat);
+        Assert.True(service.Accept(token, ValidInput(), "1.2.3.4", Now).Success);
+
+        var user = db.Utilizatoris.Single(u => u.Mail == "ion@example.com");
+        var profile = db.BrokerProfiles.Single(p => p.Slug == "ion-ionescu");
+        Assert.Equal(BrokerProfileService.BROKER_ROLE_ID, user.IdRol);
+        Assert.True(user.EmailVerified);
+        Assert.Equal(BrokerTypes.Afiliat, profile.Type);
+        Assert.Equal("Ion Ionescu", profile.DisplayName);
+
+        var (adminUser, adminProfile) = BrokerProfileService.BuildBrokerAccount("A", "B", "a@b.ro", "0722000000", null, "a-b", false, Now);
+        Assert.Equal(BrokerProfileService.BROKER_ROLE_ID, adminUser.IdRol);
+        Assert.False(adminUser.EmailVerified);
+        Assert.Null(adminUser.Parola);
+        Assert.Equal("B A", adminProfile.DisplayName);
+    }
+
+    private sealed class FailingDb : MoneyShopDbContext
+    {
+        public FailingDb(DbContextOptions<MoneyShopDbContext> options) : base(options) { }
+
+        public override int SaveChanges(bool acceptAllChangesOnSuccess) => throw new DbUpdateException("boom", new InvalidOperationException("not a unique violation"));
+    }
+
+    [Fact]
     public void A_revoked_invite_stops_working_and_cannot_be_resent()
     {
         var (service, _) = Build();
