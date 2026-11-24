@@ -17,6 +17,8 @@ import type { CrmDashboardSummary } from '@/types/crm.types';
 import { ErrorState } from './crmShared';
 import { FOCUS_RING } from './crmHelpers';
 import { IntakeLinkCard } from '@/components/crm/IntakeLinkCard';
+import { MoneyShopNetworkSection } from '@/components/crm/NetworkMirror';
+import { brokersApi } from '@/services/api/brokersApi';
 
 const STATUS_COLORS: Record<string, string> = {
   lucru: '#F59E0B',
@@ -104,6 +106,7 @@ export default function CrmDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [moneyShopBroker, setMoneyShopBroker] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -113,6 +116,14 @@ export default function CrmDashboardPage() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [attempt]);
+
+  useEffect(() => {
+    let active = true;
+    brokersApi.getMe()
+      .then(p => { if (active) setMoneyShopBroker(p.type === 'MoneyShop'); })
+      .catch(() => { if (active) setMoneyShopBroker(false); });
+    return () => { active = false; };
+  }, []);
 
   const retry = () => { setLoading(true); setAttempt(a => a + 1); };
 
@@ -155,6 +166,8 @@ export default function CrmDashboardPage() {
       <WorkBoard />
 
       <BanksMonthCard />
+
+      {moneyShopBroker && <MoneyShopNetworkSection />}
 
       <IntakeLinkCard />
 

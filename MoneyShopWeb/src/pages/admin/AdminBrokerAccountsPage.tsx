@@ -12,7 +12,7 @@ const inputClass =
 
 type FormState = BrokerCreate & { newPassword?: string };
 
-const EMPTY: FormState = { nume: '', prenume: '', loginEmail: '', status: 'Active', mangoAgreementEnabled: false };
+const EMPTY: FormState = { nume: '', prenume: '', loginEmail: '', status: 'Active', type: 'Afiliat', mangoAgreementEnabled: false };
 
 const LEGAL_FIELDS: { key: keyof FormState; label: string; placeholder?: string; wide?: boolean }[] = [
   { key: 'firmaNume', label: 'Firma (intermediar)', placeholder: 'POPIX BROKERAGE CONSULTING SRL', wide: true },
@@ -90,6 +90,14 @@ function BrokerForm({ editing, onClose, onSaved }: { editing: BrokerProfile | nu
                   </Field>
                 </>
               )}
+              {!editing && (
+                <Field label="Tip broker">
+                  <select value={form.type ?? 'Afiliat'} onChange={set('type')} className={inputClass}>
+                    <option value="MoneyShop">MoneyShop</option>
+                    <option value="Afiliat">Afiliat</option>
+                  </select>
+                </Field>
+              )}
               <Field label="Adresă (subdomeniu)">
                 <div className="flex items-center gap-1">
                   <input value={form.slug ?? ''} onChange={set('slug')} placeholder={editing ? '' : 'se generează din nume'} className={inputClass} />
@@ -106,6 +114,12 @@ function BrokerForm({ editing, onClose, onSaved }: { editing: BrokerProfile | nu
                     </select>
                   </Field>
                   <Field label="Plan"><input value={form.plan ?? ''} onChange={set('plan')} className={inputClass} /></Field>
+                  <Field label="Tip broker">
+                    <select value={form.type ?? 'Afiliat'} onChange={set('type')} className={inputClass}>
+                      <option value="MoneyShop">MoneyShop</option>
+                      <option value="Afiliat">Afiliat</option>
+                    </select>
+                  </Field>
                   <Field label={editing.hasPassword ? 'Parolă nouă (lasă gol ca să rămână)' : 'Setează parola'} wide>
                     <input value={form.newPassword ?? ''} onChange={set('newPassword')} type="password" autoComplete="new-password" className={inputClass} />
                   </Field>
@@ -227,6 +241,7 @@ export default function AdminBrokerAccountsPage() {
                     {b.status === 'Active' ? 'Activ' : 'Suspendat'}
                   </span>
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-dark-600 text-light-60">{b.plan}</span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${b.type === 'MoneyShop' ? 'bg-brand-primary/15 text-brand-primary' : 'bg-dark-600 text-light-60'}`}>{b.type}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-light-50">
                   <span>{b.slug}.moneyshop.ro</span>

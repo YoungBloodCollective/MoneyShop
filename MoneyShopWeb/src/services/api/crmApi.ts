@@ -1,5 +1,6 @@
 import { apiClient } from './apiClient';
 import type {
+  AdminDashboardResult, NetworkMonthSummary,
   CrmDashboardSummary, CrmClientListItem, CrmClientDetail,
   CrmFileListItem, StatusTransitions, CrmIncomeInput, CrmIncomeSnapshot,
   CrmClientWork, CrmTaskItem, CrmBankFileItem, CrmBankFileInput, CrmWorkBoard,
@@ -113,6 +114,16 @@ export const crmApi = {
   },
   async setMyCommission(bankId: number, percent: number | null): Promise<BrokerCommissionItem> {
     const { data } = await apiClient.put<BrokerCommissionItem>(`/crm/commissions/mine/${bankId}`, { percent });
+    return data;
+  },
+  async getAdminDashboard(month: string, months = 12): Promise<AdminDashboardResult> {
+    const [year, mon] = month.split('-').map(Number);
+    const { data } = await apiClient.get<AdminDashboardResult>('/crm/admin-dashboard', { params: { months, year, month: mon } });
+    return data;
+  },
+  async getNetwork(month: string): Promise<NetworkMonthSummary> {
+    const [year, mon] = month.split('-').map(Number);
+    const { data } = await apiClient.get<NetworkMonthSummary>('/crm/network', { params: { year, month: mon } });
     return data;
   },
   async getBankStats(month: string): Promise<BankStatsResult> {

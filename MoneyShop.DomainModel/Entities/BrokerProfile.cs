@@ -2,6 +2,14 @@ using System;
 
 namespace MoneyShop.DomainModel.Entities
 {
+    public static class BrokerTypes
+    {
+        public const string MoneyShop = "MoneyShop";
+        public const string Afiliat = "Afiliat";
+
+        public static bool IsValid(string? value) => value == MoneyShop || value == Afiliat;
+    }
+
     public class BrokerProfile : IEntity
     {
         public int Id { get; set; }
@@ -14,6 +22,7 @@ namespace MoneyShop.DomainModel.Entities
         public string? Bio { get; set; }
         public string Status { get; set; } = "Active";
         public string Plan { get; set; } = "Partener";
+        public string Type { get; set; } = BrokerTypes.Afiliat;
 
         public string? FirmaNume { get; set; }
         public string? FirmaSediu { get; set; }

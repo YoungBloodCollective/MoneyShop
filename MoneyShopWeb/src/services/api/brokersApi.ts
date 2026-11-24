@@ -12,6 +12,8 @@ export interface BrokerPublicProfile {
   mangoAgreementEnabled: boolean;
 }
 
+export type BrokerType = 'MoneyShop' | 'Afiliat';
+
 export interface BrokerProfile {
   id: number;
   userId: number;
@@ -23,6 +25,7 @@ export interface BrokerProfile {
   bio?: string | null;
   status: 'Active' | 'Suspended';
   plan: string;
+  type: BrokerType;
   loginEmail: string;
   loginPhone?: string | null;
   hasPassword: boolean;
@@ -48,6 +51,7 @@ export interface BrokerAdminItem {
   loginEmail: string;
   status: 'Active' | 'Suspended';
   plan: string;
+  type: BrokerType;
   acordAvailable: boolean;
   acorduri: number;
   programari: number;
@@ -58,7 +62,7 @@ export interface BrokerAdminItem {
 export type BrokerSelfUpdate = Partial<Pick<BrokerProfile, 'displayName' | 'publicPhone' | 'publicEmail' | 'notificationEmail' | 'bio'>>;
 
 export type BrokerAdminUpdate = BrokerSelfUpdate & Partial<Pick<BrokerProfile,
-  'slug' | 'status' | 'plan' | 'firmaNume' | 'firmaSediu' | 'firmaCui' | 'firmaRegCom' | 'firmaEuid' |
+  'slug' | 'status' | 'plan' | 'type' | 'firmaNume' | 'firmaSediu' | 'firmaCui' | 'firmaRegCom' | 'firmaEuid' |
   'firmaDataInfiintarii' | 'reprezentantNume' | 'reprezentantTelefon' | 'mangoAgreementEnabled' | 'mangoEmail' | 'bankPreDocuments'>>;
 
 export interface BrokerCreate extends BrokerAdminUpdate {

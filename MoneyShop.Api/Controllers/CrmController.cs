@@ -1,7 +1,11 @@
+using System;
 using System.IO;
+using System.Net;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MoneyShop.Infrastructure.EntityFramework.ApiResponse;
 using MoneyShop.ServiceInterface.Interfaces.Audit;
 using MoneyShop.ServiceInterface.Interfaces.BcReport;
 using MoneyShop.ServiceInterface.Interfaces.Crm;
@@ -16,13 +20,15 @@ namespace MoneyShop.Api.Controllers
     public class CrmController : BaseController
     {
         private readonly ICrmDashboardService _dashboard;
+        private readonly ICrmNetworkService _network;
         private readonly ICrmService _crm;
         private readonly IAuditService _audit;
         private readonly IBcReportService _bcReports;
 
-        public CrmController(ICrmDashboardService dashboard, ICrmService crm, IAuditService audit, IBcReportService bcReports)
+        public CrmController(ICrmDashboardService dashboard, ICrmNetworkService network, ICrmService crm, IAuditService audit, IBcReportService bcReports)
         {
             _dashboard = dashboard;
+            _network = network;
             _crm = crm;
             _audit = audit;
             _bcReports = bcReports;
@@ -97,6 +103,28 @@ namespace MoneyShop.Api.Controllers
         public IActionResult GetDashboard()
         {
             return Ok(_dashboard.GetSummary());
+        }
+
+        [HttpGet("admin-dashboard")]
+        [Authorize(Roles = "Administrator")]
+        public IActionResult GetAdminDashboard([FromQuery] int months = 12, [FromQuery] int? year = null, [FromQuery] int? month = null)
+        {
+            try { return Ok(_network.GetAdminDashboard(months, year, month)); }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        }
+
+        [HttpGet("network")]
+        public IActionResult GetNetwork([FromQuery] int? year = null, [FromQuery] int? month = null)
+        {
+            var userId = int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
+            try
+            {
+                var summary = _network.GetNetwork(userId, User.IsInRole("Administrator"), year, month);
+                return summary == null
+                    ? StatusCode(403, new ApiResponse(HttpStatusCode.Forbidden, "Rețeaua MoneyShop este disponibilă doar brokerilor MoneyShop."))
+                    : Ok(summary);
+            }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
         }
 
         [HttpGet("clients")]
