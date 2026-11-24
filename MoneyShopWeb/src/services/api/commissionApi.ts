@@ -6,12 +6,14 @@ export type CommissionReportFormat = 'pdf' | 'xlsx';
 
 async function blobError(err: unknown, fallback: string): Promise<Error> {
   if (axios.isAxiosError(err) && err.response?.data instanceof Blob) {
+    const text = (await err.response.data.text().catch(() => '')).trim();
     try {
-      const message = (JSON.parse(await err.response.data.text()) as { message?: string }).message;
+      const message = (JSON.parse(text) as { message?: string }).message;
       if (message) return new Error(message);
     } catch {
-      return new Error(fallback);
+      if (text && text.length < 300 && !text.startsWith('<')) return new Error(text.replace(/^"|"$/g, ''));
     }
+    return new Error(fallback);
   }
   return err instanceof Error && err.message ? err : new Error(fallback);
 }

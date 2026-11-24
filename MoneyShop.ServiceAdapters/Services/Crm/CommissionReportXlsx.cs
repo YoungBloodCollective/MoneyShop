@@ -132,7 +132,10 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         }
 
         private static string Text(string column, int row, string value, int style = 0) =>
-            $"<c r=\"{column}{row}\" t=\"inlineStr\"{StyleAttr(style)}><is><t xml:space=\"preserve\">{SecurityElement.Escape(value)}</t></is></c>";
+            $"<c r=\"{column}{row}\" t=\"inlineStr\"{StyleAttr(style)}><is><t xml:space=\"preserve\">{SecurityElement.Escape(XmlSafe(value))}</t></is></c>";
+
+        private static string XmlSafe(string value) =>
+            new string(value.Where(c => c >= 0x20 || c == '\t' || c == '\n' || c == '\r').ToArray());
 
         private static string Number(string column, int row, decimal value, int style) =>
             $"<c r=\"{column}{row}\"{StyleAttr(style)}><v>{value.ToString(CultureInfo.InvariantCulture)}</v></c>";
