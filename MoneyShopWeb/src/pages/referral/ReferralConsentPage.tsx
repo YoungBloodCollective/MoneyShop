@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { CheckCircle, Loader2, ShieldCheck, XCircle } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
+import { clearReferralToken, readReferralToken } from '@/lib/inviteToken';
 import { referralsApi, type ReferralAnswer, type ReferralConsentView } from '@/services/api/referralsApi';
 
 type PageState =
@@ -32,8 +32,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 export default function ReferralConsentPage() {
-  const [searchParams] = useSearchParams();
-  const [token] = useState(() => searchParams.get('t') ?? '');
+  const [token] = useState(readReferralToken);
   const [state, setState] = useState<PageState>(
     token ? { kind: 'loading' } : { kind: 'problem', message: 'Linkul nu este complet. Deschide-l din nou din mesajul primit.' },
   );
@@ -42,10 +41,6 @@ export default function ReferralConsentPage() {
 
   useEffect(() => {
     if (!token) return;
-    const url = new URL(window.location.href);
-    url.searchParams.delete('t');
-    window.history.replaceState(window.history.state, '', url);
-
     let active = true;
     referralsApi.consentPreview(token)
       .then(view => { if (active) setState({ kind: 'ready', view }); })
@@ -59,6 +54,7 @@ export default function ReferralConsentPage() {
     setError('');
     try {
       const answer = await referralsApi.consentRespond(token, accept);
+      clearReferralToken();
       setState({ kind: 'done', answer });
     } catch (err) {
       if (axios.isAxiosError(err) && err.response && [404, 410].includes(err.response.status)) {

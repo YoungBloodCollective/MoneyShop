@@ -137,7 +137,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                     ToName = target.DisplayName,
                     ToOras = target.Oras,
                     Collaboration = mode == ReferralModes.Colaborare,
-                    Url = $"https://{Root()}/colaborare?t={Uri.EscapeDataString(token)}",
+                    Url = $"https://{Root()}/colaborare#t={Uri.EscapeDataString(token)}",
                 });
             }
             catch (Exception ex)

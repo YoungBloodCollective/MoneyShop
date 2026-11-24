@@ -103,7 +103,7 @@ public class ClientReferralServiceTests
     private static string TokenOf(Rig rig, int consentIndex = 0)
     {
         var url = rig.Messenger.Consents[consentIndex].Url;
-        return Uri.UnescapeDataString(url.Substring(url.IndexOf("?t=", StringComparison.Ordinal) + 3));
+        return Uri.UnescapeDataString(url.Substring(url.IndexOf("#t=", StringComparison.Ordinal) + 3));
     }
 
     private static async Task<ReferralItem> Send(Rig rig, string mode = ReferralModes.Colaborare, int to = Receiver, string? note = null)
@@ -211,7 +211,7 @@ public class ClientReferralServiceTests
         Assert.Equal(note, rows[0].Note);
 
         var message = rig.Messenger.Consents[0];
-        Assert.StartsWith("https://moneyshop.test/colaborare?t=", message.Url);
+        Assert.StartsWith("https://moneyshop.test/colaborare#t=", message.Url);
         Assert.Equal("0722000111", message.Phone);
         Assert.Equal("ion@example.com", message.Email);
         Assert.Equal("Ana Popa", message.FromName);

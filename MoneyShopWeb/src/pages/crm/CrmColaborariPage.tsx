@@ -89,30 +89,23 @@ function ReferralCard({ item, side, onCancel, cancelling }: {
         <div className="mt-3 space-y-3">
           {side !== 'received' && (
             files && files.length > 0 ? (
-              <div className="overflow-x-auto rounded-xl border border-slate-100">
-                <table className="w-full min-w-[480px] text-sm">
-                  <thead>
-                    <tr className="whitespace-nowrap border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
-                      <th className="px-3.5 py-2 font-medium">Bancă</th>
-                      <th className="px-3.5 py-2 font-medium">Tip</th>
-                      <th className="px-3.5 py-2 text-right font-medium">Sumă</th>
-                      <th className="px-3.5 py-2 font-medium">Stadiu</th>
-                      <th className="px-3.5 py-2 font-medium">Din</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {files.map((f, i) => (
-                      <tr key={`${f.bankName}-${f.statusChangedAt}-${i}`}>
-                        <td className="px-3.5 py-2 text-slate-700">{f.bankName}</td>
-                        <td className="px-3.5 py-2"><CreditTypePill type={f.creditType} /></td>
-                        <td className="whitespace-nowrap px-3.5 py-2 text-right font-medium text-slate-700">{money(f.amount)}</td>
-                        <td className="px-3.5 py-2"><StagePill status={f.status} /></td>
-                        <td className="whitespace-nowrap px-3.5 py-2 text-slate-400">{dateShort(f.statusChangedAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ul className="divide-y divide-slate-100 rounded-xl border border-slate-100">
+                {files.map((f, i) => (
+                  <li key={`${f.bankName}-${f.statusChangedAt}-${i}`} className="flex items-start justify-between gap-3 px-3.5 py-2.5 text-sm">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-medium text-slate-700">{f.bankName}</span>
+                        <CreditTypePill type={f.creditType} />
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+                        <StagePill status={f.status} />
+                        <span>{dateShort(f.statusChangedAt)}</span>
+                      </div>
+                    </div>
+                    <span className="shrink-0 whitespace-nowrap font-semibold text-slate-800">{money(f.amount)}</span>
+                  </li>
+                ))}
+              </ul>
             ) : (
               <p className="text-sm text-slate-500">Încă nu sunt dosare. Apar aici după ce clientul semnează acordul cu {item.toBrokerName} și acesta le adaugă.</p>
             )
@@ -127,7 +120,7 @@ function ReferralCard({ item, side, onCancel, cancelling }: {
             </span>
             <span className="font-semibold text-indigo-900">{money(item.shareAmount ?? 0)}</span>
           </div>
-          <p className="text-xs text-slate-400">Estimat din dosarele debursate, cu comisionul calculat de platformă pentru {item.toBrokerName}.</p>
+          <p className="text-xs text-slate-400">Estimat din dosarele disbursate, cu comisionul calculat de platformă pentru {item.toBrokerName}.</p>
         </div>
       )}
 
