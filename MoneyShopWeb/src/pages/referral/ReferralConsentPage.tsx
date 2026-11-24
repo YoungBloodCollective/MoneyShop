@@ -96,7 +96,7 @@ export default function ReferralConsentPage() {
     return (
       <Shell>
         <div className="text-center">
-          <h1 className="mb-3 text-[22px] font-bold text-light-100">Linkul nu este disponibil</h1>
+          <h1 className="mb-3 text-[22px] font-bold text-light-100">{state.message.startsWith('Ai răspuns') ? 'Gata' : 'Linkul nu este disponibil'}</h1>
           <p role="alert" className="text-[15px] leading-relaxed text-light-70">{state.message}</p>
         </div>
       </Shell>
