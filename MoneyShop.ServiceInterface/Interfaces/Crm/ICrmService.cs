@@ -211,6 +211,7 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public string Status { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
         public DateTime? SignedAt { get; set; }
+        public bool? BankDocumentsAccepted { get; set; }
         public DateTime? CompletedAt { get; set; }
         public string? TipAct { get; set; }
         public bool? MarketingAccepted { get; set; }

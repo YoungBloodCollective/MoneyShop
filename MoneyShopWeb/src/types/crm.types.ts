@@ -105,6 +105,7 @@ export interface CrmAcordSnapshot {
   status: string;
   createdAt: string;
   signedAt?: string | null;
+  bankDocumentsAccepted?: boolean | null;
   completedAt?: string | null;
   tipAct?: string | null;
   marketingAccepted?: boolean | null;

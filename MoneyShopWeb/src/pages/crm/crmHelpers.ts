@@ -1,6 +1,7 @@
 import { useCallback, useState, useSyncExternalStore } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
+import type { CrmClientDetail } from '@/types/crm.types';
 
 export const FOCUS_RING = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40';
 export const FIELD_FOCUS = `focus:border-brand-primary ${FOCUS_RING}`;
@@ -235,4 +236,19 @@ export function normalizePhone(value: string | null | undefined): string {
 export function matchesPhone(phone: string | null | undefined, query: string): boolean {
   const q = normalizePhone(query);
   return q.length >= 3 && normalizePhone(phone).includes(q);
+}
+
+export const BANK_DOCS_WINDOW_MS = 3 * 60 * 1000;
+export const BANK_DOCS_POLL_MS = 8000;
+
+export function bankDocsDeadline(signedAt: string): number {
+  const iso = /(?:Z|[+-]\d{2}:?\d{2})$/.test(signedAt) ? signedAt : `${signedAt}Z`;
+  return new Date(iso).getTime() + BANK_DOCS_WINDOW_MS;
+}
+
+export function bankDocsEligible(client: CrmClientDetail): boolean {
+  const acord = client.acord;
+  if (!acord?.signedAt || acord.bankDocumentsAccepted !== true) return false;
+  if (Date.now() >= bankDocsDeadline(acord.signedAt)) return false;
+  return !acord.files.some(f => f.fileType.startsWith('bank_') && !f.isDeleted);
 }

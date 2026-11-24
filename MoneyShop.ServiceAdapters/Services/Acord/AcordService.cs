@@ -852,6 +852,7 @@ ATENTIE: acest text este un substituent tehnic. Textul legal final (GDPR si acor
             FaceMatchConfidence = acord.FaceMatchConfidence,
             ReviewNote = acord.ReviewNote,
             SignedAt = acord.SignedAt,
+            BankDocumentsAccepted = acord.BankDocumentsAccepted,
             MarketingAccepted = acord.MarketingAccepted,
             Oug52Waived = acord.Oug52Waived,
             CreatedAt = acord.CreatedAt,
