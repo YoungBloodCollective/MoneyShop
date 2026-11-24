@@ -258,6 +258,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 Status = d.Status,
                 CreatedAt = d.CreatedAt,
                 SignedAt = d.SignedAt,
+                BankDocumentsAccepted = d.BankDocumentsAccepted,
                 CompletedAt = d.CompletedAt,
                 TipAct = d.TipAct,
                 MarketingAccepted = d.MarketingAccepted,

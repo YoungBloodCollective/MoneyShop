@@ -10,6 +10,9 @@ const LOGOS: [RegExp, string][] = [
   [/libra/i, 'libra.png'],
   [/raiffeisen/i, 'raiffeisen.png'],
   [/garanti/i, 'garanti.png'],
+  [/exim/i, 'exim.png'],
+  [/patria/i, 'patria-logo.svg'],
+  [/^cec/i, 'cec-logo.svg'],
 ];
 
 function logoFor(bank: string): string | null {

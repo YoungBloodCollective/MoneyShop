@@ -280,6 +280,7 @@ export default function AcordClientPage() {
   const bankDocuments = consentText?.bankDocuments?.items.length ? consentText.bankDocuments : null;
 
   const phoneDigits = telefon.replace(/\D/g, '');
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const yearsTotal = parseYears(vechimeTotala);
   const yearsCurrent = parseYears(vechimeLocActual);
   const tenureConflict = yearsTotal !== null && yearsCurrent !== null && yearsCurrent > yearsTotal;
@@ -300,6 +301,7 @@ export default function AcordClientPage() {
     nume.trim().length >= 2 &&
     prenume.trim().length >= 2 &&
     (phoneDigits.length === 10 || phoneDigits.length === 11) &&
+    emailValid &&
     profileComplete &&
     id.complete &&
     !!signature;
@@ -311,6 +313,7 @@ export default function AcordClientPage() {
     missing.push('acordul activ pentru acest broker');
   } else if (step === 1) {
     if (!(phoneDigits.length === 10 || phoneDigits.length === 11)) missing.push('telefonul (10 cifre)');
+    if (!emailValid) missing.push('emailul (adresă validă)');
     missing.push(...id.missing);
   } else {
     if (nume.trim().length < 2) missing.push('numele');
@@ -359,7 +362,7 @@ export default function AcordClientPage() {
         nume: nume.trim(),
         prenume: prenume.trim(),
         telefon: telefon.trim(),
-        email: email.trim() || undefined,
+        email: email.trim(),
         tipAct: id.tipAct!,
         agentCode,
         brokerSlug: brokerSlug ?? undefined,
@@ -447,10 +450,13 @@ export default function AcordClientPage() {
           {step === 1 && (<>
           <div className="grid grid-cols-2 gap-3 mb-4 items-end">
             <Field label="Telefon" value={telefon} onChange={setTelefon} placeholder="07xxxxxxxx" type="tel" inputMode="tel" required />
-            <Field label="Email" value={email} onChange={setEmail} placeholder="exemplu@email.com" type="email" inputMode="email" optional />
+            <Field label="Email" value={email} onChange={setEmail} placeholder="exemplu@email.com" type="email" inputMode="email" required />
           </div>
+          {email.trim() && !emailValid && (
+            <p className="text-xs text-error-600 -mt-2 mb-2">Adresa de email nu este validă.</p>
+          )}
           <p className="text-xs text-light-50 -mt-2 mb-5">
-            Dacă ne lași emailul, primești copii ale documentelor semnate.
+            Emailul este obligatoriu: primești pe el copii ale documentelor semnate.
           </p>
           <IdScanStep state={id} />
           </>)}

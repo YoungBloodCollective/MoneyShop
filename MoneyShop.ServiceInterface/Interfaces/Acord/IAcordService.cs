@@ -306,6 +306,7 @@ public class AcordDetails
     public decimal? FaceMatchConfidence { get; set; }
     public string? ReviewNote { get; set; }
     public DateTime? SignedAt { get; set; }
+    public bool? BankDocumentsAccepted { get; set; }
     public bool? MarketingAccepted { get; set; }
     public bool? Oug52Waived { get; set; }
     public DateTime CreatedAt { get; set; }

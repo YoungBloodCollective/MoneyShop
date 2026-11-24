@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { ChevronDown, Download, Eye, FileText, Folder, FolderPlus, Landmark, Trash2, Upload } from 'lucide-react';
+import { ChevronDown, Download, Eye, FileText, Folder, FolderPlus, Landmark, Loader2, Trash2, Upload } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import { acordApi } from '@/services/api/acordApi';
 import { apiErrorMessage } from '@/services/api/brokersApi';
@@ -58,7 +58,7 @@ function upload(doc: ClientDocumentInfo): FolderItem {
  * "Dosarul clientului": every document of the client in one place, grouped into folders —
  * Acord, Venituri, Biroul de Credit, one folder per bank, Altele. The broker uploads into any folder.
  */
-export function ClientFolderCard({ client, onPreview }: { client: CrmClientDetail; onPreview: (s: DocumentPreviewSource) => void }) {
+export function ClientFolderCard({ client, onPreview, preparingBankDocs = false }: { client: CrmClientDetail; onPreview: (s: DocumentPreviewSource) => void; preparingBankDocs?: boolean }) {
   const userId = client.userId;
   const [uploads, setUploads] = useState<ClientDocumentInfo[]>([]);
   const [extraBanks, setExtraBanks] = useState<string[]>([]);
@@ -220,6 +220,13 @@ export function ClientFolderCard({ client, onPreview }: { client: CrmClientDetai
           <button type="button" onClick={() => setAddingBank(true)} className={btn}><FolderPlus className="h-3.5 w-3.5" /> Bancă</button>
         )}
       </div>
+
+      {preparingBankDocs && (
+        <div role="status" className="mb-3 flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-brand-primary" />
+          <span>Se pregătesc documentele pentru bănci (ProCredit, Patria, ING, BT)… apar automat în câteva secunde.</span>
+        </div>
+      )}
 
       {addingBank && (
         <form onSubmit={addBank} className="mb-3 flex flex-wrap gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3">

@@ -27,7 +27,7 @@ import { ClientWorkSection } from '@/components/crm/client/ClientWorkSection';
 import { ReferralButton } from '@/components/crm/ReferralDialog';
 import { ClientFolderCard } from '@/components/crm/client/ClientFolderCard';
 import { Spinner, StatusPill, AcordPill, ErrorState } from './crmShared';
-import { money, dateShort, initials, creditTypeLabel, useGoBack, FOCUS_RING } from './crmHelpers';
+import { money, dateShort, initials, creditTypeLabel, useGoBack, FOCUS_RING, bankDocsEligible, bankDocsDeadline, BANK_DOCS_POLL_MS } from './crmHelpers';
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -395,6 +395,24 @@ function ClientDetail({ userId }: { userId: number }) {
 
   const refreshClient = () => crmApi.getClient(userId).then(setClient).catch(() => undefined);
 
+  const signedAt = client?.acord?.signedAt ?? null;
+  const eligibleForBankDocs = !!client && bankDocsEligible(client);
+  const [bankDocsGaveUp, setBankDocsGaveUp] = useState<string | null>(null);
+  const preparingBankDocs = eligibleForBankDocs && bankDocsGaveUp !== signedAt;
+
+  useEffect(() => {
+    if (!eligibleForBankDocs || !signedAt) return;
+    const remaining = bankDocsDeadline(signedAt) - Date.now();
+    const giveUp = () => setBankDocsGaveUp(signedAt);
+    if (remaining <= 0) {
+      const t = window.setTimeout(giveUp, 0);
+      return () => window.clearTimeout(t);
+    }
+    const poll = window.setInterval(() => { void crmApi.getClient(userId).then(setClient).catch(() => undefined); }, BANK_DOCS_POLL_MS);
+    const stop = window.setTimeout(giveUp, remaining);
+    return () => { window.clearInterval(poll); window.clearTimeout(stop); };
+  }, [eligibleForBankDocs, signedAt, userId]);
+
   if (loading) return <Spinner />;
   if (notFound || failed || !client) {
     return (
@@ -472,7 +490,7 @@ function ClientDetail({ userId }: { userId: number }) {
         <div className="min-w-0 space-y-4 lg:col-span-2">
           <ClientWorkSection userId={userId} onBankFilesChange={setBankFiles} />
           <FinancialAnalysisCard income={client.income} bc={client.bcReport} />
-          <ClientFolderCard client={client} onPreview={setPreview} />
+          <ClientFolderCard client={client} onPreview={setPreview} preparingBankDocs={preparingBankDocs} />
           {client.acord ? <AcordCard key={client.acord.acordId} acord={client.acord} onStatusChange={() => { void refreshClient(); }} /> : <NoAcordCard />}
           {client.acord && (
             <div className="[&>div]:mb-0">
