@@ -387,6 +387,45 @@ public class EmailService
         return SendHtmlAsync(toEmail, "Ai fost invitat în CRM-ul MoneyShop", body, "broker invite");
     }
 
+    /// <summary>Asks the client to agree to a broker passing their contact data to a colleague; the link is private and valid for a limited time.</summary>
+    public Task<bool> SendReferralConsentAsync(string toEmail, string firstName, string fromName, string toName, string? toOras, bool collaboration, string consentUrl)
+    {
+        var greeting = string.IsNullOrWhiteSpace(firstName) ? "Bună!" : $"Bună, {Html(firstName)}!";
+        var where = string.IsNullOrWhiteSpace(toOras) ? "" : $" din {Html(toOras)}";
+        var keepInformed = collaboration ? $"<p>{Html(fromName)} va fi ținut la curent cu stadiul dosarului tău.</p>" : "";
+        var body = BookingLayout("Brokerul tău îți recomandă un coleg", $@"
+    <p>{greeting}</p>
+    <p>Brokerul tău, <strong>{Html(fromName)}</strong>, îți recomandă colegul <strong>{Html(toName)}</strong>{where} pentru creditul tău.</p>
+    <p>Ești de acord să-i transmitem numele, telefonul și emailul tău?</p>
+    {keepInformed}
+    <p><a href=""{Html(consentUrl)}"" style=""display:inline-block;padding:12px 22px;background:#16a34a;color:#fff;border-radius:10px;text-decoration:none;font-weight:bold;"">Răspunde</a></p>
+    <p style=""font-size:13px;color:#64748b;"">Nu se transmit documente și nici date de identitate, doar numele, telefonul și emailul. Linkul este personal și valabil 7 zile. Nu te așteptai la acest mesaj? Ignoră-l: nu se transmite nimic.</p>");
+        return SendHtmlAsync(toEmail, "Brokerul tău îți recomandă un coleg - MoneyShop", body, "referral consent");
+    }
+
+    /// <summary>Tells a broker that a colleague's client agreed to be passed to them; the lead is in their CRM.</summary>
+    public Task<bool> SendReferralReceivedAsync(string toEmail, string fromName, string clientName, string? phone, bool collaboration, string crmUrl)
+    {
+        var kind = collaboration ? "colaborare" : "transfer";
+        var share = collaboration ? $"<p>Este o colaborare: {Html(fromName)} va vedea stadiul dosarelor clientului și primește 50% din comisionul tău pentru ele.</p>" : "";
+        var body = BookingLayout("Ai primit un client de la un coleg", $@"
+    <p><strong>{Html(clientName)}</strong>{(string.IsNullOrWhiteSpace(phone) ? "" : $" &middot; {Html(phone)}")}</p>
+    <p>{Html(fromName)} ți-a trimis un client ({kind}), cu acordul lui. Îl găsești în Lead-uri, cu eticheta „Primit de la {Html(fromName)}”.</p>
+    {share}
+    <p><a href=""{Html(crmUrl)}"" style=""display:inline-block;padding:10px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;"">Deschide Lead-urile</a></p>");
+        return SendHtmlAsync(toEmail, $"Client primit de la {Plain(fromName)}: {Plain(clientName)}", body, "referral received");
+    }
+
+    /// <summary>Tells the referring broker how a bank file of a collaborated client moved.</summary>
+    public Task<bool> SendReferralStatusAsync(string toEmail, string clientName, string bankName, string statusLabel)
+    {
+        var line = $"Dosarul clientului {Plain(clientName)} la {Plain(bankName)}: {Plain(statusLabel)}";
+        var body = BookingLayout("Stadiul dosarului s-a schimbat", $@"
+    <p>{Html(line)}</p>
+    <p style=""font-size:13px;color:#64748b;"">Primești această veste pentru că ai trimis clientul într-o colaborare.</p>");
+        return SendHtmlAsync(toEmail, line, body, "referral status");
+    }
+
     private static string Plain(string? value) =>
         (value ?? string.Empty).Replace("\r", " ").Replace("\n", " ").Trim();
 

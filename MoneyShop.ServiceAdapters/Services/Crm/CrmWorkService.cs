@@ -20,10 +20,12 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         private const int MaxNotes = 1000;
 
         private readonly MoneyShopDbContext _context;
+        private readonly IReferralNotifier _referrals;
 
-        public CrmWorkService(MoneyShopDbContext context)
+        public CrmWorkService(MoneyShopDbContext context, IReferralNotifier referrals)
         {
             _context = context;
+            _referrals = referrals;
         }
 
         public CrmClientWork GetClientWork(int userId)
@@ -93,6 +95,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             };
             _context.BankFiles.Add(file);
             _context.SaveChanges();
+            _referrals.BankFileChanged(file.Id);
             return ToItem(file, null);
         }
 
@@ -102,7 +105,8 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             if (file == null) return null;
             var bank = ResolveBank(input, file.BankId);
             var now = DateTime.UtcNow;
-            if (file.Status != input.Status) file.StatusChangedAt = now;
+            var statusChanged = file.Status != input.Status;
+            if (statusChanged) file.StatusChangedAt = now;
             file.BankId = bank.Id;
             file.BankName = bank.Name;
             file.CreditType = input.CreditType;
@@ -111,6 +115,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             file.Notes = Trim(input.Notes, MaxNotes);
             file.UpdatedAt = now;
             _context.SaveChanges();
+            if (statusChanged) _referrals.BankFileChanged(file.Id);
             return ToItem(file, null);
         }
 

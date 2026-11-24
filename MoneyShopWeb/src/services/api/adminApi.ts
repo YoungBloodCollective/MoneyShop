@@ -51,6 +51,8 @@ export interface LeadItem {
   poprireSauExecutorUltimii5Ani: boolean;
   situatiePoprireInchisa?: boolean;
   source: string;
+  /** The referring broker's name, for a lead that came through Colaborează / Transferă. */
+  receivedFrom?: string | null;
   adminNotes?: string;
   brokerProfileId?: number | null;
   /** The client the lead became, once they signed the acord. */

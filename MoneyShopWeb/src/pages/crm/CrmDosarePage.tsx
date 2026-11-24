@@ -6,6 +6,7 @@ import { crmApi } from '@/services/api/crmApi';
 import type { CrmFileListItem } from '@/types/crm.types';
 import { bankStage } from '@/components/crm/client/clientWorkLabels';
 import { CreditTypePill, StagePill } from '@/components/crm/client/ClientWorkSection';
+import { ReferralButton } from '@/components/crm/ReferralDialog';
 import { PageHeader, SkeletonTable, EmptyState, ErrorState, SegmentChips, Pagination } from './crmShared';
 import { money, dateShort, BANK_FILE_SEGMENTS, bankFileSegment, usePaged, FOCUS_RING, FIELD_FOCUS } from './crmHelpers';
 
@@ -149,8 +150,8 @@ export default function CrmDosarePage() {
         <div className="space-y-3">
           <ul className="space-y-2 md:hidden">
             {slice.map(f => (
-              <li key={f.id}>
-                <Link to={crm(`/crm/clienti/${f.userId}`)} className={`block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${FOCUS_RING}`}>
+              <li key={f.id} className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <Link to={crm(`/crm/clienti/${f.userId}`)} className={`block rounded-t-2xl p-4 ${FOCUS_RING}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <span className="block truncate font-semibold text-slate-800">{f.clientName}</span>
@@ -168,6 +169,11 @@ export default function CrmDosarePage() {
                   </div>
                   {f.brokerName && <div className="mt-2 text-xs text-slate-500">Broker: {f.brokerName}</div>}
                 </Link>
+                {!isAdminView && (
+                  <div className="border-t border-slate-100 px-4 py-2.5">
+                    <ReferralButton clientUserId={f.userId} clientName={f.clientName} compact />
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -183,7 +189,7 @@ export default function CrmDosarePage() {
                   <th className="px-5 py-3 font-medium text-right">Sumă</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                   <th className="px-5 py-3 font-medium">Din</th>
-                  {isAdminView && <th className="px-5 py-3 font-medium">Broker</th>}
+                  {isAdminView ? <th className="px-5 py-3 font-medium">Broker</th> : <th className="px-5 py-3 font-medium"><span className="sr-only">Acțiuni</span></th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -198,7 +204,9 @@ export default function CrmDosarePage() {
                     <td className="whitespace-nowrap px-5 py-3 text-right font-medium text-slate-700">{money(f.amount)}</td>
                     <td className="px-5 py-3"><StagePill status={f.status} /></td>
                     <td className="whitespace-nowrap px-5 py-3 text-slate-400">{dateShort(f.statusChangedAt)}</td>
-                    {isAdminView && <td className="px-5 py-3 text-slate-500">{f.brokerName}</td>}
+                    {isAdminView
+                      ? <td className="px-5 py-3 text-slate-500">{f.brokerName}</td>
+                      : <td className="whitespace-nowrap px-5 py-3 text-right" onClick={e => e.stopPropagation()}><ReferralButton clientUserId={f.userId} clientName={f.clientName} compact /></td>}
                   </tr>
                 ))}
               </tbody>

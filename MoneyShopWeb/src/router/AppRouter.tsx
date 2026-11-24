@@ -72,6 +72,8 @@ const CrmDashboardPage = lazy(() => import('@/pages/crm/CrmDashboardPage'));
 const CrmClientsPage = lazy(() => import('@/pages/crm/CrmClientsPage'));
 const CrmClientDetailPage = lazy(() => import('@/pages/crm/CrmClientDetailPage'));
 const CrmDosarePage = lazy(() => import('@/pages/crm/CrmDosarePage'));
+const CrmColaborariPage = lazy(() => import('@/pages/crm/CrmColaborariPage'));
+const ReferralConsentPage = lazy(() => import('@/pages/referral/ReferralConsentPage'));
 const CrmLeadsPage = lazy(() => import('@/pages/crm/CrmLeadsPage'));
 const AcordToClientRedirect = lazy(() => import('@/pages/crm/AcordToClientRedirect'));
 const CrmProgramariPage = lazy(() => import('@/pages/crm/CrmProgramariPage'));
@@ -114,6 +116,9 @@ export function AppRouter() {
 
         {/* Private invitation link for a new broker (token in ?t=, removed from the URL on load) */}
         <Route path="/broker/invitatie" element={<BrokerInvitePage />} />
+
+        {/* Private link sent to a client: agree (or not) to a broker passing their contact data to a colleague */}
+        <Route path="/colaborare" element={<ReferralConsentPage />} />
 
         {/* Thank you page for Google Ads conversion tracking */}
         <Route path="/multumim" element={<ThankYouPage />} />
@@ -182,6 +187,7 @@ export function AppRouter() {
           <Route path="/admin/acorduri" element={<Navigate to="/admin/clienti?seg=acord" replace />} />
           <Route path="/admin/acorduri/:acordId" element={<AcordToClientRedirect />} />
           <Route path="/admin/dosare" element={<CrmDosarePage />} />
+          <Route path="/admin/colaborari" element={<CrmColaborariPage />} />
           <Route path="/admin/banci" element={<CrmBanciPage />} />
           <Route path="/admin/setari" element={<CrmSetariPage />} />
           <Route path="/admin/leaduri" element={<CrmLeadsPage />} />
@@ -211,6 +217,7 @@ export function AppRouter() {
           <Route path="/crm/rapoarte" element={<CrmRapoartePage />} />
           <Route path="/crm/profil" element={<ProtectedRoute brokerOnly><CrmProfilPage /></ProtectedRoute>} />
           <Route path="/crm/dosare" element={<CrmDosarePage />} />
+          <Route path="/crm/colaborari" element={<CrmColaborariPage />} />
           <Route path="/crm/banci" element={<CrmBanciPage />} />
           <Route path="/crm/setari" element={<CrmSetariPage />} />
           <Route path="/crm/oferte" element={<Navigate to="/crm" replace />} />

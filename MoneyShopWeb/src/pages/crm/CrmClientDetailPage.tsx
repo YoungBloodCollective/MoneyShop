@@ -24,6 +24,7 @@ import { splitClientName } from '@/components/crm/appointments/appointmentModel'
 import { BcUploadButton } from '@/components/crm/client/BcUploadButton';
 import { FinancialAnalysisCard } from '@/components/crm/client/FinancialAnalysisCard';
 import { ClientWorkSection } from '@/components/crm/client/ClientWorkSection';
+import { ReferralButton } from '@/components/crm/ReferralDialog';
 import { ClientFolderCard } from '@/components/crm/client/ClientFolderCard';
 import { Spinner, StatusPill, AcordPill, ErrorState } from './crmShared';
 import { money, dateShort, initials, creditTypeLabel, useGoBack, FOCUS_RING } from './crmHelpers';
@@ -452,6 +453,7 @@ function ClientDetail({ userId }: { userId: number }) {
                 <MessageCircle className="h-4 w-4" /> WhatsApp
               </a>
             )}
+            <ReferralButton clientUserId={userId} clientName={client.fullName} />
             {client.phone && (
               <button
                 type="button"
