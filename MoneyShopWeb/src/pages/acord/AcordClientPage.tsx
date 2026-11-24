@@ -307,7 +307,9 @@ export default function AcordClientPage() {
   // What is still missing on the current step, in plain words, next to the button (the button
   // used to stay grey without saying why).
   const missing: string[] = [];
-  if (step === 1) {
+  if (acordUnavailable) {
+    missing.push('acordul activ pentru acest broker');
+  } else if (step === 1) {
     if (!(phoneDigits.length === 10 || phoneDigits.length === 11)) missing.push('telefonul (10 cifre)');
     missing.push(...id.missing);
   } else {
