@@ -24,7 +24,7 @@ public class BankCatalogServiceTests
         db.BrokerProfiles.AddRange(Profile(BrokerId, BrokerUserId, "Alex"), Profile(OtherBrokerId, 3, "Maria"));
         db.SaveChanges();
         db.BrokerScopeId = BrokerId;
-        return (new BankCatalogService(db), new CrmWorkService(db), db);
+        return (new BankCatalogService(db), new CrmWorkService(db, new NoReferralNotifier()), db);
     }
 
     private static BankCatalogInput In(string name, decimal percent = 0m, decimal? threshold = null, bool active = true) =>

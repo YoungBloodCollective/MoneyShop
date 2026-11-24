@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using MoneyShop.ServiceAdapters.Services.Otp;
 using MoneyShop.ServiceInterface.Interfaces.Crm;
@@ -18,8 +19,13 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             _sms = sms;
         }
 
+        private static readonly Regex UrlLike = new(@"(?:https?://|www\.)\S*|[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}\S*", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex ControlChars = new(@"[\p{C}\p{Zl}\p{Zp}]+", RegexOptions.Compiled);
+
         public async Task<ReferralDelivery> SendConsentRequestAsync(ReferralConsentMessage message)
         {
+            message.FromName = SafeName(message.FromName);
+            message.ToName = SafeName(message.ToName);
             var delivery = new ReferralDelivery();
             var phone = InternationalPhone(message.Phone);
             if (phone != null)
@@ -37,10 +43,20 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         }
 
         public Task<bool> NotifyReceivedAsync(string toEmail, string fromName, string clientName, string? phone, bool collaboration, string crmUrl) =>
-            _email.SendReferralReceivedAsync(toEmail, fromName, clientName, phone, collaboration, crmUrl);
+            _email.SendReferralReceivedAsync(toEmail, SafeName(fromName), clientName, phone, collaboration, crmUrl);
 
         public Task<bool> NotifyStatusAsync(string toEmail, string clientName, string bankName, string statusLabel) =>
             _email.SendReferralStatusAsync(toEmail, clientName, bankName, statusLabel);
+
+        /// <summary>A broker's display name is free text and goes into SMS and emails to a third party: no links, no control characters, at most 60 characters.</summary>
+        internal static string SafeName(string? name)
+        {
+            var clean = ControlChars.Replace(name ?? "", " ");
+            clean = UrlLike.Replace(clean, " ");
+            clean = Regex.Replace(clean, @"\s+", " ").Trim();
+            if (clean.Length > 60) clean = clean.Substring(0, 60).TrimEnd();
+            return clean.Length == 0 ? "un coleg" : clean;
+        }
 
         /// <summary>07xxxxxxxx (or +40 / 0040 forms) as 407xxxxxxxx; null when it does not look like a Romanian number.</summary>
         internal static string? InternationalPhone(string? phone)

@@ -24,7 +24,7 @@ public class CrmWorkServiceTests
     public void Rows_belong_to_the_signed_in_broker_and_other_brokers_cannot_see_or_change_them()
     {
         var (_, db) = Build();
-        var work = new CrmWorkService(db);
+        var work = new CrmWorkService(db, new NoReferralNotifier());
 
         var task = work.AddTask(BothUser, "  Sună-l joi  ", new DateTime(2030, 1, 2, 8, 0, 0, DateTimeKind.Utc));
         var file = work.AddBankFile(BothUser, new CrmBankFileInput { BankId = SeedBank(db, "BCR"), CreditType = CreditTypes.Np, Amount = 50000, Status = BankFileStatuses.Trimis });
@@ -51,7 +51,7 @@ public class CrmWorkServiceTests
         var (_, db) = Build();
         db.BrokerScopeId = null;
 
-        new CrmWorkService(db).AddTask(OtherBrokerUser, "Verifică BC", DateTime.UtcNow.AddDays(1));
+        new CrmWorkService(db, new NoReferralNotifier()).AddTask(OtherBrokerUser, "Verifică BC", DateTime.UtcNow.AddDays(1));
 
         Assert.Equal(OtherBrokerId, db.ClientTasks.Single().BrokerProfileId);
     }
@@ -60,7 +60,7 @@ public class CrmWorkServiceTests
     public void Changing_the_stage_moves_the_stage_date_and_the_board_names_the_client()
     {
         var (_, db) = Build();
-        var work = new CrmWorkService(db);
+        var work = new CrmWorkService(db, new NoReferralNotifier());
         var file = work.AddBankFile(BothUser, new CrmBankFileInput { BankId = SeedBank(db, "ING"), CreditType = CreditTypes.Np, Amount = 80000, Status = BankFileStatuses.Trimis });
         var row = db.BankFiles.Single();
         row.StatusChangedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -81,7 +81,7 @@ public class CrmWorkServiceTests
     public void Due_reminders_are_open_tasks_whose_time_came_and_were_not_sent()
     {
         var (_, db) = Build();
-        var work = new CrmWorkService(db);
+        var work = new CrmWorkService(db, new NoReferralNotifier());
         var now = new DateTime(2030, 5, 1, 10, 0, 0, DateTimeKind.Utc);
         var due = work.AddTask(BothUser, "De sunat", now.AddMinutes(-1));
         work.AddTask(BothUser, "Mai târziu", now.AddHours(1));
@@ -102,7 +102,7 @@ public class CrmWorkServiceTests
     public void Client_list_carries_tags_and_the_latest_bank_stage()
     {
         var (crm, db) = Build();
-        var work = new CrmWorkService(db);
+        var work = new CrmWorkService(db, new NoReferralNotifier());
         work.SetTags(FileOnlyUser, new[] { ClientTagKeys.DeRevenit });
         work.AddBankFile(FileOnlyUser, new CrmBankFileInput { BankId = SeedBank(db, "BT"), CreditType = CreditTypes.Np, Amount = 1000, Status = BankFileStatuses.Completari });
 

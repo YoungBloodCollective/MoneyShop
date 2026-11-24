@@ -71,6 +71,8 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         SelfReferral,
         ClientNotVisible,
         NoContact,
+        NoPhone,
+        TooManyForClient,
         Duplicate,
     }
 
@@ -145,6 +147,7 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
     {
         public bool Success { get; set; }
         public bool NotFound { get; set; }
+        public string? Message { get; set; }
     }
 
     public enum ReferralConsentError

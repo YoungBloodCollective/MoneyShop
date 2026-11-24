@@ -11,6 +11,21 @@ type PageState =
   | { kind: 'ready'; view: ReferralConsentView }
   | { kind: 'done'; answer: ReferralAnswer };
 
+const ANSWERED_KEY = 'moneyshop:referral-answered';
+
+function readAnswered(): 'yes' | 'no' | null {
+  try {
+    const value = sessionStorage.getItem(ANSWERED_KEY);
+    return value === 'yes' || value === 'no' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function markAnswered(accepted: boolean) {
+  try { sessionStorage.setItem(ANSWERED_KEY, accepted ? 'yes' : 'no'); } catch { /* storage unavailable */ }
+}
+
 function problemFrom(err: unknown): string {
   if (axios.isAxiosError(err)) {
     if (!err.response) return 'Nu ne putem conecta la server. Verifică conexiunea și reîncarcă pagina.';
@@ -33,9 +48,11 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 export default function ReferralConsentPage() {
   const [token] = useState(readReferralToken);
-  const [state, setState] = useState<PageState>(
-    token ? { kind: 'loading' } : { kind: 'problem', message: 'Linkul nu este complet. Deschide-l din nou din mesajul primit.' },
-  );
+  const [state, setState] = useState<PageState>(() => {
+    if (token) return { kind: 'loading' };
+    if (readAnswered()) return { kind: 'problem', message: 'Ai răspuns deja. Mulțumim!' };
+    return { kind: 'problem', message: 'Linkul nu este complet. Deschide-l din nou din mesajul primit.' };
+  });
   const [submitting, setSubmitting] = useState<'yes' | 'no' | null>(null);
   const [error, setError] = useState('');
 
@@ -55,6 +72,7 @@ export default function ReferralConsentPage() {
     try {
       const answer = await referralsApi.consentRespond(token, accept);
       clearReferralToken();
+      markAnswered(accept);
       setState({ kind: 'done', answer });
     } catch (err) {
       if (axios.isAxiosError(err) && err.response && [404, 410].includes(err.response.status)) {

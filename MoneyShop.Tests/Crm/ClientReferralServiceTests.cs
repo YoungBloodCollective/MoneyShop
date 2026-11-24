@@ -609,10 +609,17 @@ public class ClientReferralServiceTests
         Assert.Empty(rig.Service.SearchBrokers("bogdan", null, null));
     }
 
-    private static (ReferralNotifier Notifier, CrmWorkService Work, int BankId) Notifying(Rig rig)
+    private static (ReferralStatusQueue Queue, CrmWorkService Work, int BankId) Notifying(Rig rig)
     {
-        var notifier = new ReferralNotifier(rig.Db, rig.Messenger, NullLogger<ReferralNotifier>.Instance);
-        return (notifier, new CrmWorkService(rig.Db, notifier), rig.BankId);
+        var queue = new ReferralStatusQueue();
+        var notifier = new ReferralNotifier(rig.Db, queue, NullLogger<ReferralNotifier>.Instance);
+        return (queue, new CrmWorkService(rig.Db, notifier), rig.BankId);
+    }
+
+    private static async Task Drain(ReferralStatusQueue queue, FakeMessenger messenger)
+    {
+        while (queue.Reader.TryRead(out var email))
+            await ReferralStatusQueue.DeliverAsync(messenger, email, NullLogger.Instance);
     }
 
     [Fact]
@@ -621,12 +628,14 @@ public class ClientReferralServiceTests
         var rig = Build();
         await Accepted(rig);
         ClientSignedWithReceiver(rig);
-        var (_, work, bankId) = Notifying(rig);
+        var (queue, work, bankId) = Notifying(rig);
         rig.Db.BrokerScopeId = Receiver;
 
         var created = work.AddBankFile(ReceiverClient, new CrmBankFileInput { BankId = bankId, CreditType = CreditTypes.Np, Amount = 60000, Status = BankFileStatuses.Trimis });
         work.UpdateBankFile(created.Id, new CrmBankFileInput { BankId = bankId, CreditType = CreditTypes.Np, Amount = 70000, Status = BankFileStatuses.Trimis });
         work.UpdateBankFile(created.Id, new CrmBankFileInput { BankId = bankId, CreditType = CreditTypes.Np, Amount = 70000, Status = BankFileStatuses.AprobatFinal });
+        Assert.Empty(rig.Messenger.Statuses);
+        await Drain(queue, rig.Messenger);
 
         Assert.Equal(2, rig.Messenger.Statuses.Count);
         Assert.All(rig.Messenger.Statuses, s => Assert.Equal("ana@example.com", s.To));
@@ -639,22 +648,25 @@ public class ClientReferralServiceTests
     {
         var rig = Build();
         await Send(rig);
-        var (_, work, bankId) = Notifying(rig);
+        var (queue, work, bankId) = Notifying(rig);
         rig.Db.BrokerScopeId = Receiver;
         var input = new CrmBankFileInput { BankId = bankId, CreditType = CreditTypes.Np, Amount = 60000, Status = BankFileStatuses.Trimis };
 
         work.AddBankFile(ReceiverClient, input);
+        await Drain(queue, rig.Messenger);
         Assert.Empty(rig.Messenger.Statuses);
 
         await rig.Service.RespondAsync(TokenOf(rig), true, null, null);
         ClientSignedWithReceiver(rig);
         rig.Db.BrokerScopeId = Receiver;
         work.AddBankFile(ReceiverOtherClient, input);
+        await Drain(queue, rig.Messenger);
         Assert.Empty(rig.Messenger.Statuses);
 
         rig.Db.ClientReferrals.Single().Mode = ReferralModes.Transfer;
         rig.Db.SaveChanges();
         work.AddBankFile(ReceiverClient, input);
+        await Drain(queue, rig.Messenger);
         Assert.Empty(rig.Messenger.Statuses);
     }
 
@@ -665,13 +677,91 @@ public class ClientReferralServiceTests
         await Accepted(rig);
         ClientSignedWithReceiver(rig);
         rig.Messenger.ThrowOnStatus = true;
-        var (_, work, bankId) = Notifying(rig);
+        var (queue, work, bankId) = Notifying(rig);
         rig.Db.BrokerScopeId = Receiver;
 
         var created = work.AddBankFile(ReceiverClient, new CrmBankFileInput { BankId = bankId, CreditType = CreditTypes.Np, Amount = 60000, Status = BankFileStatuses.Trimis });
         var updated = work.UpdateBankFile(created.Id, new CrmBankFileInput { BankId = bankId, CreditType = CreditTypes.Np, Amount = 60000, Status = BankFileStatuses.Respins });
+        await Drain(queue, rig.Messenger);
 
         Assert.Equal(BankFileStatuses.Respins, updated!.Status);
         Assert.Equal(BankFileStatuses.Respins, rig.Db.BankFiles.Single().Status);
+    }
+
+    [Fact]
+    public async Task A_closed_queue_does_not_fail_the_update()
+    {
+        var rig = Build();
+        await Accepted(rig);
+        ClientSignedWithReceiver(rig);
+        var (queue, work, bankId) = Notifying(rig);
+        queue.Complete();
+        rig.Db.BrokerScopeId = Receiver;
+
+        var created = work.AddBankFile(ReceiverClient, new CrmBankFileInput { BankId = bankId, CreditType = CreditTypes.Np, Amount = 60000, Status = BankFileStatuses.Trimis });
+
+        Assert.Equal(BankFileStatuses.Trimis, created.Status);
+        Assert.Equal(BankFileStatuses.Trimis, rig.Db.BankFiles.Single().Status);
+    }
+
+    [Fact]
+    public async Task A_status_email_is_queued_not_sent_on_the_request_path()
+    {
+        var rig = Build();
+        await Accepted(rig);
+        ClientSignedWithReceiver(rig);
+        var (queue, work, bankId) = Notifying(rig);
+        rig.Db.BrokerScopeId = Receiver;
+
+        work.AddBankFile(ReceiverClient, new CrmBankFileInput { BankId = bankId, CreditType = CreditTypes.Np, Amount = 60000, Status = BankFileStatuses.Trimis });
+
+        Assert.Empty(rig.Messenger.Statuses);
+        Assert.True(queue.Reader.TryRead(out var email));
+        Assert.Equal("ana@example.com", email!.To);
+    }
+
+    [Fact]
+    public async Task A_client_without_a_phone_cannot_be_referred_in_either_mode()
+    {
+        var rig = Build();
+        rig.Db.BrokerScopeId = Referrer;
+        rig.Db.AcordClients.Single(a => a.UserId == ReferrerClient).Telefon = "";
+        rig.Db.Utilizatoris.Single(u => u.IdUtilizator == ReferrerClient).NumarTelefon = null;
+        rig.Db.SaveChanges();
+
+        foreach (var mode in new[] { ReferralModes.Colaborare, ReferralModes.Transfer })
+            Assert.Equal(ReferralError.NoPhone, (await rig.Service.CreateAsync(ReferrerClient, new ReferralCreateInput { ToBrokerProfileId = Receiver, Mode = mode })).Error);
+        Assert.Empty(rig.Db.ClientReferrals);
+    }
+
+    [Fact]
+    public async Task A_client_gets_at_most_three_referrals_per_rolling_day_across_brokers()
+    {
+        var rig = Build();
+        rig.Db.BrokerScopeId = Referrer;
+        rig.Db.BrokerProfiles.Add(new BrokerProfile { Id = 15, User = rig.Db.Utilizatoris.First(u => u.IdUtilizator == 4), Slug = "extra", DisplayName = "Extra Broker", Oras = "Iași", Judet = "Iași", Type = BrokerTypes.Afiliat });
+        rig.Db.SaveChanges();
+
+        foreach (var to in new[] { Receiver, Third, 15 })
+            Assert.Equal(ReferralError.None, (await rig.Service.CreateAsync(ReferrerClient, new ReferralCreateInput { ToBrokerProfileId = to })).Error);
+        rig.Time.Now = rig.Time.Now.AddHours(1);
+        Assert.Equal(ReferralError.TooManyForClient, (await rig.Service.CreateAsync(ReferrerClient, new ReferralCreateInput { ToBrokerProfileId = Receiver, Mode = ReferralModes.Transfer })).Error);
+        Assert.Equal(3, rig.Db.ClientReferrals.Count());
+
+        rig.Time.Now = rig.Time.Now.AddDays(8);
+        Assert.Equal(ReferralError.None, (await rig.Service.CreateAsync(ReferrerClient, new ReferralCreateInput { ToBrokerProfileId = Third })).Error);
+    }
+
+    [Fact]
+    public void Broker_names_in_messages_lose_links_control_characters_and_length()
+    {
+        Assert.Equal("Ana Popa", ReferralMessenger.SafeName("  Ana\u0007 Popa  "));
+        Assert.Equal("Ana Popa", ReferralMessenger.SafeName("Ana https://evil.example/x?y=1 Popa"));
+        Assert.Equal("Ana Popa", ReferralMessenger.SafeName("Ana www.evil.ro Popa"));
+        Assert.Equal("Ana Popa", ReferralMessenger.SafeName("Ana evil.com/login Popa"));
+        Assert.Equal("Ana\nPopa".Replace("\n", " "), ReferralMessenger.SafeName("Ana\nPopa"));
+        Assert.Equal("un coleg", ReferralMessenger.SafeName("http://evil.ro"));
+        Assert.Equal(60, ReferralMessenger.SafeName(new string('a', 200)).Length);
+        Assert.Equal("Ion P. Rus", ReferralMessenger.SafeName("Ion P. Rus"));
     }
 }

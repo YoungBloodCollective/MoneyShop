@@ -48,6 +48,8 @@ public class ClientReferralsController : BaseController
             case ReferralError.SelfReferral: return BadRequest("Nu poți trimite clientul către tine.");
             case ReferralError.ClientNotVisible: return NotFound("Clientul nu există sau nu îți este atribuit.");
             case ReferralError.NoContact: return BadRequest("Clientul nu are telefon sau email la care să trimitem cererea de acord.");
+            case ReferralError.NoPhone: return BadRequest("Clientul nu are un număr de telefon; adaugă-l înainte de a-l trimite unui coleg.");
+            case ReferralError.TooManyForClient: return StatusCode(429, new { message = "Clientul a primit deja prea multe cereri azi. Încearcă mâine." });
             case ReferralError.Duplicate: return Conflict("Ai trimis deja acest client către acest broker.");
             default: return BadRequest("Cererea nu este validă.");
         }
@@ -63,7 +65,7 @@ public class ClientReferralsController : BaseController
     {
         var result = _referrals.Cancel(id);
         if (result.NotFound) return NotFound("Trimiterea nu există.");
-        if (!result.Success) return Conflict("Clientul a răspuns deja sau cererea a expirat, nu mai poate fi anulată.");
+        if (!result.Success) return Conflict(result.Message ?? "Clientul a răspuns deja sau cererea a expirat, nu mai poate fi anulată.");
         _audit.Log("ClientReferral", id.ToString(), "cancelled");
         return Ok(new { cancelled = true });
     }

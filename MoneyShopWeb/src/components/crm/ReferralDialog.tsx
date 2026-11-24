@@ -23,7 +23,7 @@ const MODES: { key: ReferralMode; title: string; text: string }[] = [
   {
     key: 'Transfer',
     title: 'Transfer',
-    text: 'Clientul trece la coleg. Nu mai vezi nimic despre el și nu primești comision.',
+    text: 'Clientul trece la coleg. Rămâne în CRM-ul tău, dar nu vezi dosarele colegului și nu primești comision.',
   },
 ];
 

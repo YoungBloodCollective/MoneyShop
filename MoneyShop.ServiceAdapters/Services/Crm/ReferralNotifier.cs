@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MoneyShop.DomainModel.Entities;
@@ -12,12 +11,11 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
     /// <summary>
     /// When the receiving broker adds a bank file or moves it to another stage, the referring broker of an
     /// accepted collaboration gets an email. The match is exact: the referral's receiver owns the file, and
-    /// the file's client is the client the referral's lead became. Nothing here may fail the update.
+    /// the file's client is the client the referral's lead became. Everything needed is read here and queued;
+    /// a background worker sends it. Nothing here may fail or slow the update.
     /// </summary>
     public class ReferralNotifier : IReferralNotifier
     {
-        private static readonly TimeSpan SendTimeout = TimeSpan.FromSeconds(5);
-
         private static readonly (string Key, string Label)[] StatusLabels =
         {
             (BankFileStatuses.Trimis, "Trimis"),
@@ -31,13 +29,13 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         };
 
         private readonly MoneyShopDbContext _context;
-        private readonly IReferralMessenger _messenger;
+        private readonly ReferralStatusQueue _queue;
         private readonly ILogger<ReferralNotifier> _logger;
 
-        public ReferralNotifier(MoneyShopDbContext context, IReferralMessenger messenger, ILogger<ReferralNotifier> logger)
+        public ReferralNotifier(MoneyShopDbContext context, ReferralStatusQueue queue, ILogger<ReferralNotifier> logger)
         {
             _context = context;
-            _messenger = messenger;
+            _queue = queue;
             _logger = logger;
         }
 
@@ -68,9 +66,8 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 if (string.IsNullOrWhiteSpace(email)) return;
 
                 var label = StatusLabels.FirstOrDefault(s => s.Key == file.Status).Label ?? file.Status;
-                var send = Task.Run(() => _messenger.NotifyStatusAsync(email, match.NumePrenume, file.BankName, label));
-                if (!send.Wait(SendTimeout))
-                    _logger.LogWarning("Referral status email for bank file {BankFileId} is taking long; the update goes on", bankFileId);
+                if (!_queue.TryEnqueue(new ReferralStatusEmail(email, match.NumePrenume, file.BankName, label)))
+                    _logger.LogWarning("Referral status email for bank file {BankFileId} was not queued", bankFileId);
             }
             catch (Exception ex)
             {

@@ -26,6 +26,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         public const int ConsentValidDays = 7;
         private const int DirectoryLimit = 30;
         private const int OverviewLimit = 500;
+        public const int MaxPerClientPerDay = 3;
 
         private static readonly Regex TokenPattern = new(@"^[A-Za-z0-9_-]{20,64}$", RegexOptions.Compiled);
 
@@ -98,10 +99,13 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             if (!visible) return Fail(ReferralError.ClientNotVisible);
 
             var contact = ReadContact(clientUserId, from);
-            if (contact == null || (string.IsNullOrWhiteSpace(contact.Phone) && string.IsNullOrWhiteSpace(contact.Email)))
-                return Fail(ReferralError.NoContact);
+            if (contact == null) return Fail(ReferralError.NoContact);
+            if (string.IsNullOrWhiteSpace(contact.Phone)) return Fail(ReferralError.NoPhone);
 
             var now = Now;
+            var since = now.AddHours(-24);
+            var recent = _context.ClientReferrals.IgnoreQueryFilters().Count(r => r.ClientUserId == clientUserId && r.CreatedAt > since);
+            if (recent >= MaxPerClientPerDay) return Fail(ReferralError.TooManyForClient);
             var duplicate = _context.ClientReferrals.Any(r => r.FromBrokerProfileId == from && r.ToBrokerProfileId == to && r.ClientUserId == clientUserId
                 && (r.Status == ReferralStatuses.Acceptat || (r.Status == ReferralStatuses.AsteaptaClient && r.ConsentExpiresAt > now)));
             if (duplicate) return Fail(ReferralError.Duplicate);
@@ -217,7 +221,14 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
 
             referral.Status = ReferralStatuses.Anulat;
             referral.UpdatedAt = Now;
-            _context.SaveChanges();
+            try
+            {
+                _context.SaveChanges();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return new ReferralActionResult { Message = "Clientul tocmai a răspuns; reîncarcă pagina." };
+            }
             return new ReferralActionResult { Success = true };
         }
 
@@ -407,28 +418,28 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
 
         private Dictionary<int, string> ClientNamesForReferrer(List<ClientReferral> rows)
         {
-            if (rows.Count == 0) return new Dictionary<int, string>();
             var result = new Dictionary<int, string>();
+            if (rows.Count == 0) return result;
+            var userIds = rows.Select(r => r.ClientUserId).Distinct().ToList();
+            var brokerIds = rows.Select(r => r.FromBrokerProfileId).Distinct().ToList();
+            var acords = _context.AcordClients.IgnoreQueryFilters().AsNoTracking()
+                .Where(a => userIds.Contains(a.UserId) && a.BrokerProfileId != null && brokerIds.Contains(a.BrokerProfileId.Value))
+                .Select(a => new { a.UserId, BrokerId = a.BrokerProfileId!.Value, a.Nume, a.Prenume, a.CreatedAt })
+                .ToList()
+                .GroupBy(a => (a.UserId, a.BrokerId))
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.CreatedAt).First());
+            var users = _context.Utilizatoris.AsNoTracking()
+                .Where(u => userIds.Contains(u.IdUtilizator))
+                .Select(u => new { u.IdUtilizator, u.Nume, u.Prenume })
+                .ToDictionary(u => u.IdUtilizator);
             foreach (var r in rows)
             {
-                var name = ReadName(r.ClientUserId, r.FromBrokerProfileId);
+                acords.TryGetValue((r.ClientUserId, r.FromBrokerProfileId), out var acord);
+                users.TryGetValue(r.ClientUserId, out var user);
+                var name = $"{FirstFilled(acord?.Nume, user?.Nume)} {FirstFilled(acord?.Prenume, user?.Prenume)}".Trim();
                 result[r.Id] = string.IsNullOrWhiteSpace(name) ? $"Client #{r.ClientUserId}" : name;
             }
             return result;
-        }
-
-        private string ReadName(int userId, int fromBrokerId)
-        {
-            var acord = _context.AcordClients.IgnoreQueryFilters().AsNoTracking()
-                .Where(a => a.UserId == userId && a.BrokerProfileId == fromBrokerId)
-                .OrderByDescending(a => a.CreatedAt)
-                .Select(a => new { a.Nume, a.Prenume })
-                .FirstOrDefault();
-            var user = _context.Utilizatoris.AsNoTracking()
-                .Where(u => u.IdUtilizator == userId)
-                .Select(u => new { u.Nume, u.Prenume })
-                .FirstOrDefault();
-            return $"{FirstFilled(acord?.Nume, user?.Nume)} {FirstFilled(acord?.Prenume, user?.Prenume)}".Trim();
         }
 
         private Dictionary<int, string> LeadNames(List<ClientReferral> rows)
