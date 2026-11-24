@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera, Check, FileText, Loader2, RefreshCw, TriangleAlert, UploadCloud } from 'lucide-react';
 import { DocumentScanner } from './DocumentScanner';
-import { namesDiffer, type SlotKey, type useIdScan } from './useIdScan';
+import { type SlotKey, type useIdScan } from './useIdScan';
 
 type IdScanState = ReturnType<typeof useIdScan>;
 
@@ -11,7 +11,7 @@ const ACCEPTED_ANY = 'image/png,image/jpeg,image/jpg,image/heic,image/heif,appli
 const MANUAL_SLOTS: { key: SlotKey; title: string }[] = [
   { key: 'front', title: 'Față' },
   { key: 'back', title: 'Verso' },
-  { key: 'proof', title: 'Dovadă de adresă' },
+  { key: 'proof', title: 'Dovadă de adresă (opțional)' },
 ];
 
 function Thumb({ file }: { file: File }) {
@@ -153,7 +153,7 @@ function ManualSlots({ state }: { state: IdScanState }) {
         </div>
         {state.electronic && (
           <p className="text-[12px] text-light-60 mt-2">
-            Pentru cartea electronică avem nevoie și de o dovadă de adresă.
+            Dacă ai certificatul de atestare a domiciliului, încarcă-l. Poți continua și fără el.
           </p>
         )}
       </fieldset>
@@ -166,8 +166,12 @@ function ProofSlot({ state }: { state: IdScanState }) {
   const file = state.files.proof;
   return (
     <div className="mt-3 rounded-xl ring-1 ring-dark-500 bg-white p-4">
-      <p className="text-sm font-semibold text-light-90">Certificat de atestare a domiciliului</p>
-      <p className="text-[13px] text-light-60 mt-1">Buletinul tău nu are adresa tipărită pe el.</p>
+      <p className="text-sm font-semibold text-light-90">
+        Certificat de atestare a domiciliului <span className="font-normal text-light-50">(opțional)</span>
+      </p>
+      <p className="text-[13px] text-light-60 mt-1">
+        Buletinul tău nu are adresa tipărită pe el. Dacă ai certificatul, încarcă-l. Dacă nu, poți continua și fără.
+      </p>
       <div className="mt-3 flex items-center gap-3">
         <button
           type="button"
@@ -193,14 +197,13 @@ function ProofSlot({ state }: { state: IdScanState }) {
   );
 }
 
-export function IdScanStep({ state, nume, prenume }: { state: IdScanState; nume: string; prenume: string }) {
+export function IdScanStep({ state }: { state: IdScanState }) {
   const { scan, files, reading, manual, message } = state;
-  const showName = namesDiffer(scan, nume, prenume);
   const fullName = [scan?.lastName, scan?.firstName].filter(Boolean).join(' ');
 
   return (
     <>
-      <p className="text-sm font-semibold text-light-90 mb-2.5">Poze cu actul de identitate</p>
+      <p className="text-sm font-semibold text-light-90 mb-2.5">Buletinul (față și verso)</p>
 
       {manual ? (
         <>
@@ -242,12 +245,6 @@ export function IdScanStep({ state, nume, prenume }: { state: IdScanState; nume:
               <p className="mt-2 flex items-start gap-1.5 text-[12.5px] text-warning-600 bg-warning-500/10 rounded-lg px-3 py-2">
                 <TriangleAlert size={15} className="shrink-0 mt-0.5" />
                 Actul a expirat. Poți continua, dar brokerul îți va cere un act valabil.
-              </p>
-            )}
-
-            {showName && !reading && (
-              <p className="mt-2 text-[12.5px] text-light-70 bg-dark-800 rounded-lg px-3 py-2">
-                Numele de pe buletin ({fullName}) nu seamănă cu cel scris la pasul 1. Verifică dacă ai scris corect.
               </p>
             )}
 

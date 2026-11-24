@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   FileText, X, Info, ChevronRight, ChevronDown,
@@ -11,7 +11,7 @@ import { SignaturePad } from '@/components/ui/SignaturePad';
 import { Logo } from '@/components/shared/Logo';
 import { API_BASE_URL } from '@/utils/constants';
 import { IdScanStep } from './IdScanStep';
-import { useIdScan } from './useIdScan';
+import { scannedNames, useIdScan } from './useIdScan';
 
 /**
  * Mirrors the three opt-ins the API serves. Kept locally so a failed
@@ -39,9 +39,8 @@ const MANGO_TITLE = 'Acord prestare servicii prin Mango Broker SRL';
 const BANK_OPTION_KEY = 'banci';
 const BANK_FORMS_PANEL_ID = 'acord-bank-forms';
 
-type AcordStep = 1 | 2 | 3 | 4;
-const LAST_STEP: AcordStep = 4;
-const STEP_TITLES = ['Contact', 'Act de identitate', 'Situația ta', 'Semnătură'];
+type AcordStep = 1 | 2;
+const STEP_TITLES = ['Buletin', 'Verifică și semnează', 'Gata'];
 
 const STARE_CIVILA_OPTIONS = [
   { value: 'casatorit', label: 'Căsătorit/ă' },
@@ -140,6 +139,25 @@ function BankFormsDisclosure({
   );
 }
 
+function StepIndicator({ current }: { current: number }) {
+  return (
+    <ol className="mb-6 grid grid-cols-3 gap-2" aria-label="Pașii acordului">
+      {STEP_TITLES.map((title, i) => {
+        const n = i + 1;
+        const state = n < current ? 'done' : n === current ? 'current' : 'next';
+        return (
+          <li key={title} aria-current={state === 'current' ? 'step' : undefined} className="text-center">
+            <span className={`block h-1.5 rounded-full ${state === 'next' ? 'bg-dark-600' : 'bg-success-600'}`} />
+            <span className={`mt-1.5 block text-[12px] ${state === 'current' ? 'font-semibold text-light-100' : 'text-light-60'}`}>
+              {n}. {title}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 function FieldLabel({ label, required, optional }: { label: string; required?: boolean; optional?: boolean }) {
   return (
     <label className="block text-sm font-medium text-light-80 mb-1.5">
@@ -231,6 +249,7 @@ export default function AcordClientPage() {
   });
   const [signature, setSignature] = useState<string | null>(null);
   const [showBankForms, setShowBankForms] = useState(false);
+  const appliedScan = useRef<typeof id.scan>(null);
 
   const [step, setStep] = useState<AcordStep>(1);
   const [submitting, setSubmitting] = useState(false);
@@ -276,9 +295,6 @@ export default function AcordClientPage() {
   const acordUnavailable = consentText?.available === false;
   const consentOptions: { key: string; label: string; required: boolean }[] = consentText?.options?.length ? consentText.options : FALLBACK_CONSENT_OPTIONS;
   const optionalOptions = consentOptions.filter(o => !o.required);
-  const allOptionalTicked = optionalOptions.length > 0 && optionalOptions.every(o => choices[o.key]);
-  const setAllOptional = (value: boolean) =>
-    setChoices(prev => ({ ...prev, ...Object.fromEntries(optionalOptions.map(o => [o.key, value])) }));
   const canSubmit =
     !acordUnavailable &&
     nume.trim().length >= 2 &&
@@ -291,13 +307,14 @@ export default function AcordClientPage() {
   // What is still missing on the current step, in plain words, next to the button (the button
   // used to stay grey without saying why).
   const missing: string[] = [];
-  if (step === 1) {
+  if (acordUnavailable) {
+    missing.push('acordul activ pentru acest broker');
+  } else if (step === 1) {
+    if (!(phoneDigits.length === 10 || phoneDigits.length === 11)) missing.push('telefonul (10 cifre)');
+    missing.push(...id.missing);
+  } else {
     if (nume.trim().length < 2) missing.push('numele');
     if (prenume.trim().length < 2) missing.push('prenumele');
-    if (!(phoneDigits.length === 10 || phoneDigits.length === 11)) missing.push('telefonul (10 cifre)');
-  } else if (step === 2) {
-    missing.push(...id.missing);
-  } else if (step === 3) {
     if (!stareCivila) missing.push('starea civilă');
     if (!stareLocativa) missing.push('starea locativă');
     if (functieActuala.trim().length < 2) missing.push('funcția actuală');
@@ -305,14 +322,21 @@ export default function AcordClientPage() {
     if (yearsTotal === null) missing.push('vechimea totală');
     if (yearsCurrent === null) missing.push('vechimea la locul actual');
     if (tenureConflict) missing.push('vechimea corectată');
-  } else if (!signature) {
-    missing.push('semnătura');
+    if (!signature) missing.push('semnătura');
   }
 
   const goNext = () => {
     if (missing.length > 0) return;
     setError('');
-    setStep(s => (s < LAST_STEP ? ((s + 1) as AcordStep) : s));
+    // The name on the ID wins over anything typed or prefilled, but only for a new reading,
+    // so corrections made on step 2 survive a trip back to step 1.
+    if (id.scan !== appliedScan.current) {
+      appliedScan.current = id.scan;
+      const scanned = scannedNames(id.scan);
+      if (scanned.nume) setNume(scanned.nume);
+      if (scanned.prenume) setPrenume(scanned.prenume);
+    }
+    setStep(2);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -320,7 +344,7 @@ export default function AcordClientPage() {
     setError('');
     // The signature pad starts empty when the last step is shown again.
     setSignature(null);
-    setStep(s => (s > 1 ? ((s - 1) as AcordStep) : s));
+    setStep(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -374,14 +398,16 @@ export default function AcordClientPage() {
     return (
       <div className="min-h-screen bg-dark-900 flex flex-col items-center px-4 py-8">
         <div className="w-full max-w-lg flex flex-col items-center justify-center min-h-[70vh] text-center">
+          <div className="w-full mb-8"><StepIndicator current={3} /></div>
           <div className="w-24 h-24 rounded-full bg-success-500/12 flex items-center justify-center mb-6">
             <CheckCircle size={46} className="text-success-600" />
           </div>
           <h1 className="text-[26px] font-bold text-light-100 mb-3">
-            Gata{prenume ? `, ${prenume}` : ''}. Mulțumim!
+            Mulțumim{prenume ? `, ${prenume.trim()}` : ''}!
           </h1>
+          <p className="text-[17px] font-medium text-light-90 mb-2">Am primit acordul tău.</p>
           <p className="text-[15px] text-light-70 leading-relaxed max-w-sm">
-            Am primit datele și documentele tale în siguranță. Te contactăm în cel mai scurt timp.
+            Te contactăm în cel mai scurt timp.
           </p>
           {email.trim() && (
             <p className="text-[15px] text-light-70 leading-relaxed max-w-sm mt-3">
@@ -405,7 +431,9 @@ export default function AcordClientPage() {
             Acord de intermediere și prelucrare date
           </h1>
           <p className="text-sm text-light-60 mt-1.5 mb-6">
-            Completează datele și încarcă documentele.
+            {step === 1
+              ? 'Lasă-ne telefonul și scanează buletinul.'
+              : 'Verifică datele, completează situația ta și semnează.'}
           </p>
 
           {acordUnavailable && (
@@ -414,36 +442,38 @@ export default function AcordClientPage() {
             </p>
           )}
 
-          <ol className="mb-6 grid grid-cols-4 gap-2" aria-label="Pașii acordului">
-            {STEP_TITLES.map((title, i) => {
-              const n = (i + 1) as AcordStep;
-              const state = n < step ? 'done' : n === step ? 'current' : 'next';
-              return (
-                <li key={title} aria-current={state === 'current' ? 'step' : undefined} className="text-center">
-                  <span className={`block h-1.5 rounded-full ${state === 'next' ? 'bg-dark-600' : 'bg-success-600'}`} />
-                  <span className={`mt-1.5 block text-[12px] ${state === 'current' ? 'font-semibold text-light-100' : 'text-light-60'}`}>
-                    {n}. {title}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
+          <StepIndicator current={step} />
 
           {step === 1 && (<>
           <div className="grid grid-cols-2 gap-3 mb-4 items-end">
-            <Field label="Nume" value={nume} onChange={setNume} placeholder="Introdu numele" required />
-            <Field label="Prenume" value={prenume} onChange={setPrenume} placeholder="Introdu prenumele" required />
             <Field label="Telefon" value={telefon} onChange={setTelefon} placeholder="07xxxxxxxx" type="tel" inputMode="tel" required />
             <Field label="Email" value={email} onChange={setEmail} placeholder="exemplu@email.com" type="email" inputMode="email" optional />
           </div>
-          <p className="text-xs text-light-50 -mt-2 mb-2">
+          <p className="text-xs text-light-50 -mt-2 mb-5">
             Dacă ne lași emailul, primești copii ale documentelor semnate.
           </p>
+          <IdScanStep state={id} />
           </>)}
 
-          {step === 2 && <IdScanStep state={id} nume={nume} prenume={prenume} />}
+          {step === 2 && (<>
+          <p className="text-sm font-semibold text-light-90 mb-2.5">Datele de pe buletin</p>
+          <div className="grid grid-cols-2 gap-3 mb-2 items-end">
+            <Field label="Nume" value={nume} onChange={setNume} placeholder="Introdu numele" required />
+            <Field label="Prenume" value={prenume} onChange={setPrenume} placeholder="Introdu prenumele" required />
+          </div>
+          {id.scan?.readable && (id.scan.cnpMasked || id.scan.expiryDate) && (
+            <p className="text-[12.5px] text-light-60 mb-2">
+              {id.scan.cnpMasked && <>CNP {id.scan.cnpMasked}</>}
+              {id.scan.cnpMasked && id.scan.expiryDate && ' · '}
+              {id.scan.expiryDate && <>valabil până la {id.scan.expiryDate}</>}
+            </p>
+          )}
+          <p className="text-[12px] text-light-50 mb-6">
+            {id.scan?.readable && (id.scan.lastName || id.scan.firstName)
+              ? 'Le-am preluat de pe buletin. Corectează-le dacă vezi o greșeală.'
+              : 'Scrie numele exact ca pe buletin.'}
+          </p>
 
-          {step === 3 && (<>
           <p className="text-sm font-semibold text-light-90 mb-2.5">Situația personală și profesională</p>
           <div className="grid grid-cols-2 gap-3 mb-2 items-end">
             <SelectField label="Stare civilă" value={stareCivila} onChange={setStareCivila} options={STARE_CIVILA_OPTIONS} />
@@ -464,9 +494,6 @@ export default function AcordClientPage() {
             </p>
           )}
           <div className="mb-6" />
-          </>)}
-
-          {step === 4 && (<>
 
           <div className="space-y-2.5 mb-5">
             <InfoCard title="Informații GDPR și Intermediere credit" onOpen={() => setOpenDoc('gdpr')} />
@@ -476,15 +503,6 @@ export default function AcordClientPage() {
           {/* Optional choices start ticked (business decision, 23 Nov 2026) and the client can untick them.
               The required ones are not checkboxes: they are listed above the signature, and signing is the act of acceptance. */}
           <div className="space-y-2.5 mb-5">
-            {optionalOptions.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setAllOptional(!allOptionalTicked)}
-                className="text-[13px] font-medium text-brand-primary min-h-[32px]"
-              >
-                {allOptionalTicked ? 'Debifează toate opțiunile' : 'Bifează toate opțiunile'}
-              </button>
-            )}
             {optionalOptions.map(option => (
               <div key={option.key}>
                 <label className="flex items-start gap-2.5 cursor-pointer">
@@ -532,7 +550,7 @@ export default function AcordClientPage() {
             </p>
           )}
 
-          {step < LAST_STEP ? (
+          {step === 1 ? (
             <button
               type="button"
               onClick={goNext}
