@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using MoneyShop.DomainModel.Entities;
 using MoneyShop.DomainServices.RepositoryInterfaces.Application;
@@ -391,30 +392,40 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
 
         public List<CrmFileListItem> GetFiles()
         {
-            var apps = _applications.Get().ToList();
-            var userIds = apps.Select(a => a.UserId).Distinct().ToList();
+            var files = _context.BankFiles.AsNoTracking().OrderByDescending(f => f.StatusChangedAt).ToList();
+            var userIds = files.Select(f => f.UserId).Distinct().ToList();
             var users = _context.Utilizatoris.Where(u => userIds.Contains(u.IdUtilizator))
                 .ToDictionary(u => u.IdUtilizator);
+            var acords = _context.AcordClients.AsNoTracking().Where(a => userIds.Contains(a.UserId))
+                .ToList()
+                .GroupBy(a => a.UserId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.CreatedAt).First());
+            var brokerNames = _context.BrokerScopeId is > 0
+                ? null
+                : _context.BrokerProfiles.AsNoTracking().Select(p => new { p.Id, p.DisplayName }).ToDictionary(p => p.Id, p => p.DisplayName);
 
-            return apps
-                .OrderByDescending(a => a.UpdatedAt)
-                .Select(a =>
+            return files
+                .Select(f =>
                 {
-                    users.TryGetValue(a.UserId, out var u);
+                    users.TryGetValue(f.UserId, out var u);
+                    acords.TryGetValue(f.UserId, out var acord);
+                    string? brokerName = null;
+                    if (brokerNames != null)
+                        brokerName = f.BrokerProfileId is { } bid && brokerNames.TryGetValue(bid, out var n) ? n : "Fără broker";
                     return new CrmFileListItem
                     {
-                        Id = a.Id,
-                        Code = $"MS-{a.Id}",
-                        UserId = a.UserId,
-                        ClientName = FullName(u?.Nume, u?.Prenume, a.UserId),
-                        Status = a.Status,
-                        TypeCredit = a.TypeCredit,
-                        RequestedAmount = a.RequestedAmount,
-                        SumaAprobata = a.SumaAprobata,
-                        Comision = a.Comision,
-                        DataDisbursare = a.DataDisbursare,
-                        CreatedAt = a.CreatedAt,
-                        UpdatedAt = a.UpdatedAt,
+                        Id = f.Id,
+                        Code = $"D-{f.Id}",
+                        UserId = f.UserId,
+                        ClientName = FullName(u, acord, f.UserId),
+                        BankId = f.BankId,
+                        BankName = f.BankName,
+                        CreditType = f.CreditType,
+                        Amount = f.Amount,
+                        Status = f.Status,
+                        StatusChangedAt = f.StatusChangedAt,
+                        CreatedAt = f.CreatedAt,
+                        BrokerName = brokerName,
                     };
                 })
                 .ToList();

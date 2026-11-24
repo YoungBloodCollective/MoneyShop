@@ -19,11 +19,10 @@ import { FOCUS_RING } from './crmHelpers';
 import { IntakeLinkCard } from '@/components/crm/IntakeLinkCard';
 
 const STATUS_COLORS: Record<string, string> = {
-  analiza: '#F59E0B',
-  banca: '#2D2DF0',
+  lucru: '#F59E0B',
   aprobate: '#10B981',
-  debursate: '#6E4CE5',
-  respins: '#F43F5E',
+  disbursate: '#6E4CE5',
+  respinse: '#F43F5E',
 };
 
 function formatVolume(v: number): string {
@@ -94,8 +93,8 @@ const TASK_ICON: Record<string, typeof FileText> = {
 };
 
 const TASK_LINK: Record<string, string> = {
-  documents: '/crm/dosare?status=NEVOIE_DOCUMENTE',
-  approval: '/crm/dosare?seg=banca',
+  documents: '/crm/dosare?status=COMPLETARI',
+  approval: '/crm/dosare?seg=lucru',
   acord: '/crm/clienti?seg=acord',
 };
 
@@ -172,7 +171,7 @@ export default function CrmDashboardPage() {
         />
         <KpiCard icon={FolderKanban} label="Dosare în lucru" accent="#F59E0B" to={crm("/crm/dosare?seg=toate")} value={data.filesInProgress.toLocaleString('ro-RO')} />
         <KpiCard icon={CheckCircle2} label="Aprobate luna aceasta" accent="#10B981" value={data.approvedThisMonth.toLocaleString('ro-RO')} />
-        <KpiCard icon={Wallet} label="Volum credite" accent="#6E4CE5" to={crm("/crm/dosare?seg=debursate")} value={`${formatVolume(data.creditVolume)} lei`} />
+        <KpiCard icon={Wallet} label="Volum credite" accent="#6E4CE5" to={crm("/crm/dosare?seg=disbursate")} value={`${formatVolume(data.creditVolume)} lei`} />
       </div>
 
       {/* Charts row */}

@@ -36,20 +36,22 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         CrmIncomeSnapshot SaveClientIncome(int userId, CrmIncomeInput input);
     }
 
+    /// <summary>A bank file as a row of the Dosare list.</summary>
     public class CrmFileListItem
     {
         public int Id { get; set; }
         public string Code { get; set; } = null!;
         public int UserId { get; set; }
         public string ClientName { get; set; } = null!;
+        public int? BankId { get; set; }
+        public string BankName { get; set; } = null!;
+        public string? CreditType { get; set; }
+        public decimal Amount { get; set; }
         public string Status { get; set; } = null!;
-        public string? TypeCredit { get; set; }
-        public decimal? RequestedAmount { get; set; }
-        public decimal? SumaAprobata { get; set; }
-        public decimal? Comision { get; set; }
-        public DateTime? DataDisbursare { get; set; }
+        public DateTime StatusChangedAt { get; set; }
         public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        /// <summary>Only for the Super Admin, who sees every broker's files.</summary>
+        public string? BrokerName { get; set; }
     }
 
     public class CrmClientListItem

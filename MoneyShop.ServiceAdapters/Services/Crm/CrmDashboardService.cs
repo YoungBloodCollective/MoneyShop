@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using MoneyShop.DomainServices.RepositoryInterfaces.Application;
+using Microsoft.EntityFrameworkCore;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using MoneyShop.ServiceInterface.Interfaces.Crm;
-using MoneyShop.ServiceInterface.SharedDtos;
 
 namespace MoneyShop.ServiceAdapters.Services.Crm
 {
@@ -15,26 +14,20 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
     /// </summary>
     public class CrmDashboardService : ICrmDashboardService
     {
-        private const string INREGISTRAT = "INREGISTRAT";
-        private const string IN_ANALIZA = "IN_ANALIZA";
-        private const string NEVOIE_DOCUMENTE = "NEVOIE_DOCUMENTE";
-        private const string PREAPROBAT = "PREAPROBAT";
-        private const string TRIMIS_LA_BANCA = "TRIMIS_LA_BANCA";
-        private const string APROBAT_BANCA = "APROBAT_BANCA";
-        private const string DISBURSAT = "DISBURSAT";
-        private const string RESPINS = "RESPINS";
+        private const string DISBURSAT = BankFileStatuses.Disbursat;
+        private const string RESPINS = BankFileStatuses.Respins;
         private const string ACORD_SIGNED = "signed";
         private const string ACORD_COMPLETED = "completed";
         private const string ACORD_REJECTED = "rejected";
 
         private static readonly string[] Closed = { DISBURSAT, RESPINS };
+        private static readonly string[] InWork = { BankFileStatuses.Trimis, BankFileStatuses.Verificari, BankFileStatuses.Analiza, BankFileStatuses.Completari };
+        private static readonly string[] Approved = { BankFileStatuses.AprobatFinanciar, BankFileStatuses.AprobatFinal };
 
-        private readonly IApplicationRepository _applications;
         private readonly MoneyShopDbContext _context;
 
-        public CrmDashboardService(IApplicationRepository applications, MoneyShopDbContext context)
+        public CrmDashboardService(MoneyShopDbContext context)
         {
-            _applications = applications;
             _context = context;
         }
 
@@ -44,9 +37,8 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             var monthStart = new DateTime(now.Year, now.Month, 1);
             var prevMonthStart = monthStart.AddMonths(-1);
 
-            var apps = _applications.Get().ToList();
+            var apps = _context.BankFiles.AsNoTracking().ToList();
             var acords = _context.LoadAcordRows();
-            var appIds = apps.Select(a => a.Id).ToList();
 
             var firstSeen = apps.Select(a => (a.UserId, At: a.CreatedAt))
                 .Concat(acords.Select(a => (a.UserId, At: a.CreatedAt)))
@@ -58,11 +50,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             if (lastMonthCutoff > monthStart) lastMonthCutoff = monthStart;
             var newLastMonth = firstSeen.Count(d => d >= prevMonthStart && d < lastMonthCutoff);
 
-            var approvedThisMonth = _context.ApplicationStatusHistories
-                .Where(h => appIds.Contains(h.ApplicationId) && h.ToStatus == APROBAT_BANCA && h.ChangedAt >= monthStart)
-                .Select(h => h.ApplicationId)
-                .Distinct()
-                .Count();
+            var approvedThisMonth = apps.Count(a => (Approved.Contains(a.Status) || a.Status == DISBURSAT) && a.StatusChangedAt >= monthStart);
 
             var activeUsers = apps.Where(a => a.Status != RESPINS).Select(a => a.UserId)
                 .Union(acords.Where(a => a.Status != ACORD_REJECTED).Select(a => a.UserId))
@@ -75,16 +63,15 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 ActiveClientsDeltaPct = newLastMonth > 0 ? (int)Math.Round((newThisMonth - newLastMonth) * 100.0 / newLastMonth) : 0,
                 FilesInProgress = apps.Count(a => !Closed.Contains(a.Status)),
                 ApprovedThisMonth = approvedThisMonth,
-                CreditVolume = apps.Where(a => a.Status == DISBURSAT).Sum(a => a.SumaAprobata ?? a.RequestedAmount ?? 0),
+                CreditVolume = apps.Where(a => a.Status == DISBURSAT).Sum(a => a.Amount),
             };
 
             summary.StatusBreakdown = new List<CrmStatusSlice>
             {
-                new() { Key = "analiza", Label = "În analiză", Count = apps.Count(a => StatusGroup(a.Status) == "analiza") },
-                new() { Key = "banca", Label = "La bancă", Count = apps.Count(a => a.Status == TRIMIS_LA_BANCA) },
-                new() { Key = "aprobate", Label = "Aprobate", Count = apps.Count(a => a.Status == APROBAT_BANCA) },
-                new() { Key = "debursate", Label = "Debursate", Count = apps.Count(a => a.Status == DISBURSAT) },
-                new() { Key = "respins", Label = "Respinse", Count = apps.Count(a => a.Status == RESPINS) },
+                new() { Key = "lucru", Label = "În lucru", Count = apps.Count(a => InWork.Contains(a.Status)) },
+                new() { Key = "aprobate", Label = "Aprobate", Count = apps.Count(a => Approved.Contains(a.Status)) },
+                new() { Key = "disbursate", Label = "Disbursate", Count = apps.Count(a => a.Status == DISBURSAT) },
+                new() { Key = "respinse", Label = "Respinse", Count = apps.Count(a => a.Status == RESPINS) },
             };
 
             var byDay = firstSeen.Where(d => d >= now.Date.AddDays(-29))
@@ -98,8 +85,8 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             var activities = apps
                 .Select(a => new CrmActivity
                 {
-                    Title = $"Dosar #MS-{a.Id} — {ApplicationStatuses.Label(a.Status)}",
-                    At = a.UpdatedAt,
+                    Title = $"Dosar #D-{a.Id} — {a.BankName}, {StatusLabel(a.Status)}",
+                    At = a.StatusChangedAt,
                     Kind = "dosar",
                 })
                 .Concat(acords.Select(a =>
@@ -129,8 +116,8 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
 
             summary.Tasks = new List<CrmTask>
             {
-                new() { Label = "Documente lipsă", Count = apps.Count(a => a.Status == NEVOIE_DOCUMENTE), Severity = "danger", Kind = "documents" },
-                new() { Label = "Urmărire aprobare", Count = apps.Count(a => a.Status == TRIMIS_LA_BANCA), Severity = "warning", Kind = "approval" },
+                new() { Label = "Documente lipsă", Count = apps.Count(a => a.Status == BankFileStatuses.Completari), Severity = "danger", Kind = "documents" },
+                new() { Label = "Urmărire aprobare", Count = apps.Count(a => InWork.Contains(a.Status) && a.Status != BankFileStatuses.Completari), Severity = "warning", Kind = "approval" },
                 new() { Label = "Acorduri semnate fără dosar", Count = signedWithoutFile, Severity = "info", Kind = "acord" },
                 new() { Label = "Zile de naștere (astăzi)", Count = birthdays, Severity = "info", Kind = "birthday" },
             };
@@ -138,13 +125,17 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             return summary;
         }
 
-        private static string StatusGroup(string status) => status switch
+        private static string StatusLabel(string status) => status switch
         {
-            TRIMIS_LA_BANCA => "banca",
-            APROBAT_BANCA => "aprobate",
-            DISBURSAT => "debursate",
-            RESPINS => "respins",
-            _ => "analiza",
+            BankFileStatuses.Trimis => "Trimis",
+            BankFileStatuses.Verificari => "Verificări",
+            BankFileStatuses.Analiza => "Analiză",
+            BankFileStatuses.Completari => "Completări",
+            BankFileStatuses.AprobatFinanciar => "Aprobat financiar",
+            BankFileStatuses.AprobatFinal => "Aprobat final",
+            DISBURSAT => "Disbursat",
+            RESPINS => "Respins",
+            _ => status,
         };
     }
 }

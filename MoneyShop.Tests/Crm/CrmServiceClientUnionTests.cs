@@ -123,6 +123,31 @@ public class CrmServiceClientUnionTests
     }
 
     [Fact]
+    public void GetFiles_lists_the_brokers_bank_files_newest_status_first_and_names_the_broker_only_for_admin()
+    {
+        var (service, db) = Build();
+        var at = new DateTime(2026, 11, 20);
+        db.BankFiles.AddRange(
+            new BankFile { BrokerProfileId = BrokerId, UserId = BothUser, BankId = 3, BankName = "BCR", CreditType = "NP", Amount = 1000, Status = "TRIMIS", StatusChangedAt = at, CreatedAt = at, UpdatedAt = at },
+            new BankFile { BrokerProfileId = BrokerId, UserId = FileOnlyUser, BankId = 4, BankName = "BRD", CreditType = "IP", Amount = 2000, Status = "DISBURSAT", StatusChangedAt = at.AddDays(1), CreatedAt = at, UpdatedAt = at },
+            new BankFile { BrokerProfileId = OtherBrokerId, UserId = OtherBrokerUser, BankId = 3, BankName = "BCR", CreditType = "NP", Amount = 3000, Status = "TRIMIS", StatusChangedAt = at, CreatedAt = at, UpdatedAt = at });
+        db.SaveChanges();
+
+        var mine = service.GetFiles();
+
+        Assert.Equal(new[] { "BRD", "BCR" }, mine.Select(f => f.BankName).ToArray());
+        Assert.Equal("Maria Ionescu", mine[0].ClientName);
+        Assert.StartsWith("D-", mine[0].Code);
+        Assert.All(mine, f => Assert.Null(f.BrokerName));
+
+        db.BrokerScopeId = null;
+        var all = service.GetFiles();
+
+        Assert.Equal(3, all.Count);
+        Assert.All(all, f => Assert.NotNull(f.BrokerName));
+    }
+
+    [Fact]
     public void GetClient_for_acord_only_user_has_no_financial_and_no_files()
     {
         var (service, _) = Build();

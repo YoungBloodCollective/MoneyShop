@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useCrmPath } from '@/lib/crmPath';
 import { crmApi } from '@/services/api/crmApi';
 import type { BankNetworkVolume, BankStatsItem, BankStatsResult, BankVolume } from '@/types/crm.types';
 import { EmptyState, ErrorState, PageHeader, SkeletonCards } from './crmShared';
@@ -59,7 +61,8 @@ function Split({ v }: { v: Pick<BankNetworkVolume, 'npAmount' | 'npCount' | 'ipA
 }
 
 function BankName({ bank }: { bank: BankStatsItem }) {
-  return <>{bank.name}{!bank.active && <span className="ml-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">inactivă</span>}</>;
+  const crm = useCrmPath();
+  return <><Link to={crm(`/crm/dosare?seg=disbursate&bank=${bank.bankId}`)} className={`rounded hover:text-brand-primary hover:underline ${FOCUS_RING}`}>{bank.name}</Link>{!bank.active && <span className="ml-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">inactivă</span>}</>;
 }
 
 function Count({ n }: { n?: number | null }) {

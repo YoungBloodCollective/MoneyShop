@@ -149,9 +149,28 @@ export const FILE_STATUS_SEGMENTS: { key: string; label: string }[] = [
   { key: 'analiza', label: 'În analiză' },
   { key: 'banca', label: 'La bancă' },
   { key: 'aprobate', label: 'Aprobate' },
-  { key: 'debursate', label: 'Debursate' },
+  { key: 'disbursate', label: 'Disbursate' },
   { key: 'respins', label: 'Respinse' },
 ];
+
+// ── Bank-file segments (Dosare page) ─────────────────────────────────────────
+export const BANK_FILE_SEGMENTS: { key: string; label: string }[] = [
+  { key: 'toate', label: 'Toate' },
+  { key: 'lucru', label: 'În lucru' },
+  { key: 'aprobate', label: 'Aprobate' },
+  { key: 'disbursate', label: 'Disbursate' },
+  { key: 'respinse', label: 'Respinse' },
+];
+
+export function bankFileSegment(status: string): string {
+  switch (status) {
+    case 'APROBAT_FINANCIAR':
+    case 'APROBAT_FINAL': return 'aprobate';
+    case 'DISBURSAT': return 'disbursate';
+    case 'RESPINS': return 'respinse';
+    default: return 'lucru';
+  }
+}
 
 export const CLIENT_STATUS_SEGMENTS: { key: string; label: string }[] = [
   { key: 'toate', label: 'Toate' },
@@ -165,7 +184,7 @@ export function statusGroup(status?: string | null): string {
   switch (status) {
     case 'TRIMIS_LA_BANCA': return 'banca';
     case 'APROBAT_BANCA': return 'aprobate';
-    case 'DISBURSAT': return 'debursate';
+    case 'DISBURSAT': return 'disbursate';
     case 'RESPINS': return 'respins';
     case 'INREGISTRAT':
     case 'IN_ANALIZA':

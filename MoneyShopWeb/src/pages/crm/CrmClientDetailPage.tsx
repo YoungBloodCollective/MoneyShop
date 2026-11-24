@@ -558,7 +558,7 @@ function ClientDetail({ userId }: { userId: number }) {
 
           <Card title="Rezumat" icon={Wallet}>
             <InfoRow label="Total dosare" value={client.files.length} />
-            <InfoRow label="Debursat" value={money(client.files.filter(x => x.status === 'DISBURSAT').reduce((s, x) => s + (x.sumaAprobata ?? 0), 0))} />
+            <InfoRow label="Disbursat" value={money(client.files.filter(x => x.status === 'DISBURSAT').reduce((s, x) => s + (x.sumaAprobata ?? 0), 0))} />
           </Card>
         </div>
       </div>

@@ -203,19 +203,21 @@ export interface CrmIncomeSnapshot extends CrmIncomeInput {
   updatedAt: string;
 }
 
+/** A bank file as a row of the Dosare list. */
 export interface CrmFileListItem {
   id: number;
   code: string;
   userId: number;
   clientName: string;
+  bankId?: number | null;
+  bankName: string;
+  creditType?: CreditType | null;
+  amount: number;
   status: string;
-  typeCredit?: string;
-  requestedAmount?: number;
-  sumaAprobata?: number;
-  comision?: number;
-  dataDisbursare?: string;
+  statusChangedAt: string;
   createdAt: string;
-  updatedAt: string;
+  /** Only for the Super Admin. */
+  brokerName?: string | null;
 }
 
 export type StatusTransitions = Record<string, string[]>;
