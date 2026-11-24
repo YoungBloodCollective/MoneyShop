@@ -169,7 +169,7 @@ export default function CrmDashboardPage() {
             negative: data.activeClientsDeltaPct < 0,
           }}
         />
-        <KpiCard icon={FolderKanban} label="Dosare în lucru" accent="#F59E0B" to={crm("/crm/dosare?seg=toate")} value={data.filesInProgress.toLocaleString('ro-RO')} />
+        <KpiCard icon={FolderKanban} label="Dosare în lucru" accent="#F59E0B" to={crm("/crm/dosare?seg=lucru")} value={data.filesInProgress.toLocaleString('ro-RO')} />
         <KpiCard icon={CheckCircle2} label="Aprobate luna aceasta" accent="#10B981" value={data.approvedThisMonth.toLocaleString('ro-RO')} />
         <KpiCard icon={Wallet} label="Volum credite" accent="#6E4CE5" to={crm("/crm/dosare?seg=disbursate")} value={`${formatVolume(data.creditVolume)} lei`} />
       </div>

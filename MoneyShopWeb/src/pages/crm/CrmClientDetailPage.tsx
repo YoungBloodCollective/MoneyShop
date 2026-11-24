@@ -10,7 +10,7 @@ import {
 import { crmApi } from '@/services/api/crmApi';
 import { crediusApi } from '@/services/api/crediusApi';
 import { downloadBlob } from '@/lib/downloadBlob';
-import type { CrmAcordSnapshot, CrmBcReportSnapshot, CrmClientDetail } from '@/types/crm.types';
+import type { CrmAcordSnapshot, CrmBankFileItem, CrmBcReportSnapshot, CrmClientDetail } from '@/types/crm.types';
 import { BankConsentsSection } from '@/components/crm/acord/BankConsentsSection';
 import { CnpField } from '@/components/crm/acord/CnpField';
 import { AcordReviewPanel } from '@/components/crm/acord/AcordReviewPanel';
@@ -373,6 +373,7 @@ function ClientDetail({ userId }: { userId: number }) {
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [preview, setPreview] = useState<DocumentPreviewSource | null>(null);
+  const [bankFiles, setBankFiles] = useState<CrmBankFileItem[]>([]);
   const [booking, setBooking] = useState(false);
 
   useEffect(() => {
@@ -467,7 +468,7 @@ function ClientDetail({ userId }: { userId: number }) {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Left: files + documents */}
         <div className="min-w-0 space-y-4 lg:col-span-2">
-          <ClientWorkSection userId={userId} />
+          <ClientWorkSection userId={userId} onBankFilesChange={setBankFiles} />
           <FinancialAnalysisCard income={client.income} bc={client.bcReport} />
           <ClientFolderCard client={client} onPreview={setPreview} />
           {client.acord ? <AcordCard key={client.acord.acordId} acord={client.acord} onStatusChange={() => { void refreshClient(); }} /> : <NoAcordCard />}
@@ -557,8 +558,8 @@ function ClientDetail({ userId }: { userId: number }) {
           <AnafCard client={client} userId={userId} onChange={refreshClient} />
 
           <Card title="Rezumat" icon={Wallet}>
-            <InfoRow label="Total dosare" value={client.files.length} />
-            <InfoRow label="Disbursat" value={money(client.files.filter(x => x.status === 'DISBURSAT').reduce((s, x) => s + (x.sumaAprobata ?? 0), 0))} />
+            <InfoRow label="Dosare bancare" value={bankFiles.length} />
+            <InfoRow label="Disbursat" value={money(bankFiles.filter(x => x.status === 'DISBURSAT').reduce((s, x) => s + x.amount, 0))} />
           </Card>
         </div>
       </div>

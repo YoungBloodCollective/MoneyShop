@@ -70,7 +70,7 @@ public class CrmDashboardServiceTests
         var summary = BuildService().GetSummary();
 
         Assert.Equal(5000m, summary.CreditVolume);
-        Assert.Equal(2, summary.FilesInProgress);
+        Assert.Equal(1, summary.FilesInProgress);
     }
 
     [Fact]

@@ -400,7 +400,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 .ToList()
                 .GroupBy(a => a.UserId)
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.CreatedAt).First());
-            var brokerNames = _context.BrokerScopeId is > 0
+            var brokerNames = _context.BrokerScopeId is not null
                 ? null
                 : _context.BrokerProfiles.AsNoTracking().Select(p => new { p.Id, p.DisplayName }).ToDictionary(p => p.Id, p => p.DisplayName);
 

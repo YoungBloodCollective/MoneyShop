@@ -20,7 +20,6 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         private const string ACORD_COMPLETED = "completed";
         private const string ACORD_REJECTED = "rejected";
 
-        private static readonly string[] Closed = { DISBURSAT, RESPINS };
         private static readonly string[] InWork = { BankFileStatuses.Trimis, BankFileStatuses.Verificari, BankFileStatuses.Analiza, BankFileStatuses.Completari };
         private static readonly string[] Approved = { BankFileStatuses.AprobatFinanciar, BankFileStatuses.AprobatFinal };
 
@@ -61,7 +60,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             {
                 ActiveClients = activeUsers,
                 ActiveClientsDeltaPct = newLastMonth > 0 ? (int)Math.Round((newThisMonth - newLastMonth) * 100.0 / newLastMonth) : 0,
-                FilesInProgress = apps.Count(a => !Closed.Contains(a.Status)),
+                FilesInProgress = apps.Count(a => InWork.Contains(a.Status)),
                 ApprovedThisMonth = approvedThisMonth,
                 CreditVolume = apps.Where(a => a.Status == DISBURSAT).Sum(a => a.Amount),
             };
