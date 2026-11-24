@@ -3,6 +3,7 @@ import { Copy, ExternalLink, CheckCircle2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { brokersApi, apiErrorMessage, type BrokerProfile, type BrokerSelfUpdate } from '@/services/api/brokersApi';
 import { brokerSiteUrl } from '@/lib/brokerHost';
+import { COUNTIES } from '@/lib/counties';
 import { PageHeader, Spinner } from './crmShared';
 import { FIELD_FOCUS } from './crmHelpers';
 
@@ -54,6 +55,8 @@ export default function CrmProfilPage() {
           publicEmail: p.publicEmail ?? '',
           notificationEmail: p.notificationEmail ?? '',
           bio: p.bio ?? '',
+          oras: p.oras ?? '',
+          judet: p.judet ?? '',
         });
       })
       .catch(err => setError(apiErrorMessage(err, 'Nu am putut încărca profilul')));
@@ -76,7 +79,7 @@ export default function CrmProfilPage() {
   if (!profile) return <Spinner />;
 
   const site = brokerSiteUrl(profile.slug);
-  const set = (key: keyof BrokerSelfUpdate) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const set = (key: keyof BrokerSelfUpdate) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [key]: e.target.value }));
 
   return (
@@ -106,6 +109,17 @@ export default function CrmProfilPage() {
           <label className="block">
             <span className="mb-1.5 block text-sm text-slate-600">Email pentru notificări</span>
             <input value={form.notificationEmail ?? ''} onChange={set('notificationEmail')} type="email" className={inputClass} />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm text-slate-600">Oraș</span>
+            <input value={form.oras ?? ''} onChange={set('oras')} maxLength={100} autoComplete="address-level2" className={inputClass} />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm text-slate-600">Județ</span>
+            <select value={form.judet ?? ''} onChange={set('judet')} className={inputClass}>
+              <option value="">—</option>
+              {COUNTIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
           </label>
         </div>
         <label className="block">

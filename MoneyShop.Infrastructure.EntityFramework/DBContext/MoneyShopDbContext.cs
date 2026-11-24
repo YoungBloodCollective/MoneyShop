@@ -74,6 +74,7 @@ public class MoneyShopDbContext : DbContext
     public virtual DbSet<AcordClient> AcordClients { get; set; }
     public virtual DbSet<BankConsentRequest> BankConsentRequests { get; set; }
     public virtual DbSet<BrokerProfile> BrokerProfiles { get; set; }
+    public virtual DbSet<BrokerInvite> BrokerInvites { get; set; }
 
     // Broker's own follow-up on a client: tasks with reminders, bank files, labels
     public virtual DbSet<ClientTask> ClientTasks { get; set; }
@@ -820,6 +821,11 @@ public class MoneyShopDbContext : DbContext
             entity.Property(e => e.FirmaDataInfiintarii).HasMaxLength(20);
             entity.Property(e => e.ReprezentantNume).HasMaxLength(150);
             entity.Property(e => e.ReprezentantTelefon).HasMaxLength(30);
+            entity.Property(e => e.Oras).HasMaxLength(100);
+            entity.Property(e => e.Judet).HasMaxLength(50);
+            entity.Property(e => e.TermsVersion).HasMaxLength(20);
+            entity.Property(e => e.TermsAcceptedIp).HasMaxLength(64);
+            entity.Property(e => e.TermsAcceptedAt).HasColumnType("datetime2");
             entity.Property(e => e.MangoEmail).HasMaxLength(255);
             entity.Property(e => e.BankPreDocuments).HasMaxLength(200);
             entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
@@ -832,6 +838,29 @@ public class MoneyShopDbContext : DbContext
 
             entity.HasIndex(e => e.Slug).IsUnique();
             entity.HasIndex(e => e.UserId).IsUnique();
+        });
+
+        modelBuilder.Entity<BrokerInvite>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("BrokerInvites");
+
+            entity.Property(e => e.Email).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Name).HasMaxLength(150);
+            entity.Property(e => e.Type).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.TokenHash).HasMaxLength(64).IsRequired().IsConcurrencyToken();
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
+            entity.Property(e => e.ExpiresAt).HasColumnType("datetime2");
+            entity.Property(e => e.UsedAt).HasColumnType("datetime2").IsConcurrencyToken();
+            entity.Property(e => e.RevokedAt).HasColumnType("datetime2").IsConcurrencyToken();
+
+            entity.HasOne(e => e.UsedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.UsedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(e => e.TokenHash).IsUnique();
+            entity.HasIndex(e => e.Email);
         });
 
         modelBuilder.Entity<BankConsentRequest>(entity =>

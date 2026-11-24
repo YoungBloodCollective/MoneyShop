@@ -374,6 +374,19 @@ public class EmailService
         return SendHtmlAsync(toEmail, "Resetează parola - MoneyShop", body, "password reset");
     }
 
+    /// <summary>The Super Admin's invitation to open a broker account in the CRM; the link is private and valid for a limited time.</summary>
+    public Task<bool> SendBrokerInviteAsync(string toEmail, string? name, string inviteUrl, int validDays)
+    {
+        var url = Html(inviteUrl);
+        var greeting = string.IsNullOrWhiteSpace(name) ? "Bună!" : $"Bună, {Html(name)}!";
+        var body = BookingLayout("Ai fost invitat în CRM-ul MoneyShop", $@"
+    <p>{greeting}</p>
+    <p>Echipa MoneyShop te invită să-ți deschizi un cont de broker în CRM-ul MoneyShop. Îți alegi parola și adresa ta în CRM, completezi câteva date și gata.</p>
+    <p><a href=""{url}"" style=""display:inline-block;padding:12px 22px;background:#16a34a;color:#fff;border-radius:10px;text-decoration:none;font-weight:bold;"">Creează-ți contul</a></p>
+    <p style=""font-size:13px;color:#64748b;"">Linkul este personal, valabil {validDays} zile și se poate folosi o singură dată. Nu-l da mai departe. Nu te așteptai la această invitație? Ignoră mesajul.</p>");
+        return SendHtmlAsync(toEmail, "Ai fost invitat în CRM-ul MoneyShop", body, "broker invite");
+    }
+
     private static string Plain(string? value) =>
         (value ?? string.Empty).Replace("\r", " ").Replace("\n", " ").Trim();
 
