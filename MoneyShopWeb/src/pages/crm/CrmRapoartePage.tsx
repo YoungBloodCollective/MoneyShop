@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Download, Search, ChevronDown, Banknote, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { CommissionReportCard } from '@/components/crm/CommissionReportCard';
 import { adminApi, type MonthlyReportItem, type ExportReportRequest } from '@/services/api/adminApi';
 import { APPLICATION_STATUS_LABELS } from '@/utils/constants';
 import { PageHeader, EmptyState } from './crmShared';
@@ -124,6 +125,7 @@ export default function CrmRapoartePage() {
           </button>
         ) : undefined}
       />
+      <CommissionReportCard />
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-500">Filtre raport</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">

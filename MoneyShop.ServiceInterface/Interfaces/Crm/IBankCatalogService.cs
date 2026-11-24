@@ -25,6 +25,11 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         /// Only an admin also gets the network counts, NP/IP split, in-progress numbers and the per-broker breakdown.
         /// </summary>
         BankStatsResult GetStats(int userId, string? month, bool isAdmin);
+
+        /// <summary>The commission tiers of a bank for NP and IP. Null when the bank does not exist.</summary>
+        BankTiersResult? GetTiers(int bankId);
+        /// <summary>Replaces the tiers of a bank and credit type after validating them. Null when the bank does not exist.</summary>
+        List<CommissionTierRow>? SaveTiers(int bankId, string creditType, List<CommissionTierRow>? tiers);
     }
 
     public static class CreditTypes
@@ -94,7 +99,11 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
 
     public class BankMineVolume : BankVolume
     {
+        /// <summary>The fallback percent (own override, else the bank default), used without tiers.</summary>
         public decimal CommissionPercent { get; set; }
+        /// <summary>The percent that applies to a new NP / IP file this month, tier-based when the bank has tiers.</summary>
+        public decimal NpPercent { get; set; }
+        public decimal IpPercent { get; set; }
         public decimal EstimatedCommission { get; set; }
     }
 
@@ -107,6 +116,8 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public decimal? Threshold { get; set; }
         public BankNetworkVolume Network { get; set; } = new();
         public BankMineVolume Mine { get; set; } = new();
+        /// <summary>Tier progress per credit type for banks that have tiers; empty for affiliates.</summary>
+        public List<BankTierStatus> Tiers { get; set; } = new();
     }
 
     public class BrokerStatsItem

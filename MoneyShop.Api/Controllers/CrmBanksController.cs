@@ -1,3 +1,4 @@
+using System;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -48,6 +49,26 @@ namespace MoneyShop.Api.Controllers
             {
                 var bank = _banks.UpdateBank(bankId, input);
                 return bank == null ? NotFound("Banca nu există.") : Ok(bank, "Banca a fost actualizată");
+            }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        }
+
+        [HttpGet("banks/{bankId:int}/tiers")]
+        [Authorize(Roles = "Administrator")]
+        public IActionResult GetTiers(int bankId)
+        {
+            var tiers = _banks.GetTiers(bankId);
+            return tiers == null ? NotFound("Banca nu există.") : Ok(tiers);
+        }
+
+        [HttpPut("banks/{bankId:int}/tiers/{creditType}")]
+        [Authorize(Roles = "Administrator")]
+        public IActionResult SaveTiers(int bankId, string creditType, [FromBody] BankTierInput input)
+        {
+            try
+            {
+                var tiers = _banks.SaveTiers(bankId, creditType.ToUpperInvariant(), input?.Tiers);
+                return tiers == null ? NotFound("Banca nu există.") : Ok(tiers, "Pragurile au fost salvate");
             }
             catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
         }

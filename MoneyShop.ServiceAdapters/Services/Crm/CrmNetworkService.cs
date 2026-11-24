@@ -20,11 +20,13 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         private const int MaxMonths = 36;
 
         private readonly MoneyShopDbContext _context;
+        private readonly ICommissionCalculator _calculator;
         private readonly TimeZoneInfo _zone;
 
-        public CrmNetworkService(MoneyShopDbContext context)
+        public CrmNetworkService(MoneyShopDbContext context, ICommissionCalculator? calculator = null)
         {
             _context = context;
+            _calculator = calculator ?? new CommissionCalculator(context);
             _zone = ResolveZone();
         }
 
@@ -55,14 +57,14 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             var typeById = profiles.ToDictionary(p => p.Id, p => p.Type);
             var rows = LoadRows(_context.BankFiles.AsNoTracking(), from);
             var catalog = _context.Banks.AsNoTracking().AsEnumerable().OrderBy(b => b.SortOrder).ThenBy(b => b.Name).ToList();
-            var defaults = catalog.ToDictionary(b => b.Id, b => b.CommissionPercent);
+            var commission = _calculator.ForMonth(selected);
 
             return new AdminDashboardResult
             {
                 CurrentMonth = current,
                 SelectedMonth = selected,
-                MoneyShop = Section(BrokerTypes.MoneyShop, rows, typeById, profiles.Count(p => p.Type == BrokerTypes.MoneyShop && p.Status == "Active"), window, selected, defaults, catalog),
-                Affiliates = Section(BrokerTypes.Afiliat, rows, typeById, profiles.Count(p => p.Type == BrokerTypes.Afiliat && p.Status == "Active"), window, selected, defaults, catalog),
+                MoneyShop = Section(BrokerTypes.MoneyShop, rows, typeById, profiles.Count(p => p.Type == BrokerTypes.MoneyShop && p.Status == "Active"), window, selected, commission, catalog),
+                Affiliates = Section(BrokerTypes.Afiliat, rows, typeById, profiles.Count(p => p.Type == BrokerTypes.Afiliat && p.Status == "Active"), window, selected, commission, catalog),
             };
         }
 
@@ -97,7 +99,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         }
 
         private static NetworkSection Section(string type, List<Row> rows, Dictionary<int, string> typeById, int activeBrokers,
-            List<string> window, string selected, Dictionary<int, decimal> bankDefaults, List<BankEntity> catalog)
+            List<string> window, string selected, CommissionMonth commission, List<BankEntity> catalog)
         {
             var mine = rows.Where(r => r.BrokerProfileId != null && typeById.TryGetValue(r.BrokerProfileId.Value, out var t) && t == type).ToList();
             var byMonth = mine.GroupBy(r => r.Month).ToDictionary(g => g.Key, g => (Amount: g.Sum(r => r.Amount), Count: g.Count()));
@@ -116,7 +118,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
             };
             if (type == BrokerTypes.MoneyShop)
                 section.EstimatedCommission = Math.Round(selectedRows
-                    .Sum(r => r.Amount * (r.BankId != null && bankDefaults.TryGetValue(r.BankId.Value, out var p) ? p : 0m) / 100m), 2);
+                    .Sum(r => commission.Commission(r.BrokerProfileId, r.BankId ?? 0, r.CreditType, r.Amount)), 2);
             return section;
         }
 

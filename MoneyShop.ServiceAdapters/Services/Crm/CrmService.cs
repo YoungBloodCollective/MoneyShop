@@ -507,7 +507,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         private static string FullName(Utilizatori? user, CrmAcordRow? acord, int userId) =>
             FullName(user, acord?.Prenume, acord?.Nume, userId);
 
-        private static string FullName(Utilizatori? user, string? acordPrenume, string? acordNume, int userId)
+        internal static string FullName(Utilizatori? user, string? acordPrenume, string? acordNume, int userId)
         {
             var full = $"{user?.Prenume} {user?.Nume}".Trim();
             if (string.IsNullOrWhiteSpace(full)) full = $"{acordPrenume} {acordNume}".Trim();

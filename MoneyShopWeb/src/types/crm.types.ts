@@ -1,4 +1,5 @@
 import type { AcordFileInfo, AcordOcrSnapshot, BankConsentInfo } from '@/services/api/acordApi';
+import type { BankTierStatus } from './commission.types';
 
 export interface CrmStatusSlice {
   key: string;
@@ -298,6 +299,8 @@ export interface BankVolume {
 
 export interface BankMineVolume extends BankVolume {
   commissionPercent: number;
+  npPercent: number;
+  ipPercent: number;
   estimatedCommission: number;
 }
 
@@ -322,6 +325,7 @@ export interface BankStatsItem {
   threshold?: number | null;
   network: BankNetworkVolume;
   mine: BankMineVolume;
+  tiers: BankTierStatus[];
 }
 
 export interface BrokerStatsItem {

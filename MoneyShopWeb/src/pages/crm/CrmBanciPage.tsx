@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCrmPath } from '@/lib/crmPath';
 import { BankLogo } from '@/components/crm/BankLogo';
+import { BankTierProgress } from '@/components/crm/BankTierProgress';
+import { appliedPercentLabel } from '@/lib/bankTierLabels';
 import { crmApi } from '@/services/api/crmApi';
 import type { BankNetworkVolume, BankStatsItem, BankStatsResult, BankVolume } from '@/types/crm.types';
 import { EmptyState, ErrorState, PageHeader, SkeletonCards } from './crmShared';
@@ -51,6 +53,10 @@ function ThresholdBar({ bank }: { bank: BankStatsItem }) {
   );
 }
 
+function BankThreshold({ bank }: { bank: BankStatsItem }) {
+  return bank.tiers.length > 0 ? <BankTierProgress bank={bank} /> : <ThresholdBar bank={bank} />;
+}
+
 function Split({ v }: { v: Pick<BankNetworkVolume, 'npAmount' | 'npCount' | 'ipAmount' | 'ipCount' | 'unknownAmount' | 'unknownCount'> }) {
   if (v.npAmount == null || v.ipAmount == null) return null;
   return (
@@ -75,7 +81,7 @@ function BankCard({ bank, showNetwork }: { bank: BankStatsItem; showNetwork: boo
   return (
     <div className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${bank.active ? '' : 'opacity-70'}`}>
       <div className="font-semibold text-slate-800"><BankName bank={bank} /></div>
-      {showNetwork && <div className="mt-2"><ThresholdBar bank={bank} /></div>}
+      {showNetwork && <div className="mt-2"><BankThreshold bank={bank} /></div>}
       <dl className="mt-3 space-y-3 text-sm">
         {showNetwork && (
           <div>
@@ -88,7 +94,7 @@ function BankCard({ bank, showNetwork }: { bank: BankStatsItem; showNetwork: boo
           <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">Ale mele</dt>
           <dd className="font-semibold text-slate-800">{money(m.disbursedAmount)} <span className="font-normal text-slate-500">({m.disbursedCount} dosare)</span></dd>
           <dd><Split v={m} /></dd>
-          <dd className="mt-1 text-slate-600">Comision {m.commissionPercent.toLocaleString('ro-RO')}%: <span className="font-semibold text-slate-800">{money(m.estimatedCommission)}</span></dd>
+          <dd className="mt-1 text-slate-600">Comision {appliedPercentLabel(bank)}: <span className="font-semibold text-slate-800">{money(m.estimatedCommission)}</span></dd>
         </div>
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">În lucru</dt>
@@ -194,7 +200,7 @@ export default function CrmBanciPage() {
               <thead className="border-b border-slate-100 bg-slate-50">
                 <tr>
                   <th className={TH}>Banca</th>
-                  {data.showNetwork && <th className={`${TH} min-w-[11rem]`}>Prag lunar</th>}
+                  {data.showNetwork && <th className={`${TH} min-w-[13rem]`}>Prag lunar</th>}
                   {data.showNetwork && <th className={TH}>Rețea, disbursat</th>}
                   <th className={TH}>Ale mele</th>
                   <th className={TH}>Comision</th>
@@ -205,7 +211,7 @@ export default function CrmBanciPage() {
                 {data.banks.map(b => (
                   <tr key={b.bankId} className={b.active ? '' : 'opacity-70'}>
                     <td className={`${TD} font-semibold text-slate-800`}><BankName bank={b} compact /></td>
-                    {data.showNetwork && <td className={TD}><ThresholdBar bank={b} /></td>}
+                    {data.showNetwork && <td className={TD}><BankThreshold bank={b} /></td>}
                     {data.showNetwork && (
                       <td className={TD}>
                         <div className="font-semibold text-slate-800">{money(b.network.disbursedAmount)}<Count n={b.network.disbursedCount} /></div>
@@ -218,7 +224,7 @@ export default function CrmBanciPage() {
                     </td>
                     <td className={TD}>
                       <div className="font-semibold text-slate-800">{money(b.mine.estimatedCommission)}</div>
-                      <div className="text-xs text-slate-500">{b.mine.commissionPercent.toLocaleString('ro-RO')}%</div>
+                      <div className="text-xs text-slate-500">{appliedPercentLabel(b)}</div>
                     </td>
                     <td className={TD}>
                       <div className="text-slate-700">{b.mine.inProgressCount} · {money(b.mine.inProgressAmount)}</div>
