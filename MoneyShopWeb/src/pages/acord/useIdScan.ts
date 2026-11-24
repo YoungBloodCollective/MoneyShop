@@ -41,29 +41,16 @@ async function compressImage(file: File): Promise<File> {
   }
 }
 
-function tokens(value: string): string[] {
+function titleCase(value: string): string {
   return value
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .split(/[^a-z]+/)
-    .filter(Boolean);
+    .trim()
+    .toLocaleLowerCase('ro-RO')
+    .replace(/(^|[\s-])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toLocaleUpperCase('ro-RO'));
 }
 
-function sameName(a: string, b: string): boolean {
-  const ta = tokens(a);
-  const tb = tokens(b);
-  if (ta.length === 0 || tb.length === 0) return true;
-  return ta.every(t => tb.includes(t)) || tb.every(t => ta.includes(t));
-}
-
-export function namesDiffer(scan: AcordIdScan | null, nume: string, prenume: string): boolean {
-  if (!scan?.readable || (!scan.lastName && !scan.firstName)) return false;
-  const typedLast = nume.trim();
-  const typedFirst = prenume.trim();
-  const straight = sameName(scan.lastName ?? '', typedLast) && sameName(scan.firstName ?? '', typedFirst);
-  const swapped = sameName(scan.lastName ?? '', typedFirst) && sameName(scan.firstName ?? '', typedLast);
-  return !straight && !swapped;
+export function scannedNames(scan: AcordIdScan | null): { nume: string; prenume: string } {
+  if (!scan?.readable) return { nume: '', prenume: '' };
+  return { nume: titleCase(scan.lastName ?? ''), prenume: titleCase(scan.firstName ?? '') };
 }
 
 function frontOnly(scan: AcordIdScan | null): AcordIdScan | null {
@@ -200,16 +187,16 @@ export function useIdScan() {
   const needsProof = manual ? electronic === true : !!scan?.needsProofOfAddress;
   const tipAct = manual ? (electronic ? TIP_ACT_ELECTRONICA : TIP_ACT_SIMPLA) : scan?.tipAct ?? null;
 
+  // Proof of address is optional: it is offered when the card has no address, never demanded.
   const complete = manual
-    ? electronic !== null && !!files.front && !!files.back && (!electronic || !!files.proof)
-    : !reading && !!files.front && !!scan?.readable && !!scan.tipAct && (!needsBack || !!files.back) && (!needsProof || !!files.proof);
+    ? electronic !== null && !!files.front && !!files.back
+    : !reading && !!files.front && !!scan?.readable && !!scan.tipAct && (!needsBack || !!files.back);
 
   const missing: string[] = [];
   if (manual) {
     if (electronic === null) missing.push('dacă actul are cip');
     if (!files.front) missing.push('poza cu fața actului');
     if (!files.back) missing.push('poza cu versoul actului');
-    if (electronic && !files.proof) missing.push('dovada adresei');
   } else if (!files.front) {
     missing.push('poza cu fața actului');
   } else if (reading) {
@@ -220,8 +207,6 @@ export function useIdScan() {
     missing.push('poza cu versoul actului');
   } else if (!scan.tipAct) {
     missing.push('citirea versoului actului');
-  } else if (needsProof && !files.proof) {
-    missing.push('certificatul de atestare a domiciliului');
   }
 
   const submitFiles = {

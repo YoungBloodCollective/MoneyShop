@@ -30,13 +30,14 @@ public class AcordController : BaseController
     };
 
     /// <summary>
-    /// Which documents each type of ID actually needs, per the operator's rules.
+    /// Which documents each type of ID actually needs. Proof of address is never required at
+    /// signing (many clients do not have one to hand); the broker asks for it later when a bank does.
     /// </summary>
-    private static readonly Dictionary<string, (bool back, bool proof)> TipActRules = new()
+    private static readonly Dictionary<string, bool> TipActNeedsBack = new()
     {
-        ["carte_identitate"] = (back: false, proof: false),
-        ["carte_identitate_electronica"] = (back: true, proof: true),
-        ["carte_identitate_simpla"] = (back: true, proof: false),
+        ["carte_identitate"] = false,
+        ["carte_identitate_electronica"] = true,
+        ["carte_identitate_simpla"] = true,
     };
 
     /// <summary>
@@ -204,7 +205,7 @@ public class AcordController : BaseController
         var tipAct = request.TipAct?.Trim() ?? string.Empty;
         if (LegacyTipAct.TryGetValue(tipAct, out var renamed)) tipAct = renamed;
 
-        if (!TipActRules.TryGetValue(tipAct, out var rules))
+        if (!TipActNeedsBack.TryGetValue(tipAct, out var needsBack))
             return BadRequest("Selecteaza tipul actului de identitate");
 
         if (!request.AcceptIntermediere)
@@ -220,10 +221,10 @@ public class AcordController : BaseController
         var frontError = ValidateUpload(request.DocumentFront, "Poza fata a actului", required: true);
         if (frontError != null) return BadRequest(frontError);
 
-        var backError = ValidateUpload(request.DocumentBack, "Poza spate a actului", rules.back);
+        var backError = ValidateUpload(request.DocumentBack, "Poza spate a actului", needsBack);
         if (backError != null) return BadRequest(backError);
 
-        var proofError = ValidateUpload(request.AddressProof, "Dovada de adresa", rules.proof);
+        var proofError = ValidateUpload(request.AddressProof, "Dovada de adresa", required: false);
         if (proofError != null) return BadRequest(proofError);
 
         if (string.IsNullOrWhiteSpace(request.SignatureDataUri))
