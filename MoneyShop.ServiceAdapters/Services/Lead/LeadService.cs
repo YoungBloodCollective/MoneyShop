@@ -110,7 +110,7 @@ public class LeadService : ILeadService
         var lead = await _context.LeadCaptures.IgnoreQueryFilters().FirstOrDefaultAsync(l => l.Id == leadId.Value);
         if (lead == null || (lead.Status == LeadStatuses.Converted && lead.UserId != null)) return null;
 
-        var named = lead.Source == "appointment";
+        var named = lead.Source is "appointment" or "colaborare" or "transfer";
         var parts = (lead.NumePrenume ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         if (!named) parts = Array.Empty<string>();
         return new LeadAcordPrefill

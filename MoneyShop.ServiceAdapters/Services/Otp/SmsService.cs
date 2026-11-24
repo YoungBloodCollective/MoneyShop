@@ -68,4 +68,20 @@ public class SmsService
             return false;
         }
     }
+
+    public async Task<bool> SendTextAsync(string toPhoneNumber, string message)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_apiKey)) return false;
+            var smsRequest = new { sender = _senderName, recipient = toPhoneNumber, content = message, type = "transactional" };
+            var response = await _httpClient.PostAsJsonAsync("transactionalSMS/sms", smsRequest);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[SmsService] Error sending SMS: {ex.Message}");
+            return false;
+        }
+    }
 }

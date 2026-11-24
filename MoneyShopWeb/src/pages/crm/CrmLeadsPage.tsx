@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Phone, Mail, MapPin, AlertTriangle, MessageCircle, MessageSquare, Save, X, CalendarPlus, Clock } from 'lucide-react';
+import { Search, Phone, Mail, MapPin, AlertTriangle, MessageCircle, MessageSquare, Save, X, CalendarPlus, Clock, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adminApi, type LeadItem, type LeadStatus } from '@/services/api/adminApi';
 import { AssignBrokerControl } from '@/components/crm/AssignBrokerControl';
@@ -15,6 +15,8 @@ const SOURCE_LABELS: Record<string, string> = {
   appointment: 'Programare',
   chat_state_machine: 'Chat',
   landing: 'Landing',
+  colaborare: 'Colaborare',
+  transfer: 'Transfer',
 };
 
 const sourceLabel = (source: string) => SOURCE_LABELS[source] ?? source;
@@ -46,6 +48,15 @@ const LEAD_SEGMENTS = [{ key: 'toate', label: 'Toate' }, ...LEAD_STATUSES.map(s 
  * How long a new lead has been waiting for a call: green under 5 minutes, amber up to 30, red after.
  * Leads older than two days only show their age, without the alarm colour.
  */
+function ReceivedBadge({ from }: { from?: string | null }) {
+  if (!from) return null;
+  return (
+    <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+      <Share2 className="h-3 w-3 shrink-0" aria-hidden="true" /> Primit de la {from}
+    </span>
+  );
+}
+
 function LeadAge({ createdAt, now }: { createdAt: string; now: number }) {
   if (!now) return null;
   const minutes = Math.max(0, Math.floor((now - new Date(createdAt).getTime()) / 60_000));
@@ -132,7 +143,10 @@ function LeadDrawer({
         <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
           <div className="min-w-0">
             <h2 className="truncate text-lg font-semibold text-slate-900">{lead.numePrenume}</h2>
-            <span className="mt-1 inline-block rounded-full bg-brand-primary/10 px-2.5 py-0.5 text-xs font-medium text-brand-primary">{sourceLabel(lead.source)}</span>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <span className="inline-block rounded-full bg-brand-primary/10 px-2.5 py-0.5 text-xs font-medium text-brand-primary">{sourceLabel(lead.source)}</span>
+              <ReceivedBadge from={lead.receivedFrom} />
+            </div>
           </div>
           <button onClick={requestClose} className="text-slate-400 hover:text-slate-700" aria-label="Închide"><X size={20} /></button>
         </div>
@@ -352,6 +366,7 @@ export default function CrmLeadsPage() {
                   <div><div className="text-slate-400">Venit net</div><div className="font-medium text-slate-700">{money(l.venitNetLunar)}</div></div>
                   <div><div className="text-slate-400">Sold aprox.</div><div className="font-medium text-slate-700">{money(l.soldTotalAprox)}</div></div>
                 </div>
+                {l.receivedFrom && <div className="mt-3 flex"><ReceivedBadge from={l.receivedFrom} /></div>}
                 {(l.intarzieri || l.poprireSauExecutorUltimii5Ani) && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {l.intarzieri && <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700"><AlertTriangle className="h-3 w-3" />Întârzieri</span>}

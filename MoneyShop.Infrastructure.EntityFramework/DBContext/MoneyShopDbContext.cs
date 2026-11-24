@@ -75,6 +75,7 @@ public class MoneyShopDbContext : DbContext
     public virtual DbSet<BankConsentRequest> BankConsentRequests { get; set; }
     public virtual DbSet<BrokerProfile> BrokerProfiles { get; set; }
     public virtual DbSet<BrokerInvite> BrokerInvites { get; set; }
+    public virtual DbSet<ClientReferral> ClientReferrals { get; set; }
 
     // Broker's own follow-up on a client: tasks with reminders, bank files, labels
     public virtual DbSet<ClientTask> ClientTasks { get; set; }
@@ -861,6 +862,32 @@ public class MoneyShopDbContext : DbContext
 
             entity.HasIndex(e => e.TokenHash).IsUnique();
             entity.HasIndex(e => e.Email);
+        });
+
+        modelBuilder.Entity<ClientReferral>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("ClientReferrals");
+
+            entity.Property(e => e.Mode).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.Property(e => e.Status).HasMaxLength(20).IsRequired().IsConcurrencyToken();
+            entity.Property(e => e.ConsentTokenHash).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.ConsentIp).HasMaxLength(64);
+            entity.Property(e => e.ConsentUserAgent).HasMaxLength(500);
+            entity.Property(e => e.ConsentExpiresAt).HasColumnType("datetime2");
+            entity.Property(e => e.ConsentAt).HasColumnType("datetime2");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+
+            entity.HasOne<BrokerProfile>().WithMany().HasForeignKey(e => e.FromBrokerProfileId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne<BrokerProfile>().WithMany().HasForeignKey(e => e.ToBrokerProfileId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne<Utilizatori>().WithMany().HasForeignKey(e => e.ClientUserId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.Lead).WithMany().HasForeignKey(e => e.LeadId).OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(e => e.ConsentTokenHash).IsUnique();
+            entity.HasIndex(e => new { e.FromBrokerProfileId, e.CreatedAt });
+            entity.HasIndex(e => new { e.ToBrokerProfileId, e.CreatedAt });
         });
 
         modelBuilder.Entity<BankConsentRequest>(entity =>

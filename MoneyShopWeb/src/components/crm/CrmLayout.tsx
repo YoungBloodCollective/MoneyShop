@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, FolderKanban, Sparkles,
   BarChart3, Search,
   Menu, X, LogOut, ChevronDown, ExternalLink, CalendarClock, UserCircle,
-  ShieldCheck, UserCheck, BookUser, Handshake, FileText, Inbox, Landmark, Settings,
+  ShieldCheck, UserCheck, BookUser, Handshake, Share2, FileText, Inbox, Landmark, Settings,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getBrokerSlug } from '@/lib/brokerHost';
@@ -31,6 +31,7 @@ const CRM_NAV: NavGroup[] = [{
     { label: 'Dashboard', icon: LayoutDashboard, to: '/crm' },
     { label: 'Clienți', icon: Users, to: '/crm/clienti' },
     { label: 'Dosare', icon: FolderKanban, to: '/crm/dosare' },
+    { label: 'Colaborează', icon: Share2, to: '/crm/colaborari' },
     { label: 'Bănci', icon: Landmark, to: '/crm/banci' },
     { label: 'Lead-uri', icon: Sparkles, to: '/crm/leaduri' },
     { label: 'Programări', icon: CalendarClock, to: '/crm/programari' },
@@ -49,6 +50,7 @@ const ADMIN_NAV: NavGroup[] = [
       { label: 'Programări', icon: CalendarClock, to: '/admin/programari' },
       { label: 'Clienți', icon: Users, to: '/admin/clienti' },
       { label: 'Dosare', icon: FolderKanban, to: '/admin/dosare' },
+      { label: 'Colaborează', icon: Share2, to: '/admin/colaborari' },
       { label: 'Bănci', icon: Landmark, to: '/admin/banci' },
       { label: 'Rapoarte', icon: BarChart3, to: '/admin/rapoarte' },
     ],

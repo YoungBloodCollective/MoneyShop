@@ -4,6 +4,7 @@ using MoneyShop.ServiceInterface.Interfaces.Application;
 using MoneyShop.DomainServices.RepositoryInterfaces.Application;
 using MoneyShop.DomainServices.RepositoryInterfaces.Lead;
 using MoneyShop.ServiceInterface.Interfaces.Lead;
+using MoneyShop.ServiceInterface.Interfaces.Crm;
 using MoneyShop.DomainModel.Entities;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
 using Microsoft.EntityFrameworkCore;
@@ -23,19 +24,22 @@ namespace MoneyShop.Api.Controllers
         private readonly ILeadCaptureRepository _leadCaptureRepository;
         private readonly ILeadService _leadService;
         private readonly MoneyShopDbContext _context;
+        private readonly IClientReferralService _referrals;
 
         public AdminController(
             IApplicationService applicationService,
             IApplicationRepository applicationRepository,
             ILeadCaptureRepository leadCaptureRepository,
             ILeadService leadService,
-            MoneyShopDbContext context)
+            MoneyShopDbContext context,
+            IClientReferralService referrals)
         {
             _applicationService = applicationService;
             _applicationRepository = applicationRepository;
             _leadCaptureRepository = leadCaptureRepository;
             _leadService = leadService;
             _context = context;
+            _referrals = referrals;
         }
 
         /// <summary>
@@ -220,7 +224,14 @@ namespace MoneyShop.Api.Controllers
                     l.CreatedAt
                 })
                 .ToList();
-            return Ok(leads);
+            var receivedFrom = _referrals.ReceivedFromByLead(leads.Select(l => l.Id));
+            return Ok(leads.Select(l => new
+            {
+                l.Id, l.NumePrenume, l.Telefon, l.Email, l.Oras, l.CrediteActive, l.SoldTotalAprox, l.TipCreditor,
+                l.Intarzieri, l.IntarzieriZileMax, l.VenitNetLunar, l.BonuriMasaAprox, l.PoprireSauExecutorUltimii5Ani,
+                l.SituatiePoprireInchisa, l.Source, l.AdminNotes, l.BrokerProfileId, l.UserId, l.Status, l.ContactedAt, l.CreatedAt,
+                ReceivedFrom = receivedFrom.TryGetValue(l.Id, out var from) ? from : null,
+            }));
         }
 
         [HttpPost("leads/from-appointment/{appointmentId}")]
