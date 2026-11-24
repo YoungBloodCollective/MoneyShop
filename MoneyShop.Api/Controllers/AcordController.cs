@@ -199,7 +199,9 @@ public class AcordController : BaseController
         if (!PhonePattern.IsMatch(phone))
             return BadRequest("Numarul de telefon nu este valid");
 
-        if (!string.IsNullOrWhiteSpace(request.Email) && !EmailPattern.IsMatch(request.Email.Trim()))
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return BadRequest("Emailul este obligatoriu");
+        if (!EmailPattern.IsMatch(request.Email.Trim()))
             return BadRequest("Adresa de email nu este valida");
 
         var tipAct = request.TipAct?.Trim() ?? string.Empty;

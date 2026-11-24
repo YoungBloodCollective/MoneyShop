@@ -249,5 +249,6 @@ export function bankDocsDeadline(signedAt: string): number {
 export function bankDocsEligible(client: CrmClientDetail): boolean {
   const acord = client.acord;
   if (!acord?.signedAt || acord.bankDocumentsAccepted !== true) return false;
+  if (Date.now() >= bankDocsDeadline(acord.signedAt)) return false;
   return !acord.files.some(f => f.fileType.startsWith('bank_') && !f.isDeleted);
 }
