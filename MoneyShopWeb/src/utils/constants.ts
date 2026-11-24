@@ -35,7 +35,7 @@ export const APPLICATION_STATUS_LABELS: Record<string, string> = {
   ACCEPTAT_CLIENT: 'Acceptat de client',
   TRIMIS_LA_BANCA: 'Trimis la bancă',
   APROBAT_BANCA: 'Aprobat de bancă',
-  DISBURSAT: 'Debursat',
+  DISBURSAT: 'Disbursat',
 };
 
 export const CREDIT_TYPES = {

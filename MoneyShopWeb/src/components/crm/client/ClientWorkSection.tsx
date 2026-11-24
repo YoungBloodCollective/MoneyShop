@@ -402,8 +402,10 @@ function TagsPanel({ userId, tags, onChange }: { userId: number; tags: string[];
 }
 
 /** Tags, tasks with reminders and bank files for one client. */
-export function ClientWorkSection({ userId }: { userId: number }) {
+export function ClientWorkSection({ userId, onBankFilesChange }: { userId: number; onBankFilesChange?: (files: CrmBankFileItem[]) => void }) {
   const [work, setWork] = useState<CrmClientWork | null>(null);
+  const bankFiles = work?.bankFiles;
+  useEffect(() => { if (bankFiles) onBankFilesChange?.(bankFiles); }, [bankFiles, onBankFilesChange]);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {

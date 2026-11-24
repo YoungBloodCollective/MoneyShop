@@ -199,7 +199,7 @@ export default function CrmClientsPage() {
                   <th className="px-5 py-3 font-medium">Contact</th>
                   <th className="px-5 py-3 font-medium text-center">Dosare</th>
                   <th className="px-5 py-3 font-medium">Status recent</th>
-                  <th className="px-5 py-3 font-medium text-right">Volum debursat</th>
+                  <th className="px-5 py-3 font-medium text-right">Volum disbursat</th>
                   <th className="px-5 py-3 font-medium">Activitate</th>
                   <th className="px-5 py-3"></th>
                 </tr>

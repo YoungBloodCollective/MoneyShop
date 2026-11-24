@@ -37,7 +37,7 @@ namespace MoneyShop.ServiceInterface.SharedDtos
             ACCEPTAT_CLIENT => "Acceptat de client",
             TRIMIS_LA_BANCA => "Trimis la bancă",
             APROBAT_BANCA => "Aprobat de bancă",
-            DISBURSAT => "Debursat",
+            DISBURSAT => "Disbursat",
             RESPINS => "Respins",
             _ => status,
         };
