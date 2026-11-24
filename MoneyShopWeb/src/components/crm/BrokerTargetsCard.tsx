@@ -10,7 +10,7 @@ const INPUT = `mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2
 type Fields = { np: string; ip: string; commission: string };
 
 function toFields(p: BrokerProfile): Fields {
-  return { np: String(p.targetNpAmount), ip: String(p.targetIpAmount), commission: String(p.targetCommissionAmount) };
+  return { np: String(p.targetNpAmount ?? 5_000_000), ip: String(p.targetIpAmount ?? 5_000_000), commission: String(p.targetCommissionAmount ?? 150_000) };
 }
 
 function parseTarget(value: string): number {
