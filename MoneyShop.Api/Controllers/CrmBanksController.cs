@@ -72,7 +72,7 @@ namespace MoneyShop.Api.Controllers
         }
 
         [HttpGet("targets")]
-        [Authorize(Roles = "Broker")]
+        [Authorize(Roles = "Administrator,Broker")]
         public IActionResult GetMyTargets()
         {
             var result = _targets.GetMine(UserId);

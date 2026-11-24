@@ -14,7 +14,9 @@ function toFields(p: BrokerProfile): Fields {
 }
 
 function parseTarget(value: string): number {
-  return Number(value.trim().replace(/\s/g, '').replace(',', '.'));
+  const compact = value.trim().replace(/\s/g, '');
+  const ungrouped = /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(compact) ? compact.replace(/\./g, '') : compact;
+  return Number(ungrouped.replace(',', '.'));
 }
 
 function validTarget(n: number): boolean {
