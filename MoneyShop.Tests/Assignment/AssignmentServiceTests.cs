@@ -72,6 +72,47 @@ public class AssignmentServiceTests
     }
 
     [Fact]
+    public async Task Inbox_shows_a_site_appointment_once_with_its_answers()
+    {
+        var (service, db, _) = Build();
+        var appointment = db.Appointments.Single(a => a.Id == 100);
+        appointment.IntarzieriBirou = "NU";
+        appointment.PopriRecuperare = "NU";
+        db.LeadCaptures.Add(new LeadCapture
+        {
+            Id = 201, BrokerProfileId = null, NumePrenume = "Client 100", Telefon = "+40 722 000 100",
+            Email = "", Oras = "B", Source = "appointment",
+            CreatedAt = new DateTime(2026, 11, 20, 9, 0, 1), UpdatedAt = new DateTime(2026, 11, 20, 9, 0, 1),
+        });
+        db.SaveChanges();
+        db.ChangeTracker.Clear();
+
+        var inbox = await service.GetInboxAsync();
+
+        Assert.Equal(new[] { "lead:200", "appointment:100" }, inbox.Select(i => $"{i.EntityType}:{i.Id}"));
+        Assert.Equal("Venit 5.000 lei · Întârzieri BC: nu · Popriri/recuperare: nu", inbox.Single(i => i.EntityType == "appointment").Answers);
+    }
+
+    [Fact]
+    public async Task Assigning_a_site_appointment_also_assigns_the_lead_made_from_it()
+    {
+        var (service, db, _) = Build();
+        db.LeadCaptures.Add(new LeadCapture
+        {
+            Id = 201, BrokerProfileId = null, NumePrenume = "Client 100", Telefon = "0722000100",
+            Email = "", Oras = "B", Source = "appointment",
+            CreatedAt = new DateTime(2026, 11, 20, 9, 0, 1), UpdatedAt = new DateTime(2026, 11, 20, 9, 0, 1),
+        });
+        db.SaveChanges();
+        db.ChangeTracker.Clear();
+
+        await service.AssignAsync(new AssignInput { EntityType = "appointment", Id = "100", BrokerProfileId = Alex }, SuperAdmin);
+
+        Assert.Equal(Alex, db.LeadCaptures.Single(l => l.Id == 201).BrokerProfileId);
+        Assert.Null(db.LeadCaptures.Single(l => l.Id == 200).BrokerProfileId);
+    }
+
+    [Fact]
     public async Task Assigning_an_unassigned_appointment_sets_the_owner_and_writes_an_audit_event()
     {
         var (service, db, _) = Build();

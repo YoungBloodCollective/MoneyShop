@@ -196,7 +196,7 @@ public class LeadService : ILeadService
         return Convert.FromBase64String(padded);
     }
 
-    private static string NormalizePhone(string? phone)
+    internal static string NormalizePhone(string? phone)
     {
         var digits = new string((phone ?? "").Where(char.IsDigit).ToArray());
         if (digits.StartsWith("0040") && digits.Length >= 13) digits = digits.Substring(4);

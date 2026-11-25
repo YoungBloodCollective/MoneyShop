@@ -26,7 +26,7 @@ public static class AssignableTypes
 }
 
 public record InboxItem(string EntityType, string Id, string Name, string? Phone, string? Email,
-    string? Detail, string? Status, string? Source, DateTime CreatedAt);
+    string? Detail, string? Status, string? Source, DateTime CreatedAt, string? Answers = null);
 
 public class AssignInput
 {
