@@ -113,6 +113,7 @@ export default function SuperAdminInboxPage() {
                       {item.source && item.source !== meta.label && <span className="text-slate-400">Sursă: {item.source}</span>}
                       <span className="text-slate-400">{relTime(item.createdAt)}</span>
                     </div>
+                    {item.answers && <p className="mt-1.5 text-xs text-slate-600">{item.answers}</p>}
                   </div>
                 </div>
                 <AssignBrokerControl

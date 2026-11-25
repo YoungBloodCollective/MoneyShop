@@ -12,6 +12,7 @@ export interface InboxItem {
   status?: string | null;
   source?: string | null;
   createdAt: string;
+  answers?: string | null;
 }
 
 export interface AssignResult {

@@ -1,7 +1,9 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MoneyShop.DomainModel.Entities;
 using MoneyShop.Infrastructure.EntityFramework.DBContext;
+using MoneyShop.ServiceAdapters.Services.Lead;
 using MoneyShop.ServiceInterface.Interfaces.Assignment;
 
 namespace MoneyShop.ServiceAdapters.Services.Assignment;
@@ -24,19 +26,24 @@ public class AssignmentService : IAssignmentService
     public async Task<List<InboxItem>> GetInboxAsync(int limitPerType = 300)
     {
         // Rows are read first and shaped in memory, so no id formatting has to translate to SQL.
-        var appointments = (await _db.Appointments.AsNoTracking()
+        var appointmentRows = await _db.Appointments.AsNoTracking()
                 .Where(a => a.BrokerProfileId == null)
                 .OrderByDescending(a => a.CreatedAt).Take(limitPerType)
-                .Select(a => new { a.Id, a.Nume, a.Prenume, a.Telefon, a.Email, a.TipCredit, a.Status, a.CreatedAt })
-                .ToListAsync())
+                .Select(a => new { a.Id, a.Nume, a.Prenume, a.Telefon, a.Email, a.TipCredit, a.Status, a.CreatedAt, a.SalariuNet, a.IntarzieriBirou, a.PopriRecuperare })
+                .ToListAsync();
+        var appointmentPhones = appointmentRows.Select(a => LeadService.NormalizePhone(a.Telefon)).Where(p => p.Length > 0).ToHashSet();
+        var appointments = appointmentRows
             .Select(a => new InboxItem(AssignableTypes.Appointment, a.Id.ToString(), $"{a.Nume} {a.Prenume}".Trim(),
-                a.Telefon, a.Email, a.TipCredit, a.Status, "Programare apel", a.CreatedAt));
+                a.Telefon, a.Email, a.TipCredit, a.Status, "Programare apel", a.CreatedAt,
+                Answers(a.SalariuNet, a.IntarzieriBirou, a.PopriRecuperare)));
 
         var leads = (await _db.LeadCaptures.AsNoTracking()
                 .Where(l => l.BrokerProfileId == null)
                 .OrderByDescending(l => l.CreatedAt).Take(limitPerType)
                 .Select(l => new { l.Id, l.NumePrenume, l.Telefon, l.Email, l.Oras, l.Source, l.CreatedAt })
                 .ToListAsync())
+            // A lead made from a site appointment is the same request; the appointment card stands for both.
+            .Where(l => l.Source != LeadFromAppointmentSource || !appointmentPhones.Contains(LeadService.NormalizePhone(l.Telefon)))
             .Select(l => new InboxItem(AssignableTypes.Lead, l.Id.ToString(), l.NumePrenume,
                 l.Telefon, l.Email, l.Oras, null, l.Source, l.CreatedAt));
 
@@ -85,6 +92,19 @@ public class AssignmentService : IAssignmentService
                 {
                     appointment.BrokerProfileId = newOwner;
                     appointment.UpdatedAt = DateTime.UtcNow;
+                    var phoneKey = LeadService.NormalizePhone(appointment.Telefon);
+                    if (phoneKey.Length > 0)
+                    {
+                        var twins = (await _db.LeadCaptures
+                                .Where(l => l.Source == LeadFromAppointmentSource && l.BrokerProfileId == oldOwner)
+                                .ToListAsync())
+                            .Where(l => LeadService.NormalizePhone(l.Telefon) == phoneKey);
+                        foreach (var twin in twins)
+                        {
+                            twin.BrokerProfileId = newOwner;
+                            twin.UpdatedAt = DateTime.UtcNow;
+                        }
+                    }
                 }
                 clientName = $"{appointment.Nume} {appointment.Prenume}".Trim();
                 phone = appointment.Telefon;
@@ -166,6 +186,20 @@ public class AssignmentService : IAssignmentService
             ClientPhone = phone,
             CrmPath = crmPath,
         };
+    }
+
+    private const string LeadFromAppointmentSource = "appointment";
+    private static readonly CultureInfo Ro = CultureInfo.GetCultureInfo("ro-RO");
+
+    private static string? Answers(decimal salariuNet, string? intarzieriBirou, string? popriRecuperare)
+    {
+        var parts = new List<string>();
+        if (salariuNet > 0) parts.Add($"Venit {salariuNet.ToString("N0", Ro)} lei");
+        if (!string.IsNullOrWhiteSpace(intarzieriBirou))
+            parts.Add($"Întârzieri BC: {(intarzieriBirou.Equals("NU", StringComparison.OrdinalIgnoreCase) ? "nu" : intarzieriBirou.Replace("Da-", "da, ", StringComparison.OrdinalIgnoreCase))}");
+        if (!string.IsNullOrWhiteSpace(popriRecuperare))
+            parts.Add($"Popriri/recuperare: {(popriRecuperare.Equals("DA", StringComparison.OrdinalIgnoreCase) ? "da" : "nu")}");
+        return parts.Count == 0 ? null : string.Join(" · ", parts);
     }
 
     public async Task<List<AssignmentHistoryItem>> GetHistoryAsync(string entityType, string id)

@@ -152,6 +152,10 @@ export default function LandingPage() {
   const [inlineAgreed, setInlineAgreed] = useState(false);
   const [inlineMarketing, setInlineMarketing] = useState(false);
 
+  const scrollToForm = () => {
+    document.getElementById('analiza-gratuita')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   // Step 1 (time, name, phone, email, income, consent) is all that is needed; step 2 only helps
   // the broker prepare and can be skipped.
   const onProgFormSubmit = (e: React.FormEvent) => {
@@ -627,7 +631,7 @@ export default function LandingPage() {
                     </div>
                   )}
                   <button
-                    onClick={() => { setProgStep(1); setShowProgrameaza(true); }}
+                    onClick={scrollToForm}
                     className="mt-2 w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-xl text-xs sm:text-sm transition-colors shadow-lg shadow-green-500/25"
                   >
                     <Phone size={14} /> Vreau sa fiu sunat
@@ -666,7 +670,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════ FORMULAR CONTACT INLINE ══════════ */}
-      <section className="bg-white py-12 lg:py-16">
+      <section id="analiza-gratuita" className="bg-white py-12 lg:py-16 scroll-mt-16">
         <div className="max-w-3xl mx-auto px-4">
           <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-3xl border border-gray-100 shadow-sm p-6 lg:p-10">
             <div className="text-center mb-6">
@@ -784,6 +788,12 @@ export default function LandingPage() {
                 <button type="submit" disabled={inlineLoading || !inlineAgreed} className="w-full bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-bold py-3 rounded-xl text-sm transition-colors shadow-md shadow-green-500/20">
                   {inlineLoading ? 'Se trimite...' : 'Trimite cererea'}
                 </button>
+                <p className="text-center text-xs text-gray-400">
+                  Preferi să alegi tu ora apelului?{' '}
+                  <button type="button" onClick={() => { setProgStep(1); setShowProgrameaza(true); }} className="font-medium text-gray-500 underline hover:text-gray-700">
+                    Programează un apel
+                  </button>
+                </p>
               </form>
             )}
           </div>
@@ -847,14 +857,14 @@ export default function LandingPage() {
               <div className="px-3.5 pb-3.5 pt-2 flex-1 flex flex-col justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-bold text-gray-900 leading-tight">Broker autorizat de credite</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Programeaza un apel gratuit</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">Analiză gratuită a situației tale</p>
                 </div>
                 <div className="mt-2 space-y-1">
                   <button
-                    onClick={() => { setProgStep(1); setShowProgrameaza(true); }}
+                    onClick={scrollToForm}
                     className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-1.5 rounded-xl text-xs transition-colors shadow-md shadow-green-500/20"
                   >
-                    Programeaza
+                    Completează formularul
                   </button>
                   <p className="text-[10px] text-gray-400 text-center">
                     Sau suna: <strong className="text-gray-700">{contact.phone}</strong>
