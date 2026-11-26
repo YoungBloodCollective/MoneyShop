@@ -119,7 +119,7 @@ public class BankCatalogServiceTests
         File(db, BrokerId, bt, "NP", 10_000m, BankFileStatuses.Disbursat, now);
         File(db, BrokerId, bcr, "NP", 10_000m, BankFileStatuses.Disbursat, now);
 
-        banks.SetMyCommission(BrokerUserId, bt, 3m);
+        banks.SetMyCommission(BrokerUserId, bt, null, 3m);
 
         var stats = banks.GetStats(BrokerUserId, null, false);
         var btRow = stats.Banks.Single(b => b.BankId == bt);
@@ -130,12 +130,61 @@ public class BankCatalogServiceTests
         Assert.Equal(200m, bcrRow.Mine.EstimatedCommission);
 
         var mine = banks.GetMyCommissions(BrokerUserId);
-        Assert.Equal(3m, mine.Single(c => c.BankId == bt).MyPercent);
-        Assert.Null(mine.Single(c => c.BankId == bcr).MyPercent);
+        Assert.Equal(3m, mine.Single(c => c.BankId == bt).MyNpPercent);
+        Assert.Equal(3m, mine.Single(c => c.BankId == bt).MyIpPercent);
+        Assert.Null(mine.Single(c => c.BankId == bcr).MyNpPercent);
 
-        banks.SetMyCommission(BrokerUserId, bt, null);
-        Assert.Null(banks.GetMyCommissions(BrokerUserId).Single(c => c.BankId == bt).MyPercent);
-        Assert.Throws<InvalidOperationException>(() => banks.SetMyCommission(BrokerUserId, bt, 101m));
+        banks.SetMyCommission(BrokerUserId, bt, null, null);
+        Assert.Null(banks.GetMyCommissions(BrokerUserId).Single(c => c.BankId == bt).MyNpPercent);
+        Assert.Throws<InvalidOperationException>(() => banks.SetMyCommission(BrokerUserId, bt, "NP", 101m));
+        Assert.Throws<InvalidOperationException>(() => banks.SetMyCommission(BrokerUserId, bt, "XX", 1m));
+    }
+
+    [Fact]
+    public void Commission_is_set_separately_for_personal_loans_and_mortgages()
+    {
+        var (banks, _, db) = Setup();
+        var bt = SeedBank(db, "BT");
+        db.Banks.Single(b => b.Id == bt).CommissionPercent = 1m;
+        db.SaveChanges();
+        var now = DateTime.UtcNow;
+        File(db, BrokerId, bt, "NP", 10_000m, BankFileStatuses.Disbursat, now);
+        File(db, BrokerId, bt, "IP", 100_000m, BankFileStatuses.Disbursat, now);
+
+        banks.SetMyCommission(BrokerUserId, bt, "NP", 3m);
+        var item = banks.SetMyCommission(BrokerUserId, bt, "IP", 0.5m)!;
+        Assert.Equal(3m, item.MyNpPercent);
+        Assert.Equal(0.5m, item.MyIpPercent);
+
+        var row = banks.GetStats(BrokerUserId, null, false).Banks.Single(b => b.BankId == bt);
+        Assert.Equal(3m, row.Mine.NpPercent);
+        Assert.Equal(0.5m, row.Mine.IpPercent);
+        Assert.Equal(300m + 500m, row.Mine.EstimatedCommission);
+
+        banks.SetMyCommission(BrokerUserId, bt, "IP", null);
+        var after = banks.GetMyCommissions(BrokerUserId).Single(c => c.BankId == bt);
+        Assert.Equal(3m, after.MyNpPercent);
+        Assert.Null(after.MyIpPercent);
+        Assert.Equal(1m, banks.GetStats(BrokerUserId, null, false).Banks.Single(b => b.BankId == bt).Mine.IpPercent);
+    }
+
+    [Fact]
+    public void A_commission_saved_before_the_split_applies_to_both_until_one_is_changed()
+    {
+        var (banks, _, db) = Setup();
+        var bt = SeedBank(db, "BT");
+        db.BrokerBankCommissions.Add(new BrokerBankCommission { BrokerProfileId = BrokerId, BankId = bt, CommissionPercent = 2m, UpdatedAt = DateTime.UtcNow });
+        db.SaveChanges();
+
+        var before = banks.GetMyCommissions(BrokerUserId).Single(c => c.BankId == bt);
+        Assert.Equal(2m, before.MyNpPercent);
+        Assert.Equal(2m, before.MyIpPercent);
+
+        var item = banks.SetMyCommission(BrokerUserId, bt, "IP", 0.8m)!;
+        Assert.Equal(2m, item.MyNpPercent);
+        Assert.Equal(0.8m, item.MyIpPercent);
+        Assert.DoesNotContain(db.BrokerBankCommissions.AsNoTracking().ToList(), c => c.CreditType == null);
+        Assert.Equal(2, db.BrokerBankCommissions.AsNoTracking().Count(c => c.BrokerProfileId == BrokerId && c.BankId == bt));
     }
 
     [Fact]
@@ -157,7 +206,7 @@ public class BankCatalogServiceTests
         Assert.NotNull(admin.ByBroker);
         Assert.Equal(new[] { "Maria", "Alex" }, admin.ByBroker!.Select(b => b.BrokerName).ToArray());
         Assert.Equal(300m, admin.ByBroker![0].IpAmount);
-        Assert.Throws<InvalidOperationException>(() => banks.SetMyCommission(AdminUserId, bt, 1m));
+        Assert.Throws<InvalidOperationException>(() => banks.SetMyCommission(AdminUserId, bt, null, 1m));
     }
 
     [Fact]

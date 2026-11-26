@@ -68,70 +68,81 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
         {
             var profileId = ResolveProfileId(userId);
             var mine = profileId == null
-                ? new Dictionary<int, decimal>()
-                : _context.BrokerBankCommissions.AsNoTracking().Where(c => c.BrokerProfileId == profileId)
-                    .ToDictionary(c => c.BankId, c => c.CommissionPercent);
-            return GetActiveBanks().Select(b => new BrokerCommissionItem
-            {
-                BankId = b.Id,
-                Name = b.Name,
-                DefaultPercent = b.CommissionPercent,
-                MyPercent = mine.TryGetValue(b.Id, out var p) ? p : null,
-            }).ToList();
+                ? new Dictionary<(int, int, string), decimal>()
+                : BrokerCommissionRates.Expand(_context.BrokerBankCommissions.AsNoTracking().Where(c => c.BrokerProfileId == profileId).ToList());
+            return GetActiveBanks().Select(b => ToCommissionItem(b.Id, b.Name, b.CommissionPercent, profileId ?? 0, mine)).ToList();
         }
 
-        public BrokerCommissionItem? SetMyCommission(int userId, int bankId, decimal? percent)
+        public BrokerCommissionItem? SetMyCommission(int userId, int bankId, string? creditType, decimal? percent)
         {
             var profileId = ResolveProfileId(userId)
                 ?? throw new InvalidOperationException("Doar un broker cu profil propriu își poate seta comisioanele.");
+            if (creditType != null && !CreditTypes.IsValid(creditType)) throw new InvalidOperationException("Tipul de credit trebuie să fie NP sau IP.");
             if (percent is < 0 or > 100) throw new InvalidOperationException("Comisionul trebuie să fie între 0 și 100%.");
-            var bank = _context.Banks.FirstOrDefault(b => b.Id == bankId && b.Active);
+            var bank = _context.Banks.AsNoTracking().FirstOrDefault(b => b.Id == bankId && b.Active);
             if (bank == null) return null;
 
-            var bankName = bank.Name;
-            var bankDefault = bank.CommissionPercent;
             var value = percent == null ? (decimal?)null : Math.Round(percent.Value, 2);
-            var row = _context.BrokerBankCommissions.FirstOrDefault(c => c.BrokerProfileId == profileId && c.BankId == bankId);
-            if (value == null)
+            var types = creditType == null ? BrokerCommissionRates.Types : new[] { creditType };
+            try
             {
-                if (row != null) _context.BrokerBankCommissions.Remove(row);
-                _context.SaveChanges();
+                Save(profileId, bankId, types, value);
             }
-            else if (row != null)
+            catch (DbUpdateException)
             {
-                row.CommissionPercent = value.Value;
-                row.UpdatedAt = DateTime.UtcNow;
-                _context.SaveChanges();
+                _context.ChangeTracker.Clear();
+                Save(profileId, bankId, types, value);
             }
-            else
+            var mine = BrokerCommissionRates.Expand(_context.BrokerBankCommissions.AsNoTracking()
+                .Where(c => c.BrokerProfileId == profileId && c.BankId == bankId).ToList());
+            return ToCommissionItem(bankId, bank.Name, bank.CommissionPercent, profileId, mine);
+        }
+
+        private void Save(int profileId, int bankId, IReadOnlyCollection<string> types, decimal? value)
+        {
+            var rows = _context.BrokerBankCommissions.Where(c => c.BrokerProfileId == profileId && c.BankId == bankId).ToList();
+            var legacy = rows.FirstOrDefault(r => r.CreditType == null);
+            if (legacy != null)
             {
-                _context.BrokerBankCommissions.Add(new BrokerBankCommission
+                _context.BrokerBankCommissions.Remove(legacy);
+                foreach (var type in BrokerCommissionRates.Types.Where(t => !types.Contains(t) && rows.All(r => r.CreditType != t)))
+                    rows.Add(Add(profileId, bankId, type, legacy.CommissionPercent));
+            }
+            foreach (var type in types)
+            {
+                var row = rows.FirstOrDefault(r => r.CreditType == type);
+                if (value == null)
                 {
-                    BrokerProfileId = profileId,
-                    BankId = bankId,
-                    CommissionPercent = value.Value,
-                    UpdatedAt = DateTime.UtcNow,
-                });
-                try
-                {
-                    _context.SaveChanges();
+                    if (row != null) _context.BrokerBankCommissions.Remove(row);
                 }
-                catch (DbUpdateException)
+                else if (row != null)
                 {
-                    _context.ChangeTracker.Clear();
-                    var existing = _context.BrokerBankCommissions.FirstOrDefault(c => c.BrokerProfileId == profileId && c.BankId == bankId);
-                    if (existing == null) throw;
-                    existing.CommissionPercent = value.Value;
-                    existing.UpdatedAt = DateTime.UtcNow;
-                    _context.SaveChanges();
+                    row.CommissionPercent = value.Value;
+                    row.UpdatedAt = DateTime.UtcNow;
                 }
+                else Add(profileId, bankId, type, value.Value);
             }
+            _context.SaveChanges();
+        }
+
+        private BrokerBankCommission Add(int profileId, int bankId, string type, decimal percent)
+        {
+            var row = new BrokerBankCommission { BrokerProfileId = profileId, BankId = bankId, CreditType = type, CommissionPercent = percent, UpdatedAt = DateTime.UtcNow };
+            _context.BrokerBankCommissions.Add(row);
+            return row;
+        }
+
+        private static BrokerCommissionItem ToCommissionItem(int bankId, string name, decimal bankDefault, int profileId,
+            Dictionary<(int BrokerId, int BankId, string Type), decimal> mine)
+        {
+            decimal? Of(string type) => mine.TryGetValue((profileId, bankId, type), out var p) ? p : null;
             return new BrokerCommissionItem
             {
                 BankId = bankId,
-                Name = bankName,
+                Name = name,
                 DefaultPercent = bankDefault,
-                MyPercent = value,
+                MyNpPercent = Of(CreditTypes.Np),
+                MyIpPercent = Of(CreditTypes.Ip),
             };
         }
 
@@ -181,7 +192,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 var bankFiles = files.Where(f => f.BankId == bank.Id).ToList();
                 var mine = new BankMineVolume
                 {
-                    CommissionPercent = commission.FallbackPercent(profileId, bank.Id),
+                    CommissionPercent = commission.FallbackPercent(profileId, bank.Id, CreditTypes.Np),
                     NpPercent = commission.RateFor(profileId, bank.Id, CreditTypes.Np).Percent,
                     IpPercent = commission.RateFor(profileId, bank.Id, CreditTypes.Ip).Percent,
                 };

@@ -282,7 +282,8 @@ export interface BrokerCommissionItem {
   bankId: number;
   name: string;
   defaultPercent: number;
-  myPercent?: number | null;
+  myNpPercent?: number | null;
+  myIpPercent?: number | null;
 }
 
 export interface BankVolume {

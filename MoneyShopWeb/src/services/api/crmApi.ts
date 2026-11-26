@@ -112,8 +112,8 @@ export const crmApi = {
     const { data } = await apiClient.get<BrokerCommissionItem[]>('/crm/commissions/mine');
     return data;
   },
-  async setMyCommission(bankId: number, percent: number | null): Promise<BrokerCommissionItem> {
-    const { data } = await apiClient.put<BrokerCommissionItem>(`/crm/commissions/mine/${bankId}`, { percent });
+  async setMyCommission(bankId: number, creditType: 'NP' | 'IP', percent: number | null): Promise<BrokerCommissionItem> {
+    const { data } = await apiClient.put<BrokerCommissionItem>(`/crm/commissions/mine/${bankId}`, { percent, creditType });
     return data;
   },
   async getAdminDashboard(month: string, months = 12): Promise<AdminDashboardResult> {

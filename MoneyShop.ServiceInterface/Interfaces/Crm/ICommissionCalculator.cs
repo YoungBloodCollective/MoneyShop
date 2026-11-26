@@ -8,7 +8,8 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
     /// The one place that decides which commission percent applies to a disbursed bank file. For a month,
     /// a bank and a credit type the MoneyShop network volume picks the tier, whose percent applies to the
     /// whole amount of every MoneyShop broker's file. Without tiers, without a credit type or for an
-    /// affiliate the per-broker override (else the bank default) applies.
+    /// affiliate the per-broker override for that credit type (else the bank default) applies; a file
+    /// without a credit type uses the broker's NP percent.
     /// </summary>
     public interface ICommissionCalculator
     {
@@ -117,14 +118,14 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         private readonly Dictionary<(int BankId, string Type), List<CommissionTierRow>> _tiers;
         private readonly Dictionary<(int BankId, string Type), decimal> _volume;
         private readonly HashSet<int> _moneyShopBrokers;
-        private readonly Dictionary<(int BrokerId, int BankId), decimal> _overrides;
+        private readonly Dictionary<(int BrokerId, int BankId, string Type), decimal> _overrides;
         private readonly Dictionary<int, decimal> _defaults;
 
         public CommissionMonth(
             Dictionary<(int BankId, string Type), List<CommissionTierRow>> tiers,
             Dictionary<(int BankId, string Type), decimal> networkVolume,
             HashSet<int> moneyShopBrokers,
-            Dictionary<(int BrokerId, int BankId), decimal> brokerOverrides,
+            Dictionary<(int BrokerId, int BankId, string Type), decimal> brokerOverrides,
             Dictionary<int, decimal> bankDefaults)
         {
             _tiers = tiers;
@@ -149,12 +150,12 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
                 var tier = CommissionTiers.Resolve(tiers, NetworkVolume(bankId, creditType));
                 if (tier != null) return new CommissionRate(tier.Percent, true);
             }
-            return new CommissionRate(FallbackPercent(brokerProfileId, bankId), false);
+            return new CommissionRate(FallbackPercent(brokerProfileId, bankId, creditType), false);
         }
 
-        public decimal FallbackPercent(int? brokerProfileId, int bankId)
+        public decimal FallbackPercent(int? brokerProfileId, int bankId, string? creditType)
         {
-            if (brokerProfileId is { } broker && _overrides.TryGetValue((broker, bankId), out var o)) return o;
+            if (brokerProfileId is { } broker && _overrides.TryGetValue((broker, bankId, creditType ?? CreditTypes.Np), out var o)) return o;
             return _defaults.TryGetValue(bankId, out var d) ? d : 0m;
         }
 
