@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { ChevronDown, Download, Eye, FileText, Folder, FolderPlus, Landmark, Loader2, Trash2, Upload } from 'lucide-react';
+import { ChevronDown, Download, Eye, FileText, Folder, FolderPlus, GripVertical, Landmark, Loader2, Trash2, Upload } from 'lucide-react';
 import { crmApi } from '@/services/api/crmApi';
 import { acordApi } from '@/services/api/acordApi';
 import { apiErrorMessage } from '@/services/api/brokersApi';
@@ -34,6 +34,7 @@ const ACCEPT = '.pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx,applicati
 
 const size = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
 const bankKey = (name: string) => name.trim().toLowerCase();
+const hasFiles = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes('Files');
 
 /** The bank code in an agreement file type: bank_ing_consimtamant → ing; procredit_consent → procredit. */
 function bankCodeOf(fileType: string): string | null {
@@ -56,7 +57,9 @@ function upload(doc: ClientDocumentInfo): FolderItem {
 
 /**
  * "Dosarul clientului": every document of the client in one place, grouped into folders —
- * Acord, Venituri, Biroul de Credit, one folder per bank, Altele. The broker uploads into any folder.
+ * Acord, Venituri, Biroul de Credit, one folder per bank, Altele. The broker uploads into any folder, also by
+ * dropping files on it, and can drag a document out to the desktop by its grip (Chrome/Edge). The file is fetched
+ * only when the grip is pointed at, since every download is audited.
  */
 export function ClientFolderCard({ client, onPreview, preparingBankDocs = false }: { client: CrmClientDetail; onPreview: (s: DocumentPreviewSource) => void; preparingBankDocs?: boolean }) {
   const userId = client.userId;
@@ -67,6 +70,13 @@ export function ClientFolderCard({ client, onPreview, preparingBankDocs = false 
   const [addingBank, setAddingBank] = useState(false);
   const [newBank, setNewBank] = useState('');
   const [catalogBanks, setCatalogBanks] = useState<string[]>([]);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const dragUrls = useRef(new Map<string, string>());
+
+  useEffect(() => {
+    const urls = dragUrls.current;
+    return () => { urls.forEach(u => URL.revokeObjectURL(u)); urls.clear(); };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -158,11 +168,8 @@ export function ClientFolderCard({ client, onPreview, preparingBankDocs = false 
     fileInput.current?.click();
   };
 
-  const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = '';
-    const folder = target.current;
-    if (!folder || files.length === 0) return;
+  const uploadTo = async (folder: FolderDef, files: File[]) => {
+    if (files.length === 0 || busyFolder) return;
     setBusyFolder(folder.key);
     let ok = 0;
     for (const file of files) {
@@ -176,6 +183,54 @@ export function ClientFolderCard({ client, onPreview, preparingBankDocs = false 
     }
     setBusyFolder(null);
     if (ok) toast.success(ok === 1 ? `Document adăugat în „${folder.title}”` : `${ok} documente adăugate în „${folder.title}”`);
+  };
+
+  const onFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (target.current) void uploadTo(target.current, files);
+  };
+
+  const dropHandlers = (folder: FolderDef) => ({
+    onDragEnter: (e: React.DragEvent) => { if (hasFiles(e)) { e.preventDefault(); setDropTarget(folder.key); } },
+    onDragOver: (e: React.DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      if (dropTarget !== folder.key) setDropTarget(folder.key);
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropTarget(t => (t === folder.key ? null : t));
+    },
+    onDrop: (e: React.DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      setDropTarget(null);
+      setOpen(folder.key);
+      void uploadTo(folder, Array.from(e.dataTransfer.files));
+    },
+  });
+
+  const prefetchForDrag = useCallback(async (item: FolderItem) => {
+    if (!item.load || dragUrls.current.has(item.key)) return;
+    dragUrls.current.set(item.key, '');
+    try {
+      dragUrls.current.set(item.key, URL.createObjectURL(await item.load()));
+    } catch {
+      dragUrls.current.delete(item.key);
+    }
+  }, []);
+
+  const onDragOut = (e: React.DragEvent, item: FolderItem) => {
+    const url = dragUrls.current.get(item.key);
+    if (!url) {
+      e.preventDefault();
+      toast('Se pregătește fișierul. Trage din nou într-o secundă.', { id: 'drag-out' });
+      return;
+    }
+    const name = (item.fileName ?? item.title).replace(/:/g, '-');
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('DownloadURL', `${item.mimeType ?? 'application/octet-stream'}:${name}:${url}`);
   };
 
   const remove = async (item: FolderItem) => {
@@ -251,8 +306,9 @@ export function ClientFolderCard({ client, onPreview, preparingBankDocs = false 
         {folders.map(f => {
           const isOpen = open === f.key;
           const Icon = f.folder === 'BANCA' ? Landmark : Folder;
+          const dropping = dropTarget === f.key;
           return (
-            <li key={f.key}>
+            <li key={f.key} {...dropHandlers(f)} className={dropping ? 'bg-brand-primary/5 ring-2 ring-inset ring-brand-primary' : undefined}>
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : f.key)}
@@ -261,6 +317,7 @@ export function ClientFolderCard({ client, onPreview, preparingBankDocs = false 
               >
                 <Icon className={`h-4 w-4 shrink-0 ${f.items.length ? 'text-brand-primary' : 'text-slate-300'}`} />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800">{f.title}</span>
+                {dropping && <span className="shrink-0 text-xs font-semibold text-brand-primary">Lasă aici</span>}
                 <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{f.items.length}</span>
                 <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -271,6 +328,18 @@ export function ClientFolderCard({ client, onPreview, preparingBankDocs = false 
                     {f.items.map(item => (
                       <li key={item.key} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
                         <div className="flex min-w-0 items-center gap-2.5">
+                          {item.load && (
+                            <span
+                              draggable
+                              onMouseEnter={() => void prefetchForDrag(item)}
+                              onDragStart={e => onDragOut(e, item)}
+                              title="Trage pe desktop sau într-un folder ca să salvezi fișierul"
+                              aria-hidden="true"
+                              className="hidden h-8 w-4 shrink-0 cursor-grab items-center justify-center text-slate-300 hover:text-slate-500 active:cursor-grabbing md:flex"
+                            >
+                              <GripVertical className="h-4 w-4" />
+                            </span>
+                          )}
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500 ring-1 ring-slate-100"><FileText className="h-4 w-4" /></div>
                           <div className="min-w-0">
                             <div className="truncate text-sm font-medium text-slate-700">{item.title}</div>
@@ -301,7 +370,7 @@ export function ClientFolderCard({ client, onPreview, preparingBankDocs = false 
                     disabled={busyFolder === f.key}
                     className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-white py-2.5 text-sm font-medium text-slate-600 hover:border-brand-primary hover:text-brand-primary disabled:opacity-50 ${FOCUS_RING}`}
                   >
-                    <Upload className="h-4 w-4" /> {busyFolder === f.key ? 'Se încarcă…' : `Încarcă în „${f.title}”`}
+                    <Upload className="h-4 w-4" /> {busyFolder === f.key ? 'Se încarcă…' : `Încarcă în „${f.title}” sau trage fișierele aici`}
                   </button>
                 </div>
               )}
@@ -309,7 +378,7 @@ export function ClientFolderCard({ client, onPreview, preparingBankDocs = false 
           );
         })}
       </ul>
-      <p className="mt-2 text-xs text-slate-400">PDF, poze (și din camera telefonului), Word sau Excel, până la 20 MB fiecare.</p>
+      <p className="mt-2 text-xs text-slate-400">PDF, poze (și din camera telefonului), Word sau Excel, până la 20 MB fiecare. Pe calculator poți trage fișierele direct peste un dosar.</p>
     </div>
   );
 }
