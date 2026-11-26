@@ -974,10 +974,11 @@ public class MoneyShopDbContext : DbContext
         {
             entity.ToTable("BrokerBankCommissions");
             entity.Property(e => e.CommissionPercent).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.CreditType).HasMaxLength(2);
             entity.Property(e => e.UpdatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
             entity.HasOne<BrokerProfile>().WithMany().HasForeignKey(e => e.BrokerProfileId).OnDelete(DeleteBehavior.NoAction);
             entity.HasOne<Bank>().WithMany().HasForeignKey(e => e.BankId).OnDelete(DeleteBehavior.NoAction);
-            entity.HasIndex(e => new { e.BrokerProfileId, e.BankId }).IsUnique();
+            entity.HasIndex(e => new { e.BrokerProfileId, e.BankId, e.CreditType }).IsUnique();
         });
 
         modelBuilder.Entity<BankCommissionTier>(entity =>

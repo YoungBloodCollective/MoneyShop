@@ -79,6 +79,7 @@ namespace MoneyShop.Api.Controllers
         public class CommissionInput
         {
             public decimal? Percent { get; set; }
+            public string? CreditType { get; set; }
         }
 
         [HttpPut("commissions/mine/{bankId:int}")]
@@ -86,7 +87,7 @@ namespace MoneyShop.Api.Controllers
         {
             try
             {
-                var item = _banks.SetMyCommission(UserId, bankId, input.Percent);
+                var item = _banks.SetMyCommission(UserId, bankId, input.CreditType?.ToUpperInvariant(), input.Percent);
                 return item == null ? NotFound("Banca nu există sau nu este activă.") : Ok(item, "Comision salvat");
             }
             catch (InvalidOperationException ex) { return BadRequest(ex.Message); }

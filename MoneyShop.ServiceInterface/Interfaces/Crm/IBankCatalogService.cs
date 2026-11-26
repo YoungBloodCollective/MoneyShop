@@ -18,7 +18,8 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
 
         List<BrokerCommissionItem> GetMyCommissions(int userId);
         /// <summary>Sets the caller's percent for a bank; a null percent removes the override. Null when the bank is not an active catalog bank.</summary>
-        BrokerCommissionItem? SetMyCommission(int userId, int bankId, decimal? percent);
+        /// <summary>Sets (or, with a null percent, clears) the broker's percent for one credit type, or for both when it is null.</summary>
+        BrokerCommissionItem? SetMyCommission(int userId, int bankId, string? creditType, decimal? percent);
 
         /// <summary>
         /// Per bank, the network disbursed amount and the caller's own numbers for a month (yyyy-MM, Europe/Bucharest).
@@ -65,7 +66,8 @@ namespace MoneyShop.ServiceInterface.Interfaces.Crm
         public int BankId { get; set; }
         public string Name { get; set; } = null!;
         public decimal DefaultPercent { get; set; }
-        public decimal? MyPercent { get; set; }
+        public decimal? MyNpPercent { get; set; }
+        public decimal? MyIpPercent { get; set; }
     }
 
     public class BankVolume

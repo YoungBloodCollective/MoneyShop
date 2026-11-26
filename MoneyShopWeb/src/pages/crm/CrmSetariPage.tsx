@@ -24,25 +24,32 @@ function parseNumber(value: string): number | null {
   return Number.isFinite(n) ? n : NaN;
 }
 
+type CreditKind = 'NP' | 'IP';
+const KINDS: { kind: CreditKind; label: string; key: 'myNpPercent' | 'myIpPercent' }[] = [
+  { kind: 'NP', label: 'Nevoi personale (%)', key: 'myNpPercent' },
+  { kind: 'IP', label: 'Ipotecar (%)', key: 'myIpPercent' },
+];
+const shown = (v: number | null | undefined) => (v != null ? String(v) : '');
+
 function CommissionRow({ item, onSaved }: { item: BrokerCommissionItem; onSaved: (c: BrokerCommissionItem) => void }) {
-  const [value, setValue] = useState(item.myPercent != null ? String(item.myPercent) : '');
+  const [values, setValues] = useState({ NP: shown(item.myNpPercent), IP: shown(item.myIpPercent) });
   const [saving, setSaving] = useState(false);
-  const saved = item.myPercent != null ? String(item.myPercent) : '';
-  const dirty = value.trim().replace(',', '.') !== saved;
+  const changed = KINDS.filter(k => values[k.kind].trim().replace(',', '.') !== shown(item[k.key]));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const percent = parseNumber(value);
-    if (percent != null && (Number.isNaN(percent) || percent < 0 || percent > 100)) {
+    const parsed = changed.map(k => ({ ...k, percent: parseNumber(values[k.kind]) }));
+    if (parsed.some(p => p.percent != null && (Number.isNaN(p.percent) || p.percent < 0 || p.percent > 100))) {
       toast.error('Comisionul trebuie să fie între 0 și 100%.');
       return;
     }
     setSaving(true);
     try {
-      const updated = await crmApi.setMyCommission(item.bankId, percent);
+      let updated = item;
+      for (const p of parsed) updated = await crmApi.setMyCommission(item.bankId, p.kind, p.percent);
       onSaved(updated);
-      setValue(updated.myPercent != null ? String(updated.myPercent) : '');
-      toast.success(percent == null ? `${item.name}: revii la comisionul implicit` : `${item.name}: comision salvat`);
+      setValues({ NP: shown(updated.myNpPercent), IP: shown(updated.myIpPercent) });
+      toast.success(`${item.name}: comision salvat`);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Nu am putut salva comisionul'));
     } finally {
@@ -52,22 +59,24 @@ function CommissionRow({ item, onSaved }: { item: BrokerCommissionItem; onSaved:
 
   return (
     <form onSubmit={submit} className="flex flex-wrap items-end gap-3 py-3">
-      <div className="min-w-[10rem] flex-1">
+      <div className="w-full sm:w-auto sm:min-w-[10rem] sm:flex-1">
         <div className="text-sm font-semibold text-slate-800">{item.name}</div>
         <div className="text-xs text-slate-400">Implicit: {item.defaultPercent.toLocaleString('ro-RO')}%</div>
       </div>
-      <label className={`${LABEL} w-32`}>
-        Comisionul meu (%)
-        <input
-          inputMode="decimal"
-          value={value}
-          onChange={e => setValue(e.target.value)}
-          placeholder={String(item.defaultPercent)}
-          aria-label={`Comisionul meu la ${item.name}, în procente`}
-          className={`${INPUT} mt-1`}
-        />
-      </label>
-      <button type="submit" disabled={!dirty || saving} className={BTN_PRIMARY}>{saving ? 'Se salvează…' : 'Salvează'}</button>
+      {KINDS.map(k => (
+        <label key={k.kind} className={`${LABEL} min-w-0 flex-1 sm:w-36 sm:flex-none`}>
+          {k.label}
+          <input
+            inputMode="decimal"
+            value={values[k.kind]}
+            onChange={e => setValues(v => ({ ...v, [k.kind]: e.target.value }))}
+            placeholder={String(item.defaultPercent)}
+            aria-label={`Comisionul meu la ${item.name} pentru ${k.kind === 'NP' ? 'nevoi personale' : 'credit ipotecar'}, în procente`}
+            className={`${INPUT} mt-1`}
+          />
+        </label>
+      ))}
+      <button type="submit" disabled={changed.length === 0 || saving} className={BTN_PRIMARY}>{saving ? 'Se salvează…' : 'Salvează'}</button>
     </form>
   );
 }
@@ -92,7 +101,7 @@ function CommissionsBlock() {
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-sm font-semibold text-slate-800">Comisioanele mele</h2>
       <p className="mt-1 text-sm text-slate-500">
-        Procentul pe care îl ai cu fiecare bancă. Lasă gol ca să folosești comisionul implicit al băncii. Se folosește la comisionul estimat din ecranul Bănci.
+        Procentul pe care îl ai cu fiecare bancă, separat pentru nevoi personale și ipotecar. Lasă gol ca să folosești comisionul implicit al băncii. Se folosește la comisionul estimat din ecranul Bănci.
       </p>
       {items.length === 0 ? (
         <p className="py-4 text-sm text-slate-400">Nu există bănci active în catalog.</p>

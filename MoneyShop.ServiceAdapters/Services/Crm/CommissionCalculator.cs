@@ -47,8 +47,7 @@ namespace MoneyShop.ServiceAdapters.Services.Crm
                 .Where(f => f.BrokerProfileId != null && moneyShop.Contains(f.BrokerProfileId.Value) && CreditTypes.IsValid(f.CreditType))
                 .GroupBy(f => (f.BankId, f.CreditType!))
                 .ToDictionary(g => g.Key, g => g.Sum(f => f.Amount));
-            var overrides = _context.BrokerBankCommissions.AsNoTracking().ToList()
-                .ToDictionary(c => (c.BrokerProfileId, c.BankId), c => c.CommissionPercent);
+            var overrides = BrokerCommissionRates.Expand(_context.BrokerBankCommissions.AsNoTracking().ToList());
             var defaults = _context.Banks.AsNoTracking().ToDictionary(b => b.Id, b => b.CommissionPercent);
             return new CommissionMonth(tiers, volume, moneyShop, overrides, defaults);
         }
