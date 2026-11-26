@@ -34,7 +34,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,svg,woff2}', 'icons/*.png', 'images/logo/logo-trimmed.png'],
         globIgnores: ['**/assets/Admin*.js', '**/assets/*Chart-*.js', '**/assets/*Kyc*.js'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/\.auth\//, /\/[^/?]+\.[^/]+$/],
+        navigateFallbackDenylist: [/^\/api\//, /^\/\.auth\//, /\/[^/?]+\.[^/]+$/, /^\/(acord|colaborare|broker\/invitatie|programare\/)/],
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
